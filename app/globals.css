@@ -722,3 +722,46 @@ a.tessera:hover, .scheda-corso:hover, .carta-lezione:hover {
 }
 .campo-password button:hover { background: var(--carta); color: var(--nero); }
 .campo-password button:focus-visible { outline: 2px solid var(--rosso); outline-offset: 2px; }
+
+
+/* ==================================================================
+   Calendario dentro il modulo di prenotazione sala
+   ================================================================== */
+.calendario-scelta {
+  display: grid; grid-template-columns: 46px 1fr; gap: 6px;
+  border: 1px solid var(--linea); border-radius: 12px; padding: 10px;
+  background: var(--bianco); overflow-x: auto;
+}
+.calendario-scelta .ore { position: relative; }
+.calendario-scelta .ore span {
+  position: absolute; right: 4px; font-size: 11px; color: var(--testo-2);
+}
+.calendario-scelta .colonne { display: grid; gap: 6px; min-width: 0; }
+.calendario-scelta .colonna-sala { min-width: 0; }
+.calendario-scelta .testa-sala {
+  font-size: 12px; font-weight: 700; color: var(--testo-2); text-align: center;
+  padding-bottom: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.calendario-scelta .testa-sala.scelta { color: var(--rosso); }
+.calendario-scelta .corpo-sala {
+  position: relative; border: 1px solid var(--linea); border-radius: 8px;
+  background: var(--bianco); cursor: crosshair; overflow: hidden;
+}
+.calendario-scelta .linea { position: absolute; left: 0; right: 0; border-top: 1px solid var(--linea); opacity: .6; }
+.calendario-scelta .impegno {
+  position: absolute; left: 2px; right: 2px; border-radius: 6px; padding: 3px 5px;
+  font-size: 10.5px; line-height: 1.2; overflow: hidden;
+  background: var(--carta); color: var(--testo-2); border: 1px solid var(--linea);
+}
+.calendario-scelta .impegno.noleggio { background: var(--rosso); color: #fff; border-color: var(--rosso); }
+.calendario-scelta .impegno.evento { background: var(--nero); color: #fff; border-color: var(--nero); }
+.calendario-scelta .impegno.interno { background: var(--attenzione-tenue); color: var(--attenzione); border-color: var(--attenzione); }
+.calendario-scelta .scelta-fascia {
+  position: absolute; left: 1px; right: 1px; border-radius: 8px; z-index: 3;
+  border: 2px dashed var(--ok); background: rgba(31, 122, 61, .14); color: var(--ok);
+  font-size: 11px; font-weight: 800; display: flex; align-items: center; justify-content: center;
+  pointer-events: none;
+}
+.calendario-scelta .scelta-fascia.occupata {
+  border-color: var(--rosso); background: rgba(244, 0, 0, .16); color: var(--rosso-scuro);
+}

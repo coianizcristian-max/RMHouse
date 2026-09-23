@@ -39,6 +39,7 @@ la struttura per agganciarli c'è già. Vedi `docs/ARCHITETTURA.md`.
    19. `supabase/migrations/019_push_materiali.sql` (notifiche push, materiali della lezione, lezione singola)
    20. `supabase/migrations/020_pulizia.sql` (toglie la vecchia invia_bacheca doppia)
    21. `supabase/migrations/021_spazi_segreteria.sql` (prenotazione sale dal banco, verifica immediata, niente email)
+   22. `supabase/migrations/022_attese.sql` (liste d'attesa: posizione, avvisi, esito)
 3. In **Table Editor → palestre** aggiorna la riga `rmhouse`: `email`, `google_review_url` e, dopo il deploy, `base_url`.
 
 ### 2. Il tuo utente amministratore

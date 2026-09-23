@@ -3,6 +3,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { supabaseBrowser } from '@/lib/supabase/browser';
+import CalendarioScelta from './CalendarioScelta';
 import { euro, ora, dataBreve, giornoLungo, spostaGiorni, oggiISO } from '@/lib/formato';
 
 const MINUTI = (iso) => { const d = new Date(iso); return d.getHours() * 60 + d.getMinutes(); };
@@ -278,6 +279,14 @@ export default function Spazi({ palestraId, giorno, richieste, prossime, agenda,
                 <div className="campo"><label htmlFor="of">Alle</label>
                   <input id="of" type="time" value={f.fine_ora} onChange={(e) => cambia('fine_ora', e.target.value)} /></div>
               </div>
+
+              <CalendarioScelta
+                palestraId={palestraId} sale={sale} data={f.data} salaId={f.sala_id}
+                dalle={f.ora} alle={f.fine_ora}
+                onScegli={({ sala_id, ora: o, fine_ora: fo }) => {
+                  const dati = { ...f, sala_id, ora: o, fine_ora: fo };
+                  setF(dati); controlla(dati);
+                }} />
 
               {/* esito della verifica, mentre si compila */}
               {controllo && <p className="piccolo muto">Controllo la disponibilità…</p>}

@@ -1,25 +1,37 @@
-AGGIORNAMENTO N 018 — RMHouse
-L'occhio per mostrare la password
+AGGIORNAMENTO N 020 — RMHouse
+Liste d'attesa complete
 
 QUERY DA ESEGUIRE
 -----------------
-Nessuna.
+supabase/migrations/022_attese.sql
 
 FILE DA COPIARE
 ---------------
-app/login/page.js        sostituito
-app/globals.css          sostituito
+app/gestione/attese/page.js      sostituito
+app/gestione/attese/Attese.js    sostituito
+README.md                        sostituito
+docs/ARCHITETTURA.md             sostituito
 
-Poi: git add . && git commit -m "Aggiornamento 018" && git push
+Poi: git add . && git commit -m "Aggiornamento 020" && git push
 
-COSA CAMBIA
------------
-Nella pagina di accesso dello staff, dentro il campo Password c'e' ora
-il tastino con l'occhio: toccandolo la password diventa leggibile,
-ritoccandolo torna nascosta. L'icona cambia (occhio sbarrato quando e'
-visibile) e ha le etichette giuste per chi usa il lettore di schermo.
+COSA MANCAVA
+------------
+C'era solo "Togli dalla lista", e l'avviso automatico funzionava solo
+sulle singole lezioni: se qualcuno lasciava un CORSO, nessuno veniva
+avvisato.
 
-NOTA
-----
-Nell'area dei clienti non serve: li' si entra con il link mandato per
-email, senza password.
+COSA C'E' ORA
+-------------
+- Posizione in coda (1ª, 2ª, 3ª) e posti liberi del corso in quel momento.
+- "Code aperte": l'elenco dei corsi con gente in attesa; se il corso ha
+  posti liberi basta toccarlo e avvisa tutti quelli che ci stanno,
+  in ordine di arrivo.
+- Su ogni persona: "Avvisa: posto libero" (o "Riavvisa"), WhatsApp,
+  "Iscrivilo" (apre la sua scheda), "Si e' iscritto", "Ha rinunciato"
+  con il motivo.
+- Tre viste: In coda / Avvisati / Chiusi, con la data dell'avviso e
+  quanti sono stati avvisati da piu' di tre giorni senza rispondere.
+- AVVISO AUTOMATICO ANCHE SUL CORSO: quando un'iscrizione passa ad
+  annullata o scaduta, il primo della coda riceve l'email da solo.
+- Ogni posizione si chiude con un esito (iscritto, rinunciato, scaduto),
+  cosi' si sa quanto converte la lista d'attesa.

@@ -266,6 +266,17 @@ convertiti), su ogni riga i pulsanti per WhatsApp, chiamata ed email, "Segna con
 canale, esito, nota e data del prossimo richiamo, e i due esiti finali, "Si è iscritto" e "Non convertito" con
 il motivo. Il motivo finisce nelle statistiche insieme alle risposte del sondaggio.
 
+## Le liste d'attesa
+Una persona può aspettare **un corso** (quando è pieno) o **una singola lezione** (quando è al completo quella
+sera). La coda è in ordine di arrivo e `v_attese` calcola la posizione, i posti liberi del corso in quel momento
+e se nel frattempo si è già iscritta da un'altra parte.
+
+L'avviso parte da solo in due casi: quando qualcuno **disdice una lezione** (avvisa chi aspetta quella lezione) e
+quando un'iscrizione passa ad annullata o scaduta, cioè **si libera un posto nel corso**. Dalla schermata si può
+avvisare a mano una persona o, con un tocco sul corso, tutti quelli che ci stanno nei posti liberi. Alla fine la
+posizione si chiude con un esito — iscritto, rinunciato, scaduto — così la coda resta pulita e si sa quanto
+converte.
+
 ## Prenotare una sala dal banco
 Dal sito arriva una **richiesta** che manda le email e resta da confermare; dalla segreteria si crea invece una
 prenotazione **già confermata e senza nessuna email**: la differenza sta in `prenotazioni_spazi.origine`, che il
