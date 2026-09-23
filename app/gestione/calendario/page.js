@@ -30,12 +30,14 @@ export default async function Calendario({ searchParams }) {
   if (insegnante) q = q.eq('insegnante_id', insegnante);
   if (mie === '1') q = q.eq('insegnante_id', staff.id);
 
-  const [{ data: lezioni }, { data: sale }, { data: insegnanti }, { data: corsi }] = await Promise.all([
+  const [{ data: lezioni }, { data: sale }, { data: insegnanti }, { data: corsi }, { data: note }] = await Promise.all([
     q,
     supabase.from('sale').select('id, nome').eq('palestra_id', staff.palestra_id).order('nome'),
     supabase.from('staff').select('id, nome, cognome').eq('palestra_id', staff.palestra_id)
       .eq('ruolo', 'insegnante').eq('attivo', true).order('nome'),
     supabase.from('corsi').select('id, colore').eq('palestra_id', staff.palestra_id),
+    supabase.from('note_giorno').select('id, data, testo')
+      .eq('palestra_id', staff.palestra_id).gte('data', inizio).lte('data', fine).order('created_at'),
   ]);
 
   const filtro = (chiave, valore) => {
@@ -74,7 +76,7 @@ export default async function Calendario({ searchParams }) {
       {vista === 'griglia'
         ? <Settimana inizio={inizio} lezioni={lezioni || []} corsi={corsi || []}
                      palestraId={staff.palestra_id} gestione={staff.ruolo !== 'insegnante'} />
-        : <Palinsesto inizio={inizio} lezioni={lezioni || []} corsi={corsi || []}
+        : <Palinsesto inizio={inizio} lezioni={lezioni || []} corsi={corsi || []} note={note || []}
                       palestraId={staff.palestra_id} gestione={staff.ruolo !== 'insegnante'} />}
     </>
   );

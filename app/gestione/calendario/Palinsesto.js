@@ -6,12 +6,14 @@ import { ora } from '@/lib/formato';
 
 const GIORNI = ['Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato', 'Domenica'];
 
-export default function Palinsesto({ inizio, lezioni, corsi = [], palestraId, gestione = true }) {
+export default function Palinsesto({ inizio, lezioni, corsi = [], note = [], palestraId, gestione = true }) {
   const [scelta, setScelta] = useState(null);
+  const [apriAggiungi, setApriAggiungi] = useState(false);
   const [giorno, setGiorno] = useState(null);
   const [dati, setDati] = useState(null);
 
   const colore = (id) => corsi.find((c) => c.id === id)?.colore || 'var(--rosso)';
+  const noteDi = (g) => note.filter((n) => n.data === g);
   const oggi = new Date().toLocaleDateString('sv-SE');
   const giorni = Array.from({ length: 7 }, (_, i) => {
     const d = new Date(inizio + 'T12:00:00Z');
@@ -45,10 +47,17 @@ export default function Palinsesto({ inizio, lezioni, corsi = [], palestraId, ge
                   <div className="piccolo muto">{GIORNI[i]}</div>
                   <strong>{g.slice(8, 10)}/{g.slice(5, 7)}</strong>
                 </div>
-                <button className="link-btn piccolo" onClick={() => apriGiorno(g)}>
-                  {prove > 0 ? <span className="tag tag-rosso">{prove} in prova</span> : 'giornata'}
+                <button className="link-btn piccolo" onClick={() => apriGiorno(g)}
+                        style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                  {prove > 0 && <span className="tag tag-rosso">{prove} prove</span>}
+                  {noteDi(g).length > 0 && <span className="tag tag-neutro">{noteDi(g).length} note</span>}
+                  {prove === 0 && noteDi(g).length === 0 && 'giornata'}
                 </button>
               </header>
+
+              {noteDi(g).map((n) => (
+                <div key={n.id} className="nota-giorno">{n.testo}</div>
+              ))}
 
               {delGiorno.length === 0 && <div className="vuoto" style={{ padding: 16, fontSize: 13 }}>Nessuna lezione</div>}
 
@@ -61,6 +70,12 @@ export default function Palinsesto({ inizio, lezioni, corsi = [], palestraId, ge
                           onClick={() => setScelta(l)} style={{ borderColor: c, opacity: annullata ? .6 : 1 }}>
                     <span className="testa" style={{ background: c }}>
                       {ora(l.inizio)} – {ora(l.fine)}
+                      {gestione && (
+                        <span className="piu" role="button" tabIndex={0}
+                              title="Aggiungi qualcuno a questa lezione"
+                              onClick={(e) => { e.stopPropagation(); setScelta(l); setApriAggiungi(true); }}
+                              onKeyDown={(e) => { if (e.key === 'Enter') { e.stopPropagation(); setScelta(l); setApriAggiungi(true); } }}>+</span>
+                      )}
                     </span>
                     <span className="corpo">
                       <span className="nome">{l.corso_nome}</span>
@@ -93,7 +108,8 @@ export default function Palinsesto({ inizio, lezioni, corsi = [], palestraId, ge
 
       {scelta && (
         <FoglioLezione lezione={scelta} colore={colore(scelta.corso_id)} gestione={gestione}
-                       onClose={() => setScelta(null)} />
+                       aggiungiSubito={apriAggiungi}
+                       onClose={() => { setScelta(null); setApriAggiungi(false); }} />
       )}
 
       {giorno && (

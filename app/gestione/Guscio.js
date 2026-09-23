@@ -4,6 +4,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import { supabaseBrowser } from '@/lib/supabase/browser';
 import { AREE, areaDi } from '@/lib/menu';
+import AzioniRapide from './AzioniRapide';
 
 const ICONE = {
   oggi: <><rect x="3" y="5" width="18" height="16" rx="2" /><path d="M8 3v4M16 3v4M3 10h18" /></>,
@@ -15,7 +16,7 @@ const ICONE = {
 };
 const Icona = ({ nome }) => <svg viewBox="0 0 24 24" aria-hidden="true">{ICONE[nome]}</svg>;
 
-export default function Guscio({ gestione, nome, ruolo, children }) {
+export default function Guscio({ gestione, nome, ruolo, palestraId, children }) {
   const path = usePathname();
   const router = useRouter();
   const attiva = areaDi(path);
@@ -74,6 +75,7 @@ export default function Guscio({ gestione, nome, ruolo, children }) {
         )}
 
         <main className="contenuto">{children}</main>
+        {gestione && <AzioniRapide palestraId={palestraId} />}
       </div>
     </div>
   );

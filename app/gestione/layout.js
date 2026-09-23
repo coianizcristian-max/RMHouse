@@ -18,7 +18,8 @@ export default async function LayoutGestione({ children }) {
     );
   }
   return (
-    <Guscio gestione={staff.ruolo !== 'insegnante'} nome={staff.nome} ruolo={staff.ruolo}>
+    <Guscio gestione={staff.ruolo !== 'insegnante'} nome={staff.nome} ruolo={staff.ruolo}
+            palestraId={staff.palestra_id}>
       {children}
     </Guscio>
   );

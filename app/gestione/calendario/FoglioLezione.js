@@ -8,8 +8,36 @@ import { ora, giornoLungo } from '@/lib/formato';
 const COLORI = ['#f40000', '#000000', '#b3001b', '#8a0303', '#d64545', '#5c5c5c', '#2b2b2b', '#7a7a7a'];
 
 // Pannello che si apre dal basso toccando una lezione
-export default function FoglioLezione({ lezione, colore, gestione, onClose }) {
+export default function FoglioLezione({ lezione, colore, gestione, onClose, aggiungiSubito = false }) {
   const router = useRouter();
+  const [aggiungi, setAggiungi] = useState(aggiungiSubito);
+  const [testoCerca, setTestoCerca] = useState('');
+  const [candidati, setCandidati] = useState(null);
+
+  async function cerca(testo) {
+    setCandidati(null);
+    const { data } = await supabaseBrowser().rpc('candidati_lezione', { p_lezione: lezione.lezione_id, p_cerca: testo });
+    setCandidati(data || []);
+  }
+
+  async function aggiungiPersona(c) {
+    let forza = false;
+    if (!c.certificato_ok || c.abbonamento === 'nessun abbonamento') {
+      forza = confirm(`${c.nome} ${c.cognome}: ${!c.certificato_ok ? 'certificato non valido' : 'nessun abbonamento attivo'}. Aggiungere lo stesso?`);
+      if (!forza) return;
+    }
+    const tipo = confirm('È un recupero? Premi Annulla per un ingresso normale.') ? 'recupero' : 'ingresso';
+    const { error } = await supabaseBrowser().rpc('aggiungi_partecipante', {
+      p_lezione: lezione.lezione_id, p_allievo: c.allievo_id, p_tipo: tipo, p_forza: forza, p_note: null,
+    });
+    if (error) {
+      setErrore(error.message?.includes('lezione_al_completo')
+        ? 'Lezione al completo: alza i posti qui sotto, oppure forza.'
+        : 'Non aggiunto: controlla abbonamento e certificato.');
+      return;
+    }
+    onClose(); router.refresh();
+  }
   const [tavolozza, setTavolozza] = useState(false);
   const [daOggi, setDaOggi] = useState(false);
   const [errore, setErrore] = useState('');
@@ -59,8 +87,38 @@ export default function FoglioLezione({ lezione, colore, gestione, onClose }) {
 
         <div className="azioni" style={{ marginBottom: 14 }}>
           <Link className="btn btn-primario" href={`/gestione/appello/${lezione.lezione_id}`}>Appello e prenotati</Link>
+          {gestione && (
+            <button className="btn" onClick={() => { setAggiungi(!aggiungi); if (!aggiungi) cerca(''); }}>
+              Aggiungi qualcuno
+            </button>
+          )}
           <Link className="btn" href={`/gestione/corsi/${lezione.corso_id}`}>Scheda del corso</Link>
         </div>
+
+        {aggiungi && (
+          <div className="scheda" style={{ marginBottom: 14 }}>
+            <div className="campo" style={{ marginBottom: 8 }}>
+              <label htmlFor="cerca-veloce">Chi aggiungi a questa lezione?</label>
+              <input id="cerca-veloce" autoFocus value={testoCerca} placeholder="Cognome o nome"
+                     onChange={(e) => { setTestoCerca(e.target.value); cerca(e.target.value); }} />
+            </div>
+            {candidati === null && <p className="piccolo muto">Cerco…</p>}
+            {candidati?.length === 0 && <p className="piccolo muto">Nessuno da aggiungere.</p>}
+            <ul className="elenco">
+              {(candidati || []).slice(0, 8).map((c) => (
+                <li key={c.allievo_id} className="persona">
+                  <span>
+                    {c.cognome} {c.nome}
+                    <span className="piccolo muto" style={{ display: 'block' }}>
+                      {c.abbonamento}{!c.certificato_ok && ' · certificato scaduto'}
+                    </span>
+                  </span>
+                  <button className="link-btn piccolo" onClick={() => aggiungiPersona(c)}>Aggiungi</button>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
 
         {gestione && (
           <>

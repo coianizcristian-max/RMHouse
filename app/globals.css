@@ -347,8 +347,89 @@ h2.sezione::after { content: ''; flex: 1; height: 1px; background: var(--linea);
 
 .contenuto { padding: 4px var(--spazio) var(--spazio); max-width: 1100px; }
 
+
+/* ==================================================================
+   Palinsesto a schede: una colonna per giorno
+   ================================================================== */
+.colonne-giorni {
+  display: grid; grid-auto-flow: column; grid-auto-columns: minmax(250px, 1fr);
+  gap: 12px; overflow-x: auto; padding-bottom: 10px; scroll-snap-type: x mandatory;
+}
+.colonna-giorno { scroll-snap-align: start; min-width: 0; }
+
+.testa-giorno {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  padding: 8px 2px 10px; border-bottom: 2px solid var(--linea); margin-bottom: 10px;
+}
+.testa-giorno strong { display: block; font-size: 20px; font-stretch: 115%; color: var(--nero); line-height: 1.1; }
+.testa-giorno.oggi { border-bottom-color: var(--rosso); }
+.testa-giorno.oggi strong { color: var(--rosso); }
+
+.carta-lezione {
+  display: block; width: 100%; text-align: left; margin-bottom: 10px; cursor: pointer;
+  background: var(--bianco); border: 2px solid var(--rosso); border-radius: 12px; overflow: hidden;
+  font: inherit; color: var(--testo); padding: 0;
+}
+.carta-lezione:hover { box-shadow: 0 0 0 3px var(--carta); }
+.carta-lezione .testa {
+  display: block; padding: 8px 12px; color: #fff; font-weight: 800; font-size: 15px; font-stretch: 112%;
+}
+.carta-lezione .corpo { display: block; padding: 10px 12px 12px; }
+.carta-lezione .testa { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.carta-lezione .piu {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 26px; height: 26px; border-radius: 50%; background: rgba(255,255,255,.25);
+  font-size: 19px; font-weight: 400; line-height: 1; cursor: pointer;
+}
+.carta-lezione .piu:hover { background: rgba(255,255,255,.45); }
+.nota-giorno {
+  border-left: 3px solid var(--nero); background: var(--carta); border-radius: 0 8px 8px 0;
+  padding: 8px 10px; margin-bottom: 8px; font-size: 13px; color: var(--testo);
+}
+.carta-lezione .nome { display: block; font-weight: 700; color: var(--nero); line-height: 1.25; }
+.carta-lezione .riga { display: block; font-size: 13px; color: var(--testo-2); margin-top: 3px; }
+.carta-lezione .numeri { display: flex; align-items: center; gap: 6px; margin-top: 9px; flex-wrap: wrap; }
+.carta-lezione .pallino {
+  min-width: 30px; text-align: center; padding: 4px 9px; border-radius: 999px;
+  font-size: 13px; font-weight: 800; line-height: 1;
+}
+.pallino.verde { background: var(--ok-tenue); color: var(--ok); }
+.pallino.azzurro { background: var(--carta); color: var(--testo-2); }
+.pallino.rosso { background: var(--rosso); color: #fff; }
+.carta-lezione .tag { display: inline-block; margin-top: 8px; }
+.carta-lezione .riempimento { display: block; }
+
+/* ==================================================================
+   Azioni rapide: pulsante sempre a portata di pollice
+   ================================================================== */
+.bottone-rapide {
+  position: fixed; right: 16px; bottom: calc(74px + env(safe-area-inset-bottom, 0px)); z-index: 35;
+  width: 56px; height: 56px; border-radius: 50%; border: 0; cursor: pointer;
+  background: var(--rosso); color: #fff; font-size: 30px; line-height: 1; font-weight: 400;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, .22);
+}
+.fondo-rapide { position: fixed; inset: 0; background: rgba(0,0,0,.35); z-index: 34; }
+.menu-rapide {
+  position: fixed; right: 16px; bottom: calc(140px + env(safe-area-inset-bottom, 0px)); z-index: 36;
+  background: var(--bianco); border: 1px solid var(--linea); border-radius: 14px; padding: 10px;
+  box-shadow: 0 16px 40px rgba(0,0,0,.2); min-width: 232px;
+}
+.voce-rapida {
+  display: block; width: 100%; text-align: left; padding: 12px 12px; border: 0; border-radius: 10px;
+  background: none; font: inherit; font-weight: 600; color: var(--testo); text-decoration: none; cursor: pointer;
+}
+.voce-rapida:hover { background: var(--carta); color: var(--nero); }
+.avviso-volante {
+  position: fixed; left: 50%; transform: translateX(-50%); z-index: 40;
+  bottom: calc(140px + env(safe-area-inset-bottom, 0px));
+  background: var(--nero); color: #fff; padding: 10px 16px; border-radius: 999px; font-size: 14px;
+}
+
 @media (min-width: 900px) {
   .solo-desktop { display: flex; }
+  .bottone-rapide { right: 28px; bottom: 28px; }
+  .menu-rapide { right: 28px; bottom: 96px; }
+  .avviso-volante { bottom: 96px; }
   .solo-mobile { display: none; }
   body.con-nav { padding-bottom: 0; }
 
@@ -410,8 +491,8 @@ h2.sezione::after { content: ''; flex: 1; height: 1px; background: var(--linea);
   .doppia { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 28px; align-items: start; }
   .doppia > aside { position: sticky; top: 16px; }
 
-  /* Palinsesto: tutta la settimana visibile, niente scorrimento */
-  .colonne-giorni { grid-auto-flow: row; grid-template-columns: repeat(7, minmax(0, 1fr)); overflow: visible; gap: 14px; }
+  /* Palinsesto: colonne più strette, si scorre solo se lo schermo è piccolo */
+  .colonne-giorni { grid-auto-columns: minmax(215px, 1fr); gap: 14px; }
   .carta-lezione .testa { font-size: 14px; padding: 7px 10px; }
   .carta-lezione .corpo { padding: 9px 10px 11px; }
   .carta-lezione .nome { font-size: 14px; }
@@ -423,6 +504,11 @@ h2.sezione::after { content: ''; flex: 1; height: 1px; background: var(--linea);
   /* Moduli su due colonne dove ha senso */
   .riga-2 { grid-template-columns: 1fr 1fr; }
   .azioni .btn { flex: 0 0 auto; }
+}
+
+/* Schermi grandi: tutta la settimana insieme, senza scorrimento */
+@media (min-width: 1450px) {
+  .colonne-giorni { grid-auto-flow: row; grid-template-columns: repeat(7, minmax(0, 1fr)); overflow: visible; }
 }
 
 @media (min-width: 1400px) {
