@@ -487,8 +487,7 @@ h2.sezione::after { content: ''; flex: 1; height: 1px; background: var(--linea);
   .barra {
     grid-column: 3; grid-row: 1; padding: 22px 34px 8px; border-bottom: 0; align-items: flex-end;
   }
-  .barra strong { font-size: 30px; font-weight: 850; font-stretch: 118%; }
-  .barra .piccolo.muto:first-child { font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--rosso); font-weight: 700; }
+  .barra { padding-bottom: 4px; }
 
   .contenuto { grid-column: 3; grid-row: 2; padding: 10px 34px 48px; max-width: 1320px; }
 
@@ -692,3 +691,21 @@ a.tessera:hover, .scheda-corso:hover, .carta-lezione:hover {
 .zona-foto .zona-testo { display: grid; gap: 2px; flex: 1; min-width: 0; }
 .zona-foto .zona-testo strong { font-size: 15px; color: var(--nero); }
 .zona-foto .segnaposto svg { stroke: var(--testo-2); }
+
+
+/* Posti numerati in sala */
+.posti { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 10px; margin-bottom: 18px; }
+.posto {
+  display: grid; gap: 3px; padding: 12px 10px; border-radius: 12px; cursor: pointer;
+  border: 1.5px dashed var(--linea); background: var(--bianco); font: inherit; text-align: left;
+}
+.posto:hover { border-color: var(--nero); }
+.posto .etichetta-posto { font-size: 12px; font-weight: 700; color: var(--testo-2); text-transform: uppercase; letter-spacing: .04em; }
+.posto .chi { font-weight: 700; color: var(--testo-2); font-size: 14px; }
+.posto.occupato { border-style: solid; border-color: var(--rosso); background: var(--rosso-tenue); }
+.posto.occupato .chi { color: var(--rosso-scuro); }
+
+
+/* Briciole di pane: dove mi trovo, senza ripetere il titolo della pagina */
+.briciole { display: flex; align-items: center; gap: 7px; font-size: 13px; color: var(--testo-2); }
+.briciole .corrente { color: var(--nero); font-weight: 700; }

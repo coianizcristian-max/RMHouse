@@ -211,6 +211,7 @@ export default function Riepilogo({ dati }) {
       {dati.eventi.length > 0 && (
         <>
           <h2 className="sezione">Prossimi eventi</h2>
+          <p className="piccolo" style={{ marginTop: -4 }}><Link href="/area/eventi">Vedi tutti e iscriviti</Link></p>
           {dati.eventi.map((e, i) => (
             <div key={i} className="scheda-corso" style={{ gridTemplateColumns: '6px 1fr' }}>
               <span className="banda" style={{ background: 'var(--nero)' }} />

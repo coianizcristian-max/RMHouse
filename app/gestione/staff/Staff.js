@@ -19,6 +19,15 @@ export default function Staff({ palestraId, persone, orari, archiviati }) {
   const [f, setF] = useState(VUOTO);
   const [errore, setErrore] = useState('');
   const [invio, setInvio] = useState(false);
+  const [copiato, setCopiato] = useState(null);
+
+  // Indirizzo personale da abbonare su Google Calendar o iPhone
+  async function copiaCalendario(p) {
+    const url = `${window.location.origin}/api/calendario/${p.token}`;
+    try { await navigator.clipboard.writeText(url); } catch { prompt('Copia questo indirizzo:', url); }
+    setCopiato(p.id);
+    setTimeout(() => setCopiato(null), 2500);
+  }
 
   const set = (k) => (e) => setF({ ...f, [k]: e.target.type === 'checkbox' ? e.target.checked : e.target.value });
   const corsiDi = (id) => [...new Set(orari.filter((o) => o.insegnante_id === id).map((o) => o.corsi?.nome).filter(Boolean))];
@@ -159,6 +168,9 @@ export default function Staff({ palestraId, persone, orari, archiviati }) {
                 )}
                 <span className="azioni-riga">
                   <button className="link-btn piccolo" onClick={() => modifica(p)}>Modifica</button>
+                  <button className="link-btn piccolo" onClick={() => copiaCalendario(p)}>
+                    {copiato === p.id ? 'Link copiato' : 'Calendario'}
+                  </button>
                   <button className="link-btn piccolo" onClick={() => archivia(p, !archiviati)}>
                     {archiviati ? 'Riporta in forza' : 'Archivia'}
                   </button>
@@ -172,6 +184,16 @@ export default function Staff({ palestraId, persone, orari, archiviati }) {
             </span>
           </div>
         ))}
+      </div>
+
+      <div className="scheda" style={{ marginTop: 22 }}>
+        <strong style={{ color: 'var(--nero)' }}>Calendario sul telefono</strong>
+        <p className="piccolo muto" style={{ marginTop: 4, marginBottom: 0 }}>
+          Il pulsante "Calendario" copia l'indirizzo personale dell'insegnante. Lui lo incolla una volta sola in
+          Google Calendar (Altri calendari → Da URL) oppure su iPhone (Impostazioni → Calendario → Account →
+          Aggiungi account → Altro → Aggiungi calendario con abbonamento): da quel momento le sue lezioni
+          compaiono e si aggiornano da sole, anche quando sposti un orario.
+        </p>
       </div>
 
       <p className="piccolo muto" style={{ marginTop: 18 }}>

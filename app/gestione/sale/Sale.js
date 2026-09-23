@@ -5,9 +5,9 @@ import { supabaseBrowser } from '@/lib/supabase/browser';
 import Immagine from '../Immagine';
 import { euro } from '@/lib/formato';
 
-const VUOTO = { nome: '', descrizione: '', attrezzatura: '', capienza: '', costo: '', foto_url: null, sede_id: '' };
+const VUOTO = { nome: '', descrizione: '', attrezzatura: '', capienza: '', costo: '', foto_url: null, sede_id: '', gestione_postazioni: false };
 
-export default function Sale({ palestraId, sale, sedi, orari }) {
+export default function Sale({ palestraId, sale, sedi, orari, postazioni = {} }) {
   const router = useRouter();
   const [apri, setApri] = useState(null);
   const [f, setF] = useState(VUOTO);
@@ -22,6 +22,7 @@ export default function Sale({ palestraId, sale, sedi, orari }) {
       nome: s.nome, descrizione: s.descrizione || '', attrezzatura: s.attrezzatura || '',
       capienza: s.capienza ?? '', costo: s.costo_ora_cent ? (s.costo_ora_cent / 100).toString() : '',
       foto_url: s.foto_url, sede_id: s.sede_id || (sedi[0]?.id ?? ''),
+      gestione_postazioni: !!s.gestione_postazioni,
     });
     setApri(s.id); setErrore('');
   }
@@ -35,6 +36,7 @@ export default function Sale({ palestraId, sale, sedi, orari }) {
       capienza: f.capienza === '' ? null : parseInt(f.capienza, 10),
       costo_ora_cent: f.costo ? Math.round(parseFloat(f.costo.replace(',', '.')) * 100) : null,
       foto_url: f.foto_url, sede_id: f.sede_id || null,
+      gestione_postazioni: f.gestione_postazioni,
     };
     const db = supabaseBrowser();
     const { error } = apri === 'nuovo'
@@ -43,6 +45,20 @@ export default function Sale({ palestraId, sale, sedi, orari }) {
     setInvio(false);
     if (error) { setErrore(error.message?.includes('duplicate') ? 'Esiste già una sala con questo nome.' : 'Salvataggio non riuscito.'); return; }
     setApri(null); router.refresh();
+  }
+
+  // Crea in un colpo le postazioni numerate: Pertica 1, Pertica 2…
+  async function creaPostazioni(s) {
+    const quante = prompt(`Quanti posti numerati ha "${s.nome}"?`, postazioni[s.id] || s.capienza || 6);
+    if (quante === null) return;
+    const n = parseInt(quante, 10);
+    if (!Number.isFinite(n) || n < 1) { setErrore('Scrivi un numero.'); return; }
+    const prefisso = prompt('Come si chiamano? (Pertica, Tessuto, Tappetino…)', 'Pertica') || 'Postazione';
+    const { error } = await supabaseBrowser().rpc('crea_postazioni', {
+      p_sala: s.id, p_quante: n, p_prefisso: prefisso.trim(),
+    });
+    if (error) { setErrore('Non è stato possibile crearli.'); return; }
+    router.refresh();
   }
 
   async function elimina(s) {
@@ -90,6 +106,12 @@ export default function Sale({ palestraId, sale, sedi, orari }) {
               </select>
             </div>
           )}
+          <label className="spunta">
+            <input type="checkbox" checked={f.gestione_postazioni}
+                   onChange={(e) => setF({ ...f, gestione_postazioni: e.target.checked })} />
+            <span>Posti numerati (pertiche, tessuti, tappetini)</span>
+          </label>
+
           <div className="azioni">
             <button className="btn btn-primario" disabled={invio}>Salva</button>
             <button type="button" className="btn" onClick={() => setApri(null)}>Annulla</button>
@@ -117,8 +139,14 @@ export default function Sale({ palestraId, sale, sedi, orari }) {
                 {` · ${usoDi(s.id)} orari`}
               </div>
               {s.attrezzatura && <div className="piccolo" style={{ marginTop: 4 }}>{s.attrezzatura}</div>}
+              {s.gestione_postazioni && (
+                <div className="piccolo" style={{ marginTop: 6 }}>
+                  {(postazioni[s.id] || 0)} posti numerati
+                </div>
+              )}
               <div className="azioni-riga">
                 <button className="link-btn piccolo" onClick={() => modifica(s)}>Modifica</button>
+                <button className="link-btn piccolo" onClick={() => creaPostazioni(s)}>Posti numerati</button>
                 <button className="link-btn piccolo pericolo" onClick={() => elimina(s)}>Elimina</button>
               </div>
             </div>

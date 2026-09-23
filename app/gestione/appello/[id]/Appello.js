@@ -6,7 +6,7 @@ import { etaAl } from '@/lib/formato';
 
 const ETICHETTE = { prova: ['In prova', 'tag-rosso'], recupero: ['Recupero', 'tag-attenzione'], ingresso: ['Ingresso', 'tag-neutro'] };
 
-export default function Appello({ lezioneId, palestraId, persone, corsoNome = '', gestione = true }) {
+export default function Appello({ lezioneId, palestraId, persone, corsoNome = '', gestione = true, postazioni = [] }) {
   const router = useRouter();
   const [presenze, setPresenze] = useState(Object.fromEntries(persone.map((p) => [p.allievo_id, p.presente])));
   const [errore, setErrore] = useState('');
@@ -14,6 +14,29 @@ export default function Appello({ lezioneId, palestraId, persone, corsoNome = ''
   const [aggiungi, setAggiungi] = useState(false);
   const [testoCerca, setTestoCerca] = useState('');
   const [candidati, setCandidati] = useState(null);
+
+  // Posti numerati: tocca il posto e scegli chi ci va
+  async function assegna(post) {
+    const occupata = post.allievo_id;
+    if (occupata) {
+      if (!confirm(`Liberare ${post.nome} (ora ${post.allievo})?`)) return;
+      const { error } = await supabaseBrowser().rpc('libera_postazione', {
+        p_lezione: lezioneId, p_postazione: post.postazione_id,
+      });
+      if (error) setErrore('Operazione non riuscita.'); else router.refresh();
+      return;
+    }
+    const liberi = persone.filter((p) => !postazioni.some((x) => x.allievo_id === p.allievo_id));
+    if (liberi.length === 0) { setErrore('Tutti i presenti hanno già un posto.'); return; }
+    const elenco = liberi.map((p, i) => `${i + 1}. ${p.cognome} ${p.nome}`).join('\n');
+    const scelta = prompt(`Chi va su ${post.nome}?\n\n${elenco}\n\nScrivi il numero:`);
+    const n = parseInt(scelta, 10);
+    if (!Number.isFinite(n) || n < 1 || n > liberi.length) return;
+    const { error } = await supabaseBrowser().rpc('assegna_postazione', {
+      p_lezione: lezioneId, p_postazione: post.postazione_id, p_allievo: liberi[n - 1].allievo_id,
+    });
+    if (error) setErrore('Assegnazione non riuscita.'); else router.refresh();
+  }
 
   async function cerca2(testo) {
     setCandidati(null);
@@ -124,6 +147,22 @@ export default function Appello({ lezioneId, palestraId, persone, corsoNome = ''
         {persone.length - nProve} iscritti{nProve > 0 && `, ${nProve} in prova`} · tocca una riga per segnare la presenza
       </p>
       {errore && <div className="errore" role="alert">{errore}</div>}
+
+      {postazioni.length > 0 && (
+        <>
+          <h2 className="sezione">Posti in sala</h2>
+          <div className="posti">
+            {postazioni.map((p) => (
+              <button key={p.postazione_id} type="button"
+                      className={p.allievo_id ? 'posto occupato' : 'posto'}
+                      onClick={() => assegna(p)}>
+                <span className="etichetta-posto">{p.nome}</span>
+                <span className="chi">{p.allievo || 'libero'}</span>
+              </button>
+            ))}
+          </div>
+        </>
+      )}
 
       {gestione && (
         <div className="filtri" style={{ marginTop: 10 }}>

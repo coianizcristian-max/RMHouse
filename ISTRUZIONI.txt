@@ -1,52 +1,51 @@
-AGGIORNAMENTO N 012 — RMHouse
-I PUNTI DI REGISTRAZIONE CHE MANCAVANO
+AGGIORNAMENTO N 015 — RMHouse
+Gestione vera dei lead · titolo doppio sistemato
 
 QUERY DA ESEGUIRE
 -----------------
-supabase/migrations/016_registrazioni.sql
+supabase/migrations/018_lead.sql
 
 FILE DA COPIARE (sovrascrivi, rispettando i percorsi)
 -----------------------------------------------------
-lib/menu.js                                     sostituito
-app/gestione/persone/nuova/page.js              NUOVO
-app/gestione/persone/nuova/NuovaPersona.js      NUOVO
-app/gestione/incassi/page.js                    NUOVO
-app/gestione/incassi/Incassi.js                 NUOVO
-app/gestione/attese/page.js                     sostituito
-app/gestione/attese/Aggiungi.js                 NUOVO
-app/gestione/AzioniRapide.js                    sostituito
-app/gestione/indice/page.js                     sostituito
-README.md                                       sostituito
-docs/ARCHITETTURA.md                            sostituito
+app/gestione/lead/page.js        sostituito
+app/gestione/lead/Lead.js        NUOVO
+app/gestione/Guscio.js           sostituito
+app/globals.css                  sostituito
+README.md                        sostituito
+docs/ARCHITETTURA.md             sostituito
 
-Poi: git add . && git commit -m "Aggiornamento 012" && git push
+Poi: git add . && git commit -m "Aggiornamento 015" && git push
 
-AVEVI RAGIONE: MANCAVANO TRE PUNTI DI INGRESSO
-----------------------------------------------
-1) Non si poteva REGISTRARE UNA PERSONA NUOVA dalla segreteria.
-   Si entrava solo dall'import CSV o dal percorso di prova sul sito.
-   Ora: Persone -> Registra una persona.
-   Si compila chi paga e chi frequenta (se e' la stessa persona basta
-   una spunta), certificato, note e consensi; se l'email esiste gia',
-   l'allievo viene aggiunto a quella famiglia invece di creare un
-   doppione. Salvato, si apre la sua scheda per creare l'iscrizione.
+AVEVI RAGIONE: LA PAGINA LEAD ERA SOLO DA GUARDARE
+--------------------------------------------------
+C'era l'elenco e il link WhatsApp, ma nessuna azione: non si poteva
+segnare che avevi chiamato, ne' cambiare stato, ne' fissare un richiamo.
 
-2) Non esisteva nessun posto dove REGISTRARE UN INCASSO.
-   Ora: Conti -> Incassi.
-   In cima i totali del periodo e quanto resta da incassare, divisi per
-   metodo (contanti, bonifico, POS, online). Il pulsante "Registra un
-   incasso" serve per quota annuale, abbonamento, prova, evento,
-   affitto sala, materiale: si puo' collegare alla persona cercandola
-   per cognome. Sulle righe in sospeso c'e' "segna incassato".
-   La quota annuale finisce anche nella scheda dell'allievo.
+ORA SI GESTISCONO COSI'
+-----------------------
+In cima quattro contatori cliccabili: da richiamare oggi, da seguire
+(con quanti non hai mai contattato), prova prenotata, convertiti.
 
-3) Non si poteva METTERE QUALCUNO IN LISTA D'ATTESA dal banco.
-   La funzione c'era ma nessuna schermata la chiamava.
-   Ora: Oggi -> Liste d'attesa -> "Metti qualcuno in coda".
+Su ogni riga:
+- WhatsApp, Chiama, Email (partono davvero: tel: e mailto:)
+- "Segna contatto": scegli il canale (WhatsApp, telefono, email, di
+  persona), com'e' andata (sentito, non risponde, da richiamare, non
+  interessato), scrivi una nota e la DATA DEL PROSSIMO RICHIAMO.
+  Se scegli "non interessato" il lead passa a non convertito da solo.
+- "Si e' iscritto" e "Non convertito" (con il motivo, che finisce nelle
+  statistiche insieme alle risposte del sondaggio).
+- Sui non convertiti c'e' "Riprova", che lo rimette in circolo.
 
-ALTRE MODIFICHE
----------------
-- Il pulsante rosso delle azioni rapide ora porta a "Registra una
-  persona" e "Registra un incasso".
-- La pagina "Tutte le funzioni" elenca anche questi tre punti.
-- Nel README e in ARCHITETTURA c'e' una tabella "dove si registra cosa".
+Ogni riga mostra: eta', genitore, contatti, da dove e' arrivato, la
+prova prenotata con data e stato, se ci sono soldi da incassare per la
+prova, l'ultimo contatto con la nota e quando va richiamato.
+La banda a sinistra diventa rossa quando il promemoria e' scaduto.
+
+Tutto resta scritto nel diario dei contatti, quindi si sa sempre chi ha
+chiamato, quando e cosa si sono detti.
+
+ALTRA CORREZIONE
+----------------
+Il titolo della pagina era scritto due volte (una nella barra in alto e
+una nel contenuto). Ora in alto ci sono le briciole di pane
+"Ogni giorno › Lead" piccole, e il titolo grande resta uno solo.

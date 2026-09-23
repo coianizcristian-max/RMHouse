@@ -17,6 +17,8 @@ export default async function PaginaAppello({ params }) {
       .eq('lezione_id', id),
     supabase.from('v_prenotati').select('allievo_id, origine, telefono, email, prenotato_il').eq('lezione_id', id),
   ]);
+
+  const { data: postazioni } = await supabase.rpc('postazioni_lezione', { p_lezione: id });
   if (!lezione) notFound();
 
   // prima chi è in prova (da accogliere), poi gli altri in ordine alfabetico
@@ -35,7 +37,8 @@ export default async function PaginaAppello({ params }) {
       </p>
       {lezione.stato === 'annullata' && <div className="errore">Lezione annullata{lezione.note ? `: ${lezione.note}` : ''}.</div>}
       <Appello lezioneId={lezione.id} palestraId={staff.palestra_id} persone={elenco}
-               corsoNome={lezione.corso_nome} gestione={staff.ruolo !== 'insegnante'} />
+               corsoNome={lezione.corso_nome} gestione={staff.ruolo !== 'insegnante'}
+               postazioni={postazioni || []} />
     </>
   );
 }

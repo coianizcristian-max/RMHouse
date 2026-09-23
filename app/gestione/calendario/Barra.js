@@ -2,11 +2,11 @@ import Link from 'next/link';
 import { oggiISO, spostaGiorni } from '@/lib/formato';
 
 // Navigazione della settimana e filtri, uguali per palinsesto e agenda
-export default function Barra({ base, inizio, fine, sale, insegnanti, sala, insegnante, mie }) {
+export default function Barra({ base, inizio, fine, sale, insegnanti, sedi = [], sala, insegnante, mie, sede }) {
   const filtro = (chiave, valore) => {
     const p = new URLSearchParams();
     p.set('da', inizio);
-    const attuali = { sala, insegnante, mie };
+    const attuali = { sala, insegnante, mie, sede };
     attuali[chiave] = valore;
     Object.entries(attuali).forEach(([k, v]) => v && p.set(k, v));
     if (!valore) p.delete(chiave);
@@ -23,6 +23,15 @@ export default function Barra({ base, inizio, fine, sale, insegnanti, sala, inse
         </h1>
         <Link className="btn" href={`${base}?da=${spostaGiorni(inizio, 7)}`} aria-label="Settimana successiva">›</Link>
       </div>
+
+      {sedi.length > 1 && (
+        <div className="filtri">
+          <Link href={filtro('sede', '')} aria-current={!sede ? 'true' : undefined}>Tutte le sedi</Link>
+          {sedi.map((s) => (
+            <Link key={s.id} href={filtro('sede', s.id)} aria-current={sede === s.id ? 'true' : undefined}>{s.nome}</Link>
+          ))}
+        </div>
+      )}
 
       <div className="filtri">
         <Link href={`${base}?da=${oggiISO()}`}>Questa settimana</Link>

@@ -34,6 +34,8 @@ la struttura per agganciarli c'è già. Vedi `docs/ARCHITETTURA.md`.
    14. `supabase/migrations/014_area_cliente.sql` (area del cliente: accesso, lezioni, recuperi, certificato)
    15. `supabase/migrations/015_colori.sql` (colore per disciplina e gradazioni automatiche dei corsi)
    16. `supabase/migrations/016_registrazioni.sql` (registrare persone, incassi e liste d'attesa dal banco)
+   17. `supabase/migrations/017_postazioni_calendario.sql` (posti numerati, calendario degli insegnanti, eventi dall'area cliente, filtro per sede)
+   18. `supabase/migrations/018_lead.sql` (gestione dei lead: contatti, esiti, promemoria)
 3. In **Table Editor → palestre** aggiorna la riga `rmhouse`: `email`, `google_review_url` e, dopo il deploy, `base_url`.
 
 ### 2. Il tuo utente amministratore

@@ -249,6 +249,26 @@ Ogni dato entra da un punto preciso, e ogni punto ha la sua voce di menù:
 famiglia invece di creare doppioni; `registra_incasso()` scrive il pagamento e, per la quota annuale, anche la
 riga nella scheda dell'allievo.
 
+## I lead
+Il lead non è una tabella a parte: è un allievo con uno `stato_lead`. Attorno ci sono il **diario dei contatti**
+(`contatti_lead`: quando, con che canale, com'è andata, la nota) e due campi su `allievi`: `prossimo_contatto`,
+cioè quando richiamare, e `seguito_da`, chi se ne occupa.
+
+La schermata è fatta per lavorarci sopra: in cima i contatori (da richiamare oggi, da seguire, prova prenotata,
+convertiti), su ogni riga i pulsanti per WhatsApp, chiamata ed email, "Segna contatto" che apre il modulino con
+canale, esito, nota e data del prossimo richiamo, e i due esiti finali, "Si è iscritto" e "Non convertito" con
+il motivo. Il motivo finisce nelle statistiche insieme alle risposte del sondaggio.
+
+## Posti numerati
+Le sale dove la posizione conta (pole, tessuti) hanno `gestione_postazioni` attiva e una riga in `postazioni` per
+ogni pertica. Nell'appello compare la mappa: si tocca il posto e si sceglie chi ci va, si ritocca per liberarlo.
+Un allievo può stare su un posto solo e un posto ospita una persona sola, garantito da due vincoli di unicità.
+
+## Calendario degli insegnanti
+Ogni persona dello staff ha un `token` e quindi un indirizzo `/api/calendario/<token>` che restituisce un file
+iCalendar con le sue lezioni da un mese prima a quattro mesi avanti. Si abbona una volta su Google o su iPhone e
+resta aggiornato da solo: le lezioni annullate arrivano come `STATUS:CANCELLED` invece di sparire.
+
 ## I colori del calendario
 Il colore non si sceglie corso per corso da una tavolozza fissa: ogni **categoria** ha un colore di base, ogni
 **disciplina** lo eredita distanziandosi dalle sorelle, e i **corsi** di quella disciplina prendono dieci

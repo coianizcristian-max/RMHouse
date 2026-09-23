@@ -60,9 +60,9 @@ export default function Guscio({ gestione, nome, ruolo, palestraId, children }) 
 
       <div className="colonna">
         <header className="barra">
-          <div>
-            <div className="piccolo muto">{area?.titolo}</div>
-            <strong>{voci.find(voceAttiva)?.testo || area?.titolo}</strong>
+          <div className="briciole">
+            <span>{area?.titolo}</span>
+            {scelta && <><span aria-hidden="true">›</span><span className="corrente">{scelta.testo}</span></>}
           </div>
           <div className="piccolo muto solo-desktop">{nome} · {ruolo}</div>
           <button className="link-btn piccolo solo-mobile" onClick={esci}>Esci</button>

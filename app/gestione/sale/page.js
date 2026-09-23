@@ -12,5 +12,14 @@ export default async function PaginaSale() {
     supabase.from('sedi').select('id, nome').eq('palestra_id', staff.palestra_id).order('ordine'),
     supabase.from('orari').select('sala_id').eq('palestra_id', staff.palestra_id).eq('attivo', true),
   ]);
-  return <Sale palestraId={staff.palestra_id} sale={sale || []} sedi={sedi || []} orari={orari || []} />;
+
+  const { data: post } = await supabase.from('postazioni').select('sala_id')
+    .eq('palestra_id', staff.palestra_id).eq('attiva', true);
+  const conta = {};
+  (post || []).forEach((p) => { conta[p.sala_id] = (conta[p.sala_id] || 0) + 1; });
+
+  return (
+    <Sale palestraId={staff.palestra_id} sale={sale || []} sedi={sedi || []} orari={orari || []}
+          postazioni={conta} />
+  );
 }
