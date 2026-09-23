@@ -22,7 +22,7 @@ export default async function Calendario({ searchParams }) {
 
   let q = supabase
     .from('v_occupazione')
-    .select('lezione_id, corso_id, corso_nome, data, inizio, fine, stato, capienza, iscritti, prove, presenti, sala_id, sala_nome, insegnante_id, insegnante_nome, prenotabile, colore, note')
+    .select('lezione_id, corso_id, corso_nome, data, inizio, fine, stato, capienza, iscritti, prove, presenti, sala_id, sala_nome, insegnante_id, insegnante_nome, insegnante_foto, prenotabile, colore, note')
     .eq('palestra_id', staff.palestra_id)
     .gte('data', inizio).lte('data', fine)
     .order('inizio');
@@ -39,6 +39,11 @@ export default async function Calendario({ searchParams }) {
     supabase.from('note_giorno').select('id, data, testo')
       .eq('palestra_id', staff.palestra_id).gte('data', inizio).lte('data', fine).order('created_at'),
   ]);
+
+  const idLezioni = (lezioni || []).map((l) => l.lezione_id);
+  const { data: facce } = idLezioni.length
+    ? await supabase.from('v_facce_lezione').select('lezione_id, allievo_id, nome, cognome, foto_url, tipo').in('lezione_id', idLezioni)
+    : { data: [] };
 
   const filtro = (chiave, valore) => {
     const p = new URLSearchParams();
@@ -76,7 +81,7 @@ export default async function Calendario({ searchParams }) {
       {vista === 'griglia'
         ? <Settimana inizio={inizio} lezioni={lezioni || []} corsi={corsi || []}
                      palestraId={staff.palestra_id} gestione={staff.ruolo !== 'insegnante'} />
-        : <Palinsesto inizio={inizio} lezioni={lezioni || []} corsi={corsi || []} note={note || []}
+        : <Palinsesto inizio={inizio} lezioni={lezioni || []} corsi={corsi || []} note={note || []} facce={facce || []}
                       palestraId={staff.palestra_id} gestione={staff.ruolo !== 'insegnante'} />}
     </>
   );

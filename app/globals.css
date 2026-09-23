@@ -382,6 +382,19 @@ h2.sezione::after { content: ''; flex: 1; height: 1px; background: var(--linea);
   font-size: 19px; font-weight: 400; line-height: 1; cursor: pointer;
 }
 .carta-lezione .piu:hover { background: rgba(255,255,255,.45); }
+/* Cerchietti delle persone sulle schede */
+.facce { display: flex; align-items: center; margin-top: 9px; }
+.faccia {
+  width: 26px; height: 26px; border-radius: 50%; object-fit: cover; flex: none;
+  border: 2px solid var(--bianco); margin-left: -8px; background: var(--carta);
+  font-size: 10px; font-weight: 800; color: var(--testo-2);
+}
+.facce .faccia:first-child { margin-left: 0; }
+.faccia.prova { border-color: var(--rosso); }
+.faccia.piu-facce { background: var(--nero); color: #fff; }
+.riga-insegnante { display: flex !important; align-items: center; gap: 7px; }
+.faccia-ins { margin-left: 0; width: 22px; height: 22px; border-width: 1px; border-color: var(--linea); }
+
 .nota-giorno {
   border-left: 3px solid var(--nero); background: var(--carta); border-radius: 0 8px 8px 0;
   padding: 8px 10px; margin-bottom: 8px; font-size: 13px; color: var(--testo);
@@ -428,15 +441,22 @@ h2.sezione::after { content: ''; flex: 1; height: 1px; background: var(--linea);
 @media (min-width: 900px) {
   .solo-desktop { display: flex; }
   .bottone-rapide { right: 28px; bottom: 28px; }
+  .barra .piccolo.muto.solo-desktop { padding-right: 76px; }
   .menu-rapide { right: 28px; bottom: 96px; }
   .avviso-volante { bottom: 96px; }
   .solo-mobile { display: none; }
   body.con-nav { padding-bottom: 0; }
 
-  /* Tre colonne: aree · sottomenù · contenuto */
-  .guscio { display: grid; grid-template-columns: 84px 232px 1fr; min-height: 100vh; }
+  /* Tre colonne: aree · sottomenù · contenuto.
+     Le righe vanno dichiarate, altrimenti il sottomenù alto una schermata
+     spinge il contenuto sotto e lascia un buco enorme in cima. */
+  .guscio {
+    display: grid; grid-template-columns: 84px 232px 1fr;
+    grid-template-rows: auto 1fr; min-height: 100vh; align-items: start;
+  }
 
   .aree {
+    grid-column: 1; grid-row: 1 / span 2;
     position: sticky; top: 0; align-self: start; height: 100vh;
     flex-direction: column; justify-content: flex-start; gap: 4px;
     border-top: 0; border-right: 1px solid var(--linea); padding: 14px 8px; background: var(--carta);
@@ -448,7 +468,8 @@ h2.sezione::after { content: ''; flex: 1; height: 1px; background: var(--linea);
   /* il sottomenù diventa una colonna verticale, come in un gestionale desktop */
   .colonna { display: contents; }
   .sottomenu {
-    grid-column: 2; position: sticky; top: 0; align-self: start; height: 100vh;
+    grid-column: 2; grid-row: 1 / span 2;
+    position: sticky; top: 0; align-self: start; height: 100vh;
     display: flex; flex-direction: column; gap: 2px; overflow: visible;
     padding: 22px 14px; border-right: 1px solid var(--linea);
   }
@@ -464,12 +485,12 @@ h2.sezione::after { content: ''; flex: 1; height: 1px; background: var(--linea);
   .sottomenu a[aria-current='page'] { background: var(--rosso); border-color: var(--rosso); color: #fff; }
 
   .barra {
-    grid-column: 3; padding: 22px 34px 8px; border-bottom: 0; align-items: flex-end;
+    grid-column: 3; grid-row: 1; padding: 22px 34px 8px; border-bottom: 0; align-items: flex-end;
   }
   .barra strong { font-size: 30px; font-weight: 850; font-stretch: 118%; }
   .barra .piccolo.muto:first-child { font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--rosso); font-weight: 700; }
 
-  .contenuto { grid-column: 3; padding: 10px 34px 48px; max-width: 1320px; }
+  .contenuto { grid-column: 3; grid-row: 2; padding: 10px 34px 48px; max-width: 1320px; }
 
   /* I fogli che sul telefono salgono dal basso, su desktop sono finestre centrate */
   [role='dialog'] { align-items: center !important; }

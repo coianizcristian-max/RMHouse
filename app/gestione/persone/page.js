@@ -36,12 +36,17 @@ export default async function Persone({ searchParams }) {
       <ul className="elenco">
         {persone?.map((p) => (
           <li key={p.id} className="persona" style={{ alignItems: 'start' }}>
-            <div>
+            <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+              {p.foto_url
+                ? <img src={p.foto_url} alt="" className="miniatura" />
+                : <span className="miniatura segnaposto">{(p.nome[0] || '') + (p.cognome[0] || '')}</span>}
+              <div style={{ minWidth: 0 }}>
               <Link className="persona-nome" href={`/gestione/persone/${p.id}`}>{p.cognome} {p.nome}</Link>
               <span className="piccolo muto"> · {etaAl(p.data_nascita)} anni</span>
               <div className="piccolo muto">
                 {!p.is_titolare && <>{p.titolare_nome} {p.titolare_cognome} · </>}
                 {p.telefono} · {p.email}
+              </div>
               </div>
             </div>
             <div style={{ display: 'grid', gap: 4, justifyItems: 'end' }}>

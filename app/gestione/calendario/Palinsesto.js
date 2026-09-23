@@ -6,7 +6,7 @@ import { ora } from '@/lib/formato';
 
 const GIORNI = ['Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato', 'Domenica'];
 
-export default function Palinsesto({ inizio, lezioni, corsi = [], note = [], palestraId, gestione = true }) {
+export default function Palinsesto({ inizio, lezioni, corsi = [], note = [], facce = [], palestraId, gestione = true }) {
   const [scelta, setScelta] = useState(null);
   const [apriAggiungi, setApriAggiungi] = useState(false);
   const [giorno, setGiorno] = useState(null);
@@ -14,6 +14,8 @@ export default function Palinsesto({ inizio, lezioni, corsi = [], note = [], pal
 
   const colore = (id) => corsi.find((c) => c.id === id)?.colore || 'var(--rosso)';
   const noteDi = (g) => note.filter((n) => n.data === g);
+  const facceDi = (id) => facce.filter((f) => f.lezione_id === id);
+  const iniziali = (f) => ((f.nome?.[0] || '') + (f.cognome?.[0] || '')).toUpperCase();
   const oggi = new Date().toLocaleDateString('sv-SE');
   const giorni = Array.from({ length: 7 }, (_, i) => {
     const d = new Date(inizio + 'T12:00:00Z');
@@ -79,10 +81,30 @@ export default function Palinsesto({ inizio, lezioni, corsi = [], note = [], pal
                     </span>
                     <span className="corpo">
                       <span className="nome">{l.corso_nome}</span>
-                      <span className="riga">
-                        {l.insegnante_nome || 'insegnante da assegnare'}
-                        {l.sala_nome ? ` · ${l.sala_nome}` : ''}
+                      <span className="riga riga-insegnante">
+                        {l.insegnante_foto
+                          ? <img src={l.insegnante_foto} alt="" className="faccia faccia-ins" />
+                          : <span className="faccia faccia-ins segnaposto">{(l.insegnante_nome || '?').slice(0, 1)}</span>}
+                        <span>
+                          {l.insegnante_nome || 'insegnante da assegnare'}
+                          {l.sala_nome ? ` · ${l.sala_nome}` : ''}
+                        </span>
                       </span>
+
+                      {facceDi(l.lezione_id).length > 0 && (
+                        <span className="facce">
+                          {facceDi(l.lezione_id).slice(0, 5).map((f) => (
+                            f.foto_url
+                              ? <img key={f.allievo_id} src={f.foto_url} alt="" title={`${f.nome} ${f.cognome}`}
+                                     className={f.tipo === 'prova' ? 'faccia prova' : 'faccia'} />
+                              : <span key={f.allievo_id} title={`${f.nome} ${f.cognome}`}
+                                      className={f.tipo === 'prova' ? 'faccia prova segnaposto' : 'faccia segnaposto'}>{iniziali(f)}</span>
+                          ))}
+                          {facceDi(l.lezione_id).length > 5 && (
+                            <span className="faccia segnaposto piu-facce">+{facceDi(l.lezione_id).length - 5}</span>
+                          )}
+                        </span>
+                      )}
                       <span className="numeri">
                         <span className="pallino verde">{l.iscritti}</span>
                         <span className="pallino azzurro">{l.capienza ? Math.max(l.capienza - l.iscritti - l.prove, 0) : '∞'}</span>

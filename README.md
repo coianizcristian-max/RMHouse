@@ -30,6 +30,7 @@ la struttura per agganciarli c'è già. Vedi `docs/ARCHITETTURA.md`.
    10. `supabase/migrations/010_calendario.sql` (azioni rapide sulla lezione, pannello del giorno)
    11. `supabase/migrations/011_prenotati.sql` (gestione dei prenotati e messaggi alla lezione)
    12. `supabase/migrations/012_palinsesto.sql` (nomi di sala e insegnante nel palinsesto)
+   13. `supabase/migrations/013_anagrafiche.sql` (sede completa, staff con foto e colore, sale, foto allievi, pagina pubblica dei corsi)
 3. In **Table Editor → palestre** aggiorna la riga `rmhouse`: `email`, `google_review_url` e, dopo il deploy, `base_url`.
 
 ### 2. Il tuo utente amministratore
@@ -108,6 +109,7 @@ con tutti gli orari di quel corso. Le righe con problemi vengono elencate una pe
 |---|---|
 | Link per ads e landing | `https://SITO/prova?utm_source=instagram&utm_campaign=NOME` |
 | Link per l'affitto delle sale | `https://SITO/spazi` |
+| Pagina pubblica di un corso (per le ads) | `https://SITO/corsi/<slug>` — il link è nella scheda del corso |
 | Palinsesto (categorie, discipline, livelli, fasce, sale, insegnanti, chiusure) | `/gestione/palinsesto` |
 | Corsi e orari settimanali | `/gestione/corsi` |
 | Iscrivere una persona a un corso | `/gestione/persone` → scheda → Nuova iscrizione |
@@ -143,7 +145,7 @@ nella barra in basso; le voci dell'area diventano chip scorrevoli sotto l'intest
 |---|---|
 | **Oggi** | Riepilogo · Agenda del giorno · Lead · Liste d'attesa |
 | **Calendari** | Palinsesto (schede) · Agenda settimanale (griglia oraria) · Sale e affitti · Eventi |
-| **Struttura** | Corsi · Staff · Sale · Categorie e livelli · Bacheca · Chiusure |
+| **Struttura** | Corsi · Staff · Sale · Categorie e livelli · Bacheca · Sede e contatti |
 | **Persone** | Anagrafiche · Certificati · Importa da CSV |
 | **Conti** | Statistiche · Costi e fornitori · Abbonamenti e regole · Messaggi automatici |
 

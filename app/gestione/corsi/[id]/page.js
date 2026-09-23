@@ -14,7 +14,7 @@ export default async function Corso({ params, searchParams }) {
   if (staff.ruolo === 'insegnante') redirect('/gestione');
   const p = staff.palestra_id;
 
-  const [{ data: corso }, { data: iscritti }, { data: orari }, { data: sale }, { data: insegnanti }, { data: attese }] =
+  const [{ data: corso }, { data: iscritti }, { data: orari }, { data: sale }, { data: insegnanti }, { data: attese }, { data: base }] =
     await Promise.all([
       supabase.from('v_riepilogo_corsi').select('*').eq('corso_id', id).maybeSingle(),
       supabase.from('v_iscritti_corso').select('*').eq('corso_id', id)
@@ -24,7 +24,9 @@ export default async function Corso({ params, searchParams }) {
       supabase.from('sale').select('id, nome').eq('palestra_id', p).order('nome'),
       supabase.from('staff').select('id, nome, cognome').eq('palestra_id', p).eq('attivo', true).order('nome'),
       supabase.from('liste_attesa').select('id, allievi ( nome, cognome )').eq('corso_id', id).eq('stato', 'in_attesa'),
+      supabase.from('corsi').select('slug').eq('id', id).maybeSingle(),
     ]);
+  const slug = base?.slug;
   if (!corso) notFound();
 
   return (
@@ -34,6 +36,7 @@ export default async function Corso({ params, searchParams }) {
       <p className="muto">
         {[corso.categoria, corso.fascia, corso.livello].filter(Boolean).join(' · ')}
         {' · '}<Link href={`/gestione/corsi/${id}/modifica`}>modifica</Link>
+        {slug && <> · <Link href={`/corsi/${slug}`} target="_blank">pagina pubblica</Link></>}
       </p>
 
       <h2 style={{ marginTop: 24 }}>Orari settimanali</h2>

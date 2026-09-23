@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabaseBrowser } from '@/lib/supabase/browser';
 import { dataBreve } from '@/lib/formato';
+import Immagine from '../../Immagine';
 
 export default function Anagrafica({ allievo, linkCertificato }) {
   const router = useRouter();
@@ -11,6 +12,7 @@ export default function Anagrafica({ allievo, linkCertificato }) {
   const [errore, setErrore] = useState('');
   const [invio, setInvio] = useState(false);
   const [f, setF] = useState({
+    foto_url: allievo.foto_url || null,
     nome: allievo.nome, cognome: allievo.cognome, data_nascita: allievo.data_nascita,
     certificato_scadenza: allievo.certificato_scadenza || '', note: allievo.note || '',
     acc_nome: allievo.account.nome, acc_cognome: allievo.account.cognome,
@@ -25,6 +27,7 @@ export default function Anagrafica({ allievo, linkCertificato }) {
     const db = supabaseBrowser();
     const [a, b] = await Promise.all([
       db.from('allievi').update({
+        foto_url: f.foto_url,
         nome: f.nome.trim(), cognome: f.cognome.trim(), data_nascita: f.data_nascita,
         certificato_scadenza: f.certificato_scadenza || null, note: f.note || null,
       }).eq('id', allievo.id),
@@ -48,7 +51,11 @@ export default function Anagrafica({ allievo, linkCertificato }) {
 
   if (!apri) {
     return (
-      <div style={{ background: 'var(--carta)', borderRadius: 12, padding: 16, marginTop: 16 }}>
+      <div style={{ background: 'var(--carta)', borderRadius: 12, padding: 16, marginTop: 16, display: 'flex', gap: 14 }}>
+        {allievo.foto_url
+          ? <img src={allievo.foto_url} alt="" className="miniatura-grande" />
+          : <span className="miniatura-grande segnaposto">{(allievo.nome[0] || '') + (allievo.cognome[0] || '')}</span>}
+        <div style={{ flex: 1, minWidth: 0 }}>
         {errore && <div className="errore">{errore}</div>}
         <div className="piccolo">
           <strong>Chi paga:</strong> {allievo.account.nome} {allievo.account.cognome}<br />
@@ -64,6 +71,7 @@ export default function Anagrafica({ allievo, linkCertificato }) {
           <button className="btn" onClick={() => setApri(true)}>Modifica dati</button>
           <button className="btn" onClick={copia}>{copiato ? 'Link copiato' : 'Copia link certificato'}</button>
         </div>
+        </div>
       </div>
     );
   }
@@ -72,6 +80,8 @@ export default function Anagrafica({ allievo, linkCertificato }) {
     <form onSubmit={salva} style={{ marginTop: 16 }}>
       {errore && <div className="errore" role="alert">{errore}</div>}
       <h3>Chi frequenta</h3>
+      <Immagine url={f.foto_url} cartella="allievi" etichetta="Foto" tondo
+                onChange={(url) => setF({ ...f, foto_url: url })} />
       <div className="riga-2">
         <div className="campo"><label htmlFor="n">Nome</label><input id="n" value={f.nome} onChange={set('nome')} /></div>
         <div className="campo"><label htmlFor="c">Cognome</label><input id="c" value={f.cognome} onChange={set('cognome')} /></div>
