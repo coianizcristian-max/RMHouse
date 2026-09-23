@@ -26,6 +26,7 @@ la struttura per agganciarli c'è già. Vedi `docs/ARCHITETTURA.md`.
    6. `supabase/migrations/006_gestione.sql` (funzioni di segreteria e ultimi permessi)
    7. `supabase/migrations/007_costi_statistiche.sql` (costi, fornitori, calendario e statistiche)
    8. `supabase/migrations/008_spazi.sql` (affitto sale, feste ed eventi)
+   9. `supabase/migrations/009_sedi_bacheca.sql` (sedi, foto e colori, bacheca, eventi, note)
 3. In **Table Editor → palestre** aggiorna la riga `rmhouse`: `email`, `google_review_url` e, dopo il deploy, `base_url`.
 
 ### 2. Il tuo utente amministratore
@@ -120,6 +121,8 @@ con tutti gli orari di quel corso. Le righe con problemi vengono elencate una pe
 | Settimana a colpo d'occhio | `/gestione/calendario` |
 | Statistiche e margini | `/gestione/statistiche` |
 | Affitti, fornitori, compensi orari | `/gestione/costi` |
+| Avvisi e novità per gli iscritti | `/gestione/bacheca` |
+| Open day, saggi, stage, campus | `/gestione/eventi` |
 | Richieste di affitto sala e feste | `/gestione/spazi` |
 | Listino orario e pacchetti feste | `/gestione/spazi/listino` |
 
@@ -154,6 +157,7 @@ supabase/
   migrations/     001 schema · 002 logica e sicurezza · 003 cron · 004 regole
                   005 categorie e certificati · 006 funzioni di segreteria
                   007 costi e statistiche · 008 affitto spazi ed eventi
+                  009 sedi, bacheca ed eventi
   demo.sql        dati dimostrativi · demo_rimuovi.sql per toglierli
   seed.sql        dati iniziali RM House
 docs/ARCHITETTURA.md  modello dati, flussi, ruoli, roadmap

@@ -6,6 +6,8 @@ import Esci from './Esci';
 export const dynamic = 'force-dynamic';
 
 const VOCI = [
+  ['/gestione/bacheca', 'Bacheca', 'Avvisi e novità per gli iscritti, anche via email'],
+  ['/gestione/eventi', 'Eventi', 'Open day, saggi, stage e campus, con locandina e iscrizioni'],
   ['/gestione/calendario', 'Calendario settimanale', 'Tutta la settimana a colpo d\'occhio, con quanto è piena ogni lezione'],
   ['/gestione/statistiche', 'Statistiche', 'Iscritti, abbandono, riempimento, conversione, ricavi e margini'],
   ['/gestione/spazi', 'Affitto spazi ed eventi', 'Richieste da confermare, agenda delle sale, feste e listino'],

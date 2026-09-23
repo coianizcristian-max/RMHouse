@@ -36,7 +36,7 @@ export default function Nav({ gestione }) {
   const ALTRO = ['/gestione/impostazioni', '/gestione/palinsesto', '/gestione/abbonamenti',
                  '/gestione/attese', '/gestione/certificati', '/gestione/statistiche',
                  '/gestione/messaggi', '/gestione/importa', '/gestione/costi', '/gestione/corsi',
-                 '/gestione/spazi'];
+                 '/gestione/spazi', '/gestione/bacheca', '/gestione/eventi', '/gestione/oggi'];
 
   const attiva = (h) => {
     if (h === '/gestione') return path === h || path.startsWith('/gestione/appello');

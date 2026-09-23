@@ -6,7 +6,8 @@ import { ora, giornoLungo } from '@/lib/formato';
 const GIORNI = ['Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab', 'Dom'];
 const MINUTI = (iso) => { const d = new Date(iso); return d.getHours() * 60 + d.getMinutes(); };
 
-export default function Settimana({ inizio, lezioni }) {
+export default function Settimana({ inizio, lezioni, corsi = [] }) {
+  const coloreCorso = (id) => corsi.find((c) => c.id === id)?.colore || 'var(--rosso)';
   const [scelta, setScelta] = useState(null);
 
   const giorni = Array.from({ length: 7 }, (_, i) => {
@@ -28,11 +29,13 @@ export default function Settimana({ inizio, lezioni }) {
 
   const colore = (l) => {
     if (l.stato === 'annullata') return { background: 'repeating-linear-gradient(45deg,var(--carta),var(--carta)6px,#fff 6px,#fff 12px)', color: 'var(--testo-2)', border: '1px solid var(--linea)' };
+    const c = coloreCorso(l.corso_id);
     const pct = l.capienza ? (l.iscritti + l.prove) / l.capienza : 0;
-    if (!l.capienza) return { background: 'var(--carta)', color: 'var(--testo)', border: '1px solid var(--linea)' };
-    if (pct >= 0.9) return { background: 'var(--rosso)', color: '#fff', border: '1px solid var(--rosso)' };
-    if (pct >= 0.5) return { background: 'var(--rosso-tenue)', color: 'var(--rosso-scuro)', border: '1px solid var(--rosso)' };
-    return { background: 'var(--carta)', color: 'var(--testo-2)', border: '1px solid var(--linea)' };
+    const base = { borderLeft: `4px solid ${c}` };
+    if (!l.capienza) return { ...base, background: 'var(--carta)', color: 'var(--testo)', border: '1px solid var(--linea)', borderLeft: `4px solid ${c}` };
+    if (pct >= 0.9) return { ...base, background: c, color: '#fff', border: `1px solid ${c}` };
+    if (pct >= 0.5) return { ...base, background: 'var(--rosso-tenue)', color: 'var(--rosso-scuro)', border: '1px solid var(--linea)', borderLeft: `4px solid ${c}` };
+    return { ...base, background: 'var(--bianco)', color: 'var(--testo-2)', border: '1px solid var(--linea)', borderLeft: `4px solid ${c}` };
   };
 
   return (
@@ -85,7 +88,7 @@ export default function Settimana({ inizio, lezioni }) {
       </div>
 
       <p className="piccolo muto" style={{ marginTop: 6 }}>
-        Il colore indica quanto è piena la lezione: pieno = quasi al completo, chiaro = mezza, grigio = vuota.
+        Ogni corso ha il suo colore; il riempimento del blocco dice quanto è piena la lezione.
         Il <strong>+2p</strong> sono le persone in prova. Tocca una lezione per i dettagli.
       </p>
 

@@ -29,11 +29,12 @@ export default async function Calendario({ searchParams }) {
   if (insegnante) q = q.eq('insegnante_id', insegnante);
   if (mie === '1') q = q.eq('insegnante_id', staff.id);
 
-  const [{ data: lezioni }, { data: sale }, { data: insegnanti }] = await Promise.all([
+  const [{ data: lezioni }, { data: sale }, { data: insegnanti }, { data: corsi }] = await Promise.all([
     q,
     supabase.from('sale').select('id, nome').eq('palestra_id', staff.palestra_id).order('nome'),
     supabase.from('staff').select('id, nome, cognome').eq('palestra_id', staff.palestra_id)
       .eq('ruolo', 'insegnante').eq('attivo', true).order('nome'),
+    supabase.from('corsi').select('id, colore').eq('palestra_id', staff.palestra_id),
   ]);
 
   const filtro = (chiave, valore) => {
@@ -69,7 +70,7 @@ export default async function Calendario({ searchParams }) {
         ))}
       </div>
 
-      <Settimana inizio={inizio} lezioni={lezioni || []} />
+      <Settimana inizio={inizio} lezioni={lezioni || []} corsi={corsi || []} />
     </>
   );
 }

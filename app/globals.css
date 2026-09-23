@@ -215,3 +215,94 @@ tfoot td { font-weight: 800; color: var(--nero); }
   .compare { animation: compare .25s ease-out; }
   @keyframes compare { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
 }
+
+
+/* ==================================================================
+   Presentazione: schede, intestazioni, riquadri numerici, immagini
+   ================================================================== */
+
+/* Intestazione di sezione con occhiello */
+.intestazione { margin: 2px 0 18px; }
+.intestazione .occhiello {
+  font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--rosso);
+}
+.intestazione h1 { margin: 2px 0 4px; }
+.intestazione p { color: var(--testo-2); margin: 0; }
+
+/* Griglia di riquadri */
+.griglia { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
+.griglia-2 { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
+
+/* Riquadro numerico */
+.tessera {
+  background: var(--bianco); border: 1px solid var(--linea); border-radius: 14px; padding: 14px;
+  display: block; text-decoration: none; color: inherit;
+}
+a.tessera:hover { border-color: var(--nero); }
+.tessera .etichetta { font-size: 12px; color: var(--testo-2); font-weight: 600; }
+.tessera .cifra { font-size: 30px; font-weight: 850; font-stretch: 115%; color: var(--nero); line-height: 1.05; margin-top: 2px; }
+.tessera .sotto { font-size: 12px; color: var(--testo-2); margin-top: 2px; }
+.tessera-rossa { background: var(--rosso); border-color: var(--rosso); }
+.tessera-rossa .etichetta, .tessera-rossa .sotto { color: rgba(255,255,255,.85); }
+.tessera-rossa .cifra { color: #fff; }
+.tessera-nera { background: var(--nero); border-color: var(--nero); }
+.tessera-nera .etichetta, .tessera-nera .sotto { color: rgba(255,255,255,.75); }
+.tessera-nera .cifra { color: #fff; }
+
+/* Scheda con banda colorata del corso */
+.scheda-corso {
+  display: grid; grid-template-columns: 6px 1fr auto; gap: 14px; align-items: center;
+  background: var(--bianco); border: 1px solid var(--linea); border-radius: 12px;
+  padding: 0; overflow: hidden; margin-bottom: 10px; text-decoration: none; color: inherit;
+}
+.scheda-corso:hover { border-color: var(--nero); }
+.scheda-corso .banda { align-self: stretch; background: var(--rosso); }
+.scheda-corso .centro { padding: 12px 0; min-width: 0; }
+.scheda-corso .destra { padding: 12px 14px 12px 0; text-align: right; }
+.scheda-corso .titolo { font-weight: 700; color: var(--nero); }
+.scheda-corso .riga { font-size: 13px; color: var(--testo-2); }
+
+/* Orario grande dentro le schede */
+.ora-grande { font-size: 26px; font-weight: 850; font-stretch: 120%; color: var(--nero); line-height: 1; }
+
+/* Barra di riempimento sottile */
+.riempimento { height: 6px; border-radius: 3px; background: var(--linea); overflow: hidden; margin-top: 6px; }
+.riempimento span { display: block; height: 100%; background: var(--rosso); }
+
+/* Immagini: copertina e miniature */
+.copertina { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; border-radius: 12px; background: var(--carta); }
+.miniatura { width: 46px; height: 46px; border-radius: 50%; object-fit: cover; background: var(--carta); flex: none; }
+.miniatura-grande { width: 72px; height: 72px; border-radius: 14px; object-fit: cover; background: var(--carta); flex: none; }
+.segnaposto {
+  display: flex; align-items: center; justify-content: center; background: var(--carta);
+  color: var(--testo-2); font-weight: 800; font-stretch: 115%;
+}
+
+/* Elenco di cose da fare */
+.da-fare { display: grid; gap: 8px; }
+.da-fare a {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 12px 14px; border: 1px solid var(--linea); border-radius: 12px;
+  text-decoration: none; color: var(--testo); background: var(--bianco);
+}
+.da-fare a:hover { border-color: var(--nero); }
+.da-fare .conta {
+  min-width: 30px; text-align: center; font-weight: 800; border-radius: 999px; padding: 2px 9px;
+  background: var(--carta); color: var(--testo-2);
+}
+.da-fare a.urgente .conta { background: var(--rosso); color: #fff; }
+.da-fare a.attenzione .conta { background: var(--attenzione-tenue); color: var(--attenzione); }
+
+/* Striscia di avvisi */
+.avviso-card {
+  border: 1px solid var(--linea); border-left: 5px solid var(--rosso); border-radius: 0 12px 12px 0;
+  padding: 12px 14px; margin-bottom: 10px; background: var(--bianco);
+}
+.avviso-card h3 { margin: 0 0 4px; font-size: 16px; }
+.avviso-card p { margin: 0; font-size: 14px; color: var(--testo-2); white-space: pre-wrap; }
+
+/* Titoli di sezione con filo */
+h2.sezione {
+  display: flex; align-items: center; gap: 10px; margin: 30px 0 12px; font-size: 18px;
+}
+h2.sezione::after { content: ''; flex: 1; height: 1px; background: var(--linea); }

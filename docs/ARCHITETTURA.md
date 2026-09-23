@@ -32,7 +32,9 @@ Così potrà diventare un prodotto vendibile ad altre strutture.
 | Area | Tabelle |
 |---|---|
 | Palestra e staff | `palestre`, `staff` (ruolo: admin, segreteria, insegnante) |
+| Sedi | `sedi` (una scuola può avere più palinsesti: Vicenza, Schio…) |
 | Catalogo | `categorie`, `discipline`, `fasce_eta`, `livelli`, `sale`, `corsi`, `orari`, `chiusure`, `recuperi_ammessi` |
+| Comunicazione | `bacheca`, `eventi`, `iscrizioni_evento`, `note_giorno` |
 | Calendario | `lezioni` (generate), vista `v_lezioni` |
 | Persone | `account`, `allievi`, `certificati` |
 | Abbonamenti | `tipi_abbonamento` (+ `tipi_abbonamento_corsi`), `iscrizioni`, `iscrizioni_orari`, `prenotazioni`, `sospensioni` |
@@ -140,7 +142,13 @@ abbonamento SaaS, WhatsApp (API Business, a pagamento per messaggio).
   (che parte dal mese in `palestre.mese_inizio_stagione`); chi non l'ha pagata è segnalato in appello.
 
 ## Le schermate della segreteria
-- `/gestione` — agenda del giorno e appello, con chi è in prova evidenziato.
+- `/gestione` — **la home**: com'è messa oggi la scuola (lezioni, persone attese, prove in arrivo), l'elenco
+  "Da fare" che raccoglie presenze non segnate, certificati, richieste di sala, lead da richiamare e abbonamenti
+  in scadenza, poi le lezioni del giorno con il colore del corso e lo stato dell'appello, la bacheca e i prossimi eventi.
+- `/gestione/oggi` — l'agenda giorno per giorno con l'appello.
+- `/gestione/bacheca` — avvisi e novità con immagine, periodo di validità e invio per email agli iscritti attivi.
+- `/gestione/eventi` — open day, saggi, stage e campus con locandina, prezzo, posti, iscrizioni e fino a tre
+  eventi in evidenza.
 - `/gestione/corsi` — corsi per categoria con iscritti, prove in arrivo e certificati da sistemare.
   Dentro il corso: **orari settimanali** modificabili (le lezioni si rigenerano da sole), elenco iscritti con
   contatti e scadenze, export CSV, lista d'attesa.
@@ -192,6 +200,11 @@ essere confermate entrambe. I pacchetti festa calcolano gli invitati extra e l'a
 Le tabelle sono `tariffe_spazi`, `pacchetti_evento` e `prenotazioni_spazi`; la vista `v_agenda_sale` unisce lezioni
 e prenotazioni, ed è quella che alimenta l'agenda delle sale. `statistiche_spazi` porta ore affittate, ricavi e
 incassi dentro il cruscotto.
+
+## Presentazione
+Ogni corso ha un **colore** e una **foto**: il colore torna nel calendario e nelle schede, la foto nell'elenco corsi.
+Le immagini stanno in un archivio pubblico (`media`), separato da quello privato dei certificati.
+I corsi, gli avvisi e gli eventi hanno tre stati di visibilità: pubblico, privato (solo iscritti) e nascosto (bozza).
 
 ## Mobile
 L'interfaccia è pensata prima per il telefono: navigazione fissa in basso con icone (in alto da 720 px in su),

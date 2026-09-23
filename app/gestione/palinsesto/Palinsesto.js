@@ -126,16 +126,19 @@ export default function Palinsesto({ palestraId, dati }) {
             campi={[
               { k: 'nome', etichetta: 'Nome', tipo: 'testo', obbligatorio: true },
               { k: 'cognome', etichetta: 'Cognome', tipo: 'testo' },
+              { k: 'specialita', etichetta: 'Specialità', tipo: 'testo', aiuto: 'Es. "Aerea e acrobatica", "Segreteria"' },
               { k: 'ruolo', etichetta: 'Ruolo', tipo: 'select', obbligatorio: true,
                 opzioni: [{ v: 'insegnante', l: 'Insegnante' }, { v: 'segreteria', l: 'Segreteria' }, { v: 'admin', l: 'Amministratore' }] },
               { k: 'email', etichetta: 'Email', tipo: 'testo' },
               { k: 'telefono', etichetta: 'Telefono', tipo: 'testo' },
+              { k: 'bio', etichetta: 'Presentazione', tipo: 'testolungo' },
+              { k: 'collaboratore', etichetta: 'Collaboratore esterno', tipo: 'check' },
               { k: 'attivo', etichetta: 'Attivo', tipo: 'check' },
             ]}
             riassunto={(r) => ({
               titolo: `${r.nome} ${r.cognome || ''}`.trim(),
-              dettaglio: [r.ruolo, r.email].filter(Boolean).join(' · '),
-              tag: r.user_id ? null : 'senza accesso',
+              dettaglio: [r.specialita, r.ruolo, r.email].filter(Boolean).join(' · '),
+              tag: r.user_id ? (r.collaboratore ? 'collaboratore' : null) : 'senza accesso',
             })}
           />
         </>

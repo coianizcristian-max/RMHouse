@@ -18,7 +18,7 @@ select cron.unschedule('rmhouse-invio-messaggi') where exists (select 1 from cro
 select cron.schedule('rmhouse-invio-messaggi', '*/5 * * * *', $$
   select net.http_post(
     url     := 'https://TUO-SITO.vercel.app/api/cron/invia-messaggi',
-    headers := jsonb_build_object('Authorization', 'Bearer b7f3a91c4e2d48a6be05c17d93f2ea6018cd5b74a9e3f082', 'Content-Type', 'application/json'),
+    headers := jsonb_build_object('Authorization', 'Bearer METTI_QUI_CRON_SECRET', 'Content-Type', 'application/json'),
     body    := '{}'::jsonb
   );
 $$);
