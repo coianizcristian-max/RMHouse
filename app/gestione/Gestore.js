@@ -7,7 +7,7 @@ import { supabaseBrowser } from '@/lib/supabase/browser';
 // campi: [{ k, etichetta, tipo: 'testo'|'numero'|'euro'|'select'|'check'|'ora'|'data'|'testolungo',
 //           opzioni?: [{v,l}], obbligatorio?, aiuto?, meta? }]
 // fissi: valori sempre applicati (es. { palestra_id, corso_id })
-// riassunto(riga) -> { titolo, dettaglio, tag? }
+// riassunto(riga) -> { titolo, dettaglio, tag?, colore? }
 export default function Gestore({ tabella, campi, righe, fissi = {}, riassunto, etichettaNuovo = 'Aggiungi', vuoto = 'Ancora niente qui.' }) {
   const router = useRouter();
   const [apri, setApri] = useState(null);       // id della riga in modifica, oppure 'nuovo'
@@ -76,13 +76,19 @@ export default function Gestore({ tabella, campi, righe, fissi = {}, riassunto, 
             ) : (
               <div className="persona" style={{ alignItems: 'start' }}>
                 <div>
+                  {riassunto(r).colore && (
+                    <span aria-hidden="true" style={{
+                      display: 'inline-block', width: 12, height: 12, borderRadius: 3,
+                      background: riassunto(r).colore, marginRight: 8,
+                    }} />
+                  )}
                   <span className="persona-nome">{riassunto(r).titolo}</span>
                   {riassunto(r).tag && <> <span className="tag tag-neutro">{riassunto(r).tag}</span></>}
                   {riassunto(r).dettaglio && <div className="piccolo muto">{riassunto(r).dettaglio}</div>}
                 </div>
                 <div style={{ display: 'flex', gap: 10 }}>
                   <button className="link-btn" onClick={() => apriModifica(r)}>Modifica</button>
-                  <button className="link-btn" onClick={() => elimina(r)}>Elimina</button>
+                  <button className="link-btn pericolo" onClick={() => elimina(r)}>Elimina</button>
                 </div>
               </div>
             )}
@@ -123,6 +129,13 @@ function Modulo({ campi, bozza, setBozza, salva, annulla, invio }) {
                 <option value="">{c.vuotoTesto || '— nessuno —'}</option>
                 {c.opzioni.map((o) => <option key={o.v} value={o.v}>{o.l}</option>)}
               </select>
+            ) : c.tipo === 'colore' ? (
+              <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+                <input id={c.k} type="color" value={/^#[0-9a-f]{6}$/i.test(bozza[c.k] || '') ? bozza[c.k] : '#f40000'}
+                       onChange={(e) => setBozza({ ...bozza, [c.k]: e.target.value })}
+                       style={{ width: 52, height: 36, padding: 0, border: '1px solid var(--linea)', borderRadius: 8 }} />
+                <span className="piccolo muto">{bozza[c.k] || 'nessun colore'}</span>
+              </div>
             ) : c.tipo === 'testolungo' ? (
               <textarea id={id} value={bozza[c.k] ?? ''} onChange={(e) => set(c.k, e.target.value)} />
             ) : (

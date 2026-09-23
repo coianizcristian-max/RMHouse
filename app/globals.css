@@ -538,3 +538,157 @@ h2.sezione::after { content: ''; flex: 1; height: 1px; background: var(--linea);
   .barra { padding: 26px 48px 8px; }
   .doppia { grid-template-columns: minmax(0, 1fr) 360px; gap: 36px; }
 }
+
+
+/* ==================================================================
+   Moduli: compatti su telefono, a due colonne su desktop
+   ================================================================== */
+.campo { margin-bottom: 14px; }
+.campo label { font-size: 14px; }
+.campo input, .campo select, .campo textarea { min-height: 44px; padding: 9px 12px; }
+.campo textarea { min-height: 84px; }
+.campo .piccolo { margin-top: -1px; }
+
+/* Il modulo si chiude con la barra dei pulsanti staccata dal resto */
+form .azioni { margin-top: 6px; }
+
+@media (min-width: 900px) {
+  /* Due colonne per tutti i moduli dell'area di gestione.
+     I campi lunghi (testi, note) e le righe già in griglia restano larghi. */
+  .contenuto form {
+    display: grid; grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0 22px; align-items: start;
+  }
+  .contenuto form > * { grid-column: span 2; min-width: 0; }
+  .contenuto form > .campo { grid-column: span 1; }
+  .contenuto form > .campo:has(textarea) { grid-column: span 2; }
+  .contenuto form > label.spunta { grid-column: span 1; margin-bottom: 8px; }
+
+  /* Campi più bassi e titoli più piccoli: ci sta il doppio in altezza */
+  .campo { margin-bottom: 16px; }
+  .campo input, .campo select, .campo textarea { min-height: 40px; padding: 8px 12px; font-size: 15px; }
+  .campo textarea { min-height: 76px; }
+  .campo label { font-size: 13px; font-weight: 700; letter-spacing: .01em; }
+
+  /* La barra "Salva" resta a portata di mano mentre si scorre */
+  .contenuto form > .azioni {
+    position: sticky; bottom: 0; z-index: 5;
+    background: linear-gradient(to top, var(--bianco) 70%, rgba(255,255,255,0));
+    padding: 14px 0 10px; margin-top: 4px; padding-right: 90px;
+  }
+  .contenuto form > .azioni .btn { flex: 0 0 auto; min-width: 150px; }
+
+  /* Un titolo dentro il modulo fa da separatore di sezione */
+  .contenuto form > h2, .contenuto form > h3 {
+    margin: 22px 0 10px; padding-top: 14px; border-top: 1px solid var(--linea);
+    font-size: 15px; letter-spacing: .04em; text-transform: uppercase; color: var(--testo-2);
+  }
+  .contenuto form > h2:first-child, .contenuto form > h3:first-child { border-top: 0; margin-top: 0; padding-top: 0; }
+}
+
+
+/* ==================================================================
+   Rifinitura: pulsanti, link d'azione, campi, schede
+   ================================================================== */
+
+/* Pulsanti: angoli più morbidi, un filo di rilievo, reazione al tocco */
+.btn {
+  min-height: 44px; padding: 0 20px; border-radius: 12px; border-width: 1.5px;
+  transition: transform .12s ease, box-shadow .12s ease, background .12s ease, border-color .12s ease;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, .05);
+}
+.btn:hover { box-shadow: 0 4px 12px rgba(0, 0, 0, .10); }
+.btn:active { transform: translateY(1px); box-shadow: none; }
+.btn-primario { box-shadow: 0 2px 8px rgba(244, 0, 0, .28); }
+.btn-primario:hover { box-shadow: 0 6px 18px rgba(244, 0, 0, .32); }
+
+/* Le azioni piccole non sono più link sottolineati ma pastiglie discrete */
+.link-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 6px 12px; border-radius: 999px;
+  border: 1px solid var(--linea); background: var(--bianco);
+  color: var(--testo-2); font: inherit; font-size: 14px; font-weight: 600;
+  text-decoration: none; cursor: pointer;
+  transition: border-color .12s ease, color .12s ease, background .12s ease;
+}
+.link-btn:hover { border-color: var(--nero); color: var(--nero); background: var(--carta); }
+.link-btn[disabled] { opacity: .45; cursor: not-allowed; }
+.link-btn.piccolo { font-size: 13px; padding: 5px 10px; }
+
+/* Le azioni distruttive restano grigie finché non ci passi sopra */
+.link-btn.pericolo:hover { border-color: var(--rosso); color: var(--rosso); background: var(--rosso-tenue); }
+
+/* Riga di azioni sotto una scheda */
+.azioni-riga { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+
+/* Torna indietro: pastiglia con la freccia, non un link nudo */
+.torna {
+  display: inline-flex; align-items: center; gap: 7px; margin-bottom: 14px;
+  padding: 7px 14px 7px 11px; border-radius: 999px;
+  border: 1px solid var(--linea); background: var(--bianco);
+  color: var(--testo-2); font-size: 14px; font-weight: 600; text-decoration: none;
+}
+.torna:hover { border-color: var(--nero); color: var(--nero); }
+.torna::before { content: '‹'; font-size: 18px; line-height: 1; margin-top: -2px; }
+
+/* Caricamento file: niente bottone di sistema */
+input[type='file'] {
+  font: inherit; font-size: 14px; color: var(--testo-2);
+  border: 1.5px dashed var(--linea); border-radius: 12px; padding: 10px 12px; width: 100%;
+  background: var(--bianco); cursor: pointer;
+}
+input[type='file']:hover { border-color: var(--nero); }
+input[type='file']::file-selector-button {
+  font: inherit; font-weight: 700; font-size: 14px; margin-right: 12px; cursor: pointer;
+  padding: 8px 14px; border-radius: 999px; border: 0;
+  background: var(--nero); color: #fff;
+}
+input[type='file']::file-selector-button:hover { background: var(--rosso); }
+
+/* Campi: angoli coerenti e alone rosso quando sono attivi */
+.campo input, .campo select, .campo textarea {
+  border-radius: 12px; border-color: var(--linea);
+  transition: border-color .12s ease, box-shadow .12s ease;
+}
+.campo input:hover, .campo select:hover, .campo textarea:hover { border-color: #9a9a9a; }
+.campo input:focus, .campo select:focus, .campo textarea:focus {
+  border-color: var(--rosso); box-shadow: 0 0 0 3px var(--rosso-tenue);
+}
+.campo select {
+  appearance: none; -webkit-appearance: none; padding-right: 40px; background-repeat: no-repeat;
+  background-position: right 14px center; background-size: 11px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%231a1a1a' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E");
+}
+
+/* Schede: ombra leggera al posto del bordo secco */
+.scheda, .tessera, .scheda-corso, .avviso-card, .carta-lezione {
+  box-shadow: 0 1px 2px rgba(0, 0, 0, .04);
+  transition: box-shadow .14s ease, border-color .14s ease, transform .14s ease;
+}
+a.tessera:hover, .scheda-corso:hover, .carta-lezione:hover {
+  box-shadow: 0 6px 20px rgba(0, 0, 0, .10);
+}
+
+/* Etichette di stato: pastiglie piene, non riquadri */
+.tag { border-radius: 999px; padding: 4px 10px; font-size: 12px; font-weight: 700; letter-spacing: .01em; }
+
+/* Righe di elenco: separatore leggero e reazione al passaggio */
+.elenco > li { transition: background .12s ease; }
+.elenco > li:hover { background: var(--carta); }
+
+/* Filtri a pastiglia */
+.filtri a {
+  border-radius: 999px; transition: background .12s ease, border-color .12s ease, color .12s ease;
+}
+
+
+/* Area di caricamento immagine */
+.zona-foto {
+  display: flex; align-items: center; gap: 14px; cursor: pointer;
+  padding: 12px 14px; border: 1.5px dashed var(--linea); border-radius: 14px; background: var(--bianco);
+  transition: border-color .12s ease, background .12s ease;
+}
+.zona-foto:hover, .zona-foto.sopra { border-color: var(--rosso); background: var(--rosso-tenue); }
+.zona-foto .zona-testo { display: grid; gap: 2px; flex: 1; min-width: 0; }
+.zona-foto .zona-testo strong { font-size: 15px; color: var(--nero); }
+.zona-foto .segnaposto svg { stroke: var(--testo-2); }

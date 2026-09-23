@@ -13,7 +13,7 @@ export default async function ModificaCorso({ params }) {
 
   const [{ data: corso }, discipline, fasce, livelli, sedi] = await Promise.all([
     supabase.from('corsi').select('*').eq('id', id).maybeSingle(),
-    supabase.from('discipline').select('id, nome').eq('palestra_id', p).order('ordine'),
+    supabase.from('discipline').select('id, nome, colore').eq('palestra_id', p).order('ordine'),
     supabase.from('fasce_eta').select('id, nome').eq('palestra_id', p).order('ordine'),
     supabase.from('livelli').select('id, nome').eq('palestra_id', p).order('ordine'),
     supabase.from('sedi').select('id, nome').eq('palestra_id', p).order('ordine'),

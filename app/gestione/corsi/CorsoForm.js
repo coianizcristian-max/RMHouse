@@ -3,8 +3,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabaseBrowser } from '@/lib/supabase/browser';
 import Immagine from '../Immagine';
-
-const COLORI = ['#f40000', '#000000', '#b3001b', '#8a0303', '#d64545', '#5c5c5c', '#2b2b2b', '#7a7a7a'];
+import { gradazioni, testoSu } from '@/lib/colori';
 
 export default function CorsoForm({ palestraId, corso, discipline, fasce, livelli, sedi = [] }) {
   const router = useRouter();
@@ -20,7 +19,8 @@ export default function CorsoForm({ palestraId, corso, discipline, fasce, livell
     max_prove_per_lezione: corso?.max_prove_per_lezione ?? 2,
     capienza: corso?.capienza ?? '',
     attivo: corso ? corso.attivo : true,
-    colore: corso?.colore || '#f40000',
+    colore: corso?.colore || '',
+    colore_automatico: corso ? corso.colore_automatico !== false : true,
     foto_url: corso?.foto_url || null,
     visibilita: corso?.visibilita || 'pubblico',
     prenotabile: corso ? corso.prenotabile : true,
@@ -28,6 +28,10 @@ export default function CorsoForm({ palestraId, corso, discipline, fasce, livell
   });
   const [errore, setErrore] = useState('');
   const [invio, setInvio] = useState(false);
+  const disciplinaScelta = discipline.find((d) => d.id === f.disciplina_id);
+  const baseColore = disciplinaScelta?.colore || null;
+  const nomeDisciplina = disciplinaScelta?.nome || '';
+
   const set = (k) => (e) => setF({ ...f, [k]: e.target.type === 'checkbox' ? e.target.checked : e.target.value });
 
   async function salva(e) {
@@ -46,7 +50,8 @@ export default function CorsoForm({ palestraId, corso, discipline, fasce, livell
       max_prove_per_lezione: parseInt(f.max_prove_per_lezione, 10) || 0,
       capienza: f.capienza === '' ? null : parseInt(f.capienza, 10),
       attivo: f.attivo,
-      colore: f.colore,
+      colore: f.colore || null,
+      colore_automatico: f.colore_automatico,
       foto_url: f.foto_url,
       visibilita: f.visibilita,
       prenotabile: f.prenotabile,
@@ -64,6 +69,7 @@ export default function CorsoForm({ palestraId, corso, discipline, fasce, livell
 
   return (
     <form onSubmit={salva}>
+      <h3>Il corso</h3>
       {errore && <div className="errore" role="alert">{errore}</div>}
       <div className="campo">
         <label htmlFor="nome">Nome del corso</label>
@@ -92,21 +98,45 @@ export default function CorsoForm({ palestraId, corso, discipline, fasce, livell
           {livelli.map((l) => <option key={l.id} value={l.id}>{l.nome}</option>)}
         </select>
       </div>
+      <h3>Aspetto</h3>
       <Immagine url={f.foto_url} cartella="corsi" etichetta="Foto del corso"
                 onChange={(url) => setF({ ...f, foto_url: url })} />
       <div className="campo">
         <label>Colore</label>
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-          {COLORI.map((c) => (
-            <button type="button" key={c} onClick={() => setF({ ...f, colore: c })}
-                    aria-label={`Colore ${c}`} aria-pressed={f.colore === c}
-                    style={{
-                      width: 34, height: 34, borderRadius: 8, background: c, cursor: 'pointer',
-                      border: f.colore === c ? '3px solid var(--nero)' : '1px solid var(--linea)',
-                    }} />
-          ))}
+        {baseColore ? (
+          <>
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+              {gradazioni(baseColore, 10).map((c) => (
+                <button type="button" key={c} onClick={() => setF({ ...f, colore: c, colore_automatico: false })}
+                        aria-label={`Tinta ${c}`} aria-pressed={f.colore === c}
+                        style={{
+                          width: 38, height: 38, borderRadius: 8, background: c, cursor: 'pointer',
+                          color: testoSu(c), fontSize: 11, fontWeight: 700,
+                          border: f.colore === c ? '3px solid var(--nero)' : '1px solid var(--linea)',
+                        }}>{f.colore === c ? '✓' : ''}</button>
+              ))}
+            </div>
+            <span className="piccolo muto">
+              Sono le gradazioni di {nomeDisciplina || 'questa disciplina'}: i corsi della stessa famiglia
+              restano riconoscibili a colpo d'occhio nel calendario.
+            </span>
+          </>
+        ) : (
+          <span className="piccolo muto">Scegli prima la disciplina: il colore nasce da quello della disciplina.</span>
+        )}
+
+        <label className="spunta" style={{ marginTop: 10 }}>
+          <input type="checkbox" checked={f.colore_automatico}
+                 onChange={(e) => setF({ ...f, colore_automatico: e.target.checked })} />
+          <span>Scegli il colore da solo quando cambio disciplina</span>
+        </label>
+
+        <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginTop: 6 }}>
+          <input type="color" aria-label="Colore libero" value={f.colore || baseColore || '#f40000'}
+                 onChange={(e) => setF({ ...f, colore: e.target.value, colore_automatico: false })}
+                 style={{ width: 46, height: 34, padding: 0, border: '1px solid var(--linea)', borderRadius: 8 }} />
+          <span className="piccolo muto">oppure scegline uno libero</span>
         </div>
-        <span className="piccolo muto">È il colore con cui il corso appare nel calendario.</span>
       </div>
       {sedi.length > 1 && (
         <div className="campo">
@@ -124,6 +154,7 @@ export default function CorsoForm({ palestraId, corso, discipline, fasce, livell
           <option value="nascosto">Nascosto: lo vede solo lo staff</option>
         </select>
       </div>
+      <h3>Testi per il cliente</h3>
       <div className="campo">
         <label htmlFor="descr">Descrizione</label>
         <textarea id="descr" value={f.descrizione} onChange={set('descrizione')} />
@@ -149,6 +180,7 @@ export default function CorsoForm({ palestraId, corso, discipline, fasce, livell
         <label htmlFor="cap">Capienza del corso</label>
         <input id="cap" type="number" min="1" value={f.capienza} onChange={set('capienza')} placeholder="Vuoto = usa la capienza della sala" />
       </div>
+      <h3>Prenotazioni</h3>
       <label className="spunta">
         <input type="checkbox" checked={f.prova_abilitata} onChange={set('prova_abilitata')} />
         <span>Prenotabile come lezione di prova dal sito</span>
@@ -161,7 +193,9 @@ export default function CorsoForm({ palestraId, corso, discipline, fasce, livell
         <input type="checkbox" checked={f.attivo} onChange={set('attivo')} />
         <span>Corso attivo</span>
       </label>
-      <button className="btn btn-primario btn-pieno" disabled={invio}>{invio ? 'Salvo…' : 'Salva il corso'}</button>
+      <div className="azioni">
+        <button className="btn btn-primario" disabled={invio}>{invio ? 'Salvo…' : 'Salva il corso'}</button>
+      </div>
     </form>
   );
 }

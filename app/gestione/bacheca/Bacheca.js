@@ -124,12 +124,12 @@ export default function Bacheca({ palestraId, righe }) {
                   · {r.visibilita}
                   {r.inviato_at && ` · inviato a ${r.destinatari} persone il ${dataBreve(r.inviato_at)}`}
                 </div>
-                <div style={{ display: 'flex', gap: 14, marginTop: 8, flexWrap: 'wrap' }}>
+                <div className="azioni-riga">
                   <button className="link-btn piccolo" onClick={() => modifica(r)}>Modifica</button>
                   <button className="link-btn piccolo" disabled={invio} onClick={() => invia(r)}>
                     {r.inviato_at ? 'Rimanda per email' : 'Manda per email'}
                   </button>
-                  <button className="link-btn piccolo" onClick={() => elimina(r)}>Elimina</button>
+                  <button className="link-btn piccolo pericolo" onClick={() => elimina(r)}>Elimina</button>
                 </div>
               </div>
             </div>

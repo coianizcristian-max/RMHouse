@@ -32,6 +32,8 @@ la struttura per agganciarli c'è già. Vedi `docs/ARCHITETTURA.md`.
    12. `supabase/migrations/012_palinsesto.sql` (nomi di sala e insegnante nel palinsesto)
    13. `supabase/migrations/013_anagrafiche.sql` (sede completa, staff con foto e colore, sale, foto allievi, pagina pubblica dei corsi)
    14. `supabase/migrations/014_area_cliente.sql` (area del cliente: accesso, lezioni, recuperi, certificato)
+   15. `supabase/migrations/015_colori.sql` (colore per disciplina e gradazioni automatiche dei corsi)
+   16. `supabase/migrations/016_registrazioni.sql` (registrare persone, incassi e liste d'attesa dal banco)
 3. In **Table Editor → palestre** aggiorna la riga `rmhouse`: `email`, `google_review_url` e, dopo il deploy, `base_url`.
 
 ### 2. Il tuo utente amministratore
@@ -148,8 +150,8 @@ nella barra in basso; le voci dell'area diventano chip scorrevoli sotto l'intest
 | **Oggi** | Riepilogo · Agenda del giorno · Lead · Liste d'attesa |
 | **Calendari** | Palinsesto (schede) · Agenda settimanale (griglia oraria) · Sale e affitti · Eventi |
 | **Struttura** | Corsi · Staff · Sale · Categorie e livelli · Bacheca · Sede e contatti |
-| **Persone** | Anagrafiche · Certificati · Importa da CSV |
-| **Conti** | Statistiche · Costi e fornitori · Abbonamenti e regole · Messaggi automatici |
+| **Persone** | Anagrafiche e recuperi · Registra una persona · Certificati · Importa da CSV |
+| **Conti** | Statistiche e margini · Incassi · Costi e fornitori · Abbonamenti, recuperi e sconti · Messaggi automatici |
 
 ## Sul telefono
 L'app è pensata prima per il telefono: barra di navigazione in basso, raggiungibile col pollice, elenchi compatti,

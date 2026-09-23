@@ -10,7 +10,7 @@ export default async function NuovoCorso() {
   if (staff.ruolo === 'insegnante') redirect('/gestione');
   const p = staff.palestra_id;
   const [discipline, fasce, livelli, sedi] = await Promise.all([
-    supabase.from('discipline').select('id, nome').eq('palestra_id', p).order('ordine'),
+    supabase.from('discipline').select('id, nome, colore').eq('palestra_id', p).order('ordine'),
     supabase.from('fasce_eta').select('id, nome').eq('palestra_id', p).order('ordine'),
     supabase.from('livelli').select('id, nome').eq('palestra_id', p).order('ordine'),
     supabase.from('sedi').select('id, nome').eq('palestra_id', p).order('ordine'),
@@ -18,7 +18,7 @@ export default async function NuovoCorso() {
 
   return (
     <>
-      <p><Link href="/gestione/corsi">‹ Tutti i corsi</Link></p>
+      <Link className="torna" href="/gestione/corsi">Tutti i corsi</Link>
       <h1>Nuovo corso</h1>
       <CorsoForm palestraId={p} discipline={discipline.data || []} fasce={fasce.data || []} livelli={livelli.data || []} sedi={sedi.data || []} />
     </>

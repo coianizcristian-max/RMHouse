@@ -117,9 +117,9 @@ export default function Sale({ palestraId, sale, sedi, orari }) {
                 {` · ${usoDi(s.id)} orari`}
               </div>
               {s.attrezzatura && <div className="piccolo" style={{ marginTop: 4 }}>{s.attrezzatura}</div>}
-              <div style={{ display: 'flex', gap: 14, marginTop: 10 }}>
+              <div className="azioni-riga">
                 <button className="link-btn piccolo" onClick={() => modifica(s)}>Modifica</button>
-                <button className="link-btn piccolo" onClick={() => elimina(s)}>Elimina</button>
+                <button className="link-btn piccolo pericolo" onClick={() => elimina(s)}>Elimina</button>
               </div>
             </div>
           </div>

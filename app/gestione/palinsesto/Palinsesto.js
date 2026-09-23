@@ -1,6 +1,7 @@
 'use client';
 import { useState } from 'react';
 import Gestore from '../Gestore';
+import Ricolora from './Ricolora';
 import { dataBreve } from '@/lib/formato';
 
 const SEZIONI = [
@@ -35,11 +36,14 @@ export default function Palinsesto({ palestraId, dati }) {
             tabella="categorie" fissi={fissi} righe={dati.categorie} etichettaNuovo="Aggiungi categoria"
             campi={[
               { k: 'nome', etichetta: 'Nome', tipo: 'testo', obbligatorio: true },
+              { k: 'colore', etichetta: 'Colore di base', tipo: 'colore' },
               { k: 'descrizione', etichetta: 'Descrizione', tipo: 'testo' },
               { k: 'ordine', etichetta: 'Ordine', tipo: 'numero' },
               { k: 'attiva', etichetta: 'Attiva', tipo: 'check' },
             ]}
-            riassunto={(r) => ({ titolo: r.nome, dettaglio: r.descrizione, tag: r.attiva ? null : 'nascosta' })}
+            riassunto={(r) => ({
+              titolo: r.nome, dettaglio: r.descrizione, tag: r.attiva ? null : 'nascosta', colore: r.colore,
+            })}
           />
         </>
       )}
@@ -48,17 +52,21 @@ export default function Palinsesto({ palestraId, dati }) {
         <>
           <h2>Discipline</h2>
           <p className="muto piccolo">Stanno dentro una categoria: pole dance, danza aerea, contemporanea…</p>
+          <Ricolora palestraId={fissi.palestra_id} />
           <Gestore
             tabella="discipline" fissi={fissi} righe={dati.discipline} etichettaNuovo="Aggiungi disciplina"
             campi={[
               { k: 'nome', etichetta: 'Nome', tipo: 'testo', obbligatorio: true },
               { k: 'categoria_id', etichetta: 'Categoria', tipo: 'select', opzioni: opz(dati.categorie), obbligatorio: true },
+              { k: 'colore', etichetta: 'Colore di base', tipo: 'colore',
+                aiuto: 'I corsi di questa disciplina prendono gradazioni di questo colore.' },
               { k: 'descrizione', etichetta: 'Descrizione', tipo: 'testo' },
               { k: 'ordine', etichetta: 'Ordine', tipo: 'numero' },
               { k: 'attiva', etichetta: 'Attiva', tipo: 'check' },
             ]}
             riassunto={(r) => ({
               titolo: r.nome,
+              colore: r.colore,
               dettaglio: dati.categorie.find((c) => c.id === r.categoria_id)?.nome || 'Senza categoria',
               tag: r.attiva ? null : 'nascosta',
             })}

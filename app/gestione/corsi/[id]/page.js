@@ -31,7 +31,7 @@ export default async function Corso({ params, searchParams }) {
 
   return (
     <>
-      <p><Link href="/gestione/corsi">‹ Tutti i corsi</Link></p>
+      <Link className="torna" href="/gestione/corsi">Tutti i corsi</Link>
       <h1 style={{ marginBottom: 4 }}>{corso.corso_nome}</h1>
       <p className="muto">
         {[corso.categoria, corso.fascia, corso.livello].filter(Boolean).join(' · ')}

@@ -106,7 +106,7 @@ export default function Messaggi({ palestraId, template, coda, emailStaff }) {
                     <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap' }}>
                       <button className="link-btn piccolo" onClick={() => modifica(t)}>Modifica</button>
                       <button className="link-btn piccolo" disabled={invio} onClick={() => provaInvio(t)}>Invia una prova a me</button>
-                      <button className="link-btn piccolo" onClick={() => elimina(t)}>Elimina</button>
+                      <button className="link-btn piccolo pericolo" onClick={() => elimina(t)}>Elimina</button>
                     </div>
                   </>
                 )}

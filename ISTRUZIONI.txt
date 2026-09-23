@@ -1,60 +1,52 @@
-AGGIORNAMENTO N 005 — RMHouse
-Anagrafiche complete: foto ovunque, staff, sale, sede, pagina pubblica dei corsi
+AGGIORNAMENTO N 012 — RMHouse
+I PUNTI DI REGISTRAZIONE CHE MANCAVANO
 
 QUERY DA ESEGUIRE
 -----------------
-supabase/migrations/013_anagrafiche.sql
+supabase/migrations/016_registrazioni.sql
 
 FILE DA COPIARE (sovrascrivi, rispettando i percorsi)
 -----------------------------------------------------
-lib/menu.js                                  sostituito
-app/globals.css                              sostituito
-app/gestione/staff/page.js                   NUOVO
-app/gestione/staff/Staff.js                  NUOVO
-app/gestione/sale/page.js                    NUOVO
-app/gestione/sale/Sale.js                    NUOVO
-app/gestione/sede/page.js                    NUOVO
-app/gestione/sede/Sede.js                    NUOVO
-app/gestione/calendario/page.js              sostituito
-app/gestione/calendario/Palinsesto.js        sostituito
-app/gestione/persone/page.js                 sostituito
-app/gestione/persone/[id]/Anagrafica.js      sostituito
-app/gestione/corsi/[id]/page.js              sostituito
-app/corsi/[slug]/page.js                     NUOVO
-README.md                                    sostituito
+lib/menu.js                                     sostituito
+app/gestione/persone/nuova/page.js              NUOVO
+app/gestione/persone/nuova/NuovaPersona.js      NUOVO
+app/gestione/incassi/page.js                    NUOVO
+app/gestione/incassi/Incassi.js                 NUOVO
+app/gestione/attese/page.js                     sostituito
+app/gestione/attese/Aggiungi.js                 NUOVO
+app/gestione/AzioniRapide.js                    sostituito
+app/gestione/indice/page.js                     sostituito
+README.md                                       sostituito
+docs/ARCHITETTURA.md                            sostituito
 
-Poi: git add . && git commit -m "Aggiornamento 005" && git push
+Poi: git add . && git commit -m "Aggiornamento 012" && git push
 
-COSA CAMBIA
------------
-FOTO (erano la cosa che mancava di piu')
-- Staff: foto tonda, visibile nel calendario accanto al nome dell'insegnante.
-- Allievi: foto in anagrafica e negli elenchi delle persone.
-- Sale: foto e descrizione.
-- Sede: logo.
-- Sulle schede delle lezioni compaiono i cerchietti dei prenotati (fino a
-  cinque, poi "+N"); chi e' in prova ha il bordo rosso.
+AVEVI RAGIONE: MANCAVANO TRE PUNTI DI INGRESSO
+----------------------------------------------
+1) Non si poteva REGISTRARE UNA PERSONA NUOVA dalla segreteria.
+   Si entrava solo dall'import CSV o dal percorso di prova sul sito.
+   Ora: Persone -> Registra una persona.
+   Si compila chi paga e chi frequenta (se e' la stessa persona basta
+   una spunta), certificato, note e consensi; se l'email esiste gia',
+   l'allievo viene aggiunto a quella famiglia invece di creare un
+   doppione. Salvato, si apre la sua scheda per creare l'iscrizione.
 
-NUOVA PAGINA STAFF (Struttura -> Staff)
-- Foto, specialita', ruolo, colore personale, presentazione, contatti,
-  compenso orario, collaboratore esterno, visibilita' sul sito,
-  archiviazione con elenco separato "Archiviati".
-- Sotto ogni persona i corsi che tiene.
+2) Non esisteva nessun posto dove REGISTRARE UN INCASSO.
+   Ora: Conti -> Incassi.
+   In cima i totali del periodo e quanto resta da incassare, divisi per
+   metodo (contanti, bonifico, POS, online). Il pulsante "Registra un
+   incasso" serve per quota annuale, abbonamento, prova, evento,
+   affitto sala, materiale: si puo' collegare alla persona cercandola
+   per cognome. Sulle righe in sospeso c'e' "segna incassato".
+   La quota annuale finisce anche nella scheda dell'allievo.
 
-NUOVA PAGINA SALE (Struttura -> Sale)
-- Foto, descrizione, attrezzatura (pertiche, tessuti, specchi...),
-  capienza, costo orario, sede. Mostra quanti orari usano la sala e
-  impedisce di eliminarla se e' ancora in uso.
+3) Non si poteva METTERE QUALCUNO IN LISTA D'ATTESA dal banco.
+   La funzione c'era ma nessuna schermata la chiamava.
+   Ora: Oggi -> Liste d'attesa -> "Metti qualcuno in coda".
 
-NUOVA PAGINA SEDE E CONTATTI (Struttura -> Sede e contatti)
-- Dati della scuola (nome, telefono, email, mittente delle email,
-  indirizzo del sito, link recensioni Google) in un punto solo.
-- Sedi multiple con logo, tipologia, indirizzo completo (via, civico,
-  CAP, comune, provincia, regione), contatti, sito, Facebook, Instagram,
-  sede principale e visibilita'.
-
-PAGINA PUBBLICA DEL CORSO (il loro "Crea Landing")
-- Ogni corso ha un indirizzo tipo /corsi/pole-dance-base con foto,
-  descrizione, orari, insegnanti e il pulsante per prenotare la prova.
-- Il link si trova nella scheda del corso, accanto a "modifica":
-  e' quello da mettere nelle campagne Instagram.
+ALTRE MODIFICHE
+---------------
+- Il pulsante rosso delle azioni rapide ora porta a "Registra una
+  persona" e "Registra un incasso".
+- La pagina "Tutte le funzioni" elenca anche questi tre punti.
+- Nel README e in ARCHITETTURA c'e' una tabella "dove si registra cosa".

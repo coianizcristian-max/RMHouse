@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 import { staffCorrente } from '@/lib/staff';
 import { dataBreve, ora } from '@/lib/formato';
 import Attese from './Attese';
+import Aggiungi from './Aggiungi';
 
 export const dynamic = 'force-dynamic';
 
@@ -10,6 +11,9 @@ export default async function PaginaAttese({ searchParams }) {
   const { stato = 'in_attesa' } = await searchParams;
   const { supabase, staff } = await staffCorrente();
   if (staff.ruolo === 'insegnante') redirect('/gestione');
+
+  const { data: corsi } = await supabase.from('corsi').select('id, nome')
+    .eq('palestra_id', staff.palestra_id).eq('attivo', true).order('nome');
 
   const { data: righe } = await supabase
     .from('liste_attesa')
@@ -23,10 +27,15 @@ export default async function PaginaAttese({ searchParams }) {
 
   return (
     <>
-      <h1>Liste d'attesa</h1>
+      <div className="intestazione">
+        <div className="occhiello">Ogni giorno</div>
+        <h1>Liste d'attesa</h1>
+      </div>
       <p className="muto piccolo">
         Quando si libera un posto in una lezione, il primo della coda riceve l'email in automatico.
       </p>
+      <Aggiungi corsi={corsi || []} />
+
       <div className="filtri">
         {filtri.map(([k, l]) => (
           <Link key={k} href={`/gestione/attese?stato=${k}`} aria-current={k === stato ? 'true' : undefined}>{l}</Link>

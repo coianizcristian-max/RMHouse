@@ -150,9 +150,9 @@ export default function Eventi({ palestraId, eventi, sedi, iscritti }) {
                   {conta(e.id)} iscritti{e.posti ? ` su ${e.posti} posti` : ''}
                 </div>
               )}
-              <div style={{ display: 'flex', gap: 14, marginTop: 10 }}>
+              <div className="azioni-riga">
                 <button className="link-btn piccolo" onClick={() => modifica(e)}>Modifica</button>
-                <button className="link-btn piccolo" onClick={() => elimina(e)}>Elimina</button>
+                <button className="link-btn piccolo pericolo" onClick={() => elimina(e)}>Elimina</button>
               </div>
             </div>
           </div>

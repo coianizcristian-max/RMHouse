@@ -42,7 +42,7 @@ export default async function Persona({ params }) {
 
   return (
     <>
-      <p><Link href="/gestione/persone">‹ Tutte le persone</Link></p>
+      <Link className="torna" href="/gestione/persone">Tutte le persone</Link>
       <h1 style={{ marginBottom: 4 }}>{allievo.cognome} {allievo.nome}</h1>
       <p className="muto">
         {etaAl(allievo.data_nascita)} anni · nato il {dataBreve(allievo.data_nascita)} ·{' '}

@@ -13,7 +13,7 @@ const SEZIONI = [
       ['Agenda del giorno', '/gestione/oggi', 'Le lezioni una sotto l\'altra, con l\'appello a portata di dito.'],
       ['Appello', '/gestione', 'Si apre da una lezione: presenze, aggiungi o togli qualcuno, scrivi ai prenotati, scarica la lista.'],
       ['Lead e prove', '/gestione/lead', 'Chi ha chiesto informazioni o prenotato una prova, diviso per stato, con WhatsApp diretto.'],
-      ['Liste d\'attesa', '/gestione/attese', 'Chi aspetta un posto: quando qualcuno disdice, l\'avviso parte da solo.'],
+      ['Liste d\'attesa', '/gestione/attese', 'Chi aspetta un posto, con l\'inserimento manuale dal banco: quando qualcuno disdice, l\'avviso parte da solo.'],
     ],
   },
   {
@@ -42,6 +42,7 @@ const SEZIONI = [
   {
     area: 'Persone',
     voci: [
+      ['Registra una persona nuova', '/gestione/persone/nuova', 'Chi paga e chi frequenta al banco: poi dalla scheda si crea l\'iscrizione al corso.'],
       ['Anagrafiche', '/gestione/persone', 'Ricerca per nome, email o telefono; dentro la scheda: iscrizioni, sospensioni, recuperi, prove, certificati.'],
       ['Recuperi', '/gestione/persone', 'Nella scheda della persona: crediti maturati, scadenza e prenotazione del recupero.'],
       ['Certificati medici', '/gestione/certificati', 'Documenti caricati dai clienti da approvare, con scadenza e blocco automatico.'],
@@ -53,6 +54,7 @@ const SEZIONI = [
     voci: [
       ['Statistiche e margini', '/gestione/statistiche', 'Iscritti, abbandono, riempimento, conversione delle prove, ricavi, costi e margine per corso, insegnante e sala.'],
       ['Motivi di chi non si iscrive', '/gestione/statistiche', 'In fondo alle statistiche: le risposte del sondaggio mandato a chi ha provato e non si è iscritto.'],
+      ['Incassi', '/gestione/incassi', 'Quote, abbonamenti, prove e affitti incassati, totali per metodo e quello che resta da incassare.'],
       ['Costi e fornitori', '/gestione/costi', 'Spese fisse e variabili, fornitori, compensi orari, costo orario delle sale.'],
       ['Abbonamenti, recuperi e sconti', '/gestione/abbonamenti', 'Tipi di abbonamento, quota annuale, regole dei recuperi, preavvisi.'],
       ['Messaggi automatici', '/gestione/messaggi', 'I testi di ogni email automatica, con segnaposto, anteprima dal vivo, invio di prova e coda di partenza.'],

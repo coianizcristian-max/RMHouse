@@ -230,6 +230,36 @@ Ogni corso ha un **colore** e una **foto**: il colore torna nel calendario e nel
 Le immagini stanno in un archivio pubblico (`media`), separato da quello privato dei certificati.
 I corsi, gli avvisi e gli eventi hanno tre stati di visibilità: pubblico, privato (solo iscritti) e nascosto (bozza).
 
+## Dove si registrano le cose
+Ogni dato entra da un punto preciso, e ogni punto ha la sua voce di menù:
+
+| Cosa | Dove |
+|---|---|
+| Una persona nuova (chi paga + chi frequenta) | Persone → Registra una persona |
+| L'iscrizione a un corso | scheda della persona → Iscrizioni |
+| Un incasso (quota, abbonamento, materiale, evento) | Conti → Incassi |
+| Segnare pagato qualcosa in sospeso | Conti → Incassi → "segna incassato" |
+| Una spesa | Conti → Costi e fornitori |
+| Qualcuno in lista d'attesa | Oggi → Liste d'attesa → "Metti qualcuno in coda" |
+| Le presenze | appello della lezione |
+| Un partecipante su una lezione singola | palinsesto → "+" sulla lezione |
+| Il certificato | Persone → Certificati, oppure lo carica il cliente dalla sua area |
+
+`crea_persona()` riusa l'anagrafica del titolare se l'email esiste già, così i figli finiscono sotto la stessa
+famiglia invece di creare doppioni; `registra_incasso()` scrive il pagamento e, per la quota annuale, anche la
+riga nella scheda dell'allievo.
+
+## I colori del calendario
+Il colore non si sceglie corso per corso da una tavolozza fissa: ogni **categoria** ha un colore di base, ogni
+**disciplina** lo eredita distanziandosi dalle sorelle, e i **corsi** di quella disciplina prendono dieci
+gradazioni diverse dello stesso colore. Così nel calendario si riconosce la famiglia a colpo d'occhio e due corsi
+non finiscono mai con la stessa tinta.
+
+Le gradazioni tengono conto di quanto è scuro il colore di partenza: su un nero si schiarisce soltanto, su un
+colore chiarissimo si scurisce soltanto, altrimenti verrebbero dieci tinte identiche. Chi sceglie un colore a mano
+lo mantiene: `corsi.colore_automatico` ricorda la differenza, e il pulsante "Rigenera tutti" serve solo quando si
+vuole ripartire da capo.
+
 ## L'area del cliente (`/area`)
 Chi frequenta entra **senza password**: scrive la sua email, riceve un link e da lì è dentro. Al primo ingresso
 `collega_account()` aggancia l'utente all'anagrafica già registrata in segreteria confrontando l'email; se non

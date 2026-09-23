@@ -18,7 +18,7 @@ export default async function PaginaListino() {
 
   return (
     <>
-      <p><Link href="/gestione/spazi">‹ Torna agli spazi</Link></p>
+      <Link className="torna" href="/gestione/spazi">Torna agli spazi</Link>
       <Listino palestraId={p} tariffe={tariffe.data || []} pacchetti={pacchetti.data || []} sale={sale.data || []} />
     </>
   );

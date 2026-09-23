@@ -90,7 +90,7 @@ export default function Iscrizioni({ allievoId, iscrizioni, corsi, tipi, orari, 
                 {i.sconto_cent > 0 && ` · sconto ${euro(i.sconto_cent)}`}
               </div>
               {i.stato === 'attiva' && (
-                <div style={{ display: 'flex', gap: 12, marginTop: 6 }}>
+                <div className="azioni-riga">
                   <button className="link-btn piccolo" onClick={() => sospendi(i)}>Sospendi</button>
                   <button className="link-btn piccolo" onClick={() => cambiaStato(i.id, 'annullata')}>Annulla</button>
                 </div>

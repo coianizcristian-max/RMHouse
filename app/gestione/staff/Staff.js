@@ -157,7 +157,7 @@ export default function Staff({ palestraId, persone, orari, archiviati }) {
                 {corsiDi(p.id).length > 0 && (
                   <span className="riga">{corsiDi(p.id).slice(0, 3).join(', ')}{corsiDi(p.id).length > 3 ? '…' : ''}</span>
                 )}
-                <span style={{ display: 'flex', gap: 12, marginTop: 6 }}>
+                <span className="azioni-riga">
                   <button className="link-btn piccolo" onClick={() => modifica(p)}>Modifica</button>
                   <button className="link-btn piccolo" onClick={() => archivia(p, !archiviati)}>
                     {archiviati ? 'Riporta in forza' : 'Archivia'}
