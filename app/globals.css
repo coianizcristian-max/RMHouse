@@ -709,3 +709,16 @@ a.tessera:hover, .scheda-corso:hover, .carta-lezione:hover {
 /* Briciole di pane: dove mi trovo, senza ripetere il titolo della pagina */
 .briciole { display: flex; align-items: center; gap: 7px; font-size: 13px; color: var(--testo-2); }
 .briciole .corrente { color: var(--nero); font-weight: 700; }
+
+
+/* Campo password con l'occhio per mostrarla */
+.campo-password { position: relative; display: block; }
+.campo-password input { padding-right: 52px; }
+.campo-password button {
+  position: absolute; top: 50%; right: 6px; transform: translateY(-50%);
+  display: flex; align-items: center; justify-content: center;
+  width: 40px; height: 36px; border: 0; border-radius: 10px;
+  background: none; color: var(--testo-2); cursor: pointer;
+}
+.campo-password button:hover { background: var(--carta); color: var(--nero); }
+.campo-password button:focus-visible { outline: 2px solid var(--rosso); outline-offset: 2px; }

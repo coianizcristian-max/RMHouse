@@ -1,53 +1,25 @@
-AGGIORNAMENTO N 017 — RMHouse
-Prenotazione delle sale dalla segreteria
+AGGIORNAMENTO N 018 — RMHouse
+L'occhio per mostrare la password
 
-QUERY DA ESEGUIRE (in quest'ordine)
------------------------------------
-supabase/migrations/020_pulizia.sql
-supabase/migrations/021_spazi_segreteria.sql
+QUERY DA ESEGUIRE
+-----------------
+Nessuna.
 
 FILE DA COPIARE
 ---------------
-app/gestione/spazi/Spazi.js      sostituito
-README.md                        sostituito
-docs/ARCHITETTURA.md             sostituito
+app/login/page.js        sostituito
+app/globals.css          sostituito
 
-Poi: git add . && git commit -m "Aggiornamento 017" && git push
+Poi: git add . && git commit -m "Aggiornamento 018" && git push
 
-COME FUNZIONA ORA (Calendari -> Sale e affitti -> Agenda sale)
---------------------------------------------------------------
-- Sopra l'agenda c'e' la navigazione del giorno (‹ oggi ›) e il
-  calendario di TUTTE le sale con dentro anche le lezioni dei corsi:
-  grigio = lezione, rosso = sala affittata, nero = evento,
-  tratteggiato = opzione non confermata.
+COSA CAMBIA
+-----------
+Nella pagina di accesso dello staff, dentro il campo Password c'e' ora
+il tastino con l'occhio: toccandolo la password diventa leggibile,
+ritoccandolo torna nascosta. L'icona cambia (occhio sbarrato quando e'
+visibile) e ha le etichette giuste per chi usa il lettore di schermo.
 
-- "Nuova prenotazione": scegli sala, giorno, dalle/alle e MENTRE
-  COMPILI ti dice subito se e' libera. Se non lo e', elenca cosa c'e'
-  di traverso con orario e titolo (anche se e' una lezione).
-  Il pulsante "Salva" resta disattivato finche' la fascia e' occupata.
-
-- Il prezzo viene proposto dal listino in base a sala e fascia oraria,
-  e lo puoi correggere. Se incassi subito, scrivi quanto e con che
-  metodo: la riga finisce anche in Conti -> Incassi.
-
-- Al salvataggio NON parte nessuna email (ne' al cliente ne' interna):
-  la prenotazione nasce gia' confermata e compare subito nel calendario
-  del giorno, in agenda e nelle prenotazioni in arrivo.
-  Se hai prenotato un altro giorno, la pagina ci si sposta da sola.
-
-- Al salvataggio il sistema RICONTROLLA la disponibilita': se nel
-  frattempo qualcuno ha occupato la sala, si ferma e te lo dice.
-
-DIFFERENZA CON LE RICHIESTE DAL SITO
-------------------------------------
-Quelle dal sito restano "da confermare" e mandano le email di sempre.
-Quelle fatte da te nascono confermate e silenziose: la differenza e'
-scritta nel campo "origine" della prenotazione.
-
-ALTRA CORREZIONE COMPRESA
--------------------------
-- Esistevano due versioni di invia_bacheca (vecchia e nuova): la
-  chiamata dal sito poteva finire su quella sbagliata e la notifica non
-  partiva. La 020 cancella la vecchia.
-- I pagamenti ora possono esistere senza un cliente collegato: serviva
-  per incassare un affitto sala di uno esterno.
+NOTA
+----
+Nell'area dei clienti non serve: li' si entra con il link mandato per
+email, senza password.
