@@ -313,6 +313,7 @@ h2.sezione::after { content: ''; flex: 1; height: 1px; background: var(--linea);
    ================================================================== */
 .guscio { display: block; }
 .solo-desktop { display: none; }
+.titolo-colonna { display: none; }
 
 /* barra delle aree: in basso su telefono */
 .aree {
@@ -349,58 +350,84 @@ h2.sezione::after { content: ''; flex: 1; height: 1px; background: var(--linea);
 @media (min-width: 900px) {
   .solo-desktop { display: flex; }
   .solo-mobile { display: none; }
-  .guscio { display: grid; grid-template-columns: 96px 1fr; min-height: 100vh; }
   body.con-nav { padding-bottom: 0; }
+
+  /* Tre colonne: aree · sottomenù · contenuto */
+  .guscio { display: grid; grid-template-columns: 84px 232px 1fr; min-height: 100vh; }
+
   .aree {
     position: sticky; top: 0; align-self: start; height: 100vh;
     flex-direction: column; justify-content: flex-start; gap: 4px;
-    border-top: 0; border-right: 1px solid var(--linea); padding: 16px 8px;
+    border-top: 0; border-right: 1px solid var(--linea); padding: 14px 8px; background: var(--carta);
   }
-  .aree a, .aree button { flex: none; border-radius: 12px; min-height: 64px; }
-  .aree a[aria-current='page'] { background: var(--rosso-tenue); }
+  .aree a, .aree button { flex: none; border-radius: 12px; min-height: 62px; font-size: 11.5px; }
+  .aree a[aria-current='page'] { background: var(--bianco); color: var(--rosso); box-shadow: inset 0 0 0 1px var(--linea); }
   .aree button { margin-top: auto; }
-  .barra { padding: 18px 28px 14px; }
-  .sottomenu { padding: 14px 28px; }
-  .contenuto { padding: 8px 28px 40px; }
+
+  /* il sottomenù diventa una colonna verticale, come in un gestionale desktop */
+  .colonna { display: contents; }
+  .sottomenu {
+    grid-column: 2; position: sticky; top: 0; align-self: start; height: 100vh;
+    display: flex; flex-direction: column; gap: 2px; overflow: visible;
+    padding: 22px 14px; border-right: 1px solid var(--linea);
+  }
+  .sottomenu a {
+    display: block; padding: 11px 14px; border-radius: 10px; border: 0;
+    font-size: 15px; font-weight: 600; color: var(--testo-2); white-space: normal;
+  }
+  .sottomenu a:hover { background: var(--carta); color: var(--nero); }
+  .titolo-colonna {
+    font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
+    color: var(--testo-2); padding: 0 14px 10px;
+  }
+  .sottomenu a[aria-current='page'] { background: var(--rosso); border-color: var(--rosso); color: #fff; }
+
+  .barra {
+    grid-column: 3; padding: 22px 34px 8px; border-bottom: 0; align-items: flex-end;
+  }
+  .barra strong { font-size: 30px; font-weight: 850; font-stretch: 118%; }
+  .barra .piccolo.muto:first-child { font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--rosso); font-weight: 700; }
+
+  .contenuto { grid-column: 3; padding: 10px 34px 48px; max-width: 1320px; }
+
+  /* I fogli che sul telefono salgono dal basso, su desktop sono finestre centrate */
+  [role='dialog'] { align-items: center !important; }
+  [role='dialog'] > div {
+    border-radius: 16px !important; max-width: 640px !important; max-height: 82vh !important;
+    padding: 26px !important; box-shadow: 0 24px 60px rgba(0,0,0,.25);
+  }
+
+  /* Elenchi come righe di tabella, non come schede impilate */
+  .persona { grid-template-columns: minmax(0, 2.2fr) auto; padding: 14px 6px; }
+  .elenco > li:hover { background: var(--carta); }
+
+  /* Riquadri numerici più grandi e arieggiati */
+  .griglia { grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 16px; }
+  .tessera { padding: 18px; }
+  .tessera .cifra { font-size: 38px; }
+
+  /* Due colonne: contenuto principale e colonna laterale */
+  .doppia { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 28px; align-items: start; }
+  .doppia > aside { position: sticky; top: 16px; }
+
+  /* Palinsesto: tutta la settimana visibile, niente scorrimento */
+  .colonne-giorni { grid-auto-flow: row; grid-template-columns: repeat(7, minmax(0, 1fr)); overflow: visible; gap: 14px; }
+  .carta-lezione .testa { font-size: 14px; padding: 7px 10px; }
+  .carta-lezione .corpo { padding: 9px 10px 11px; }
+  .carta-lezione .nome { font-size: 14px; }
+
+  /* Tabelle più leggibili */
+  table { font-size: 14px; }
+  th, td { padding: 12px 14px; }
+
+  /* Moduli su due colonne dove ha senso */
+  .riga-2 { grid-template-columns: 1fr 1fr; }
+  .azioni .btn { flex: 0 0 auto; }
 }
 
-
-/* ==================================================================
-   Palinsesto a schede: una colonna per giorno
-   ================================================================== */
-.colonne-giorni {
-  display: grid; grid-auto-flow: column; grid-auto-columns: minmax(250px, 1fr);
-  gap: 12px; overflow-x: auto; padding-bottom: 10px; scroll-snap-type: x mandatory;
+@media (min-width: 1400px) {
+  .guscio { grid-template-columns: 96px 260px 1fr; }
+  .contenuto { padding: 12px 48px 56px; }
+  .barra { padding: 26px 48px 8px; }
+  .doppia { grid-template-columns: minmax(0, 1fr) 360px; gap: 36px; }
 }
-.colonne-giorni::-webkit-scrollbar { height: 8px; }
-.colonna-giorno { scroll-snap-align: start; min-width: 0; }
-
-.testa-giorno {
-  display: flex; align-items: center; justify-content: space-between; gap: 8px;
-  padding: 8px 2px 10px; border-bottom: 2px solid var(--linea); margin-bottom: 10px;
-}
-.testa-giorno strong { font-size: 20px; font-stretch: 115%; color: var(--nero); }
-.testa-giorno.oggi { border-bottom-color: var(--rosso); }
-.testa-giorno.oggi strong { color: var(--rosso); }
-
-.carta-lezione {
-  display: block; width: 100%; text-align: left; margin-bottom: 10px; cursor: pointer;
-  background: var(--bianco); border: 2px solid var(--rosso); border-radius: 12px; overflow: hidden;
-  font: inherit; color: var(--testo); padding: 0;
-}
-.carta-lezione:hover { box-shadow: 0 0 0 3px var(--carta); }
-.carta-lezione .testa {
-  display: block; padding: 8px 12px; color: #fff; font-weight: 800; font-size: 15px; font-stretch: 112%;
-}
-.carta-lezione .corpo { display: block; padding: 10px 12px 12px; }
-.carta-lezione .nome { display: block; font-weight: 700; color: var(--nero); }
-.carta-lezione .riga { display: block; font-size: 13px; color: var(--testo-2); margin-top: 2px; }
-.carta-lezione .numeri { display: flex; align-items: center; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
-.carta-lezione .pallino {
-  min-width: 30px; text-align: center; padding: 4px 8px; border-radius: 999px;
-  font-size: 13px; font-weight: 800;
-}
-.pallino.verde { background: var(--ok-tenue); color: var(--ok); }
-.pallino.azzurro { background: var(--carta); color: var(--testo-2); }
-.pallino.rosso { background: var(--rosso); color: #fff; }
-.carta-lezione .tag { margin-top: 8px; }

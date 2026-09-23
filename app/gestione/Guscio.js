@@ -64,8 +64,9 @@ export default function Guscio({ gestione, nome, ruolo, children }) {
           <button className="link-btn piccolo solo-mobile" onClick={esci}>Esci</button>
         </header>
 
-        {voci.length > 1 && (
+        {voci.length > 0 && (
           <nav className="sottomenu" aria-label={area?.titolo}>
+            <div className="titolo-colonna solo-desktop">{area?.titolo}</div>
             {voci.map((v) => (
               <Link key={v.href} href={v.href} aria-current={voceAttiva(v) ? 'page' : undefined}>{v.testo}</Link>
             ))}

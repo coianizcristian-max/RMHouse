@@ -80,20 +80,8 @@ export default async function Home() {
         )}
       </div>
 
-      {daFare.length > 0 && (
-        <>
-          <h2 className="sezione">Da fare</h2>
-          <div className="da-fare">
-            {daFare.map(([testo, n, href, tono]) => (
-              <Link key={testo} href={href} className={tono}>
-                <span>{testo}</span>
-                <span className="conta">{n}</span>
-              </Link>
-            ))}
-          </div>
-        </>
-      )}
-
+      <div className="doppia" style={{ marginTop: 4 }}>
+        <div>
       <h2 className="sezione">Lezioni di oggi</h2>
       {lezioni?.length === 0 && (
         <div className="vuoto">
@@ -130,6 +118,23 @@ export default async function Home() {
         );
       })}
 
+        </div>
+
+        <aside>
+          {daFare.length > 0 && (
+            <>
+              <h2 className="sezione" style={{ marginTop: 18 }}>Da fare</h2>
+              <div className="da-fare">
+                {daFare.map(([testo, n, href, tono]) => (
+                  <Link key={testo} href={href} className={tono}>
+                    <span>{testo}</span>
+                    <span className="conta">{n}</span>
+                  </Link>
+                ))}
+              </div>
+            </>
+          )}
+
       {avvisi?.length > 0 && (
         <>
           <h2 className="sezione">In bacheca</h2>
@@ -157,6 +162,8 @@ export default async function Home() {
           ))}
         </>
       )}
+        </aside>
+      </div>
     </>
   );
 }
