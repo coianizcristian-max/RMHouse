@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 
-// Aggiorna la sessione Supabase e protegge l'area /gestione
+// Aggiorna la sessione Supabase e protegge /gestione (staff) e /area (clienti)
 export async function middleware(request) {
   let response = NextResponse.next({ request });
   const supabase = createServerClient(
@@ -20,13 +20,17 @@ export async function middleware(request) {
   );
   const { data: { user } } = await supabase.auth.getUser();
 
-  if (!user && request.nextUrl.pathname.startsWith('/gestione')) {
+  const { pathname } = request.nextUrl;
+  const staff = pathname.startsWith('/gestione');
+  const cliente = pathname.startsWith('/area') && !pathname.startsWith('/area/accedi');
+
+  if (!user && (staff || cliente)) {
     const url = request.nextUrl.clone();
-    url.pathname = '/login';
-    url.searchParams.set('da', request.nextUrl.pathname);
+    url.pathname = cliente ? '/area/accedi' : '/login';
+    url.searchParams.set('da', pathname);
     return NextResponse.redirect(url);
   }
   return response;
 }
 
-export const config = { matcher: ['/gestione/:path*', '/login'] };
+export const config = { matcher: ['/gestione/:path*', '/area/:path*', '/login'] };

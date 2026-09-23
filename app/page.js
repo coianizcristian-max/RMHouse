@@ -18,7 +18,11 @@ export default function Home() {
           <span className="muto">Affittiamo le sale a ore e organizziamo feste di compleanno e workshop.</span>
         </p>
         <Link href="/spazi" className="btn btn-pieno">Affitta una sala o organizza una festa</Link>
-      </main>
+      
+      <p style={{ marginTop: 14 }}>
+        <Link className="btn" href="/area">Sei già iscritto? Entra nella tua area</Link>
+      </p>
+</main>
     </>
   );
 }

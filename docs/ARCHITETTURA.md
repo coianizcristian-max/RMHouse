@@ -230,6 +230,19 @@ Ogni corso ha un **colore** e una **foto**: il colore torna nel calendario e nel
 Le immagini stanno in un archivio pubblico (`media`), separato da quello privato dei certificati.
 I corsi, gli avvisi e gli eventi hanno tre stati di visibilità: pubblico, privato (solo iscritti) e nascosto (bozza).
 
+## L'area del cliente (`/area`)
+Chi frequenta entra **senza password**: scrive la sua email, riceve un link e da lì è dentro. Al primo ingresso
+`collega_account()` aggancia l'utente all'anagrafica già registrata in segreteria confrontando l'email; se non
+combacia nulla, l'area lo dice chiaramente invece di mostrare una pagina vuota.
+
+Dentro trova: le prossime tre settimane di lezioni (sue e dei figli, con sala e insegnante), i recuperi da usare
+con l'elenco delle lezioni su cui spenderli, la prenotazione e la disdetta del recupero, il certificato da
+caricare con una foto, gli abbonamenti con la scadenza in evidenza, le prove prenotate, le liste d'attesa da cui
+può uscire da solo, gli avvisi della bacheca e i prossimi eventi.
+
+Tutto passa da funzioni `security definer` che controllano che il dato sia davvero suo (`miei_account()`), così
+il cliente non vede mai niente di altri anche se qualcuno manomettesse le chiamate.
+
 ## Mobile
 L'interfaccia è pensata prima per il telefono: navigazione fissa in basso con icone (in alto da 720 px in su),
 elenchi compatti, tocchi da almeno 44 px, moduli a una colonna che diventano due sullo schermo grande.

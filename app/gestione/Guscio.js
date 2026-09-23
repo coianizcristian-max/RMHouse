@@ -29,12 +29,15 @@ export default function Guscio({ gestione, nome, ruolo, palestraId, children }) 
     return () => document.body.classList.remove('con-nav');
   }, []);
 
-  const vocePiena = (href) => href.split('?')[0];
-  const voceAttiva = (v) => {
-    const base = vocePiena(v.href);
-    if (v.esatto) return path === base && !v.href.includes('?');
+  // Ogni voce ha la sua pagina: si illumina solo quella giusta.
+  // Fra due voci annidate (es. /gestione e /gestione/oggi) vince la più lunga.
+  const combacia = (v) => {
+    const base = v.href.split('?')[0];
+    if (v.esatto) return path === base;
     return path === base || path.startsWith(base + '/');
   };
+  const scelta = voci.filter(combacia).sort((a, b) => b.href.length - a.href.length)[0];
+  const voceAttiva = (v) => v === scelta;
 
   async function esci() {
     await supabaseBrowser().auth.signOut();
