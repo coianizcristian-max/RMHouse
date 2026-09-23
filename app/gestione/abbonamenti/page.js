@@ -1,0 +1,28 @@
+import { redirect } from 'next/navigation';
+import { staffCorrente } from '@/lib/staff';
+import Abbonamenti from './Abbonamenti';
+
+export const dynamic = 'force-dynamic';
+
+export default async function PaginaAbbonamenti() {
+  const { supabase, staff } = await staffCorrente();
+  if (staff.ruolo === 'insegnante') redirect('/gestione');
+  const p = staff.palestra_id;
+
+  const [tipi, corsi, regole, palestra] = await Promise.all([
+    supabase.from('tipi_abbonamento').select('*').eq('palestra_id', p).order('nome'),
+    supabase.from('corsi').select('id, nome').eq('palestra_id', p).eq('attivo', true).order('nome'),
+    supabase.from('recuperi_ammessi').select('*').eq('palestra_id', p),
+    supabase.from('palestre').select('id, quota_iscrizione_cent, mese_inizio_stagione, giorni_prenotabili, preavviso_ore, google_review_url, base_url').eq('id', p).maybeSingle(),
+  ]);
+
+  return (
+    <Abbonamenti
+      palestraId={p}
+      tipi={tipi.data || []}
+      corsi={corsi.data || []}
+      regole={regole.data || []}
+      palestra={palestra.data || {}}
+    />
+  );
+}
