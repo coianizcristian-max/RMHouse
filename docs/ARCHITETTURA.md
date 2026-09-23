@@ -266,6 +266,16 @@ convertiti), su ogni riga i pulsanti per WhatsApp, chiamata ed email, "Segna con
 canale, esito, nota e data del prossimo richiamo, e i due esiti finali, "Si è iscritto" e "Non convertito" con
 il motivo. Il motivo finisce nelle statistiche insieme alle risposte del sondaggio.
 
+## Prenotare una sala dal banco
+Dal sito arriva una **richiesta** che manda le email e resta da confermare; dalla segreteria si crea invece una
+prenotazione **già confermata e senza nessuna email**: la differenza sta in `prenotazioni_spazi.origine`, che il
+trigger dei messaggi guarda prima di scrivere a qualcuno.
+
+Mentre si compila, `verifica_spazio()` dice se la fascia è libera, elenca cosa c'è di traverso (lezioni comprese)
+e propone il prezzo dal listino. Al salvataggio `crea_prenotazione_spazio()` **ricontrolla** la disponibilità, così
+due persone che prenotano insieme non possono sovrapporsi. Se si incassa qualcosa al momento, la riga finisce
+anche in Conti → Incassi.
+
 ## Posti numerati
 Le sale dove la posizione conta (pole, tessuti) hanno `gestione_postazioni` attiva e una riga in `postazioni` per
 ogni pertica. Nell'appello compare la mappa: si tocca il posto e si sceglie chi ci va, si ritocca per liberarlo.

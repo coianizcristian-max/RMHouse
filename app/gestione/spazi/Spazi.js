@@ -17,7 +17,39 @@ export default function Spazi({ palestraId, giorno, richieste, prossime, agenda,
   const [errore, setErrore] = useState('');
   const [invio, setInvio] = useState(false);
   const [nuova, setNuova] = useState(false);
-  const [f, setF] = useState({ sala_id: '', titolo: '', data: giorno, ora: '18:00', durata: 2, tipo: 'interno', contatto: '', telefono: '', email: '', prezzo: '' });
+  const [f, setF] = useState({
+    sala_id: '', titolo: '', data: giorno, ora: '18:00', fine_ora: '20:00', tipo: 'noleggio',
+    contatto: '', telefono: '', email: '', ospiti: '', prezzo: '', incassato: '', metodo: 'contanti', note: '',
+  });
+  const [verifica, setVerifica] = useState(null);      // null = non ancora controllato
+  const [controllo, setControllo] = useState(false);
+
+  const quando = (data, orario) => new Date(`${data}T${orario}:00`);
+
+  // Controlla la fascia e calcola il prezzo dal listino, mentre si compila
+  async function controlla(dati = f) {
+    if (!dati.sala_id || !dati.data || !dati.ora || !dati.fine_ora) { setVerifica(null); return; }
+    setControllo(true);
+    const { data, error } = await supabaseBrowser().rpc('verifica_spazio', {
+      p_palestra: palestraId, p_sala: dati.sala_id,
+      p_inizio: quando(dati.data, dati.ora).toISOString(),
+      p_fine: quando(dati.data, dati.fine_ora).toISOString(),
+      p_escludi: null,
+    });
+    setControllo(false);
+    if (error) { setVerifica(null); return; }
+    setVerifica(data);
+    // se il prezzo non è stato scritto a mano, si propone quello del listino
+    if (data?.prezzo_cent != null && !dati.prezzo) {
+      setF((v) => ({ ...v, prezzo: (data.prezzo_cent / 100).toString() }));
+    }
+  }
+
+  function cambia(k, v) {
+    const dati = { ...f, [k]: v };
+    setF(dati);
+    if (['sala_id', 'data', 'ora', 'fine_ora'].includes(k)) controlla(dati);
+  }
 
   async function decidi(p, stato, chiediMotivo) {
     let motivo = null;
@@ -40,19 +72,35 @@ export default function Spazi({ palestraId, giorno, richieste, prossime, agenda,
 
   async function creaPrenotazione(e) {
     e.preventDefault();
-    if (!f.sala_id || !f.titolo) { setErrore('Servono sala e titolo.'); return; }
-    const inizio = new Date(`${f.data}T${f.ora}:00`);
-    const fine = new Date(inizio.getTime() + f.durata * 3600000);
+    if (!f.sala_id || !f.titolo) { setErrore('Servono la sala e un titolo.'); return; }
+    const inizio = quando(f.data, f.ora);
+    const fine = quando(f.data, f.fine_ora);
+    if (fine <= inizio) { setErrore("L'ora di fine deve venire dopo quella di inizio."); return; }
+
     setInvio(true); setErrore('');
-    const { error } = await supabaseBrowser().from('prenotazioni_spazi').insert({
-      palestra_id: palestraId, sala_id: f.sala_id, tipo: f.tipo, titolo: f.titolo,
-      contatto_nome: f.contatto || 'Interno', email: f.email || null, telefono: f.telefono || null,
-      inizio: inizio.toISOString(), fine: fine.toISOString(), stato: 'confermata',
-      prezzo_cent: f.prezzo ? Math.round(parseFloat(f.prezzo.replace(',', '.')) * 100) : 0,
+    const soldi = (v) => (v ? Math.round(parseFloat(String(v).replace(',', '.')) * 100) : 0);
+    const { error } = await supabaseBrowser().rpc('crea_prenotazione_spazio', {
+      p: {
+        palestra_id: palestraId, sala_id: f.sala_id, tipo: f.tipo, titolo: f.titolo,
+        contatto_nome: f.contatto || null, email: f.email || null, telefono: f.telefono || null,
+        ospiti: f.ospiti || null, note: f.note || null,
+        inizio: inizio.toISOString(), fine: fine.toISOString(),
+        prezzo_cent: f.prezzo === '' ? null : soldi(f.prezzo),
+        incassato_cent: soldi(f.incassato), metodo: f.metodo,
+        stato: 'confermata',
+      },
     });
     setInvio(false);
-    if (error) { setErrore('Non salvata: controlla che la sala sia libera in quella fascia.'); return; }
-    setNuova(false); router.refresh();
+    if (error) {
+      setErrore(error.message?.includes('sala_occupata')
+        ? 'In quella fascia la sala è già occupata: guarda il calendario qui sotto.'
+        : 'Salvataggio non riuscito.');
+      return;
+    }
+    // resta sul giorno appena prenotato, così la si vede comparire
+    setNuova(false); setVerifica(null);
+    if (f.data !== giorno) router.push(`/gestione/spazi?giorno=${f.data}`);
+    else router.refresh();
   }
 
   async function incassa(p) {
@@ -80,7 +128,11 @@ export default function Spazi({ palestraId, giorno, richieste, prossime, agenda,
 
   return (
     <>
-      <h1>Spazi</h1>
+      <div className="intestazione">
+        <div className="occhiello">Calendari</div>
+        <h1>Sale e affitti</h1>
+        <p>Chi usa le sale, quando, e quanto rende. Prenoti tu al banco o arriva dal sito.</p>
+      </div>
       <div style={{ display: 'grid', gap: 10, gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', marginBottom: 14 }}>
         <div className="scheda"><div className="piccolo muto">Da rispondere</div>
           <div style={{ fontSize: 24, fontWeight: 850, color: numeri.da_rispondere > 0 ? 'var(--rosso)' : 'var(--nero)' }}>{numeri.da_rispondere ?? 0}</div></div>
@@ -139,6 +191,14 @@ export default function Spazi({ palestraId, giorno, richieste, prossime, agenda,
         <>
           <div className="giorno-nav">
             <Link className="btn" href={`/gestione/spazi?giorno=${spostaGiorni(giorno, -1)}`} aria-label="Giorno precedente">‹</Link>
+            <h2 style={{ fontSize: 17, margin: 0, textTransform: 'capitalize' }}>{giornoLungo(giorno + 'T12:00:00')}</h2>
+            <Link className="btn" href={`/gestione/spazi?giorno=${spostaGiorni(giorno, 1)}`} aria-label="Giorno successivo">›</Link>
+          </div>
+          <p className="piccolo muto" style={{ marginTop: -6, marginBottom: 12 }}>
+            <Link href={`/gestione/spazi?giorno=${oggiISO()}`}>Torna a oggi</Link>
+          </p>
+          <div className="giorno-nav">
+            <Link className="btn" href={`/gestione/spazi?giorno=${spostaGiorni(giorno, -1)}`} aria-label="Giorno precedente">‹</Link>
             <h1 style={{ fontSize: 18 }}>{new Date(giorno + 'T12:00:00').toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long' })}</h1>
             <Link className="btn" href={`/gestione/spazi?giorno=${spostaGiorni(giorno, 1)}`} aria-label="Giorno successivo">›</Link>
           </div>
@@ -185,48 +245,109 @@ export default function Spazi({ palestraId, giorno, richieste, prossime, agenda,
 
           {nuova ? (
             <form onSubmit={creaPrenotazione} style={{ marginTop: 16 }}>
-              <h2>Blocca una sala</h2>
+              <h3>Nuova prenotazione</h3>
+
               <div className="campo">
                 <label htmlFor="s">Sala</label>
-                <select id="s" value={f.sala_id} onChange={(e) => setF({ ...f, sala_id: e.target.value })}>
+                <select id="s" value={f.sala_id} onChange={(e) => cambia('sala_id', e.target.value)}>
                   <option value="">— scegli —</option>
-                  {sale.map((s) => <option key={s.id} value={s.id}>{s.nome}</option>)}
+                  {sale.map((s) => <option key={s.id} value={s.id}>{s.nome}{s.capienza ? ` (${s.capienza} posti)` : ''}</option>)}
                 </select>
               </div>
               <div className="campo">
-                <label htmlFor="ti">Titolo</label>
-                <input id="ti" value={f.titolo} onChange={(e) => setF({ ...f, titolo: e.target.value })}
-                       placeholder="Saggio, prove, manutenzione…" />
+                <label htmlFor="tp">Tipo</label>
+                <select id="tp" value={f.tipo} onChange={(e) => cambia('tipo', e.target.value)}>
+                  <option value="noleggio">Affitto a terzi</option>
+                  <option value="evento">Evento o festa</option>
+                  <option value="interno">Uso interno (prove, manutenzione)</option>
+                </select>
+              </div>
+
+              <div className="campo">
+                <label htmlFor="d">Giorno</label>
+                <input id="d" type="date" value={f.data} onChange={(e) => cambia('data', e.target.value)} />
+                <span className="piccolo muto">
+                  <a href="#" onClick={(ev) => { ev.preventDefault(); router.push(`/gestione/spazi?giorno=${f.data}`); }}>
+                    Guarda il calendario di questo giorno
+                  </a>
+                </span>
               </div>
               <div className="riga-2">
-                <div className="campo"><label htmlFor="d">Giorno</label>
-                  <input id="d" type="date" value={f.data} onChange={(e) => setF({ ...f, data: e.target.value })} /></div>
                 <div className="campo"><label htmlFor="o">Dalle</label>
-                  <input id="o" type="time" value={f.ora} onChange={(e) => setF({ ...f, ora: e.target.value })} /></div>
+                  <input id="o" type="time" value={f.ora} onChange={(e) => cambia('ora', e.target.value)} /></div>
+                <div className="campo"><label htmlFor="of">Alle</label>
+                  <input id="of" type="time" value={f.fine_ora} onChange={(e) => cambia('fine_ora', e.target.value)} /></div>
+              </div>
+
+              {/* esito della verifica, mentre si compila */}
+              {controllo && <p className="piccolo muto">Controllo la disponibilità…</p>}
+              {!controllo && verifica && (
+                verifica.ok ? (
+                  <div className="errore" style={{ background: 'var(--ok-tenue)', color: 'var(--ok)' }}>
+                    Sala libera in quella fascia
+                    {verifica.prezzo_cent != null && ` · da listino ${euro(verifica.prezzo_cent)}`}
+                  </div>
+                ) : (
+                  <div className="errore">
+                    <strong>Occupata:</strong>{' '}
+                    {(verifica.conflitti || []).map((c, i) => (
+                      <span key={i}>{i > 0 && ' · '}{c.dalle}–{c.alle} {c.titolo} ({c.tipo})</span>
+                    ))}
+                    {(verifica.conflitti || []).length === 0 && (verifica.motivo || 'controlla gli orari')}
+                  </div>
+                )
+              )}
+
+              <div className="campo">
+                <label htmlFor="ti">Titolo</label>
+                <input id="ti" value={f.titolo} onChange={(e) => cambia('titolo', e.target.value)}
+                       placeholder="Es. Corso salsa esterno, Festa Bianchi, Prove saggio" />
               </div>
               <div className="riga-2">
-                <div className="campo"><label htmlFor="du">Ore</label>
-                  <input id="du" type="number" step="0.5" min="0.5" value={f.durata} onChange={(e) => setF({ ...f, durata: Number(e.target.value) })} /></div>
-                <div className="campo"><label htmlFor="tp">Tipo</label>
-                  <select id="tp" value={f.tipo} onChange={(e) => setF({ ...f, tipo: e.target.value })}>
-                    <option value="interno">Uso interno</option>
-                    <option value="noleggio">Affitto a terzi</option>
-                    <option value="evento">Evento o festa</option>
-                  </select></div>
+                <div className="campo"><label htmlFor="c">Chi</label>
+                  <input id="c" value={f.contatto} onChange={(e) => cambia('contatto', e.target.value)}
+                         placeholder="Nome del referente" /></div>
+                <div className="campo"><label htmlFor="te">Telefono</label>
+                  <input id="te" type="tel" value={f.telefono} onChange={(e) => cambia('telefono', e.target.value)} /></div>
               </div>
               <div className="riga-2">
-                <div className="campo"><label htmlFor="c">Contatto</label>
-                  <input id="c" value={f.contatto} onChange={(e) => setF({ ...f, contatto: e.target.value })} /></div>
+                <div className="campo"><label htmlFor="em">Email</label>
+                  <input id="em" type="email" value={f.email} onChange={(e) => cambia('email', e.target.value)} />
+                  <span className="piccolo muto">Facoltativa: da qui non parte nessuna email.</span></div>
+                <div className="campo"><label htmlFor="os">Invitati</label>
+                  <input id="os" type="number" min="1" value={f.ospiti} onChange={(e) => cambia('ospiti', e.target.value)} /></div>
+              </div>
+
+              <div className="riga-2">
                 <div className="campo"><label htmlFor="pz">Prezzo (€)</label>
-                  <input id="pz" inputMode="decimal" value={f.prezzo} onChange={(e) => setF({ ...f, prezzo: e.target.value })} /></div>
+                  <input id="pz" inputMode="decimal" value={f.prezzo} onChange={(e) => cambia('prezzo', e.target.value)} />
+                  <span className="piccolo muto">Proposto dal listino, si può correggere.</span></div>
+                <div className="campo"><label htmlFor="in">Incassato ora (€)</label>
+                  <input id="in" inputMode="decimal" value={f.incassato} onChange={(e) => cambia('incassato', e.target.value)} />
+                  <span className="piccolo muto">Finisce anche in Conti → Incassi.</span></div>
               </div>
+              <div className="campo">
+                <label htmlFor="me">Metodo</label>
+                <select id="me" value={f.metodo} onChange={(e) => cambia('metodo', e.target.value)}>
+                  <option value="contanti">Contanti</option>
+                  <option value="bonifico">Bonifico</option>
+                  <option value="pos">POS</option>
+                  <option value="altro">Altro</option>
+                </select>
+              </div>
+              <div className="campo"><label htmlFor="no">Note</label>
+                <textarea id="no" value={f.note} onChange={(e) => cambia('note', e.target.value)} /></div>
+
               <div className="azioni">
-                <button className="btn btn-primario" disabled={invio}>Blocca la sala</button>
-                <button type="button" className="btn" onClick={() => setNuova(false)}>Annulla</button>
+                <button className="btn btn-primario" disabled={invio || (verifica && !verifica.ok)}>
+                  {invio ? 'Salvo…' : 'Salva la prenotazione'}
+                </button>
+                <button type="button" className="btn" onClick={() => { setNuova(false); setVerifica(null); }}>Annulla</button>
               </div>
             </form>
           ) : (
-            <button className="btn btn-primario" style={{ marginTop: 12 }} onClick={() => setNuova(true)}>Blocca una sala</button>
+            <button className="btn btn-primario" style={{ marginTop: 12 }}
+                    onClick={() => { setNuova(true); controlla(); }}>Nuova prenotazione</button>
           )}
         </>
       )}

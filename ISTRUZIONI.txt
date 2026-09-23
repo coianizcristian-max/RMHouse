@@ -1,83 +1,53 @@
-AGGIORNAMENTO N 016 — RMHouse
-Notifiche push · Materiali della lezione · Lezione singola · Rifinitura
+AGGIORNAMENTO N 017 — RMHouse
+Prenotazione delle sale dalla segreteria
 
-QUERY DA ESEGUIRE
------------------
-supabase/migrations/019_push_materiali.sql
+QUERY DA ESEGUIRE (in quest'ordine)
+-----------------------------------
+supabase/migrations/020_pulizia.sql
+supabase/migrations/021_spazi_segreteria.sql
 
-PRIMA DI TUTTO: LE CHIAVI DELLE NOTIFICHE (una volta sola)
-----------------------------------------------------------
-Nella cartella del progetto:
+FILE DA COPIARE
+---------------
+app/gestione/spazi/Spazi.js      sostituito
+README.md                        sostituito
+docs/ARCHITETTURA.md             sostituito
 
-    npx web-push generate-vapid-keys
+Poi: git add . && git commit -m "Aggiornamento 017" && git push
 
-Ti stampa due chiavi. Mettile in .env.local E su Vercel (tutti e tre
-gli ambienti):
+COME FUNZIONA ORA (Calendari -> Sale e affitti -> Agenda sale)
+--------------------------------------------------------------
+- Sopra l'agenda c'e' la navigazione del giorno (‹ oggi ›) e il
+  calendario di TUTTE le sale con dentro anche le lezioni dei corsi:
+  grigio = lezione, rosso = sala affittata, nero = evento,
+  tratteggiato = opzione non confermata.
 
-    NEXT_PUBLIC_VAPID_PUBLIC_KEY=<la chiave pubblica>
-    VAPID_PRIVATE_KEY=<la chiave privata>
-    VAPID_SOGGETTO=mailto:segreteria@ritmometropolitano.com
+- "Nuova prenotazione": scegli sala, giorno, dalle/alle e MENTRE
+  COMPILI ti dice subito se e' libera. Se non lo e', elenca cosa c'e'
+  di traverso con orario e titolo (anche se e' una lezione).
+  Il pulsante "Salva" resta disattivato finche' la fascia e' occupata.
 
-Poi, sempre nella cartella del progetto:
+- Il prezzo viene proposto dal listino in base a sala e fascia oraria,
+  e lo puoi correggere. Se incassi subito, scrivi quanto e con che
+  metodo: la riga finisce anche in Conti -> Incassi.
 
-    npm install
+- Al salvataggio NON parte nessuna email (ne' al cliente ne' interna):
+  la prenotazione nasce gia' confermata e compare subito nel calendario
+  del giorno, in agenda e nelle prenotazioni in arrivo.
+  Se hai prenotato un altro giorno, la pagina ci si sposta da sola.
 
-(serve la libreria web-push, gia' aggiunta al package.json)
+- Al salvataggio il sistema RICONTROLLA la disponibilita': se nel
+  frattempo qualcuno ha occupato la sala, si ferma e te lo dice.
 
-FILE DA COPIARE (sovrascrivi, rispettando i percorsi)
------------------------------------------------------
-package.json                                 sostituito
-package-lock.json                            sostituito
-app/api/cron/invia-messaggi/route.js         sostituito
-public/sw.js                                 NUOVO
-app/manifest.js                              sostituito
-.env.example                                 sostituito
-app/area/Notifiche.js                        NUOVO
-app/area/page.js                             sostituito
-app/area/Riepilogo.js                        sostituito
-app/gestione/bacheca/Bacheca.js              sostituito
-app/gestione/corsi/Materiali.js              NUOVO
-app/gestione/corsi/[id]/page.js              sostituito
-app/gestione/statistiche/page.js             sostituito
-app/gestione/costi/Costi.js                  sostituito
-app/gestione/messaggi/Messaggi.js            sostituito
-app/gestione/importa/Importa.js              sostituito
-README.md                                    sostituito
-docs/ARCHITETTURA.md                         sostituito
+DIFFERENZA CON LE RICHIESTE DAL SITO
+------------------------------------
+Quelle dal sito restano "da confermare" e mandano le email di sempre.
+Quelle fatte da te nascono confermate e silenziose: la differenza e'
+scritta nel campo "origine" della prenotazione.
 
-Poi: git add . && git commit -m "Aggiornamento 016" && git push
-
-1) NOTIFICHE SUL TELEFONO
+ALTRA CORREZIONE COMPRESA
 -------------------------
-Il cliente entra nella sua area e trova il riquadro "Notifiche sul
-telefono" con il pulsante per attivarle. Da quel momento riceve gli
-avvisi anche con il sito chiuso.
-Su iPhone il riquadro spiega che prima va aggiunto il sito alla
-schermata Home (Condividi -> Aggiungi alla schermata Home), altrimenti
-Apple non le permette: meglio spiegarlo che mostrare un pulsante che
-non farebbe niente.
-Le notifiche partono dalla stessa coda delle email, ogni 5 minuti.
-Dalla bacheca, quando mandi un avviso, ti chiede se vuoi mandare anche
-la notifica oltre all'email.
-Un telefono che non risponde tre volte viene spento da solo; se il
-browser dice che l'iscrizione e' scaduta, viene cancellata subito.
-
-2) MATERIALI DELLA LEZIONE
---------------------------
-Nella scheda di ogni corso, in fondo, "Materiali per gli allievi":
-titolo, tipo (video, link, file, nota), indirizzo e da quanti minuti
-prima si deve vedere. Compaiono nell'area del cliente solo a chi e'
-prenotato e solo vicino all'orario della lezione.
-E' la versione utile del loro "Multimedia".
-
-3) LEZIONE SINGOLA
-------------------
-La query crea il tipo di abbonamento "Lezione singola" (1 ingresso,
-15 euro, non acquistabile online). Si vende dalla scheda della persona
--> Iscrizioni, scegliendo quel tipo. Il prezzo si cambia in
-Conti -> Abbonamenti, recuperi e sconti.
-
-4) RIFINITURA
--------------
-Statistiche, Costi, Messaggi automatici e Importa hanno ora la stessa
-intestazione delle pagine nuove (occhiello rosso, titolo, descrizione).
+- Esistevano due versioni di invia_bacheca (vecchia e nuova): la
+  chiamata dal sito poteva finire su quella sbagliata e la notifica non
+  partiva. La 020 cancella la vecchia.
+- I pagamenti ora possono esistere senza un cliente collegato: serviva
+  per incassare un affitto sala di uno esterno.
