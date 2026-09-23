@@ -1,14 +1,79 @@
 'use client';
 import { useMemo, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { supabaseBrowser } from '@/lib/supabase/browser';
 import { etaAl } from '@/lib/formato';
 
 const ETICHETTE = { prova: ['In prova', 'tag-rosso'], recupero: ['Recupero', 'tag-attenzione'], ingresso: ['Ingresso', 'tag-neutro'] };
 
-export default function Appello({ lezioneId, palestraId, persone }) {
+export default function Appello({ lezioneId, palestraId, persone, corsoNome = '', gestione = true }) {
+  const router = useRouter();
   const [presenze, setPresenze] = useState(Object.fromEntries(persone.map((p) => [p.allievo_id, p.presente])));
   const [errore, setErrore] = useState('');
   const [cerca, setCerca] = useState('');
+  const [aggiungi, setAggiungi] = useState(false);
+  const [testoCerca, setTestoCerca] = useState('');
+  const [candidati, setCandidati] = useState(null);
+
+  async function cerca2(testo) {
+    setCandidati(null);
+    const { data } = await supabaseBrowser().rpc('candidati_lezione', { p_lezione: lezioneId, p_cerca: testo });
+    setCandidati(data || []);
+  }
+
+  async function aggiungiPersona(c) {
+    let forza = false;
+    if (!c.certificato_ok || c.abbonamento === 'nessun abbonamento') {
+      forza = confirm(`${c.nome} ${c.cognome}: ${!c.certificato_ok ? 'certificato non valido' : 'nessun abbonamento attivo'}. Aggiungere lo stesso?`);
+      if (!forza) return;
+    }
+    const tipo = confirm('È un recupero? Premi Annulla per un ingresso normale.') ? 'recupero' : 'ingresso';
+    const { error } = await supabaseBrowser().rpc('aggiungi_partecipante', {
+      p_lezione: lezioneId, p_allievo: c.allievo_id, p_tipo: tipo, p_forza: forza, p_note: null,
+    });
+    if (error) {
+      setErrore(error.message?.includes('lezione_al_completo')
+        ? 'La lezione è al completo: alza i posti da calendario, oppure forza.'
+        : 'Non aggiunto: controlla abbonamento e certificato.');
+      return;
+    }
+    setAggiungi(false); router.refresh();
+  }
+
+  async function togli(p) {
+    if (!confirm(`Togliere ${p.nome} ${p.cognome} da questa lezione?`)) return;
+    const { data, error } = await supabaseBrowser().rpc('rimuovi_partecipante', {
+      p_lezione: lezioneId, p_allievo: p.allievo_id,
+    });
+    if (error) { setErrore('Operazione non riuscita.'); return; }
+    if (data === 'iscritto_al_corso') {
+      setErrore('È iscritto al corso: per toglierlo da tutte le lezioni vai sulla sua scheda.');
+      return;
+    }
+    router.refresh();
+  }
+
+  async function messaggio() {
+    const testo = prompt('Cosa vuoi scrivere a chi è prenotato a questa lezione?');
+    if (!testo?.trim()) return;
+    const { data, error } = await supabaseBrowser().rpc('messaggio_lezione', {
+      p_lezione: lezioneId, p_oggetto: corsoNome, p_testo: testo.trim(),
+    });
+    if (error) { setErrore('Messaggio non inviato.'); return; }
+    setErrore('');
+    alert(`In coda per ${data} persone: partono entro cinque minuti.`);
+  }
+
+  function scarica() {
+    const righe = [['Cognome', 'Nome', 'Tipo', 'Origine', 'Telefono', 'Email', 'Presente']]
+      .concat(persone.map((p) => [p.cognome, p.nome, p.tipo, p.origine || '', p.telefono || '', p.email || '',
+        presenze[p.allievo_id] === true ? 'sì' : presenze[p.allievo_id] === false ? 'no' : '']));
+    const csv = '\uFEFF' + righe.map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(';')).join('\r\n');
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
+    a.download = 'lezione.csv';
+    a.click();
+  }
 
   async function segna(allievoId, presente, bloccato) {
     if (presente && bloccato && !confirm('Certificato medico scaduto o mancante. Segnare comunque la presenza?')) return;
@@ -60,6 +125,40 @@ export default function Appello({ lezioneId, palestraId, persone }) {
       </p>
       {errore && <div className="errore" role="alert">{errore}</div>}
 
+      {gestione && (
+        <div className="filtri" style={{ marginTop: 10 }}>
+          <a href="#" onClick={(e) => { e.preventDefault(); setAggiungi(true); cerca2(''); }}>Aggiungi qualcuno</a>
+          <a href="#" onClick={(e) => { e.preventDefault(); messaggio(); }}>Scrivi ai prenotati</a>
+          <a href="#" onClick={(e) => { e.preventDefault(); scarica(); }}>Scarica la lista</a>
+        </div>
+      )}
+
+      {aggiungi && (
+        <div className="scheda" style={{ marginBottom: 14 }}>
+          <div className="campo" style={{ marginBottom: 8 }}>
+            <label htmlFor="cerca-cand">Chi vuoi aggiungere?</label>
+            <input id="cerca-cand" value={testoCerca} placeholder="Cognome o nome"
+                   onChange={(e) => { setTestoCerca(e.target.value); cerca2(e.target.value); }} />
+          </div>
+          {candidati === null && <p className="piccolo muto">Cerco…</p>}
+          {candidati?.length === 0 && <p className="piccolo muto">Nessuno da aggiungere.</p>}
+          <ul className="elenco">
+            {(candidati || []).map((c) => (
+              <li key={c.allievo_id} className="persona">
+                <span>
+                  {c.cognome} {c.nome}
+                  <span className="piccolo muto" style={{ display: 'block' }}>
+                    {c.abbonamento}{!c.certificato_ok && ' · certificato scaduto'}
+                  </span>
+                </span>
+                <button className="link-btn piccolo" onClick={() => aggiungiPersona(c)}>Aggiungi</button>
+              </li>
+            ))}
+          </ul>
+          <button className="link-btn piccolo" onClick={() => setAggiungi(false)}>Chiudi</button>
+        </div>
+      )}
+
       {persone.length > 10 && (
         <div className="campo" style={{ marginTop: 10 }}>
           <label htmlFor="cerca-persona">Cerca</label>
@@ -88,6 +187,10 @@ export default function Appello({ lezioneId, palestraId, persone }) {
                   {p.bloccato && <span className="tag tag-rosso">Certificato scaduto</span>}
                   {p.certificato_in_scadenza && <span className="tag tag-attenzione">Certificato in scadenza</span>}
                   {p.quota_mancante && <span className="tag tag-attenzione">Quota da pagare</span>}
+                  {p.origine && p.origine !== 'abbonamento' && <span className="tag tag-neutro">da {p.origine}</span>}
+                  {gestione && (
+                    <button className="link-btn piccolo" onClick={(e) => { e.stopPropagation(); togli(p); }}>togli</button>
+                  )}
                 </div>
               </div>
               <div className="presenza" role="group" aria-label={`Presenza di ${p.nome} ${p.cognome}`}

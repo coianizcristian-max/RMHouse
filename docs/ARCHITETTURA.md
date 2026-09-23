@@ -141,6 +141,15 @@ abbonamento SaaS, WhatsApp (API Business, a pagamento per messaggio).
 - **Quota d'iscrizione annuale** separata dall'abbonamento: `quote_iscrizione` per stagione
   (che parte dal mese in `palestre.mese_inizio_stagione`); chi non l'ha pagata è segnalato in appello.
 
+## Organizzazione dell'area di gestione
+Tutto sta in **cinque aree** — Oggi, Calendari, Struttura, Persone, Conti — ognuna con il proprio sottomenù,
+così ogni schermata è a due tocchi: area, poi voce. Su desktop le aree sono la colonna sinistra fissa, su telefono
+la barra in basso; il sottomenù è una riga di chip scorrevoli, e l'intestazione dice sempre dove ci si trova.
+
+Il **palinsesto** è la vista predefinita dei calendari: una colonna per giorno, con una scheda per lezione che porta
+in testa l'orario nel colore del corso e, sotto, insegnante, sala, iscritti, posti liberi, persone in prova e la barra
+di riempimento. La griglia oraria resta disponibile come "Agenda settimanale" per chi ragiona per fasce orarie.
+
 ## Le schermate della segreteria
 - `/gestione` — **la home**: com'è messa oggi la scuola (lezioni, persone attese, prove in arrivo), l'elenco
   "Da fare" che raccoglie presenze non segnate, certificati, richieste di sala, lead da richiamare e abbonamenti
@@ -169,6 +178,21 @@ abbonamento SaaS, WhatsApp (API Business, a pagamento per messaggio).
   prove in arrivo. Si filtra per sala, insegnante o "solo le mie"; toccando un blocco si apre la scheda con i numeri
   e i pulsanti per l'appello e per il corso.
 - `/gestione/costi` — spese con periodicità, fornitori, compenso orario degli insegnanti e costo orario delle sale.
+
+### Azioni rapide dal calendario
+Toccando una lezione si aprono appello, scheda del corso e le modifiche che valgono **solo per quella lezione**:
+posti disponibili, blocco delle prenotazioni, annullamento con motivo, colore del corso. Una spunta estende la stessa
+modifica a tutte le lezioni future dello stesso orario, così non serve toccare il palinsesto per un cambio di una sera.
+Le eccezioni stanno su `lezioni` (`capienza_override`, `prenotabile`, `stato`), quindi corso e orario restano puliti.
+
+Dalla schermata dell'appello la segreteria gestisce anche **chi è prenotato**: aggiunge qualcuno cercandolo per nome
+(con l'avviso se manca l'abbonamento o il certificato, e la possibilità di forzare lasciando però scritto il motivo),
+lo toglie, scrive **a tutti i prenotati** di quella lezione, oppure scarica la lista in CSV. Ogni riga mostra da dove
+arriva la prenotazione: abbonamento, sito, cliente o segreteria.
+
+Toccando invece l'intestazione di un giorno si apre il **pannello della giornata**: chi arriva in prova con nome,
+orario, corso e telefono, i recuperi, le sale affittate e le note dello staff. Il numero rosso sul giorno conta
+le prove in arrivo, così la segreteria le vede senza aprire lezione per lezione.
 - `/gestione/spazi` — affitto delle sale ed eventi: richieste da confermare, agenda del giorno con una colonna per
   sala (lezioni, affitti, feste e opzioni distinti per colore), prenotazioni in arrivo con acconti e incassi,
   blocco manuale di una sala per usi interni. Il listino orario e i pacchetti festa stanno in `/gestione/spazi/listino`.

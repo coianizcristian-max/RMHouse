@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { staffCorrente } from '@/lib/staff';
 import { oggiISO, spostaGiorni } from '@/lib/formato';
 import Settimana from './Settimana';
+import Palinsesto from './Palinsesto';
 
 export const dynamic = 'force-dynamic';
 
@@ -14,14 +15,14 @@ function lunedi(iso) {
 }
 
 export default async function Calendario({ searchParams }) {
-  const { da, sala, insegnante, mie } = await searchParams;
+  const { da, sala, insegnante, mie, vista } = await searchParams;
   const { supabase, staff } = await staffCorrente();
   const inizio = lunedi(/^\d{4}-\d{2}-\d{2}$/.test(da || '') ? da : oggiISO());
   const fine = spostaGiorni(inizio, 6);
 
   let q = supabase
     .from('v_occupazione')
-    .select('lezione_id, corso_id, corso_nome, data, inizio, fine, stato, capienza, iscritti, prove, presenti, sala_id, insegnante_id')
+    .select('lezione_id, corso_id, corso_nome, data, inizio, fine, stato, capienza, iscritti, prove, presenti, sala_id, sala_nome, insegnante_id, insegnante_nome, prenotabile, colore, note')
     .eq('palestra_id', staff.palestra_id)
     .gte('data', inizio).lte('data', fine)
     .order('inizio');
@@ -51,7 +52,7 @@ export default async function Calendario({ searchParams }) {
     <>
       <div className="giorno-nav">
         <Link className="btn" href={`/gestione/calendario?da=${spostaGiorni(inizio, -7)}`} aria-label="Settimana precedente">‹</Link>
-        <h1 style={{ fontSize: 20 }}>
+        <h1 style={{ fontSize: 18, margin: 0 }}>
           {new Date(inizio + 'T12:00:00').toLocaleDateString('it-IT', { day: 'numeric', month: 'short' })} –{' '}
           {new Date(fine + 'T12:00:00').toLocaleDateString('it-IT', { day: 'numeric', month: 'short' })}
         </h1>
@@ -70,7 +71,11 @@ export default async function Calendario({ searchParams }) {
         ))}
       </div>
 
-      <Settimana inizio={inizio} lezioni={lezioni || []} corsi={corsi || []} />
+      {vista === 'griglia'
+        ? <Settimana inizio={inizio} lezioni={lezioni || []} corsi={corsi || []}
+                     palestraId={staff.palestra_id} gestione={staff.ruolo !== 'insegnante'} />
+        : <Palinsesto inizio={inizio} lezioni={lezioni || []} corsi={corsi || []}
+                      palestraId={staff.palestra_id} gestione={staff.ruolo !== 'insegnante'} />}
     </>
   );
 }

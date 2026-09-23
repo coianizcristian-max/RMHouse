@@ -27,6 +27,9 @@ la struttura per agganciarli c'è già. Vedi `docs/ARCHITETTURA.md`.
    7. `supabase/migrations/007_costi_statistiche.sql` (costi, fornitori, calendario e statistiche)
    8. `supabase/migrations/008_spazi.sql` (affitto sale, feste ed eventi)
    9. `supabase/migrations/009_sedi_bacheca.sql` (sedi, foto e colori, bacheca, eventi, note)
+   10. `supabase/migrations/010_calendario.sql` (azioni rapide sulla lezione, pannello del giorno)
+   11. `supabase/migrations/011_prenotati.sql` (gestione dei prenotati e messaggi alla lezione)
+   12. `supabase/migrations/012_palinsesto.sql` (nomi di sala e insegnante nel palinsesto)
 3. In **Table Editor → palestre** aggiorna la riga `rmhouse`: `email`, `google_review_url` e, dopo il deploy, `base_url`.
 
 ### 2. Il tuo utente amministratore
@@ -114,7 +117,7 @@ con tutti gli orari di quel corso. Le righe con problemi vengono elencate una pe
 | Liste d'attesa | `/gestione/attese` |
 | Testi dei messaggi automatici | `/gestione/messaggi` (con anteprima e invio di prova) |
 | Importare anagrafiche e iscrizioni | `/gestione/importa` |
-| Appello | `/gestione` → tocca una lezione |
+| Appello e prenotati | `/gestione` → tocca una lezione (aggiungi, togli, scrivi al gruppo, esporta) |
 | Lead da seguire | `/gestione/lead` |
 | Chi è iscritto a un corso | `/gestione/corsi` → apri il corso (con esportazione CSV) |
 | Certificati caricati dai clienti | `/gestione/certificati` |
@@ -131,6 +134,18 @@ con tutti gli orari di quel corso. Le righe con problemi vengono elencate una pe
 2. Prenota un orario: arriva l'email di conferma (se il cron è attivo) e in `messaggi_coda` c'è il promemoria.
 3. `/gestione` → apri la lezione: la persona compare evidenziata come "In prova".
 4. Segna "Sì": lo stato del lead diventa "Prova fatta" e si accoda il follow-up.
+
+## Com'è organizzata l'area di gestione
+Cinque aree, ognuna con il suo sottomenù. Su desktop le aree stanno nella colonna a sinistra, su telefono
+nella barra in basso; le voci dell'area diventano chip scorrevoli sotto l'intestazione.
+
+| Area | Voci |
+|---|---|
+| **Oggi** | Riepilogo · Agenda del giorno · Lead · Liste d'attesa |
+| **Calendari** | Palinsesto (schede) · Agenda settimanale (griglia oraria) · Sale e affitti · Eventi |
+| **Struttura** | Corsi · Staff · Sale · Categorie e livelli · Bacheca · Chiusure |
+| **Persone** | Anagrafiche · Certificati · Importa da CSV |
+| **Conti** | Statistiche · Costi e fornitori · Abbonamenti e regole · Messaggi automatici |
 
 ## Sul telefono
 L'app è pensata prima per il telefono: barra di navigazione in basso, raggiungibile col pollice, elenchi compatti,
@@ -157,7 +172,8 @@ supabase/
   migrations/     001 schema · 002 logica e sicurezza · 003 cron · 004 regole
                   005 categorie e certificati · 006 funzioni di segreteria
                   007 costi e statistiche · 008 affitto spazi ed eventi
-                  009 sedi, bacheca ed eventi
+                  009 sedi, bacheca ed eventi · 010 azioni sul calendario
+                  011 prenotati · 012 palinsesto
   demo.sql        dati dimostrativi · demo_rimuovi.sql per toglierli
   seed.sql        dati iniziali RM House
 docs/ARCHITETTURA.md  modello dati, flussi, ruoli, roadmap

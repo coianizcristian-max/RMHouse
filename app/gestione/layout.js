@@ -1,6 +1,6 @@
-import Testata from '../Testata';
-import Nav from './Nav';
+import Guscio from './Guscio';
 import { staffCorrente } from '@/lib/staff';
+import Testata from '../Testata';
 
 export const metadata = { title: 'Gestione · Ritmo Metropolitano' };
 
@@ -12,16 +12,14 @@ export default async function LayoutGestione({ children }) {
         <Testata />
         <main className="pagina">
           <h1>Accesso non abilitato</h1>
-          <p>L'utente {user.email} non è registrato come staff di questa palestra. Chiedi all'amministratore di abilitarti.</p>
+          <p>L'utente {user.email} non è ancora registrato come staff. Chiedi all'amministratore di abilitarti.</p>
         </main>
       </>
     );
   }
   return (
-    <>
-      <Testata destra={<span className="piccolo muto">{staff.nome} · {staff.ruolo}</span>} />
-      <Nav gestione={staff.ruolo !== 'insegnante'} />
-      <main className="pagina-larga">{children}</main>
-    </>
+    <Guscio gestione={staff.ruolo !== 'insegnante'} nome={staff.nome} ruolo={staff.ruolo}>
+      {children}
+    </Guscio>
   );
 }

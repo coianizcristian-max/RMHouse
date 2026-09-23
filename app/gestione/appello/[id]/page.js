@@ -10,18 +10,20 @@ export default async function PaginaAppello({ params }) {
   const { id } = await params;
   const { supabase, staff } = await staffCorrente();
 
-  const [{ data: lezione }, { data: persone }] = await Promise.all([
+  const [{ data: lezione }, { data: persone }, { data: dettagli }] = await Promise.all([
     supabase.from('v_lezioni').select('*').eq('id', id).maybeSingle(),
     supabase.from('v_appello')
       .select('allievo_id, tipo, nome, cognome, data_nascita, certificato_scadenza, bloccato, certificato_in_scadenza, quota_mancante, presente')
       .eq('lezione_id', id),
+    supabase.from('v_prenotati').select('allievo_id, origine, telefono, email, prenotato_il').eq('lezione_id', id),
   ]);
   if (!lezione) notFound();
 
   // prima chi è in prova (da accogliere), poi gli altri in ordine alfabetico
   const ordine = { prova: 0, recupero: 1, ingresso: 2, iscritto: 3 };
-  const elenco = (persone || []).sort((a, b) =>
-    ordine[a.tipo] - ordine[b.tipo] || a.cognome.localeCompare(b.cognome, 'it'));
+  const elenco = (persone || [])
+    .map((p) => ({ ...p, ...(dettagli || []).find((d) => d.allievo_id === p.allievo_id) }))
+    .sort((a, b) => ordine[a.tipo] - ordine[b.tipo] || a.cognome.localeCompare(b.cognome, 'it'));
 
   return (
     <>
@@ -32,7 +34,8 @@ export default async function PaginaAppello({ params }) {
         {lezione.sala_nome && ` · ${lezione.sala_nome}`}{lezione.insegnante_nome && ` · ${lezione.insegnante_nome}`}
       </p>
       {lezione.stato === 'annullata' && <div className="errore">Lezione annullata{lezione.note ? `: ${lezione.note}` : ''}.</div>}
-      <Appello lezioneId={lezione.id} palestraId={staff.palestra_id} persone={elenco} />
+      <Appello lezioneId={lezione.id} palestraId={staff.palestra_id} persone={elenco}
+               corsoNome={lezione.corso_nome} gestione={staff.ruolo !== 'insegnante'} />
     </>
   );
 }
