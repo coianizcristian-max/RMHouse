@@ -4,8 +4,9 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { supabaseBrowser } from '@/lib/supabase/browser';
 import { ora, dataBreve, giornoLungo } from '@/lib/formato';
+import Notifiche from './Notifiche';
 
-export default function Riepilogo({ dati }) {
+export default function Riepilogo({ dati, materiali = [] }) {
   const router = useRouter();
   const [errore, setErrore] = useState('');
   const [avviso, setAvviso] = useState('');
@@ -63,6 +64,27 @@ export default function Riepilogo({ dati }) {
 
       {errore && <div className="errore" role="alert">{errore}</div>}
       {avviso && <div className="errore" style={{ background: 'var(--ok-tenue)', color: 'var(--ok)' }}>{avviso}</div>}
+
+      {materiali.length > 0 && (
+        <>
+          <h2 className="sezione">Per la lezione di oggi</h2>
+          {materiali.map((m) => (
+            <div key={m.id} className="avviso-card">
+              <h3>{m.titolo}</h3>
+              <p>{m.corso} · {ora(m.inizio)}{m.testo ? ` — ${m.testo}` : ''}</p>
+              {m.url && (
+                <p style={{ marginTop: 8 }}>
+                  <a className="btn" href={m.url} target="_blank" rel="noreferrer">
+                    {m.tipo === 'video' ? 'Guarda il video' : 'Apri'}
+                  </a>
+                </p>
+              )}
+            </div>
+          ))}
+        </>
+      )}
+
+      <Notifiche />
 
       {daSistemare.length > 0 && (
         <div className="scheda" style={{ borderLeft: '4px solid var(--rosso)', marginBottom: 20 }}>

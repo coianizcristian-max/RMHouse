@@ -12,7 +12,10 @@ export default async function Area() {
 
   // al primo ingresso si collega l'utente all'anagrafica della segreteria
   await supabase.rpc('collega_account');
-  const { data } = await supabase.rpc('area_riepilogo');
+  const [{ data }, { data: materiali }] = await Promise.all([
+    supabase.rpc('area_riepilogo'),
+    supabase.rpc('materiali_area'),
+  ]);
 
   if (!data?.collegato) {
     return (
@@ -27,5 +30,5 @@ export default async function Area() {
     );
   }
 
-  return <Riepilogo dati={data} />;
+  return <Riepilogo dati={data} materiali={materiali || []} />;
 }

@@ -66,10 +66,11 @@ export default function Messaggi({ palestraId, template, coda, emailStaff }) {
 
   return (
     <>
-      <h1>Messaggi automatici</h1>
-      <p className="muto piccolo">
-        Il testo tra doppie graffe viene sostituito al momento dell'invio. L'anteprima usa dati di esempio.
-      </p>
+      <div className="intestazione">
+        <div className="occhiello">Conti</div>
+        <h1>Messaggi automatici</h1>
+        <p>I testi che partono da soli: modificali, vedi l'anteprima, mandati una prova.</p>
+      </div>
       {errore && <div className="errore" role="alert">{errore}</div>}
       {avviso && <div className="errore" style={{ background: 'var(--ok-tenue)', color: 'var(--ok)' }}>{avviso}</div>}
 

@@ -249,6 +249,13 @@ Ogni dato entra da un punto preciso, e ogni punto ha la sua voce di menù:
 famiglia invece di creare doppioni; `registra_incasso()` scrive il pagamento e, per la quota annuale, anche la
 riga nella scheda dell'allievo.
 
+## Notifiche sul telefono
+Le notifiche viaggiano sul web, senza store: il telefono lascia il suo recapito in `push_iscrizioni`, i messaggi
+finiscono nella stessa `messaggi_coda` delle email con `canale = 'push'`, e il cron li consegna con le chiavi VAPID.
+Un recapito che risponde male tre volte si spegne da solo; se il browser dice che è scaduto (404 o 410) viene
+cancellato subito. Su iPhone funzionano solo dopo che il cliente ha aggiunto il sito alla schermata iniziale, e
+l'area glielo spiega con parole sue invece di mostrare un pulsante che non farebbe niente.
+
 ## I lead
 Il lead non è una tabella a parte: è un allievo con uno `stato_lead`. Attorno ci sono il **diario dei contatti**
 (`contatti_lead`: quando, con che canale, com'è andata, la nota) e due campi su `allievi`: `prossimo_contatto`,

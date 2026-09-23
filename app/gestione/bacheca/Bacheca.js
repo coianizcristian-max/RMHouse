@@ -52,12 +52,21 @@ export default function Bacheca({ palestraId, righe }) {
   }
 
   async function invia(r) {
-    if (!confirm('Mandare questo messaggio per email a tutti gli iscritti attivi?')) return;
+    const push = confirm(
+      'Mandare questo messaggio agli iscritti attivi?\n\n' +
+      'OK = email + notifica sul telefono\nAnnulla = scegli solo email nella prossima finestra'
+    );
+    if (!push && !confirm('Mandarlo solo per email?')) return;
+
     setInvio(true); setErrore(''); setAvviso('');
-    const { data, error } = await supabaseBrowser().rpc('invia_bacheca', { p_id: r.id });
+    const { data, error } = await supabaseBrowser().rpc('invia_bacheca', { p_id: r.id, p_push: push });
     setInvio(false);
     if (error) { setErrore('Invio non riuscito.'); return; }
-    setAvviso(`In coda per ${data} destinatari: partono entro cinque minuti.`);
+    setAvviso(
+      `In coda: ${data?.email ?? 0} email` +
+      (push ? ` e ${data?.push ?? 0} notifiche` : '') +
+      '. Partono entro cinque minuti.'
+    );
     router.refresh();
   }
 

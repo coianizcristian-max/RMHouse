@@ -67,11 +67,11 @@ export default function Importa({ corsi, tipi }) {
 
   return (
     <>
-      <h1>Importa da CSV</h1>
-      <p className="muto piccolo">
-        Un file, una riga per persona. Se indichi anche corso e abbonamento, creiamo pure l'iscrizione
-        con tutti gli orari di quel corso. Chi ha già la stessa email viene collegato alla stessa famiglia.
-      </p>
+      <div className="intestazione">
+        <div className="occhiello">Persone</div>
+        <h1>Importa da CSV</h1>
+        <p>Porta dentro l'elenco che hai oggi: abbina le colonne e controlla l'anteprima.</p>
+      </div>
 
       {errore && <div className="errore" role="alert">{errore}</div>}
 

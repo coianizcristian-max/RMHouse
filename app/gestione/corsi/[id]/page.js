@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import Materiali from '../Materiali';
 import { notFound, redirect } from 'next/navigation';
 import { staffCorrente } from '@/lib/staff';
 import { dataBreve, etaAl } from '@/lib/formato';
@@ -26,6 +27,9 @@ export default async function Corso({ params, searchParams }) {
       supabase.from('liste_attesa').select('id, allievi ( nome, cognome )').eq('corso_id', id).eq('stato', 'in_attesa'),
       supabase.from('corsi').select('slug').eq('id', id).maybeSingle(),
     ]);
+
+  const { data: materiali } = await supabase.from('materiali')
+    .select('id, titolo, tipo, url, minuti_prima').eq('corso_id', id).eq('attivo', true).order('created_at');
   const slug = base?.slug;
   if (!corso) notFound();
 
@@ -87,6 +91,8 @@ export default async function Corso({ params, searchParams }) {
           </ul>
         </>
       )}
+          <Materiali palestraId={staff.palestra_id} corsoId={id} righe={materiali || []} />
+
     </>
   );
 }

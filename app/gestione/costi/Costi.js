@@ -17,11 +17,11 @@ export default function Costi({ palestraId, spese, fornitori, sale, corsi, inseg
 
   return (
     <>
-      <h1>Costi</h1>
-      <p className="muto piccolo">
-        Servono per calcolare il margine di ogni corso e l'incidenza di affitto e compensi sui ricavi,
-        che poi trovi nelle statistiche.
-      </p>
+      <div className="intestazione">
+        <div className="occhiello">Conti</div>
+        <h1>Costi e fornitori</h1>
+        <p>Affitti, compensi e spese ricorrenti: è quello che rende veri i margini.</p>
+      </div>
 
       <div className="filtri">
         {[['spese', 'Spese'], ['fornitori', 'Fornitori'], ['compensi', 'Compensi'], ['sale', 'Costo sale']].map(([k, l]) => (

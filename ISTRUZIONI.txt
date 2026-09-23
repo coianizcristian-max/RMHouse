@@ -1,51 +1,83 @@
-AGGIORNAMENTO N 015 — RMHouse
-Gestione vera dei lead · titolo doppio sistemato
+AGGIORNAMENTO N 016 — RMHouse
+Notifiche push · Materiali della lezione · Lezione singola · Rifinitura
 
 QUERY DA ESEGUIRE
 -----------------
-supabase/migrations/018_lead.sql
+supabase/migrations/019_push_materiali.sql
+
+PRIMA DI TUTTO: LE CHIAVI DELLE NOTIFICHE (una volta sola)
+----------------------------------------------------------
+Nella cartella del progetto:
+
+    npx web-push generate-vapid-keys
+
+Ti stampa due chiavi. Mettile in .env.local E su Vercel (tutti e tre
+gli ambienti):
+
+    NEXT_PUBLIC_VAPID_PUBLIC_KEY=<la chiave pubblica>
+    VAPID_PRIVATE_KEY=<la chiave privata>
+    VAPID_SOGGETTO=mailto:segreteria@ritmometropolitano.com
+
+Poi, sempre nella cartella del progetto:
+
+    npm install
+
+(serve la libreria web-push, gia' aggiunta al package.json)
 
 FILE DA COPIARE (sovrascrivi, rispettando i percorsi)
 -----------------------------------------------------
-app/gestione/lead/page.js        sostituito
-app/gestione/lead/Lead.js        NUOVO
-app/gestione/Guscio.js           sostituito
-app/globals.css                  sostituito
-README.md                        sostituito
-docs/ARCHITETTURA.md             sostituito
+package.json                                 sostituito
+package-lock.json                            sostituito
+app/api/cron/invia-messaggi/route.js         sostituito
+public/sw.js                                 NUOVO
+app/manifest.js                              sostituito
+.env.example                                 sostituito
+app/area/Notifiche.js                        NUOVO
+app/area/page.js                             sostituito
+app/area/Riepilogo.js                        sostituito
+app/gestione/bacheca/Bacheca.js              sostituito
+app/gestione/corsi/Materiali.js              NUOVO
+app/gestione/corsi/[id]/page.js              sostituito
+app/gestione/statistiche/page.js             sostituito
+app/gestione/costi/Costi.js                  sostituito
+app/gestione/messaggi/Messaggi.js            sostituito
+app/gestione/importa/Importa.js              sostituito
+README.md                                    sostituito
+docs/ARCHITETTURA.md                         sostituito
 
-Poi: git add . && git commit -m "Aggiornamento 015" && git push
+Poi: git add . && git commit -m "Aggiornamento 016" && git push
 
-AVEVI RAGIONE: LA PAGINA LEAD ERA SOLO DA GUARDARE
---------------------------------------------------
-C'era l'elenco e il link WhatsApp, ma nessuna azione: non si poteva
-segnare che avevi chiamato, ne' cambiare stato, ne' fissare un richiamo.
+1) NOTIFICHE SUL TELEFONO
+-------------------------
+Il cliente entra nella sua area e trova il riquadro "Notifiche sul
+telefono" con il pulsante per attivarle. Da quel momento riceve gli
+avvisi anche con il sito chiuso.
+Su iPhone il riquadro spiega che prima va aggiunto il sito alla
+schermata Home (Condividi -> Aggiungi alla schermata Home), altrimenti
+Apple non le permette: meglio spiegarlo che mostrare un pulsante che
+non farebbe niente.
+Le notifiche partono dalla stessa coda delle email, ogni 5 minuti.
+Dalla bacheca, quando mandi un avviso, ti chiede se vuoi mandare anche
+la notifica oltre all'email.
+Un telefono che non risponde tre volte viene spento da solo; se il
+browser dice che l'iscrizione e' scaduta, viene cancellata subito.
 
-ORA SI GESTISCONO COSI'
------------------------
-In cima quattro contatori cliccabili: da richiamare oggi, da seguire
-(con quanti non hai mai contattato), prova prenotata, convertiti.
+2) MATERIALI DELLA LEZIONE
+--------------------------
+Nella scheda di ogni corso, in fondo, "Materiali per gli allievi":
+titolo, tipo (video, link, file, nota), indirizzo e da quanti minuti
+prima si deve vedere. Compaiono nell'area del cliente solo a chi e'
+prenotato e solo vicino all'orario della lezione.
+E' la versione utile del loro "Multimedia".
 
-Su ogni riga:
-- WhatsApp, Chiama, Email (partono davvero: tel: e mailto:)
-- "Segna contatto": scegli il canale (WhatsApp, telefono, email, di
-  persona), com'e' andata (sentito, non risponde, da richiamare, non
-  interessato), scrivi una nota e la DATA DEL PROSSIMO RICHIAMO.
-  Se scegli "non interessato" il lead passa a non convertito da solo.
-- "Si e' iscritto" e "Non convertito" (con il motivo, che finisce nelle
-  statistiche insieme alle risposte del sondaggio).
-- Sui non convertiti c'e' "Riprova", che lo rimette in circolo.
+3) LEZIONE SINGOLA
+------------------
+La query crea il tipo di abbonamento "Lezione singola" (1 ingresso,
+15 euro, non acquistabile online). Si vende dalla scheda della persona
+-> Iscrizioni, scegliendo quel tipo. Il prezzo si cambia in
+Conti -> Abbonamenti, recuperi e sconti.
 
-Ogni riga mostra: eta', genitore, contatti, da dove e' arrivato, la
-prova prenotata con data e stato, se ci sono soldi da incassare per la
-prova, l'ultimo contatto con la nota e quando va richiamato.
-La banda a sinistra diventa rossa quando il promemoria e' scaduto.
-
-Tutto resta scritto nel diario dei contatti, quindi si sa sempre chi ha
-chiamato, quando e cosa si sono detti.
-
-ALTRA CORREZIONE
-----------------
-Il titolo della pagina era scritto due volte (una nella barra in alto e
-una nel contenuto). Ora in alto ci sono le briciole di pane
-"Ogni giorno › Lead" piccole, e il titolo grande resta uno solo.
+4) RIFINITURA
+-------------
+Statistiche, Costi, Messaggi automatici e Importa hanno ora la stessa
+intestazione delle pagine nuove (occhiello rosso, titolo, descrizione).

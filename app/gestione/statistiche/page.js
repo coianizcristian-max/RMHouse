@@ -51,7 +51,11 @@ export default async function Statistiche({ searchParams }) {
 
   return (
     <>
-      <h1>Statistiche</h1>
+      <div className="intestazione">
+        <div className="occhiello">Conti</div>
+        <h1>Statistiche e margini</h1>
+        <p>Iscritti, riempimento, conversione delle prove e margine di ogni corso.</p>
+      </div>
       <div className="filtri">
         {periodo('Questo mese', oggi.slice(0, 8) + '01', oggi)}
         {periodo('Mese scorso', inizioMeseScorso, fineMeseScorso)}
