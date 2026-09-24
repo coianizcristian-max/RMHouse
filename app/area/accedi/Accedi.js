@@ -1,5 +1,6 @@
 'use client';
 import { useState } from 'react';
+import Link from 'next/link';
 import { supabaseBrowser } from '@/lib/supabase/browser';
 
 // Accesso senza password: arriva un link per email
@@ -36,9 +37,12 @@ export default function Accedi({ errore: erroreIniziale }) {
   return (
     <>
       <div className="intestazione">
-        <div className="occhiello">Area riservata</div>
+        <div className="occhiello">Area iscritti</div>
         <h1>Entra con la tua email</h1>
-        <p>Usa l'indirizzo che hai lasciato in segreteria: ti arriva un link, niente password da ricordare.</p>
+        <p>
+          Qui entrano gli allievi e i genitori: usa l'indirizzo che hai lasciato in segreteria e ti arriva un
+          link, niente password da ricordare.
+        </p>
       </div>
 
       {errore && <div className="errore" role="alert">{errore}</div>}
@@ -56,6 +60,10 @@ export default function Accedi({ errore: erroreIniziale }) {
 
       <p className="piccolo muto" style={{ marginTop: 20 }}>
         Se l'indirizzo non risulta, vuol dire che in segreteria ne è registrato un altro: scrivici e lo sistemiamo.
+      </p>
+
+      <p className="piccolo muto" style={{ marginTop: 24, paddingTop: 16, borderTop: '1px solid var(--linea)' }}>
+        Sei della segreteria o insegni qui? <Link href="/login">Entra dall'accesso staff</Link>, con email e password.
       </p>
     </>
   );
