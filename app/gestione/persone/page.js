@@ -18,7 +18,11 @@ export default async function Persone({ searchParams }) {
 
   return (
     <>
-      <h1>Persone</h1>
+      <div className="intestazione">
+        <div className="occhiello">Persone</div>
+        <h1>Anagrafiche</h1>
+        <p>Cerca per nome, email o telefono. Nella scheda: iscrizioni, recuperi, certificati.</p>
+      </div>
       <form className="filtri" style={{ alignItems: 'end' }}>
         <div className="campo" style={{ margin: 0, flex: 1, minWidth: 200 }}>
           <label htmlFor="q">Cerca</label>

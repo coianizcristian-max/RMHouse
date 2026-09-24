@@ -41,9 +41,12 @@ la struttura per agganciarli c'è già. Vedi `docs/ARCHITETTURA.md`.
    21. `supabase/migrations/021_spazi_segreteria.sql` (prenotazione sale dal banco, verifica immediata, niente email)
    22. `supabase/migrations/022_attese.sql` (liste d'attesa: posizione, avvisi, esito)
    23. `supabase/migrations/023_rinnovi_promo.sql` (rinnovi in blocco, promozioni, esportazione contabile)
+<<<<<<< HEAD
    24. `supabase/migrations/024_banca_compensi.sql` (movimenti bancari, riconciliazione, cedolini, flusso di cassa)
    25. `supabase/migrations/025_ricevute.sql` (ricevute non fiscali con IVA a zero)
    26. `supabase/migrations/026_fatture.sql` (registro fatture elettroniche e catena fattura → spesa → banca)
+=======
+>>>>>>> b1545d8a65c3b6ea77a267dc43bc3842723df24f
 3. In **Table Editor → palestre** aggiorna la riga `rmhouse`: `email`, `google_review_url` e, dopo il deploy, `base_url`.
 
 ### 2. Il tuo utente amministratore
@@ -161,7 +164,11 @@ nella barra in basso; le voci dell'area diventano chip scorrevoli sotto l'intest
 | **Calendari** | Palinsesto (schede) · Agenda settimanale (griglia oraria) · Sale e affitti · Eventi |
 | **Struttura** | Corsi · Staff · Sale · Categorie e livelli · Bacheca · Sede e contatti |
 | **Persone** | Anagrafiche e recuperi · Registra una persona · Rinnovi in scadenza · Certificati · Importa da CSV |
+<<<<<<< HEAD
 | **Conti** | Statistiche e margini · Incassi · Ricevute · Fatture · Banca e cassa · Compensi insegnanti · Costi e fornitori · Abbonamenti, recuperi e sconti · Messaggi automatici · Promozioni |
+=======
+| **Conti** | Statistiche e margini · Incassi · Costi e fornitori · Abbonamenti, recuperi e sconti · Messaggi automatici · Promozioni |
+>>>>>>> b1545d8a65c3b6ea77a267dc43bc3842723df24f
 
 ## Sul telefono
 L'app è pensata prima per il telefono: barra di navigazione in basso, raggiungibile col pollice, elenchi compatti,

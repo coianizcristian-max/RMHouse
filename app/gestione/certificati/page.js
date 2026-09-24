@@ -31,7 +31,11 @@ export default async function Certificati({ searchParams }) {
 
   return (
     <>
-      <h1>Certificati medici</h1>
+      <div className="intestazione">
+        <div className="occhiello">Persone</div>
+        <h1>Certificati medici</h1>
+        <p>I documenti caricati dai clienti: controlla, metti la scadenza, approva.</p>
+      </div>
       <div className="filtri">
         {filtri.map(([k, l]) => (
           <a key={k} href={`/gestione/certificati?stato=${k}`} aria-current={k === stato ? 'true' : undefined}>{l}</a>

@@ -18,6 +18,7 @@ export default function Incassi({ palestraId, righe, totali, dal, al, stato }) {
   const [f, setF] = useState({ importo: '', causale: 'quota_iscrizione', metodo: 'contanti', descrizione: '', cerca: '', account_id: '', allievo_id: '' });
   const [trovati, setTrovati] = useState([]);
   const [errore, setErrore] = useState('');
+  const [periodo, setPeriodo] = useState({ dal, al });
   const [invio, setInvio] = useState(false);
 
   const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
@@ -98,6 +99,23 @@ export default function Incassi({ palestraId, righe, totali, dal, al, stato }) {
       <div className="filtri" style={{ marginTop: 14 }}>
         <Link href="/gestione/incassi" aria-current={stato !== 'attesa' ? 'true' : undefined}>Ultimi 30 giorni</Link>
         <Link href="/gestione/incassi?stato=attesa" aria-current={stato === 'attesa' ? 'true' : undefined}>Da incassare</Link>
+      </div>
+
+      <div className="scheda" style={{ marginTop: 14 }}>
+        <strong style={{ color: 'var(--nero)' }}>Esportazione per il commercialista</strong>
+        <p className="piccolo muto" style={{ marginTop: 4 }}>
+          Una riga per incasso con data, causale, importo, metodo, cliente e codice fiscale, più il totale in fondo.
+        </p>
+        <div className="riga-2">
+          <div className="campo"><label htmlFor="ed">Dal</label>
+            <input id="ed" type="date" value={periodo.dal} onChange={(e) => setPeriodo({ ...periodo, dal: e.target.value })} /></div>
+          <div className="campo"><label htmlFor="ea">Al</label>
+            <input id="ea" type="date" value={periodo.al} onChange={(e) => setPeriodo({ ...periodo, al: e.target.value })} /></div>
+        </div>
+        <div className="azioni-riga">
+          <a className="btn" href={`/api/incassi/csv?dal=${periodo.dal}&al=${periodo.al}`}>Scarica il CSV</a>
+          <a className="link-btn piccolo" href={`/gestione/incassi?dal=${periodo.dal}&al=${periodo.al}`}>Mostra questo periodo</a>
+        </div>
       </div>
 
       {apri ? (

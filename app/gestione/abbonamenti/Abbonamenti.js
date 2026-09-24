@@ -45,7 +45,11 @@ export default function Abbonamenti({ palestraId, tipi, corsi, regole, palestra 
 
   return (
     <>
-      <h1>Abbonamenti e regole</h1>
+      <div className="intestazione">
+        <div className="occhiello">Conti</div>
+        <h1>Abbonamenti, recuperi e sconti</h1>
+        <p>Tipi di abbonamento, quota annuale, regole dei recuperi e preavvisi.</p>
+      </div>
       <div className="filtri">
         {[['tipi', 'Tipi di abbonamento'], ['recuperi', 'Dove si recupera'], ['generali', 'Impostazioni']].map(([k, l]) => (
           <a key={k} href="#" onClick={(e) => { e.preventDefault(); setSezione(k); }}

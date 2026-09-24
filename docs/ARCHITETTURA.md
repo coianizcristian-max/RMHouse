@@ -266,6 +266,7 @@ convertiti), su ogni riga i pulsanti per WhatsApp, chiamata ed email, "Segna con
 canale, esito, nota e data del prossimo richiamo, e i due esiti finali, "Si è iscritto" e "Non convertito" con
 il motivo. Il motivo finisce nelle statistiche insieme alle risposte del sondaggio.
 
+<<<<<<< HEAD
 ## Banca, cedolini e cassa
 **I movimenti del conto** si caricano dal CSV dell'home banking: ogni riga riceve un'impronta calcolata su conto,
 data, importo e descrizione, così ricaricare lo stesso file non crea doppioni. `riconcilia_automatica()` abbina da
@@ -303,6 +304,8 @@ commercialista. La numerazione riparte da 1 ogni anno, è senza buchi (un lock p
 uguali se si emette in contemporanea) e una ricevuta annullata **tiene comunque il suo numero**. I dati
 dell'intestatario si congelano al momento dell'emissione, così un cambio di indirizzo non riscrive il passato.
 
+=======
+>>>>>>> b1545d8a65c3b6ea77a267dc43bc3842723df24f
 ## I rinnovi di fine mese
 `da_rinnovare()` elenca gli abbonamenti che scadono nella finestra scelta, con già dentro quello che serve per
 decidere: prezzo, sconto in corso, orari, certificato e quota in regola, e se quella iscrizione è già stata
