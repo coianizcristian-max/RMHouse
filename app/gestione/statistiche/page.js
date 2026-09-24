@@ -22,6 +22,7 @@ export default async function Statistiche({ searchParams }) {
   const p = staff.palestra_id;
 
   const [k, andamento, corsi, insegnanti, sale, funnel, distribuzione, spazi, feedback] = await Promise.all([
+    supabase.rpc('flusso_cassa', { p_palestra: p, p_dal: dal, p_al: al }),
     supabase.rpc('cruscotto', { p_palestra: p, p_dal: dal, p_al: al }),
     supabase.rpc('andamento_mensile', { p_palestra: p, p_mesi: 12 }),
     supabase.rpc('economia_corsi', { p_palestra: p, p_dal: dal, p_al: al }),
@@ -129,6 +130,62 @@ export default async function Statistiche({ searchParams }) {
         <Barre dati={mesi.map((m) => ({ etichetta: m.etichetta, valore: Math.round(Number(m.ricavi_cent) / 100) }))}
                formato={(v) => (v >= 1000 ? `${Math.round(v / 100) / 10}k` : v)} />
       </div>
+
+      {/* Flusso di cassa: soldi davvero entrati e usciti */}
+      <h2 style={{ marginTop: 30 }}>Flusso di cassa</h2>
+      <p className="muto piccolo" style={{ marginTop: -6 }}>
+        Qui non c'è la competenza ma la cassa: quello che è entrato e uscito davvero nel periodo, contanti compresi.
+      </p>
+      <div className="griglia" style={{ marginBottom: 14 }}>
+        <Numero titolo="Entrate" valore={eur(flusso?.entrate_cent)} nota="incassi registrati" />
+        <Numero titolo="Uscite" valore={eur(flusso?.uscite_cent)} nota="spese e compensi pagati" />
+        <Numero titolo="Saldo del periodo" valore={eur(flusso?.saldo_cent)}
+                nota={(flusso?.saldo_cent ?? 0) >= 0 ? 'in attivo' : 'in perdita'} />
+        <Numero titolo="Ancora da incassare" valore={eur(flusso?.da_incassare_cent)}
+                nota={`compensi da pagare ${eur(flusso?.compensi_da_pagare_cent)}`} />
+      </div>
+
+      {(flusso?.per_mese || []).length > 0 && (
+        <div className="scheda" style={{ marginBottom: 14 }}>
+          <div className="piccolo muto">Saldo mese per mese (€)</div>
+          <Barre dati={(flusso.per_mese || []).map((m) => ({
+                   etichetta: m.mese.slice(5) + '/' + m.mese.slice(2, 4),
+                   valore: Math.round(Number(m.saldo_cent) / 100),
+                 }))}
+                 formato={(v) => (Math.abs(v) >= 1000 ? `${Math.round(v / 100) / 10}k` : v)} />
+        </div>
+      )}
+
+      <div className="griglia-2" style={{ marginBottom: 14 }}>
+        <div className="scheda">
+          <div className="piccolo muto">Entrate per metodo</div>
+          <ul className="elenco">
+            {Object.entries(flusso?.entrate_per_metodo || {}).map(([m, v]) => (
+              <li key={m} className="persona"><span>{m}</span><strong>{eur(v)}</strong></li>
+            ))}
+            {Object.keys(flusso?.entrate_per_metodo || {}).length === 0 && (
+              <li className="persona"><span className="muto piccolo">Nessun incasso registrato nel periodo.</span></li>
+            )}
+          </ul>
+        </div>
+        <div className="scheda">
+          <div className="piccolo muto">Uscite per categoria</div>
+          <ul className="elenco">
+            {Object.entries(flusso?.uscite_per_categoria || {}).map(([c, v]) => (
+              <li key={c} className="persona"><span>{c}</span><strong>{eur(v)}</strong></li>
+            ))}
+            {Object.keys(flusso?.uscite_per_categoria || {}).length === 0 && (
+              <li className="persona"><span className="muto piccolo">Nessuna spesa pagata nel periodo.</span></li>
+            )}
+          </ul>
+        </div>
+      </div>
+
+      <p className="muto piccolo" style={{ marginBottom: 20 }}>
+        I <strong>ricavi</strong> qui sopra sono di competenza: gli abbonamenti attivi nel periodo, anche se pagati
+        prima o dopo. Le <strong>entrate</strong> sono i soldi realmente incassati. Le due cifre non coincidono quasi
+        mai, ed è giusto così: la prima dice se la scuola guadagna, la seconda se ha i soldi in cassa.
+      </p>
 
       {/* Chi frequenta */}
       <h2 style={{ marginTop: 30 }}>Chi frequenta</h2>

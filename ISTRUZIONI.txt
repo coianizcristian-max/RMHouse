@@ -1,37 +1,50 @@
-AGGIORNAMENTO N 020 — RMHouse
-Liste d'attesa complete
+AGGIORNAMENTO N 023 — RMHouse
+Fatture elettroniche: dal file XML alla riga di banca
 
 QUERY DA ESEGUIRE
 -----------------
-supabase/migrations/022_attese.sql
+supabase/migrations/026_fatture.sql
 
 FILE DA COPIARE
 ---------------
-app/gestione/attese/page.js      sostituito
-app/gestione/attese/Attese.js    sostituito
-README.md                        sostituito
-docs/ARCHITETTURA.md             sostituito
+lib/menu.js                            sostituito
+app/api/fatture/importa/route.js       NUOVO
+app/gestione/fatture/page.js           NUOVO
+app/gestione/fatture/Fatture.js        NUOVO
+app/gestione/banca/Banca.js            sostituito
+app/gestione/indice/page.js            sostituito
+README.md                              sostituito
+docs/ARCHITETTURA.md                   sostituito
 
-Poi: git add . && git commit -m "Aggiornamento 020" && git push
+Poi: git add . && git commit -m "Aggiornamento 023" && git push
 
-COSA MANCAVA
-------------
-C'era solo "Togli dalla lista", e l'avviso automatico funzionava solo
-sulle singole lezioni: se qualcuno lasciava un CORSO, nessuno veniva
-avvisato.
+PERCHE' COSI' E NON CON IL CASSETTO FISCALE
+-------------------------------------------
+Le API del cassetto fiscale esistono da luglio 2026 ma per ora danno
+solo le Certificazioni Uniche, richiedono Entratel e una delega, e gli
+altri servizi arriveranno "con successivi avvisi". Gli XML delle
+fatture invece li scarichi gia' oggi, dal cassetto o dal programma del
+commercialista. Quando l'Agenzia aprira' i servizi utili, la struttura
+per ricevere i dati e' gia' pronta: cambia solo chi glieli passa.
 
-COSA C'E' ORA
--------------
-- Posizione in coda (1ª, 2ª, 3ª) e posti liberi del corso in quel momento.
-- "Code aperte": l'elenco dei corsi con gente in attesa; se il corso ha
-  posti liberi basta toccarlo e avvisa tutti quelli che ci stanno,
-  in ordine di arrivo.
-- Su ogni persona: "Avvisa: posto libero" (o "Riavvisa"), WhatsApp,
-  "Iscrivilo" (apre la sua scheda), "Si e' iscritto", "Ha rinunciato"
-  con il motivo.
-- Tre viste: In coda / Avvisati / Chiusi, con la data dell'avviso e
-  quanti sono stati avvisati da piu' di tre giorni senza rispondere.
-- AVVISO AUTOMATICO ANCHE SUL CORSO: quando un'iscrizione passa ad
-  annullata o scaduta, il primo della coda riceve l'email da solo.
-- Ogni posizione si chiude con un esito (iscritto, rinunciato, scaduto),
-  cosi' si sa quanto converte la lista d'attesa.
+COME SI USA — Conti -> Fatture
+------------------------------
+1. Scarichi gli XML (funzionano anche i .p7m firmati) e li trascini
+   tutti insieme nella pagina. Quelli gia' caricati vengono saltati.
+2. Ogni fattura ricevuta mostra fornitore, numero, data, P.IVA,
+   scadenza, imponibile, IVA e totale.
+3. "Registra come spesa": scegli la categoria (te ne propone una
+   guardando il nome del fornitore: Energia -> utenze, Immobiliare ->
+   affitto...) e dici se e' gia' pagata. Il fornitore viene creato se
+   non c'e'.
+4. In Banca, sui movimenti in USCITA, ora compare "Cerca la spesa":
+   propone le spese compatibili con punteggio su importo, data e nome
+   del fornitore nella causale. Quando abbini, la spesa risulta pagata
+   e la fattura si chiude da sola.
+
+In cima: totale acquisti del periodo, IVA su acquisti e vendite, quanto
+resta da pagare e quante spese risultano pagate senza un movimento in
+banca che le copra.
+
+Le fatture EMESSE si caricano nella scheda "Emesse" come registro di
+controllo: continuano a farle il commercialista e il vecchio gestionale.

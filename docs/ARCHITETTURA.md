@@ -266,6 +266,53 @@ convertiti), su ogni riga i pulsanti per WhatsApp, chiamata ed email, "Segna con
 canale, esito, nota e data del prossimo richiamo, e i due esiti finali, "Si è iscritto" e "Non convertito" con
 il motivo. Il motivo finisce nelle statistiche insieme alle risposte del sondaggio.
 
+## Banca, cedolini e cassa
+**I movimenti del conto** si caricano dal CSV dell'home banking: ogni riga riceve un'impronta calcolata su conto,
+data, importo e descrizione, così ricaricare lo stesso file non crea doppioni. `riconcilia_automatica()` abbina da
+sola solo i casi certi — importo identico, data vicina e **un solo** incasso possibile — mentre per gli altri
+`proposte_movimento()` propone i candidati con un punteggio che pesa importo, vicinanza di data e cognome nella
+causale. Alla fine `differenze_banca()` dice le tre cose che contano: soldi arrivati senza ricevuta, ricevute senza
+soldi arrivati, e contanti incassati ma non ancora versati.
+
+**I cedolini** nascono da `calcola_compensi()`, che somma le ore delle lezioni non annullate per la tariffa oraria
+della persona; si aggiungono extra (sostituzioni, saggio), si approvano e si pagano. Pagare un cedolino **crea una
+spesa** di categoria `compensi`: da lì il numero entra nei costi, nei margini dei corsi e nel flusso di cassa, senza
+doppie registrazioni. Un cedolino già pagato non viene più toccato dal ricalcolo.
+
+**Il flusso di cassa** (`flusso_cassa()`) è volutamente diverso dai ricavi: i ricavi sono di competenza, le entrate
+sono i soldi davvero incassati. Le due cifre non coincidono quasi mai, e servono a rispondere a due domande
+diverse: la scuola guadagna, e la scuola ha i soldi.
+
+## Le fatture elettroniche
+Il gestionale **non parla con lo SDI**: legge i file. Gli XML delle fatture (anche i `.p7m` firmati, da cui
+ritaglia l'XML interno) si caricano a mazzi e vengono letti senza librerie esterne, perché il tracciato FatturaPA
+è regolare e i campi che servono sono pochi: numero, data, controparte, partita IVA, imponibile, IVA, totale,
+scadenza e righe. Un'impronta su tipo, numero, data e controparte impedisce di caricare due volte la stessa.
+
+La catena è questa: **fattura del fornitore → riga di spesa → movimento sul conto**. `registra_fattura_spesa()`
+crea la spesa e, se il fornitore non esiste, lo crea riusando quello con lo stesso nome; quando in Banca si abbina
+un'uscita a quella spesa, un trigger la segna pagata e chiude la fattura. `quadratura_fatture()` dice quanto si è
+comprato, quanta IVA c'è sugli acquisti e sulle vendite, cosa resta da pagare e quali spese risultano pagate ma
+senza un movimento che le copra.
+
+Le fatture emesse si caricano come registro di controllo: continuano a passare dal commercialista.
+
+## Le ricevute
+Per le quote e gli abbonamenti si emette una **ricevuta non fiscale con IVA a zero**; le fatture restano al
+commercialista. La numerazione riparte da 1 ogni anno, è senza buchi (un lock per palestra e anno evita due numeri
+uguali se si emette in contemporanea) e una ricevuta annullata **tiene comunque il suo numero**. I dati
+dell'intestatario si congelano al momento dell'emissione, così un cambio di indirizzo non riscrive il passato.
+
+## I rinnovi di fine mese
+`da_rinnovare()` elenca gli abbonamenti che scadono nella finestra scelta, con già dentro quello che serve per
+decidere: prezzo, sconto in corso, orari, certificato e quota in regola, e se quella iscrizione è già stata
+rinnovata. `rinnova_iscrizione()` crea il nuovo periodo **dal giorno dopo la scadenza**, con lo stesso
+abbonamento e gli stessi orari, e scrive in `rinnovo_di` da cosa nasce; `rinnova_blocco()` ne fa tanti insieme e
+restituisce quali ha saltato e perché, invece di fermarsi al primo errore.
+
+Il rinnovo non registra l'incasso: quello si segna in Incassi quando la persona paga davvero. È voluto, perché
+rinnovare e incassare capitano quasi sempre in due momenti diversi.
+
 ## Le liste d'attesa
 Una persona può aspettare **un corso** (quando è pieno) o **una singola lezione** (quando è al completo quella
 sera). La coda è in ordine di arrivo e `v_attese` calcola la posizione, i posti liberi del corso in quel momento

@@ -765,3 +765,18 @@ a.tessera:hover, .scheda-corso:hover, .carta-lezione:hover {
 .calendario-scelta .scelta-fascia.occupata {
   border-color: var(--rosso); background: rgba(244, 0, 0, .16); color: var(--rosso-scuro);
 }
+
+
+/* Foglio della ricevuta */
+.foglio { max-width: 720px; margin: 0 auto; padding: 32px var(--spazio); background: var(--bianco); color: var(--testo); }
+.foglio-testa { display: flex; justify-content: space-between; gap: 20px; padding-bottom: 16px; border-bottom: 2px solid var(--nero); }
+.foglio-testa strong { color: var(--nero); font-size: 18px; }
+.foglio table th { text-align: left; border-bottom: 1px solid var(--linea); padding: 8px 0; font-size: 13px; color: var(--testo-2); }
+.foglio table td { padding: 10px 0; border-bottom: 1px solid var(--linea); }
+.foglio-piede { margin-top: 40px; padding-top: 14px; border-top: 1px solid var(--linea); font-size: 12px; color: var(--testo-2); }
+
+@media print {
+  .senza-stampa, .aree, .sottomenu, .barra, .bottone-rapide { display: none !important; }
+  .foglio { padding: 0; max-width: none; }
+  body { background: #fff; }
+}
