@@ -1,37 +1,62 @@
-AGGIORNAMENTO N 020 — RMHouse
-Liste d'attesa complete
+AGGIORNAMENTO N 021 — RMHouse
+Rinnovi in blocco · Promozioni · Esportazione contabile · Rifinitura
 
 QUERY DA ESEGUIRE
 -----------------
-supabase/migrations/022_attese.sql
+supabase/migrations/023_rinnovi_promo.sql
 
-FILE DA COPIARE
----------------
-app/gestione/attese/page.js      sostituito
-app/gestione/attese/Attese.js    sostituito
-README.md                        sostituito
-docs/ARCHITETTURA.md             sostituito
+FILE DA COPIARE (sovrascrivi, rispettando i percorsi)
+-----------------------------------------------------
+lib/menu.js                                sostituito
+app/gestione/rinnovi/page.js               NUOVO
+app/gestione/rinnovi/Rinnovi.js            NUOVO
+app/gestione/promo/page.js                 NUOVO
+app/gestione/promo/Promo.js                NUOVO
+app/api/incassi/csv/route.js               NUOVO
+app/gestione/incassi/Incassi.js            sostituito
+app/gestione/abbonamenti/Abbonamenti.js    sostituito
+app/gestione/certificati/page.js           sostituito
+app/gestione/persone/page.js               sostituito
+app/gestione/indice/page.js                sostituito
+README.md                                  sostituito
+docs/ARCHITETTURA.md                       sostituito
 
-Poi: git add . && git commit -m "Aggiornamento 020" && git push
+Poi: git add . && git commit -m "Aggiornamento 021" && git push
 
-COSA MANCAVA
-------------
-C'era solo "Togli dalla lista", e l'avviso automatico funzionava solo
-sulle singole lezioni: se qualcuno lasciava un CORSO, nessuno veniva
-avvisato.
+1) RINNOVI IN BLOCCO — Persone -> Rinnovi in scadenza
+-----------------------------------------------------
+Elenco degli abbonamenti che scadono (finestra 10/20/30/60 giorni),
+con: corso, abbonamento, prezzo al netto dello sconto in corso, data di
+scadenza, data da cui partirebbe il rinnovo, quanti orari, e le
+etichette rosse se manca il certificato o la quota.
+Spunti quelli da rinnovare e premi "Rinnova i selezionati": il nuovo
+periodo parte dal giorno dopo la scadenza, con lo stesso abbonamento e
+gli stessi orari.
+In cima vedi quanti sono, quanti sono gia' scaduti e l'incasso atteso
+di quelli selezionati.
+Se qualcuno non si puo' rinnovare (era gia' rinnovato, ha gia' un
+abbonamento attivo) NON si blocca tutto: rinnova gli altri e ti dice
+chi ha saltato e perche'.
+C'e' anche "Rinnova con altro abbonamento" per chi cambia formula.
+L'incasso NON viene registrato da solo: lo segni in Conti -> Incassi
+quando la persona paga.
 
-COSA C'E' ORA
+2) PROMOZIONI — Conti -> Promozioni
+-----------------------------------
+Scrivi oggetto e testo (puoi usare {{nome}}), scegli a quali corsi
+mandarlo (nessun corso = tutti gli iscritti attivi) e vedi SUBITO a
+quante persone arriverebbe, e quante restano fuori perche' non hanno
+dato il consenso alle comunicazioni.
+Sotto, lo storico delle ultime promozioni con destinatari e inviate.
+
+3) ESPORTAZIONE CONTABILE — Conti -> Incassi, in fondo
+------------------------------------------------------
+Scegli dal/al e scarichi il CSV: data, causale, descrizione, importo,
+metodo, stato, cliente, codice fiscale, email, corso, e il TOTALE
+INCASSATO in fondo. Importi con la virgola e file UTF-8 con BOM, cosi'
+si apre correttamente in Excel italiano.
+
+4) RIFINITURA
 -------------
-- Posizione in coda (1ª, 2ª, 3ª) e posti liberi del corso in quel momento.
-- "Code aperte": l'elenco dei corsi con gente in attesa; se il corso ha
-  posti liberi basta toccarlo e avvisa tutti quelli che ci stanno,
-  in ordine di arrivo.
-- Su ogni persona: "Avvisa: posto libero" (o "Riavvisa"), WhatsApp,
-  "Iscrivilo" (apre la sua scheda), "Si e' iscritto", "Ha rinunciato"
-  con il motivo.
-- Tre viste: In coda / Avvisati / Chiusi, con la data dell'avviso e
-  quanti sono stati avvisati da piu' di tre giorni senza rispondere.
-- AVVISO AUTOMATICO ANCHE SUL CORSO: quando un'iscrizione passa ad
-  annullata o scaduta, il primo della coda riceve l'email da solo.
-- Ogni posizione si chiude con un esito (iscritto, rinunciato, scaduto),
-  cosi' si sa quanto converte la lista d'attesa.
+Abbonamenti, Certificati e l'elenco Persone hanno ora la stessa
+intestazione delle altre pagine.

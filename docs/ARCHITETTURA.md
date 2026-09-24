@@ -266,6 +266,16 @@ convertiti), su ogni riga i pulsanti per WhatsApp, chiamata ed email, "Segna con
 canale, esito, nota e data del prossimo richiamo, e i due esiti finali, "Si è iscritto" e "Non convertito" con
 il motivo. Il motivo finisce nelle statistiche insieme alle risposte del sondaggio.
 
+## I rinnovi di fine mese
+`da_rinnovare()` elenca gli abbonamenti che scadono nella finestra scelta, con già dentro quello che serve per
+decidere: prezzo, sconto in corso, orari, certificato e quota in regola, e se quella iscrizione è già stata
+rinnovata. `rinnova_iscrizione()` crea il nuovo periodo **dal giorno dopo la scadenza**, con lo stesso
+abbonamento e gli stessi orari, e scrive in `rinnovo_di` da cosa nasce; `rinnova_blocco()` ne fa tanti insieme e
+restituisce quali ha saltato e perché, invece di fermarsi al primo errore.
+
+Il rinnovo non registra l'incasso: quello si segna in Incassi quando la persona paga davvero. È voluto, perché
+rinnovare e incassare capitano quasi sempre in due momenti diversi.
+
 ## Le liste d'attesa
 Una persona può aspettare **un corso** (quando è pieno) o **una singola lezione** (quando è al completo quella
 sera). La coda è in ordine di arrivo e `v_attese` calcola la posizione, i posti liberi del corso in quel momento
