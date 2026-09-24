@@ -5,7 +5,7 @@ export default function Home() {
   return (
     <>
       <Testata destra={<Link href="/login" className="piccolo">Area staff</Link>} />
-      <main className="pagina">
+      <main className="pagina pagina-centro">
         <img src="/logo.png" alt="Ritmo Metropolitano, acrobatic and dance center"
              style={{ display: 'block', width: '100%', maxWidth: 340, margin: '8px auto 20px' }} />
         <h1>Prova una lezione da noi</h1>
@@ -18,11 +18,11 @@ export default function Home() {
           <span className="muto">Affittiamo le sale a ore e organizziamo feste di compleanno e workshop.</span>
         </p>
         <Link href="/spazi" className="btn btn-pieno">Affitta una sala o organizza una festa</Link>
-      
-      <p style={{ marginTop: 14 }}>
-        <Link className="btn" href="/area">Sei già iscritto? Entra nella tua area</Link>
-      </p>
-</main>
+
+        <p style={{ marginTop: 30, textAlign: 'center' }}>
+          <Link className="link-btn" href="/area">Sei già iscritto? Entra nella tua area</Link>
+        </p>
+      </main>
     </>
   );
 }
