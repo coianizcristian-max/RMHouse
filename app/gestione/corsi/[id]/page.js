@@ -4,6 +4,7 @@ import { notFound, redirect } from 'next/navigation';
 import { staffCorrente } from '@/lib/staff';
 import { dataBreve, etaAl } from '@/lib/formato';
 import Orari from './Orari';
+import InsegnantiCorso from './InsegnantiCorso';
 
 export const dynamic = 'force-dynamic';
 
@@ -15,7 +16,7 @@ export default async function Corso({ params, searchParams }) {
   if (staff.ruolo === 'insegnante') redirect('/gestione');
   const p = staff.palestra_id;
 
-  const [{ data: corso }, { data: iscritti }, { data: orari }, { data: sale }, { data: insegnanti }, { data: attese }, { data: base }] =
+  const [{ data: corso }, { data: iscritti }, { data: orari }, { data: sale }, { data: insegnanti }, { data: attese }, { data: base }, { data: abilitati }] =
     await Promise.all([
       supabase.from('v_riepilogo_corsi').select('*').eq('corso_id', id).maybeSingle(),
       supabase.from('v_iscritti_corso').select('*').eq('corso_id', id)
@@ -23,10 +24,15 @@ export default async function Corso({ params, searchParams }) {
         .order('cognome'),
       supabase.from('orari').select('*').eq('corso_id', id).order('giorno_settimana').order('ora_inizio'),
       supabase.from('sale').select('id, nome').eq('palestra_id', p).order('nome'),
-      supabase.from('staff').select('id, nome, cognome').eq('palestra_id', p).eq('attivo', true).order('nome'),
+      supabase.from('staff').select('id, nome, cognome, ruolo, foto_url, archiviato').eq('palestra_id', p).eq('attivo', true).order('nome'),
       supabase.from('liste_attesa').select('id, allievi ( nome, cognome )').eq('corso_id', id).eq('stato', 'in_attesa'),
       supabase.from('corsi').select('slug').eq('id', id).maybeSingle(),
+      supabase.from('corsi_insegnanti').select('staff_id').eq('corso_id', id),
     ]);
+  const idAbilitati = (abilitati || []).map((a) => a.staff_id);
+  // chi insegna: niente segreteria, niente archiviati (a meno che non sia già sul corso)
+  const docenti = (insegnanti || []).filter((s) =>
+    idAbilitati.includes(s.id) || (s.ruolo !== 'segreteria' && !s.archiviato));
 
   const { data: materiali } = await supabase.from('materiali')
     .select('id, titolo, tipo, url, minuti_prima').eq('corso_id', id).eq('attivo', true).order('created_at');
@@ -45,7 +51,10 @@ export default async function Corso({ params, searchParams }) {
 
       <h2 style={{ marginTop: 24 }}>Orari settimanali</h2>
       <p className="muto piccolo">Le lezioni dei prossimi tre mesi si creano da sole a ogni modifica.</p>
-      <Orari palestraId={p} corsoId={id} orari={orari || []} sale={sale || []} insegnanti={insegnanti || []} />
+      <Orari palestraId={p} corsoId={id} orari={orari || []} sale={sale || []} insegnanti={insegnanti || []}
+        abilitati={idAbilitati} />
+
+      <InsegnantiCorso palestraId={p} corsoId={id} staff={docenti} scelti={idAbilitati} />
 
       <h2 style={{ marginTop: 32 }}>Iscritti</h2>
       <div className="filtri">
@@ -60,7 +69,7 @@ export default async function Corso({ params, searchParams }) {
           <li key={i.iscrizione_id} className="persona" style={{ alignItems: 'start' }}>
             <div>
               <Link className="persona-nome" href={`/gestione/persone/${i.allievo_id}`}>{i.cognome} {i.nome}</Link>
-              <span className="piccolo muto"> · {etaAl(i.data_nascita)} anni</span>
+              {i.data_nascita && <span className="piccolo muto"> · {etaAl(i.data_nascita)} anni</span>}
               <div className="piccolo muto">{i.orari || 'Orari da assegnare'} · {i.abbonamento}</div>
               <div className="piccolo muto">
                 <a href={`tel:${i.telefono}`}>{i.telefono}</a> · <a href={`mailto:${i.email}`}>{i.email}</a>

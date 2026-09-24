@@ -13,5 +13,5 @@ export default async function PaginaImporta() {
     supabase.from('tipi_abbonamento').select('id, nome').eq('palestra_id', staff.palestra_id).order('nome'),
   ]);
 
-  return <Importa corsi={corsi.data || []} tipi={tipi.data || []} />;
+  return <Importa corsi={corsi.data || []} tipi={tipi.data || []} palestraId={staff.palestra_id} />;
 }

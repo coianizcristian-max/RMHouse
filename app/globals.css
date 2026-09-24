@@ -800,3 +800,48 @@ a.tessera:hover, .scheda-corso:hover, .carta-lezione:hover {
 .pagina-centro { text-align: center; }
 .pagina-centro .btn { width: 100%; justify-content: center; }
 .pagina-centro p { text-align: left; }
+
+/* Pastiglie a scelta multipla (insegnanti del corso) */
+.pastiglie { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+.pastiglie button {
+  display: inline-flex; align-items: center; gap: 8px; min-height: 38px; padding: 4px 14px 4px 4px;
+  border-radius: 999px; border: 1.5px solid var(--linea); background: var(--bianco); color: var(--testo);
+  font: inherit; font-size: 14px; font-weight: 600; cursor: pointer;
+  transition: background .12s ease, border-color .12s ease, color .12s ease;
+}
+.pastiglie button:hover { border-color: var(--nero); }
+.pastiglie button[aria-pressed='true'] { border-color: var(--rosso); background: var(--rosso-tenue); color: var(--nero); }
+.pastiglie img, .pastiglia-iniziali {
+  width: 28px; height: 28px; border-radius: 50%; object-fit: cover; flex: none;
+}
+.pastiglia-iniziali {
+  display: inline-grid; place-items: center; background: var(--carta); color: var(--testo-2);
+  font-size: 11px; font-weight: 800; text-transform: uppercase;
+}
+.pastiglie button[aria-pressed='true'] .pastiglia-iniziali { background: var(--rosso); color: var(--bianco); }
+
+/* Scelta del colore del corso */
+.tinte-anteprima {
+  display: flex; justify-content: space-between; align-items: center; gap: 10px;
+  padding: 10px 14px; border-radius: 10px; font-weight: 800; margin-bottom: 12px;
+}
+.tinte-anteprima span { font-weight: 600; font-size: 12px; opacity: .8; text-transform: uppercase; }
+.tinte-titolo { display: block; font-size: 12px; font-weight: 700; color: var(--testo-2); margin: 10px 0 6px; }
+.tinte { display: flex; flex-wrap: wrap; gap: 6px; }
+.tinte button {
+  width: 36px; height: 36px; border-radius: 9px; border: 1px solid rgba(0,0,0,.12);
+  cursor: pointer; font: inherit; font-size: 14px; font-weight: 800;
+  transition: transform .1s ease, box-shadow .1s ease;
+}
+.tinte button:hover { transform: scale(1.08); }
+.tinte button[aria-pressed='true'] { box-shadow: 0 0 0 2px var(--bianco), 0 0 0 4px var(--nero); }
+.tinte-libero { display: flex; gap: 8px; align-items: center; }
+.tinte-libero input[type='color'] {
+  width: 46px; height: 38px; padding: 2px; border: 1px solid var(--linea); border-radius: 9px;
+  background: var(--bianco); cursor: pointer;
+}
+.tinte-libero input[type='text'] { width: 120px; font-family: ui-monospace, monospace; text-transform: lowercase; }
+
+/* Barra di ricerca sopra un elenco */
+.barra-cerca { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; flex-wrap: wrap; }
+.barra-cerca input { flex: 1; min-width: 220px; max-width: 460px; }

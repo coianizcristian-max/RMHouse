@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { supabaseBrowser } from '@/lib/supabase/browser';
 import { ora, giornoLungo } from '@/lib/formato';
+import { testoSu } from '@/lib/colori';
 
 const GIORNI = ['Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab', 'Dom'];
 const MINUTI = (iso) => { const d = new Date(iso); return d.getHours() * 60 + d.getMinutes(); };
@@ -80,7 +81,7 @@ export default function Settimana({ inizio, lezioni, corsi = [], palestraId, ges
     }
     const pct = l.capienza ? (l.iscritti + l.prove) / l.capienza : 0;
     if (!l.capienza) return { background: 'var(--bianco)', color: 'var(--testo)', border: '1px solid var(--linea)', borderLeft: `4px solid ${c}` };
-    if (pct >= 0.9) return { background: c, color: '#fff', border: `1px solid ${c}` };
+    if (pct >= 0.9) return { background: c, color: testoSu(c), border: `1px solid ${c}` };
     if (pct >= 0.5) return { background: 'var(--rosso-tenue)', color: 'var(--rosso-scuro)', border: '1px solid var(--linea)', borderLeft: `4px solid ${c}` };
     return { background: 'var(--bianco)', color: 'var(--testo-2)', border: '1px solid var(--linea)', borderLeft: `4px solid ${c}` };
   };

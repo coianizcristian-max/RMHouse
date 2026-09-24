@@ -114,7 +114,23 @@ export default function Iscrizioni({ allievoId, iscrizioni, corsi, tipi, orari, 
             <label htmlFor="tipo">Abbonamento</label>
             <select id="tipo" value={f.tipo_abbonamento_id} onChange={set('tipo_abbonamento_id')}>
               <option value="">— scegli —</option>
-              {tipi.map((t) => <option key={t.id} value={t.id}>{t.nome} — {euro(t.prezzo_cent)}</option>)}
+              {(() => {
+                const adatti = f.corso_id
+                  ? tipi.filter((t) => t.tipi_abbonamento_corsi?.some((x) => x.corso_id === f.corso_id)) : [];
+                const altri = tipi.filter((t) => !adatti.includes(t));
+                const voce = (t) => <option key={t.id} value={t.id}>{t.nome} — {euro(t.prezzo_cent)}</option>;
+                const famiglie = [...new Set(altri.map((t) => t.famiglia || 'Altri'))];
+                return (
+                  <>
+                    {adatti.length > 0 && <optgroup label="Valgono per questo corso">{adatti.map(voce)}</optgroup>}
+                    {famiglie.map((fam) => (
+                      <optgroup key={fam} label={adatti.length ? `Altri · ${fam}` : fam}>
+                        {altri.filter((t) => (t.famiglia || 'Altri') === fam).map(voce)}
+                      </optgroup>
+                    ))}
+                  </>
+                );
+              })()}
             </select>
           </div>
           {f.corso_id && tipo?.modalita === 'orari_fissi' && (
@@ -133,7 +149,7 @@ export default function Iscrizioni({ allievoId, iscrizioni, corsi, tipi, orari, 
             <div className="campo">
               <label htmlFor="di">Inizio</label>
               <input id="di" type="date" value={f.data_inizio} onChange={set('data_inizio')} />
-              <span className="piccolo muto">La scadenza si calcola da sola a fine mese solare.</span>
+              <span className="piccolo muto">La scadenza si calcola da sola dalla durata dell'abbonamento.</span>
             </div>
             <div className="campo">
               <label htmlFor="sc">Sconto (€)</label>

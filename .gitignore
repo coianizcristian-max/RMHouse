@@ -6,3 +6,4 @@ node_modules
 
 # Istruzioni dei pacchetti di aggiornamento (non fanno parte del progetto)
 ISTRUZIONI.txt
+*.csv

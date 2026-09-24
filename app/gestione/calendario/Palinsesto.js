@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { supabaseBrowser } from '@/lib/supabase/browser';
 import FoglioLezione from './FoglioLezione';
 import { ora } from '@/lib/formato';
+import { testoSu } from '@/lib/colori';
 
 const GIORNI = ['Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato', 'Domenica'];
 
@@ -70,7 +71,7 @@ export default function Palinsesto({ inizio, lezioni, corsi = [], note = [], fac
                 return (
                   <button key={l.lezione_id} type="button" className="carta-lezione"
                           onClick={() => setScelta(l)} style={{ borderColor: c, opacity: annullata ? .6 : 1 }}>
-                    <span className="testa" style={{ background: c }}>
+                    <span className="testa" style={{ background: c, color: testoSu(c) }}>
                       {ora(l.inizio)} – {ora(l.fine)}
                       {gestione && (
                         <span className="piu" role="button" tabIndex={0}

@@ -13,10 +13,10 @@ export default function Anagrafica({ allievo, linkCertificato }) {
   const [invio, setInvio] = useState(false);
   const [f, setF] = useState({
     foto_url: allievo.foto_url || null,
-    nome: allievo.nome, cognome: allievo.cognome, data_nascita: allievo.data_nascita,
+    nome: allievo.nome, cognome: allievo.cognome || '', data_nascita: allievo.data_nascita || '',
     certificato_scadenza: allievo.certificato_scadenza || '', note: allievo.note || '',
-    acc_nome: allievo.account.nome, acc_cognome: allievo.account.cognome,
-    email: allievo.account.email, telefono: allievo.account.telefono || '',
+    acc_nome: allievo.account.nome, acc_cognome: allievo.account.cognome || '',
+    email: allievo.account.email || '', telefono: allievo.account.telefono || '',
     codice_fiscale: allievo.account.codice_fiscale || '',
   });
   const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
@@ -28,12 +28,12 @@ export default function Anagrafica({ allievo, linkCertificato }) {
     const [a, b] = await Promise.all([
       db.from('allievi').update({
         foto_url: f.foto_url,
-        nome: f.nome.trim(), cognome: f.cognome.trim(), data_nascita: f.data_nascita,
+        nome: f.nome.trim(), cognome: f.cognome.trim(), data_nascita: f.data_nascita || null,
         certificato_scadenza: f.certificato_scadenza || null, note: f.note || null,
       }).eq('id', allievo.id),
       db.from('account').update({
         nome: f.acc_nome.trim(), cognome: f.acc_cognome.trim(),
-        email: f.email.trim().toLowerCase(), telefono: f.telefono || null,
+        email: f.email.trim().toLowerCase() || null, telefono: f.telefono || null,
         codice_fiscale: f.codice_fiscale || null,
       }).eq('id', allievo.account.id),
     ]);
@@ -54,13 +54,20 @@ export default function Anagrafica({ allievo, linkCertificato }) {
       <div style={{ background: 'var(--carta)', borderRadius: 12, padding: 16, marginTop: 16, display: 'flex', gap: 14 }}>
         {allievo.foto_url
           ? <img src={allievo.foto_url} alt="" className="miniatura-grande" />
-          : <span className="miniatura-grande segnaposto">{(allievo.nome[0] || '') + (allievo.cognome[0] || '')}</span>}
+          : <span className="miniatura-grande segnaposto">{(allievo.nome?.[0] || '') + (allievo.cognome?.[0] || '')}</span>}
         <div style={{ flex: 1, minWidth: 0 }}>
         {errore && <div className="errore">{errore}</div>}
         <div className="piccolo">
           <strong>Chi paga:</strong> {allievo.account.nome} {allievo.account.cognome}<br />
-          <a href={`tel:${allievo.account.telefono}`}>{allievo.account.telefono}</a> ·{' '}
-          <a href={`mailto:${allievo.account.email}`}>{allievo.account.email}</a><br />
+          {allievo.account.telefono && <><a href={`tel:${allievo.account.telefono}`}>{allievo.account.telefono}</a> · </>}
+          {allievo.account.email
+            ? <a href={`mailto:${allievo.account.email}`}>{allievo.account.email}</a>
+            : <span style={{ color: 'var(--rosso-scuro)' }}>nessuna email: non riceve messaggi</span>}<br />
+          {(allievo.codice_fiscale || allievo.tessera) && (
+            <>{allievo.codice_fiscale && <>CF {allievo.codice_fiscale}</>}
+              {allievo.codice_fiscale && allievo.tessera && ' · '}
+              {allievo.tessera && <>Tessera {allievo.tessera}</>}<br /></>
+          )}
           <strong>Certificato:</strong>{' '}
           {allievo.certificato_scadenza
             ? <>scade il {dataBreve(allievo.certificato_scadenza)}</>

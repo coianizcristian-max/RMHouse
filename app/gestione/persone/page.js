@@ -46,7 +46,7 @@ export default async function Persone({ searchParams }) {
                 : <span className="miniatura segnaposto">{(p.nome[0] || '') + (p.cognome[0] || '')}</span>}
               <div style={{ minWidth: 0 }}>
               <Link className="persona-nome" href={`/gestione/persone/${p.id}`}>{p.cognome} {p.nome}</Link>
-              <span className="piccolo muto"> · {etaAl(p.data_nascita)} anni</span>
+              {p.data_nascita && <span className="piccolo muto"> · {etaAl(p.data_nascita)} anni</span>}
               <div className="piccolo muto">
                 {!p.is_titolare && <>{p.titolare_nome} {p.titolare_cognome} · </>}
                 {p.telefono} · {p.email}

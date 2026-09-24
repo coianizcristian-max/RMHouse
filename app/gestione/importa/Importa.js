@@ -1,6 +1,7 @@
 'use client';
 import { useState } from 'react';
 import { leggiCsv, leggiData, indovina } from '@/lib/csv';
+import AppPalestre from './AppPalestre';
 
 const CAMPI = [
   { k: 'nome', etichetta: 'Nome di chi frequenta', parole: ['nome', 'allievo'], obbligatorio: true },
@@ -17,7 +18,8 @@ const CAMPI = [
   { k: 'data_inizio', etichetta: 'Inizio abbonamento', parole: ['inizio', 'datainizio'] },
 ];
 
-export default function Importa({ corsi, tipi }) {
+export default function Importa({ corsi, tipi, palestraId }) {
+  const [fonte, setFonte] = useState('app');
   const [dati, setDati] = useState(null);      // { intestazioni, righe }
   const [mappa, setMappa] = useState({});
   const [errore, setErrore] = useState('');
@@ -70,8 +72,18 @@ export default function Importa({ corsi, tipi }) {
       <div className="intestazione">
         <div className="occhiello">Persone</div>
         <h1>Importa da CSV</h1>
-        <p>Porta dentro l'elenco che hai oggi: abbina le colonne e controlla l'anteprima.</p>
+        <p>Porta dentro l'elenco che hai oggi, da APP Palestre o da qualunque altro file.</p>
       </div>
+
+      <div className="filtri">
+        {[['app', 'Da APP Palestre'], ['altro', 'Da un altro file']].map(([k, l]) => (
+          <a key={k} href="#" onClick={(e) => { e.preventDefault(); setFonte(k); }}
+             aria-current={fonte === k ? 'true' : undefined}>{l}</a>
+        ))}
+      </div>
+
+      {fonte === 'app' ? <AppPalestre palestraId={palestraId} /> : (
+      <>
 
       {errore && <div className="errore" role="alert">{errore}</div>}
 
@@ -157,6 +169,8 @@ export default function Importa({ corsi, tipi }) {
             Importa un altro file
           </button>
         </>
+      )}
+      </>
       )}
     </>
   );

@@ -5,7 +5,12 @@ import { supabaseBrowser } from '@/lib/supabase/browser';
 import Immagine from '../Immagine';
 import { gradazioni, testoSu } from '@/lib/colori';
 
-export default function CorsoForm({ palestraId, corso, discipline, fasce, livelli, sedi = [] }) {
+// Tavolozza di riserva, se la scuola non ne ha salvata una
+const TAVOLOZZA_BASE = ['#ff0000', '#ff4500', '#ff8c00', '#ffc800', '#ffff00', '#9acd32', '#008000', '#008080',
+  '#00f5c8', '#00ffff', '#00bfff', '#2200ff', '#8a2be2', '#ff00ff', '#ff99cc', '#000000']
+  .map((colore) => ({ nome: colore, colore }));
+
+export default function CorsoForm({ palestraId, corso, discipline, fasce, livelli, sedi = [], tavolozza = [] }) {
   const router = useRouter();
   const [f, setF] = useState({
     nome: corso?.nome || '',
@@ -37,6 +42,7 @@ export default function CorsoForm({ palestraId, corso, discipline, fasce, livell
   async function salva(e) {
     e.preventDefault();
     if (!f.nome || !f.disciplina_id || !f.fascia_eta_id) { setErrore('Nome, disciplina e fascia d\'età sono obbligatori.'); return; }
+    if (f.colore && !/^#[0-9a-f]{6}$/i.test(f.colore)) { setErrore('Il colore va scritto come #rrggbb, per esempio #ff00ff.'); return; }
     setInvio(true); setErrore('');
     const dati = {
       nome: f.nome.trim(),
@@ -103,40 +109,49 @@ export default function CorsoForm({ palestraId, corso, discipline, fasce, livell
                 onChange={(url) => setF({ ...f, foto_url: url })} />
       <div className="campo">
         <label>Colore</label>
-        {baseColore ? (
+        <div className="tinte-anteprima" style={{ background: f.colore || baseColore || 'var(--rosso)', color: testoSu(f.colore || baseColore || '#f40000') }}>
+          {f.nome || 'Nome del corso'}
+          <span>{f.colore || baseColore || ''}</span>
+        </div>
+
+        <span className="tinte-titolo">Colori della scuola</span>
+        <div className="tinte">
+          {(tavolozza.length ? tavolozza : TAVOLOZZA_BASE).map((t) => (
+            <button type="button" key={t.colore} title={t.nome} aria-label={t.nome}
+                    aria-pressed={f.colore?.toLowerCase() === t.colore.toLowerCase()}
+                    onClick={() => setF({ ...f, colore: t.colore, colore_automatico: false })}
+                    style={{ background: t.colore, color: testoSu(t.colore) }}>
+              {f.colore?.toLowerCase() === t.colore.toLowerCase() ? '✓' : ''}
+            </button>
+          ))}
+        </div>
+
+        {baseColore && (
           <>
-            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+            <span className="tinte-titolo">Gradazioni di {nomeDisciplina || 'questa disciplina'}</span>
+            <div className="tinte">
               {gradazioni(baseColore, 10).map((c) => (
-                <button type="button" key={c} onClick={() => setF({ ...f, colore: c, colore_automatico: false })}
-                        aria-label={`Tinta ${c}`} aria-pressed={f.colore === c}
-                        style={{
-                          width: 38, height: 38, borderRadius: 8, background: c, cursor: 'pointer',
-                          color: testoSu(c), fontSize: 11, fontWeight: 700,
-                          border: f.colore === c ? '3px solid var(--nero)' : '1px solid var(--linea)',
-                        }}>{f.colore === c ? '✓' : ''}</button>
+                <button type="button" key={c} aria-label={`Tinta ${c}`} aria-pressed={f.colore === c}
+                        onClick={() => setF({ ...f, colore: c, colore_automatico: false })}
+                        style={{ background: c, color: testoSu(c) }}>{f.colore === c ? '✓' : ''}</button>
               ))}
             </div>
-            <span className="piccolo muto">
-              Sono le gradazioni di {nomeDisciplina || 'questa disciplina'}: i corsi della stessa famiglia
-              restano riconoscibili a colpo d'occhio nel calendario.
-            </span>
           </>
-        ) : (
-          <span className="piccolo muto">Scegli prima la disciplina: il colore nasce da quello della disciplina.</span>
         )}
+
+        <span className="tinte-titolo">Qualunque altro colore</span>
+        <div className="tinte-libero">
+          <input type="color" aria-label="Scegli un colore" value={/^#[0-9a-f]{6}$/i.test(f.colore) ? f.colore : (baseColore || '#f40000')}
+                 onChange={(e) => setF({ ...f, colore: e.target.value, colore_automatico: false })} />
+          <input type="text" aria-label="Codice colore" placeholder="#ff00ff" maxLength={7} value={f.colore}
+                 onChange={(e) => setF({ ...f, colore: e.target.value.trim(), colore_automatico: false })} />
+        </div>
 
         <label className="spunta" style={{ marginTop: 10 }}>
           <input type="checkbox" checked={f.colore_automatico}
                  onChange={(e) => setF({ ...f, colore_automatico: e.target.checked })} />
-          <span>Scegli il colore da solo quando cambio disciplina</span>
+          <span>Colore automatico: segue la disciplina e cambia se cambio disciplina</span>
         </label>
-
-        <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginTop: 6 }}>
-          <input type="color" aria-label="Colore libero" value={f.colore || baseColore || '#f40000'}
-                 onChange={(e) => setF({ ...f, colore: e.target.value, colore_automatico: false })}
-                 style={{ width: 46, height: 34, padding: 0, border: '1px solid var(--linea)', borderRadius: 8 }} />
-          <span className="piccolo muto">oppure scegline uno libero</span>
-        </div>
       </div>
       {sedi.length > 1 && (
         <div className="campo">
