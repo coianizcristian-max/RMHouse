@@ -1,0 +1,63 @@
+AGGIORNAMENTO N 024 — RMHouse
+RIPARAZIONE: tre file hanno i marcatori di conflitto dentro
+
+QUERY DA ESEGUIRE
+-----------------
+Nessuna.
+
+COSA E' SUCCESSO
+----------------
+Durante il "git pull" ci sono stati tre conflitti:
+  ISTRUZIONI.txt
+  README.md
+  docs/ARCHITETTURA.md
+Non sono stati risolti, e il successivo "git add . && git commit" li ha
+salvati COSI' COME ERANO, cioe' con dentro le righe:
+
+  <<<<<<< HEAD
+  ...la tua versione...
+  =======
+  ...la versione arrivata da GitHub...
+  >>>>>>> b1545d8
+
+Il sito continua a funzionare (sono solo documentazione), ma quei file
+adesso sono illeggibili e vanno sostituiti.
+
+COSA FARE
+---------
+1) Copia questi file, sovrascrivendo:
+   README.md                 versione pulita e aggiornata
+   docs/ARCHITETTURA.md      versione pulita e aggiornata
+   .gitattributes            NUOVO
+   .gitignore                sostituito
+
+2) CANCELLA il file ISTRUZIONI.txt dalla cartella del progetto:
+   era il foglio di istruzioni di un aggiornamento, non fa parte del
+   sito. Da ora in poi non copiarlo piu' dentro D:\SITO\RMHouse:
+   leggilo dallo zip e basta. L'ho anche aggiunto al .gitignore, cosi'
+   se ti scappa non finisce piu' nel repository.
+
+3) git add . && git commit -m "Aggiornamento 024" && git push
+
+COME EVITARE CHE RISUCCEDA
+--------------------------
+- Prima di ogni sessione di lavoro: git pull
+- Se git dice "CONFLICT", NON fare git add . subito. Apri i file
+  elencati, cerca le righe con <<<<<<< e scegli cosa tenere,
+  cancellando le tre righe di marcatura. Poi git add e commit.
+- Per controllare in un secondo se e' rimasto qualcosa, dalla cartella
+  del progetto:
+      git grep -n "<<<<<<<"
+  Se non stampa niente, e' tutto pulito.
+
+PERCHE' IL PULL HA TROVATO ROBA NUOVA
+-------------------------------------
+Su GitHub c'erano commit che non avevi in locale (b1545d8): qualcosa e'
+stato pushato da un'altra parte o modificato dal sito di GitHub. Con
+"git pull" prima di iniziare, il problema non si presenta.
+
+IN PIU': I MESSAGGI "LF will be replaced by CRLF"
+-------------------------------------------------
+Erano innocui ma fastidiosi: comparivano a ogni commit perche' i miei
+file usano fine riga Unix e Windows li converte. Il .gitattributes li
+fa sparire, fissando LF per tutto il progetto.

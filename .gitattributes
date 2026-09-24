@@ -1,0 +1,6 @@
+# Tutti i file di testo salvati con fine riga LF nel repository:
+# toglie i messaggi "LF will be replaced by CRLF" su Windows.
+* text=auto eol=lf
+*.png binary
+*.jpg binary
+*.pdf binary
