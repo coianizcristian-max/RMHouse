@@ -4,7 +4,7 @@ import { supabaseBrowser } from '@/lib/supabase/browser';
 
 // Un modulo da leggere e firmare col dito (o col mouse).
 // La firma si salva come disegno vettoriale, insieme al testo firmato.
-export default function FirmaModulo({ modulo, allievo, minore, nomeSuggerito = '', onFatto }) {
+export default function FirmaModulo({ modulo, allievo, minore, nomeSuggerito = '', onFatto, titolo = true }) {
   const tela = useRef(null);
   const tratti = useRef([]);
   const [disegnato, setDisegnato] = useState(false);
@@ -60,7 +60,7 @@ export default function FirmaModulo({ modulo, allievo, minore, nomeSuggerito = '
 
   return (
     <form className="firma-modulo" onSubmit={firma}>
-      <h2>{modulo.titolo}</h2>
+      {titolo && <h2>{modulo.titolo}</h2>}
       <div className="firma-testo">{modulo.testo}</div>
       {errore && <div className="errore" role="alert">{errore}</div>}
       <label className="spunta"><input type="checkbox" checked={f.letto} onChange={(e) => setF({ ...f, letto: e.target.checked })} />

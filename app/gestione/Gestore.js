@@ -86,7 +86,7 @@ export default function Gestore({ tabella, campi, righe, fissi = {}, riassunto, 
                   {riassunto(r).tag && <> <span className="tag tag-neutro">{riassunto(r).tag}</span></>}
                   {riassunto(r).dettaglio && <div className="piccolo muto">{riassunto(r).dettaglio}</div>}
                 </div>
-                <div style={{ display: 'flex', gap: 10 }}>
+                <div className="gestore-azioni">
                   <button className="link-btn" onClick={() => apriModifica(r)}>Modifica</button>
                   <button className="link-btn pericolo" onClick={() => elimina(r)}>Elimina</button>
                 </div>

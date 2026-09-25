@@ -34,7 +34,7 @@ export default async function Persona({ params }) {
   const [{ data: stato }, { data: iscrizioni }, { data: crediti }, { data: prove }, { data: certificati },
          { data: corsi }, { data: tipi }, { data: orari }, { data: palestra }, { data: storico, count: storicoTotale },
          { data: etichette }, { data: famiglia }, { data: famigliaIscritta }, { data: moduli }, { data: firme }] = await Promise.all([
-    supabase.from('v_stato_clienti').select('stato, attivo, fine_prossima, prima_data, ultima_fine, certificato_scaduto, quota_mancante, senza_orari, etichette_id, giorni_al_compleanno, ultima_presenza')
+    supabase.from('v_stato_clienti').select('stato, attivo, fine_prossima, prima_data, ultima_fine, certificato_scaduto, quota_mancante, quota_valida_fino, senza_orari, etichette_id, giorni_al_compleanno, ultima_presenza')
       .eq('id', id).maybeSingle(),
     supabase.from('iscrizioni')
       .select('id, palestra_id, data_inizio, data_fine, stato, sconto_cent, ingressi_residui, corsi ( id, nome ), tipi_abbonamento ( nome, modalita, lezioni_settimanali ), iscrizioni_orari ( orario_id )')
@@ -69,6 +69,8 @@ export default async function Persona({ params }) {
   const tel = allievo.account?.telefono;
   const wa = whatsapp(tel);
   const nato = allievo.sesso === 'F' ? 'nata' : 'nato';
+
+  const quotaValida = !!stato?.quota_valida_fino && stato.quota_valida_fino > new Date().toISOString().slice(0, 10);
 
   return (
     <>
@@ -119,7 +121,10 @@ export default async function Persona({ params }) {
         </div>
         <div className={`riquadro${stato?.quota_mancante ? ' attenzione' : ''}`}>
           <span className="etichetta">Quota annuale</span>
-          <strong>{stato?.quota_mancante ? 'da pagare' : stato?.attivo ? 'in regola' : '—'}</strong>
+          <strong>{stato?.quota_mancante ? 'da pagare' : quotaValida ? 'in regola' : stato?.attivo ? 'in regola' : '—'}</strong>
+          {stato?.quota_valida_fino && (
+            <span className="piccolo muto">{quotaValida ? 'vale fino al' : 'scaduta il'} {dataBreve(stato.quota_valida_fino)}</span>
+          )}
         </div>
         <div className="riquadro">
           <span className="etichetta">Cliente dal</span>

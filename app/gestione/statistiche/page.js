@@ -21,7 +21,7 @@ export default async function Statistiche({ searchParams }) {
   if (staff.ruolo === 'insegnante') redirect('/gestione');
   const p = staff.palestra_id;
 
-  const [k, andamento, corsi, insegnanti, sale, funnel, distribuzione, spazi, feedback] = await Promise.all([
+  const [flussoR, k, andamento, corsi, insegnanti, sale, funnel, distribuzione, spazi, feedback] = await Promise.all([
     supabase.rpc('flusso_cassa', { p_palestra: p, p_dal: dal, p_al: al }),
     supabase.rpc('cruscotto', { p_palestra: p, p_dal: dal, p_al: al }),
     supabase.rpc('andamento_mensile', { p_palestra: p, p_mesi: 12 }),
@@ -35,6 +35,7 @@ export default async function Statistiche({ searchParams }) {
   ]);
 
   const d = k.data || {};
+  const flusso = flussoR.data || {};
   const mesi = (andamento.data || []).map((m) => ({ ...m, etichetta: MESI[new Date(m.mese).getMonth()] }));
   const perTipo = (t) => (distribuzione.data || []).filter((x) => x.tipo === t).map((x) => ({ etichetta: x.etichetta, valore: Number(x.valore) }));
   const motivi = Object.entries((feedback.data || []).reduce((m, f) => ({ ...m, [f.motivo]: (m[f.motivo] || 0) + 1 }), {})).sort((a, b) => b[1] - a[1]);

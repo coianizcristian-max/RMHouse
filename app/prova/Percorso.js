@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useMemo, useState } from 'react';
-import { euro, ora, giornoLungo, etaAl } from '@/lib/formato';
+import { euro, ora, giornoLungo, etaAl, prezzo } from '@/lib/formato';
 
 const PASSI = ['chi', 'cosa', 'quando', 'dati', 'fatto'];
 
@@ -240,7 +240,7 @@ export default function Percorso() {
                           onClick={() => { setSlotScelto(s); setNessunOrario(false); }}>
                     <span className="slot-ora">{ora(s.inizio)}</span>
                     <span className="slot-info"><strong>{s.corso_nome}</strong>{[s.sala_nome, s.insegnante_nome].filter(Boolean).join(', ')}</span>
-                    <span className={'tag ' + (c?.prezzo_prova_cent ? 'tag-tenue' : 'tag-ok')}>{euro(c?.prezzo_prova_cent ?? 0)}</span>
+                    <span className={'tag ' + (c?.prezzo_prova_cent ? 'tag-tenue' : 'tag-ok')}>{prezzo(c?.prezzo_prova_cent ?? 0)}</span>
                   </button>
                 );
               })}
@@ -263,7 +263,7 @@ export default function Percorso() {
           {slotScelto && (
             <p className="muto">
               {slotScelto.corso_nome}, {giornoLungo(slotScelto.inizio)} alle {ora(slotScelto.inizio)}.{' '}
-              Prova: {euro(corsoDi(slotScelto.corso_id)?.prezzo_prova_cent ?? 0).toLowerCase()}.
+              Prova: {prezzo(corsoDi(slotScelto.corso_id)?.prezzo_prova_cent ?? 0).toLowerCase()}.
             </p>
           )}
           {!adulto && (

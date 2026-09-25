@@ -79,7 +79,6 @@ export default function Riepilogo({ dati, materiali = [], inVerifica = [], aspet
         </>
       )}
 
-      <Notifiche />
 
       {moduliDaFirmare > 0 && (
         <Link href="/area/moduli" className="scheda" style={{ display: 'block', borderLeft: '4px solid var(--rosso)', marginBottom: 16, textDecoration: 'none' }}>
@@ -214,6 +213,8 @@ export default function Riepilogo({ dati, materiali = [], inVerifica = [], aspet
           <p className="piccolo muto">Ti avvisiamo per email appena si libera un posto.</p>
         </>
       )}
+
+      <Notifiche />
 
       <h2 className="sezione">I miei abbonamenti</h2>
       {dati.allievi.map((a) => (

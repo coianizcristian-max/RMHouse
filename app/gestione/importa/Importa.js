@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { leggiCsv, leggiData, indovina } from '@/lib/csv';
 import AppPalestre from './AppPalestre';
+import SceltaFile from '../SceltaFile';
 
 const CAMPI = [
   { k: 'nome', etichetta: 'Nome di chi frequenta', parole: ['nome', 'allievo'], obbligatorio: true },
@@ -89,7 +90,8 @@ export default function Importa({ corsi, tipi, palestraId }) {
 
       <div className="campo">
         <label htmlFor="file">File CSV</label>
-        <input id="file" type="file" accept=".csv,text/csv" onChange={carica} />
+        <SceltaFile id="file" accept=".csv,text/csv" onChange={carica}
+                    titolo="Scegli il file CSV" aiuto="Tocca o trascina qui il file da importare" />
       </div>
 
       {dati && !esito && (

@@ -42,7 +42,7 @@ export default function Abbonamenti({ palestraId, tipi, corsi, regole, palestra,
   return (
     <>
       <div className="intestazione">
-        <div className="occhiello">Conti</div>
+        <div className="occhiello">Impostazioni</div>
         <h1>Abbonamenti, recuperi e sconti</h1>
         <p>Tipi di abbonamento, quota annuale, regole dei recuperi e preavvisi.</p>
       </div>

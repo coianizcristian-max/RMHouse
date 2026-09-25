@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { supabaseBrowser } from '@/lib/supabase/browser';
 import { leggiCsv, leggiData, indovina } from '@/lib/csv';
 import { euro, dataBreve } from '@/lib/formato';
+import SceltaFile from '../SceltaFile';
 
 // impronta semplice: serve solo a non importare due volte la stessa riga
 const impronta = (conto, data, importo, testo) => {
@@ -172,7 +173,8 @@ export default function Banca({ palestraId, movimenti, conti, differenze, flusso
           </div>
           <div className="campo">
             <label htmlFor="fi">File CSV</label>
-            <input id="fi" type="file" accept=".csv,text/csv" onChange={leggiFile} />
+            <SceltaFile id="fi" accept=".csv,text/csv" onChange={leggiFile}
+                        titolo="Scegli l'estratto conto" aiuto="Tocca o trascina qui il file CSV del tuo home banking" />
           </div>
         </div>
 

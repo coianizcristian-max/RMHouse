@@ -159,12 +159,18 @@ export default function Staff({ palestraId, persone, orari, archiviati }) {
                 : <span className="miniatura segnaposto">{(p.nome[0] || '') + (p.cognome?.[0] || '')}</span>}
               <span style={{ minWidth: 0 }}>
                 <span className="titolo" style={{ display: 'block' }}>{p.nome} {p.cognome}</span>
-                <span className="riga">
-                  {[p.specialita, RUOLI[p.ruolo]].filter(Boolean).join(' · ')}
-                  {p.collaboratore && ' · collaboratore'}
+                <span className="riga" style={{ display: 'block' }}>
+                  {[RUOLI[p.ruolo], p.specialita, p.collaboratore && 'collaboratore'].filter(Boolean).join(' · ')}
                 </span>
                 {corsiDi(p.id).length > 0 && (
-                  <span className="riga">{corsiDi(p.id).slice(0, 3).join(', ')}{corsiDi(p.id).length > 3 ? '…' : ''}</span>
+                  <span className="riga" style={{ display: 'block' }}>{corsiDi(p.id).slice(0, 3).join(', ')}{corsiDi(p.id).length > 3 ? '…' : ''}</span>
+                )}
+                {(!p.attivo || p.visibilita !== 'pubblico' || !p.user_id) && (
+                  <span className="segni-staff">
+                    {!p.attivo && <span className="tag tag-neutro">non attivo</span>}
+                    {p.visibilita !== 'pubblico' && <span className="tag tag-neutro">{p.visibilita}</span>}
+                    {!p.user_id && <span className="tag tag-attenzione">senza accesso</span>}
+                  </span>
                 )}
                 <span className="azioni-riga">
                   <button className="link-btn piccolo" onClick={() => modifica(p)}>Modifica</button>
@@ -176,11 +182,6 @@ export default function Staff({ palestraId, persone, orari, archiviati }) {
                   </button>
                 </span>
               </span>
-            </span>
-            <span className="destra" style={{ display: 'grid', gap: 4, justifyItems: 'end' }}>
-              {!p.attivo && <span className="tag tag-neutro">non attivo</span>}
-              {p.visibilita !== 'pubblico' && <span className="tag tag-neutro">{p.visibilita}</span>}
-              {!p.user_id && <span className="tag tag-attenzione">senza accesso</span>}
             </span>
           </div>
         ))}

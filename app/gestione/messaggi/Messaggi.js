@@ -67,7 +67,7 @@ export default function Messaggi({ palestraId, template, coda, emailStaff }) {
   return (
     <>
       <div className="intestazione">
-        <div className="occhiello">Conti</div>
+        <div className="occhiello">Impostazioni</div>
         <h1>Messaggi automatici</h1>
         <p>I testi che partono da soli: modificali, vedi l'anteprima, mandati una prova.</p>
       </div>

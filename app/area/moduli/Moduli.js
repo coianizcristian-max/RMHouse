@@ -36,7 +36,7 @@ export default function Moduli({ elenco }) {
                 </div>
                 {apri === chiave && (
                   <FirmaModulo modulo={{ id: m.modulo_id, titolo: m.titolo, testo: m.testo }} allievo={a} minore={minore(a.data_nascita)}
-                               nomeSuggerito={`${a.nome} ${a.cognome}`} onFatto={() => { setApri(null); router.refresh(); }} />
+                               nomeSuggerito={`${a.nome} ${a.cognome}`} titolo={false} onFatto={() => { setApri(null); router.refresh(); }} />
                 )}
               </div>
             );

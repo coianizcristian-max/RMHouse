@@ -52,7 +52,7 @@ export default function Regole({ palestra }) {
           <div className="griglia-soglie">
             <div className="campo"><label htmlFor="quota">Quota annuale (€)</label>
               <input id="quota" inputMode="decimal" value={f.quota} onChange={set('quota')} />
-              <span className="piccolo muto">Vale per la stagione o per 12 mesi dal pagamento.</span></div>
+              <span className="piccolo muto">Vale 12 mesi dal giorno in cui si paga.</span></div>
             <div className="campo"><label htmlFor="mese">La stagione inizia a</label>
               <select id="mese" value={f.mese} onChange={set('mese')}>
                 {MESI.map((m, i) => <option key={m} value={i + 1}>{m}</option>)}

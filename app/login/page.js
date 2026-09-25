@@ -3,7 +3,7 @@ import { useState, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { supabaseBrowser } from '@/lib/supabase/browser';
-import Testata from '../Testata';
+import SchermataAccesso from '../SchermataAccesso';
 
 function Modulo() {
   const router = useRouter();
@@ -26,12 +26,6 @@ function Modulo() {
 
   return (
     <form onSubmit={entra}>
-      <div className="intestazione">
-        <div className="occhiello">Area staff</div>
-        <h1>Accedi</h1>
-        <p>Riservato a segreteria e insegnanti: entri con email e password.</p>
-      </div>
-      <p className="muto">Area riservata a segreteria e insegnanti.</p>
       {errore && <div className="errore" role="alert">{errore}</div>}
       <div className="campo"><label htmlFor="e">Email</label><input id="e" type="email" required autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} /></div>
       <div className="campo">
@@ -51,19 +45,16 @@ function Modulo() {
           </button>
         </div>
       </div>
-      <button className="btn btn-primario btn-pieno" disabled={invio}>{invio ? 'Accesso…' : 'Accedi'}</button>
+      <button className="btn btn-primario btn-pieno btn-grande" disabled={invio}>{invio ? 'Accesso…' : 'Entra'}</button>
     </form>
   );
 }
 
 export default function Login() {
   return (
-    <>
-      <Testata />
-      <main className="pagina"><Suspense><Modulo /></Suspense></main>
-      <p className="piccolo muto" style={{ marginTop: 24, paddingTop: 16, borderTop: '1px solid var(--linea)' }}>
-        Sei un allievo o un genitore? <Link href="/area/accedi">Entra nell'area iscritti</Link>: lì basta l'email.
-      </p>
-    </>
+    <SchermataAccesso tipo="staff" titolo="Bentornato" testo="Segreteria e insegnanti: entra con la tua email e la password."
+                      altra={{ href: '/area/accedi', titolo: 'Sei un allievo o un genitore?', testo: 'Entra nella tua area: basta l\'email' }}>
+      <Suspense><Modulo /></Suspense>
+    </SchermataAccesso>
   );
 }

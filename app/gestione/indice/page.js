@@ -60,6 +60,7 @@ const SEZIONI = [
       ['Funzioni attive', '/gestione/impostazioni/funzioni', 'Spegni lead, attese, affitti, eventi, bacheca, rate o promozioni se non li usi: spariscono dal menù.'],
       ['Area clienti', '/gestione/impostazioni/aspetto', 'Messaggio di benvenuto, avviso in evidenza e colore, con anteprima sul telefono.'],
       ['Email e notifiche', '/gestione/impostazioni/notifiche', 'Riepilogo del lunedì, email inviate e non partite, chi dello staff ha email e accesso.'],
+      ['Le mie notifiche', '/gestione/notifiche', 'Avvisi sul telefono per lo staff: prove, affitti, certificati, pagamenti online, lezioni annullate o assegnate.'],
       ['Ingressi', '/gestione/ingresso', 'Inquadri il pass del cliente con la fotocamera: vedi se è in regola e la presenza si segna da sola.'],
       ['Moduli e firme', '/gestione/moduli', 'Regolamento, privacy e liberatorie firmate col dito dall\'area clienti o in reception, con chi manca.'],
       ['Tesseramento', '/gestione/tesseramento', 'Tessere dell\'ente per stagione: chi manca, dati mancanti, elenco da caricare sul portale, numeri.'],

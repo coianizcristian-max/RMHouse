@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { supabaseBrowser } from '@/lib/supabase/browser';
 import { euro, dataBreve } from '@/lib/formato';
+import SceltaFile from '../SceltaFile';
 
 const CATEGORIE = [
   ['affitto', 'Affitto'], ['utenze', 'Utenze'], ['compensi', 'Compensi'], ['marketing', 'Marketing'],
@@ -110,7 +111,8 @@ export default function Fatture({ righe, quadratura, dal, al, tipo, stato }) {
         </p>
         <div className="campo">
           <label htmlFor="fi">File XML ({tipo === 'passiva' ? 'fatture ricevute' : 'fatture emesse'})</label>
-          <input id="fi" type="file" accept=".xml,.p7m" multiple disabled={invio} onChange={carica} />
+          <SceltaFile id="fi" accept=".xml,.p7m" multiple disabled={invio} onChange={carica}
+                      titolo="Scegli le fatture" aiuto="Tocca o trascina qui i file .xml o .p7m, anche tanti insieme" />
         </div>
       </div>
 

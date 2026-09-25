@@ -51,7 +51,7 @@ export default async function PaginaNotifiche() {
           <section className="pannello">
             <h2>Staff</h2>
             <p className="piccolo muto" style={{ marginTop: -4 }}>
-              Chi ha un'email riceve il calendario e i messaggi; chi ha l'accesso entra nel gestionale.
+              Chi ha un'email riceve il calendario e i messaggi; chi ha l'accesso entra nel gestionale; "notifiche" vuol dire che le ha attivate sul telefono (Oggi → Le mie notifiche).
             </p>
             <ul className="mini-lista">
               {(persone || []).map((p) => (
@@ -60,6 +60,7 @@ export default async function PaginaNotifiche() {
                     <strong>{p.nome} {p.cognome || ''}</strong>
                     <span className="piccolo muto">{p.email || 'nessuna email'} · {p.ruolo}</span>
                   </span>
+                  {s?.staff_notifiche?.[p.id] ? <span className="tag tag-ok">notifiche</span> : null}
                   {p.user_id ? <span className="tag tag-ok">accesso</span>
                     : p.email ? <span className="tag tag-neutro">solo email</span> : <span className="tag tag-attenzione">senza email</span>}
                 </span></li>
