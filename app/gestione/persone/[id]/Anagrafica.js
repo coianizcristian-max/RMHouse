@@ -18,6 +18,7 @@ export default function Anagrafica({ allievo, linkCertificato }) {
     acc_nome: allievo.account.nome, acc_cognome: allievo.account.cognome || '',
     email: allievo.account.email || '', telefono: allievo.account.telefono || '',
     codice_fiscale: allievo.account.codice_fiscale || '',
+    cf_allievo: allievo.codice_fiscale || '', tessera: allievo.tessera || '',
   });
   const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
 
@@ -30,6 +31,7 @@ export default function Anagrafica({ allievo, linkCertificato }) {
         foto_url: f.foto_url,
         nome: f.nome.trim(), cognome: f.cognome.trim(), data_nascita: f.data_nascita || null,
         certificato_scadenza: f.certificato_scadenza || null, note: f.note || null,
+        codice_fiscale: f.cf_allievo.trim().toUpperCase() || null, tessera: f.tessera.trim() || null,
       }).eq('id', allievo.id),
       db.from('account').update({
         nome: f.acc_nome.trim(), cognome: f.acc_cognome.trim(),
@@ -50,41 +52,42 @@ export default function Anagrafica({ allievo, linkCertificato }) {
   }
 
   if (!apri) {
+    const a = allievo.account;
     return (
-      <div style={{ background: 'var(--carta)', borderRadius: 12, padding: 16, marginTop: 16, display: 'flex', gap: 14 }}>
-        {allievo.foto_url
-          ? <img src={allievo.foto_url} alt="" className="miniatura-grande" />
-          : <span className="miniatura-grande segnaposto">{(allievo.nome?.[0] || '') + (allievo.cognome?.[0] || '')}</span>}
-        <div style={{ flex: 1, minWidth: 0 }}>
+      <div className="pannello">
+        <div className="pannello-testa">
+          <h2>Dati</h2>
+          <button className="btn btn-piccolo" onClick={() => setApri(true)}>Modifica</button>
+        </div>
         {errore && <div className="errore">{errore}</div>}
-        <div className="piccolo">
-          <strong>Chi paga:</strong> {allievo.account.nome} {allievo.account.cognome}<br />
-          {allievo.account.telefono && <><a href={`tel:${allievo.account.telefono}`}>{allievo.account.telefono}</a> · </>}
-          {allievo.account.email
-            ? <a href={`mailto:${allievo.account.email}`}>{allievo.account.email}</a>
-            : <span style={{ color: 'var(--rosso-scuro)' }}>nessuna email: non riceve messaggi</span>}<br />
-          {(allievo.codice_fiscale || allievo.tessera) && (
-            <>{allievo.codice_fiscale && <>CF {allievo.codice_fiscale}</>}
-              {allievo.codice_fiscale && allievo.tessera && ' · '}
-              {allievo.tessera && <>Tessera {allievo.tessera}</>}<br /></>
-          )}
-          <strong>Certificato:</strong>{' '}
-          {allievo.certificato_scadenza
-            ? <>scade il {dataBreve(allievo.certificato_scadenza)}</>
-            : <span style={{ color: 'var(--rosso-scuro)' }}>mancante</span>}
-          {allievo.note && <><br /><strong>Note:</strong> {allievo.note}</>}
-        </div>
-        <div style={{ display: 'flex', gap: 12, marginTop: 12, flexWrap: 'wrap' }}>
-          <button className="btn" onClick={() => setApri(true)}>Modifica dati</button>
-          <button className="btn" onClick={copia}>{copiato ? 'Link copiato' : 'Copia link certificato'}</button>
-        </div>
-        </div>
+        <dl className="dati">
+          <dt>Chi paga</dt>
+          <dd>{allievo.is_titolare ? 'la persona stessa' : `${a.nome} ${a.cognome || ''}`.trim()}</dd>
+          <dt>Telefono</dt>
+          <dd>{a.telefono ? <a href={`tel:${a.telefono}`}>{a.telefono}</a> : <span className="muto">—</span>}</dd>
+          <dt>Email</dt>
+          <dd>{a.email ? <a href={`mailto:${a.email}`}>{a.email}</a> : <span style={{ color: 'var(--rosso-scuro)' }}>nessuna: non riceve messaggi</span>}</dd>
+          {allievo.codice_fiscale && <><dt>Codice fiscale</dt><dd>{allievo.codice_fiscale}</dd></>}
+          {a.codice_fiscale && a.codice_fiscale !== allievo.codice_fiscale && <><dt>CF di chi paga</dt><dd>{a.codice_fiscale}</dd></>}
+          {allievo.tessera && <><dt>Tessera</dt><dd>{allievo.tessera}</dd></>}
+          {allievo.luogo_nascita && <><dt>Nato a</dt><dd>{allievo.luogo_nascita}</dd></>}
+          <dt>Certificato</dt>
+          <dd>
+            {allievo.certificato_scadenza
+              ? <span style={new Date(allievo.certificato_scadenza) < new Date() ? { color: 'var(--rosso-scuro)', fontWeight: 700 } : undefined}>
+                  {new Date(allievo.certificato_scadenza) < new Date() ? 'scaduto il ' : 'fino al '}{dataBreve(allievo.certificato_scadenza)}
+                </span>
+              : <span style={{ color: 'var(--rosso-scuro)', fontWeight: 700 }}>mancante</span>}
+            {' · '}<button className="link-btn piccolo" onClick={copia}>{copiato ? 'link copiato' : 'copia link per caricarlo'}</button>
+          </dd>
+          {allievo.note && <><dt>Note</dt><dd style={{ whiteSpace: 'pre-line' }}>{allievo.note}</dd></>}
+        </dl>
       </div>
     );
   }
 
   return (
-    <form onSubmit={salva} style={{ marginTop: 16 }}>
+    <form onSubmit={salva} className="pannello">
       {errore && <div className="errore" role="alert">{errore}</div>}
       <h3>Chi frequenta</h3>
       <Immagine url={f.foto_url} cartella="allievi" etichetta="Foto" tondo
@@ -96,6 +99,10 @@ export default function Anagrafica({ allievo, linkCertificato }) {
       <div className="riga-2">
         <div className="campo"><label htmlFor="dn">Data di nascita</label><input id="dn" type="date" value={f.data_nascita} onChange={set('data_nascita')} /></div>
         <div className="campo"><label htmlFor="cs">Scadenza certificato</label><input id="cs" type="date" value={f.certificato_scadenza} onChange={set('certificato_scadenza')} /></div>
+      </div>
+      <div className="riga-2">
+        <div className="campo"><label htmlFor="cfa">Codice fiscale</label><input id="cfa" value={f.cf_allievo} onChange={set('cf_allievo')} /></div>
+        <div className="campo"><label htmlFor="tes">Tessera</label><input id="tes" value={f.tessera} onChange={set('tessera')} /></div>
       </div>
       <div className="campo"><label htmlFor="note">Note</label><textarea id="note" value={f.note} onChange={set('note')} /></div>
 
@@ -111,7 +118,7 @@ export default function Anagrafica({ allievo, linkCertificato }) {
       <div className="campo">
         <label htmlFor="cf">Codice fiscale</label>
         <input id="cf" value={f.codice_fiscale} onChange={set('codice_fiscale')} />
-        <span className="piccolo muto">Servirà per le fatture.</span>
+        <span className="piccolo muto">Di chi paga: va sulle ricevute.</span>
       </div>
       <div style={{ display: 'flex', gap: 10 }}>
         <button className="btn btn-primario" disabled={invio}>{invio ? 'Salvo…' : 'Salva'}</button>

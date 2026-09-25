@@ -39,6 +39,7 @@ export default function Verifica({ certificato }) {
       <div className="riga-2">
         <div className="campo">
           <label htmlFor={`s-${certificato.id}`}>Scade il</label>
+          {certificato.scadenza && <span className="piccolo muto">indicata da chi l'ha caricato: controlla sul documento</span>}
           <input id={`s-${certificato.id}`} type="date" value={scadenza} onChange={(e) => setScadenza(e.target.value)} />
         </div>
         <div style={{ display: 'flex', gap: 8, alignItems: 'end', marginBottom: 16 }}>

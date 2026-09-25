@@ -32,7 +32,7 @@ export default async function Certificato({ searchParams }) {
                 ? `Quello che abbiamo scade il ${dataBreve(allievo.certificato_scadenza)}.`
                 : 'Non abbiamo ancora un certificato valido.'}
             </p>
-            <Carica token={t} />
+            <Carica token={t} nome={allievo.nome} />
           </>
         )}
       </main>

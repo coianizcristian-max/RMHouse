@@ -123,6 +123,7 @@ export default function Percorso() {
       const r = await fetch('/api/prova/prenota', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
       const d = await r.json();
       if (!r.ok) { setErrore(d.errore); return; }
+      if (d.esito === 'paga_online' && d.url) { window.location.href = d.url; return; }
       setEsito(d); vai('fatto');
     } catch {
       setErrore('Connessione assente. Riprova.');

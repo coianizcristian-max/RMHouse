@@ -9,6 +9,7 @@ export default function InsegnantiCorso({ palestraId, corsoId, staff, scelti }) 
   const router = useRouter();
   const [attivi, setAttivi] = useState(new Set(scelti));
   const [errore, setErrore] = useState('');
+  const [tutti, setTutti] = useState(scelti.length === 0);
 
   async function cambia(id) {
     setErrore('');
@@ -25,14 +26,14 @@ export default function InsegnantiCorso({ palestraId, corsoId, staff, scelti }) 
   }
 
   const ordinati = [...staff].sort((a, b) =>
-    (attivi.has(b.id) - attivi.has(a.id)) || a.nome.localeCompare(b.nome));
+    (attivi.has(b.id) - attivi.has(a.id)) || a.nome.localeCompare(b.nome))
+    .filter((s) => tutti || attivi.has(s.id));
+  const altri = staff.length - attivi.size;
 
   return (
     <>
-      <h2 className="sezione">Insegnanti del corso</h2>
-      <p className="piccolo muto" style={{ marginTop: -4 }}>
-        Chi può tenere questo corso. Tocca un nome per aggiungerlo o toglierlo.
-      </p>
+      <h2>Insegnanti del corso</h2>
+      <p className="piccolo muto" style={{ marginTop: -4 }}>Chi può tenere questo corso.</p>
       {errore && <div className="errore" role="alert">{errore}</div>}
       <div className="pastiglie">
         {ordinati.map((s) => (
@@ -43,6 +44,11 @@ export default function InsegnantiCorso({ palestraId, corsoId, staff, scelti }) 
             {`${s.nome} ${s.cognome || ''}`.trim()}
           </button>
         ))}
+        {altri > 0 && (
+          <button type="button" onClick={() => setTutti(!tutti)} style={{ paddingLeft: 12 }}>
+            {tutti ? 'Mostra solo quelli del corso' : `+ aggiungi (${altri} disponibili)`}
+          </button>
+        )}
       </div>
     </>
   );

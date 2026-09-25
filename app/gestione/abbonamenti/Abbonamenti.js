@@ -1,7 +1,5 @@
 'use client';
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { supabaseBrowser } from '@/lib/supabase/browser';
 import Gestore from '../Gestore';
 import CorsiCoperti from './CorsiCoperti';
 import { euro } from '@/lib/formato';
@@ -17,12 +15,14 @@ const CATEGORIE_VOCI = [
   { v: 'evento', l: 'Evento o campus' }, { v: 'quota', l: 'Quota' }, { v: 'altro', l: 'Altro' },
 ];
 
+
 const durata = (t) => t.durata_giorni
   ? `${t.durata_giorni} ${t.durata_giorni === 1 ? 'giorno' : 'giorni'}`
   : t.scadenza_fine_mese && t.durata_mesi === 1 ? 'mese solare'
   : `${t.durata_mesi} ${t.durata_mesi === 1 ? 'mese' : 'mesi'}${t.scadenza_fine_mese ? ' a fine mese' : ''}`;
 
-export default function Abbonamenti({ palestraId, tipi, corsi, regole, palestra, voci = [], coperti = [] }) {
+export default function Abbonamenti({ palestraId, tipi, corsi, regole, palestra, voci = [], coperti = [], aliquote = [] }) {
+  const opzioniAliquota = aliquote.map((a) => ({ v: a.id, l: a.predefinita ? `${a.nome} (predefinita)` : a.nome }));
   const [cerca, setCerca] = useState('');
   const [famiglia, setFamiglia] = useState('');
   const [archiviati, setArchiviati] = useState(false);
@@ -33,32 +33,7 @@ export default function Abbonamenti({ palestraId, tipi, corsi, regole, palestra,
     (!famiglia || t.famiglia === famiglia) &&
     (!testo || `${t.nome} ${t.codice || ''}`.toLowerCase().includes(testo)));
   const quantiCorsi = (id) => coperti.filter((c) => c.tipo_abbonamento_id === id).length;
-  const router = useRouter();
   const [sezione, setSezione] = useState('tipi');
-  const [f, setF] = useState({
-    quota: ((palestra.quota_iscrizione_cent || 0) / 100).toString(),
-    mese: palestra.mese_inizio_stagione || 9,
-    giorni: palestra.giorni_prenotabili ?? 21,
-    preavviso: palestra.preavviso_ore ?? 2,
-    recensione: palestra.google_review_url || '',
-  });
-  const [salvato, setSalvato] = useState(false);
-  const [errore, setErrore] = useState('');
-
-  async function salvaImpostazioni(e) {
-    e.preventDefault();
-    const { error } = await supabaseBrowser().from('palestre').update({
-      quota_iscrizione_cent: Math.round(parseFloat(String(f.quota).replace(',', '.') || '0') * 100),
-      mese_inizio_stagione: parseInt(f.mese, 10),
-      giorni_prenotabili: parseInt(f.giorni, 10),
-      preavviso_ore: parseInt(f.preavviso, 10),
-      google_review_url: f.recensione || null,
-    }).eq('id', palestraId);
-    if (error) { setErrore('Salvataggio non riuscito.'); return; }
-    setErrore(''); setSalvato(true); setTimeout(() => setSalvato(false), 2500);
-    router.refresh();
-  }
-
   const nomeOrigine = (r) =>
     r.origine === 'corso'
       ? corsi.find((c) => c.id === r.origine_id)?.nome || 'corso eliminato'
@@ -73,7 +48,7 @@ export default function Abbonamenti({ palestraId, tipi, corsi, regole, palestra,
       </div>
       <div className="filtri">
         {[['tipi', 'Tipi di abbonamento'], ['coperti', 'Corsi coperti'], ['listino', 'Altre voci a listino'],
-          ['recuperi', 'Dove si recupera'], ['generali', 'Impostazioni']].map(([k, l]) => (
+          ['recuperi', 'Dove si recupera']].map(([k, l]) => (
           <a key={k} href="#" onClick={(e) => { e.preventDefault(); setSezione(k); }}
              aria-current={sezione === k ? 'true' : undefined}>{l}</a>
         ))}
@@ -110,9 +85,11 @@ export default function Abbonamenti({ palestraId, tipi, corsi, regole, palestra,
               { k: 'durata_mesi', etichetta: 'Durata (mesi)', tipo: 'numero', obbligatorio: true },
               { k: 'durata_giorni', etichetta: 'Oppure durata in giorni', tipo: 'numero', aiuto: 'Se compilato vale questo: 1 = lezione singola, 28 = quattro settimane' },
               { k: 'scadenza_fine_mese', etichetta: 'Scade a fine mese solare', tipo: 'check' },
+              { k: 'aliquota_id', etichetta: 'Aliquota IVA', tipo: 'select', opzioni: opzioniAliquota, vuotoTesto: '— la predefinita —' },
               { k: 'recuperi_max', etichetta: 'Recuperi massimi', tipo: 'numero', aiuto: 'Vuoto = illimitati, 0 = nessun recupero' },
               { k: 'giorni_validita_recupero', etichetta: 'Validità recupero (giorni)', tipo: 'numero' },
               { k: 'acquistabile_online', etichetta: 'Acquistabile online dal cliente', tipo: 'check' },
+              { k: 'rinnovo_automatico', etichetta: 'Online si può scegliere il rinnovo automatico mensile', tipo: 'check' },
               { k: 'attivo', etichetta: 'Attivo', tipo: 'check' },
               { k: 'archiviato', etichetta: 'Archiviato (non si vende più, resta nello storico)', tipo: 'check' },
             ]}
@@ -151,6 +128,7 @@ export default function Abbonamenti({ palestraId, tipi, corsi, regole, palestra,
               { k: 'categoria', etichetta: 'Categoria', tipo: 'select', opzioni: CATEGORIE_VOCI, obbligatorio: true },
               { k: 'prezzo_cent', etichetta: 'Prezzo (€)', tipo: 'euro', obbligatorio: true },
               { k: 'prezzo_web_cent', etichetta: 'Prezzo online (€)', tipo: 'euro' },
+              { k: 'aliquota_id', etichetta: 'Aliquota IVA', tipo: 'select', opzioni: opzioniAliquota, vuotoTesto: '— la predefinita —' },
               { k: 'attiva', etichetta: 'Attiva', tipo: 'check' },
             ]}
             riassunto={(v) => ({
@@ -189,41 +167,9 @@ export default function Abbonamenti({ palestraId, tipi, corsi, regole, palestra,
         </>
       )}
 
-      {sezione === 'generali' && (
-        <form onSubmit={salvaImpostazioni}>
-          <h2>Impostazioni generali</h2>
-          {errore && <div className="errore" role="alert">{errore}</div>}
-          <div className="riga-2">
-            <div className="campo">
-              <label htmlFor="quota">Quota d'iscrizione annuale (€)</label>
-              <input id="quota" inputMode="decimal" value={f.quota} onChange={(e) => setF({ ...f, quota: e.target.value })} />
-            </div>
-            <div className="campo">
-              <label htmlFor="mese">La stagione inizia a</label>
-              <select id="mese" value={f.mese} onChange={(e) => setF({ ...f, mese: e.target.value })}>
-                {['gennaio', 'febbraio', 'marzo', 'aprile', 'maggio', 'giugno', 'luglio', 'agosto', 'settembre', 'ottobre', 'novembre', 'dicembre']
-                  .map((m, i) => <option key={m} value={i + 1}>{m}</option>)}
-              </select>
-            </div>
-          </div>
-          <div className="riga-2">
-            <div className="campo">
-              <label htmlFor="gg">Prove prenotabili entro (giorni)</label>
-              <input id="gg" type="number" min="1" value={f.giorni} onChange={(e) => setF({ ...f, giorni: e.target.value })} />
-            </div>
-            <div className="campo">
-              <label htmlFor="pv">Preavviso minimo (ore)</label>
-              <input id="pv" type="number" min="0" value={f.preavviso} onChange={(e) => setF({ ...f, preavviso: e.target.value })} />
-            </div>
-          </div>
-          <div className="campo">
-            <label htmlFor="rec">Link per le recensioni Google</label>
-            <input id="rec" value={f.recensione} onChange={(e) => setF({ ...f, recensione: e.target.value })} />
-            <span className="piccolo muto">Finisce nell'email dopo la prova.</span>
-          </div>
-          <button className="btn btn-primario">{salvato ? 'Salvato' : 'Salva impostazioni'}</button>
-        </form>
-      )}
+      <p className="piccolo muto" style={{ marginTop: 18 }}>
+        Quota annuale, stagione, prove e soglie dello stato dei clienti sono in Impostazioni → Regole e prenotazioni.
+      </p>
     </>
   );
 }

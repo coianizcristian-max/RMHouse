@@ -5,14 +5,22 @@ import { useRouter } from 'next/navigation';
 import { supabaseBrowser } from '@/lib/supabase/browser';
 import { ora, dataBreve, giornoLungo } from '@/lib/formato';
 import Notifiche from './Notifiche';
+import CaricaCertificato from '../CaricaCertificato';
 
-export default function Riepilogo({ dati, materiali = [] }) {
+export default function Riepilogo({ dati, materiali = [], inVerifica = [], aspetto = {}, chiediConsenso = false, moduliDaFirmare = 0 }) {
   const router = useRouter();
   const [errore, setErrore] = useState('');
   const [avviso, setAvviso] = useState('');
   const [invio, setInvio] = useState(false);
 
   const daSistemare = dati.allievi.filter((a) => !a.certificato_ok);
+  const [consenso, setConsenso] = useState(chiediConsenso);
+
+  async function rispondiConsenso(si) {
+    setConsenso(false);
+    await supabaseBrowser().rpc('imposta_consenso_marketing', { p_si: si });
+    if (si) setAvviso('Grazie! Ti scriveremo solo per cose interessanti.');
+  }
 
   async function esci() {
     await supabaseBrowser().auth.signOut();
@@ -36,25 +44,12 @@ export default function Riepilogo({ dati, materiali = [] }) {
     router.refresh();
   }
 
-  async function caricaCertificato(allievo, file) {
-    if (!file) return;
-    setInvio(true); setErrore(''); setAvviso('');
-    const form = new FormData();
-    form.append('token', allievo.token);
-    form.append('file', file);
-    const r = await fetch('/api/certificato', { method: 'POST', body: form });
-    const d = await r.json();
-    setInvio(false);
-    if (!r.ok) { setErrore(d.errore || 'Caricamento non riuscito.'); return; }
-    setAvviso('Certificato inviato: la segreteria lo controlla e lo approva.');
-    router.refresh();
-  }
-
   return (
     <>
       <div className="intestazione">
         <div className="occhiello">La mia area</div>
         <h1>Ciao {dati.titolare.nome}</h1>
+        {aspetto.benvenuto && <p style={{ whiteSpace: 'pre-line' }}>{aspetto.benvenuto}</p>}
         <p>
           {dati.prossime.length > 0
             ? `La prossima lezione è ${giornoLungo(dati.prossime[0].inizio).toLowerCase()} alle ${ora(dati.prossime[0].inizio)}.`
@@ -86,19 +81,54 @@ export default function Riepilogo({ dati, materiali = [] }) {
 
       <Notifiche />
 
+      {moduliDaFirmare > 0 && (
+        <Link href="/area/moduli" className="scheda" style={{ display: 'block', borderLeft: '4px solid var(--rosso)', marginBottom: 16, textDecoration: 'none' }}>
+          <strong style={{ color: 'var(--nero)' }}>
+            {moduliDaFirmare === 1 ? 'Un modulo da firmare' : `${moduliDaFirmare} moduli da firmare`}
+          </strong>
+          <span className="piccolo muto" style={{ display: 'block' }}>Regolamento e autorizzazioni: si firmano qui col dito, in un minuto. Tocca per aprirli.</span>
+        </Link>
+      )}
+
+      {consenso && (
+        <div className="scheda" style={{ marginBottom: 16 }}>
+          <strong style={{ color: 'var(--nero)' }}>Vuoi ricevere novità e promozioni?</strong>
+          <p className="piccolo muto" style={{ margin: '6px 0 10px' }}>
+            Nuovi corsi, stage, offerte per chi è già iscritto. Poche email, e puoi cambiare idea quando vuoi.
+          </p>
+          <div className="azioni">
+            <button className="btn btn-primario btn-piccolo" onClick={() => rispondiConsenso(true)}>Sì, volentieri</button>
+            <button className="btn btn-piccolo" onClick={() => rispondiConsenso(false)}>No, grazie</button>
+          </div>
+        </div>
+      )}
+
+      {aspetto.avviso && (
+        <div className="avviso-card"><p style={{ margin: 0, whiteSpace: 'pre-line' }}>{aspetto.avviso}</p></div>
+      )}
+
       {daSistemare.length > 0 && (
         <div className="scheda" style={{ borderLeft: '4px solid var(--rosso)', marginBottom: 20 }}>
           <strong style={{ color: 'var(--nero)' }}>Certificato medico da sistemare</strong>
-          {daSistemare.map((a) => (
-            <div key={a.id} style={{ marginTop: 10 }}>
-              <div className="piccolo">
-                {a.nome}: {a.certificato_scadenza ? `scaduto il ${dataBreve(a.certificato_scadenza)}` : 'non ancora consegnato'}
+          {daSistemare.map((a) => {
+            const inviato = inVerifica.find((c) => c.allievo_id === a.id);
+            return (
+              <div key={a.id} style={{ marginTop: 12 }}>
+                <div className="piccolo" style={{ marginBottom: 8 }}>
+                  <strong>{a.nome}</strong>: {a.certificato_scadenza ? `scaduto il ${dataBreve(a.certificato_scadenza)}` : 'non ancora consegnato'}
+                </div>
+                {inviato ? (
+                  <div className="piccolo" style={{ color: 'var(--ok)' }}>
+                    Inviato il {dataBreve(inviato.caricato_at)}{inviato.scadenza ? `, scade il ${dataBreve(inviato.scadenza)}` : ''}: la segreteria lo sta controllando.
+                  </div>
+                ) : (
+                  <CaricaCertificato token={a.token} nome={a.nome}
+                                     onFatto={() => { setAvviso('Certificato inviato: la segreteria lo controlla e lo approva.'); router.refresh(); }} />
+                )}
               </div>
-              <input type="file" accept="image/*,application/pdf" disabled={invio}
-                     onChange={(e) => caricaCertificato(a, e.target.files?.[0])} style={{ marginTop: 6 }} />
-            </div>
-          ))}
-          <p className="piccolo muto" style={{ marginTop: 8 }}>
+            );
+          })}
+          <p className="piccolo muto" style={{ marginTop: 10 }}>
             Basta una foto ben leggibile. Senza certificato valido non si può entrare in sala.
           </p>
         </div>
@@ -157,8 +187,8 @@ export default function Riepilogo({ dati, materiali = [] }) {
             <div key={i} className="scheda-corso" style={{ gridTemplateColumns: '6px 1fr auto' }}>
               <span className="banda" style={{ background: 'var(--nero)' }} />
               <span className="centro">
-                <span className="titolo">{p.corso}</span>
-                <span className="riga">{dataBreve(p.inizio)} alle {ora(p.inizio)} · {p.allievo}</span>
+                <span className="titolo" style={{ display: 'block' }}>{p.corso}</span>
+                <span className="riga" style={{ display: 'block' }}>{dataBreve(p.inizio)} alle {ora(p.inizio)} · {p.allievo}</span>
               </span>
               <span className="destra">
                 {p.stato === 'in_attesa_pagamento'

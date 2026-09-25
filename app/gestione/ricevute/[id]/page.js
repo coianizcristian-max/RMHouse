@@ -11,7 +11,7 @@ export default async function PaginaRicevuta({ params }) {
   const { supabase, staff } = await staffCorrente();
 
   const [{ data: r }, { data: pal }] = await Promise.all([
-    supabase.from('ricevute').select('*').eq('id', id).maybeSingle(),
+    supabase.from('ricevute').select('*, numerazioni ( codice ), aliquote_iva ( riferimento ), rif:ricevute!riferimento_id ( numero, anno, data )').eq('id', id).maybeSingle(),
     supabase.from('palestre').select('nome, indirizzo, telefono, email, dicitura_ricevuta, dati_fiscali')
       .eq('id', staff.palestra_id).maybeSingle(),
   ]);
@@ -29,16 +29,21 @@ export default async function PaginaRicevuta({ params }) {
           </div>
         </div>
         <div style={{ textAlign: 'right' }}>
-          <div className="piccolo muto">Ricevuta</div>
-          <strong style={{ fontSize: 22 }}>n. {r.numero}/{r.anno}</strong>
+          <div className="piccolo muto">{r.tipo_documento === 'nota_credito' ? 'Nota di credito' : 'Ricevuta'}</div>
+          <strong style={{ fontSize: 22 }}>{r.numerazioni?.codice ? `${r.numerazioni.codice} ` : ''}n. {r.numero}/{r.anno}</strong>
           <div className="piccolo muto">{dataBreve(r.data)}</div>
         </div>
       </header>
 
       {r.annullata && <div className="errore">ANNULLATA — {r.motivo_annullo}</div>}
+      {r.tipo_documento === 'nota_credito' && r.rif && (
+        <p className="piccolo" style={{ marginTop: 12 }}>
+          A rettifica della ricevuta n. {r.rif.numero}/{r.rif.anno} del {dataBreve(r.rif.data)}.
+        </p>
+      )}
 
       <section style={{ marginTop: 26 }}>
-        <div className="piccolo muto">Ricevuta da</div>
+        <div className="piccolo muto">{r.tipo_documento === 'nota_credito' ? 'Rimborso a' : 'Ricevuta da'}</div>
         <strong style={{ fontSize: 17 }}>{r.intestatario}</strong>
         <div className="piccolo muto">
           {[r.indirizzo, r.codice_fiscale && `C.F. ${r.codice_fiscale}`].filter(Boolean).join(' · ')}
@@ -51,7 +56,10 @@ export default async function PaginaRicevuta({ params }) {
         </thead>
         <tbody>
           <tr><td>{r.descrizione}</td><td style={{ textAlign: 'right' }}>{euro(r.importo_cent)}</td></tr>
-          <tr><td>IVA ({r.aliquota})</td><td style={{ textAlign: 'right' }}>{euro(r.iva_cent)}</td></tr>
+          <tr>
+            <td>{r.iva_cent ? `IVA (${r.aliquota})` : `${r.aliquota}${r.natura ? ` · ${r.natura}` : ''}${r.aliquote_iva?.riferimento ? ` · ${r.aliquote_iva.riferimento}` : ''}`}</td>
+            <td style={{ textAlign: 'right' }}>{euro(r.iva_cent)}</td>
+          </tr>
           <tr>
             <td><strong>Totale</strong></td>
             <td style={{ textAlign: 'right', fontSize: 20 }}><strong>{euro(r.importo_cent + r.iva_cent)}</strong></td>

@@ -10,8 +10,12 @@ export async function POST(request) {
   const form = await request.formData().catch(() => null);
   const token = form?.get('token');
   const file = form?.get('file');
+  const scadenza = form?.get('scadenza');
   if (!form || typeof token !== 'string' || !/^[0-9a-f-]{36}$/i.test(token) || !(file instanceof File)) {
     return NextResponse.json({ errore: 'Richiesta non valida.' }, { status: 400 });
+  }
+  if (typeof scadenza === 'string' && scadenza && !/^\d{4}-\d{2}-\d{2}$/.test(scadenza)) {
+    return NextResponse.json({ errore: 'Data di scadenza non valida.' }, { status: 400 });
   }
   if (file.size > MAX) return NextResponse.json({ errore: 'Il file è troppo grande: massimo 8 MB.' }, { status: 400 });
   const est = TIPI[file.type];
@@ -31,6 +35,7 @@ export async function POST(request) {
 
   const { error } = await db.rpc('registra_certificato', {
     p_token: token, p_file: percorso, p_nome_file: file.name?.slice(0, 120) || null,
+    p_scadenza: typeof scadenza === 'string' && scadenza ? scadenza : null,
   });
   if (error) {
     console.error(error);

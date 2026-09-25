@@ -6,6 +6,9 @@ const VOCI = [
   ['/area', 'Le mie lezioni'],
   ['/area/recuperi', 'Recuperi'],
   ['/area/eventi', 'Eventi'],
+  ['/area/moduli', 'Moduli'],
+  ['/area/pagamenti', 'Pagamenti'],
+  ['/area/pass', 'Pass'],
 ];
 
 // Le tre sezioni dell'area cliente: fuori dal guscio della gestione,

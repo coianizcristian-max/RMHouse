@@ -1,8 +1,9 @@
 'use client';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabaseBrowser } from '@/lib/supabase/browser';
 import { dataBreve, euro } from '@/lib/formato';
+import AssegnaGiorni from '../../AssegnaGiorni';
 
 const GIORNI = ['', 'lun', 'mar', 'mer', 'gio', 'ven', 'sab', 'dom'];
 const ERRORI = {
@@ -11,7 +12,7 @@ const ERRORI = {
   allievo_non_trovato: 'Allievo non trovato.',
 };
 
-export default function Iscrizioni({ allievoId, iscrizioni, corsi, tipi, orari, quotaCent }) {
+export default function Iscrizioni({ allievoId, iscrizioni, corsi, tipi, orari, quotaCent, sconti = {}, famigliaIscritta = 0 }) {
   const router = useRouter();
   const [apri, setApri] = useState(false);
   const [errore, setErrore] = useState('');
@@ -20,6 +21,26 @@ export default function Iscrizioni({ allievoId, iscrizioni, corsi, tipi, orari, 
     corso_id: '', tipo_abbonamento_id: '', data_inizio: new Date().toISOString().slice(0, 10),
     orari: [], sconto: '', quota: false, note: '',
   });
+
+  // il pulsante "Nuova iscrizione" in cima alla scheda apre direttamente il modulo
+  useEffect(() => {
+    const apriDaLink = () => { if (window.location.hash === '#nuova-iscrizione') setApri(true); };
+    apriDaLink();
+    window.addEventListener('hashchange', apriDaLink);
+    return () => window.removeEventListener('hashchange', apriDaLink);
+  }, []);
+
+  // Sconto da proporre secondo le regole della scuola: più corsi della stessa persona o più persone della famiglia
+  const corsiAttivi = iscrizioni.filter((i) => i.stato === 'attiva').length;
+  const proposta = (() => {
+    const regole = [
+      [corsiAttivi >= 2 && sconti.piu_corsi_3, 'dal terzo corso'],
+      [corsiAttivi === 1 && sconti.piu_corsi_2, 'secondo corso'],
+      [famigliaIscritta >= 2 && sconti.famiglia_3, 'dal terzo della famiglia'],
+      [famigliaIscritta === 1 && sconti.famiglia_2, 'secondo della famiglia'],
+    ].filter(([pct]) => pct > 0);
+    return regole.length ? { pct: regole[0][0], perche: regole[0][1] } : null;
+  })();
 
   const orariCorso = orari.filter((o) => o.corso_id === f.corso_id);
   const tipo = tipi.find((t) => t.id === f.tipo_abbonamento_id);
@@ -89,6 +110,18 @@ export default function Iscrizioni({ allievoId, iscrizioni, corsi, tipi, orari, 
                 {i.tipi_abbonamento?.nome} · dal {dataBreve(i.data_inizio)} al {dataBreve(i.data_fine)}
                 {i.sconto_cent > 0 && ` · sconto ${euro(i.sconto_cent)}`}
               </div>
+              {i.stato === 'attiva' && i.tipi_abbonamento?.modalita === 'orari_fissi' && (
+                <div style={{ marginTop: 6 }}>
+                  {(i.iscrizioni_orari || []).length === 0 && <span className="tag tag-attenzione">giorni da assegnare</span>}
+                  <AssegnaGiorni
+                    iscrizioneId={i.id}
+                    orari={orari.filter((o) => o.corso_id === i.corsi?.id)}
+                    scelti={(i.iscrizioni_orari || []).map((x) => x.orario_id)}
+                    quanti={i.tipi_abbonamento?.lezioni_settimanali}
+                    compatto={(i.iscrizioni_orari || []).length > 0}
+                  />
+                </div>
+              )}
               {i.stato === 'attiva' && (
                 <div className="azioni-riga">
                   <button className="link-btn piccolo" onClick={() => sospendi(i)}>Sospendi</button>
@@ -154,6 +187,15 @@ export default function Iscrizioni({ allievoId, iscrizioni, corsi, tipi, orari, 
             <div className="campo">
               <label htmlFor="sc">Sconto (€)</label>
               <input id="sc" inputMode="decimal" value={f.sconto} onChange={set('sconto')} />
+              {proposta && tipo && (
+                <span className="piccolo">
+                  Proposto {proposta.pct}% ({proposta.perche}):{' '}
+                  <button type="button" className="link-btn"
+                          onClick={() => setF({ ...f, sconto: ((tipo.prezzo_cent * proposta.pct) / 10000).toFixed(2).replace('.', ',') })}>
+                    applica {((tipo.prezzo_cent * proposta.pct) / 10000).toFixed(2).replace('.', ',')} €
+                  </button>
+                </span>
+              )}
             </div>
           </div>
           <label className="spunta">

@@ -26,6 +26,26 @@ export default function Ricevute({ righe, mancanti, riepilogo, dal, al }) {
     setScelti([]); router.refresh();
   }
 
+  async function notaCredito(r) {
+    const totale = (r.importo_cent + r.iva_cent) / 100;
+    const importo = prompt(`Rimborso sulla ricevuta n. ${r.numero}/${r.anno}: quanto (€)? Massimo ${totale.toFixed(2).replace('.', ',')}`,
+      totale.toFixed(2).replace('.', ','));
+    if (!importo) return;
+    const motivo = prompt('Motivo del rimborso (va stampato sulla nota di credito):');
+    if (!motivo) return;
+    setInvio(true); setErrore('');
+    const { error } = await supabaseBrowser().rpc('emetti_nota_credito', {
+      p_ricevuta: r.id, p_importo_cent: Math.round(parseFloat(importo.replace(',', '.')) * 100), p_motivo: motivo,
+    });
+    setInvio(false);
+    if (error) {
+      setErrore(error.message?.includes('importo_non_valido')
+        ? 'Importo non valido: non può superare quanto resta della ricevuta.' : 'Nota di credito non emessa.');
+      return;
+    }
+    setAvviso('Nota di credito emessa.'); router.refresh();
+  }
+
   async function annulla(r) {
     const motivo = prompt(`Perché annulli la ricevuta n. ${r.numero}? Il numero resta occupato.`);
     if (!motivo) return;
@@ -40,8 +60,9 @@ export default function Ricevute({ righe, mancanti, riepilogo, dal, al }) {
     <>
       <div className="intestazione">
         <div className="occhiello">Conti</div>
-        <h1>Ricevute</h1>
-        <p>Ricevute non fiscali con IVA a zero per quote e abbonamenti. Le fatture restano al commercialista.</p>
+        <h1>Ricevute e note di credito</h1>
+        <p>Ricevute per quote e abbonamenti; i rimborsi si fanno con una nota di credito legata alla ricevuta.
+          Aliquote e numerazioni si decidono in Per il commercialista.</p>
       </div>
 
       {errore && <div className="errore" role="alert">{errore}</div>}
@@ -56,9 +77,9 @@ export default function Ricevute({ righe, mancanti, riepilogo, dal, al }) {
           </div>
         </div>
         <div className="tessera">
-          <div className="etichetta">Totale</div>
+          <div className="etichetta">Totale netto</div>
           <div className="cifra">{euro(riepilogo.totale_cent || 0)}</div>
-          <div className="sotto">{riepilogo.annullate ?? 0} annullate</div>
+          <div className="sotto">{riepilogo.note_credito ?? 0} note di credito ({euro(riepilogo.rimborsi_cent || 0)}) · {riepilogo.annullate ?? 0} annullate</div>
         </div>
         <div className="tessera tessera-nera">
           <div className="etichetta">Incassi senza ricevuta</div>
@@ -124,15 +145,21 @@ export default function Ricevute({ righe, mancanti, riepilogo, dal, al }) {
         {righe.map((r) => (
           <li key={r.id} className="persona">
             <span>
-              <strong style={{ color: 'var(--nero)' }}>n. {r.numero}/{r.anno}</strong> · {r.intestatario}
+              {r.tipo_documento === 'nota_credito' && <span className="tag tag-attenzione">nota di credito</span>}{' '}
+              <strong style={{ color: 'var(--nero)' }}>{r.numerazioni?.codice ? `${r.numerazioni.codice} ` : ''}n. {r.numero}/{r.anno}</strong> · {r.intestatario}
               <span className="piccolo muto" style={{ display: 'block' }}>
                 {dataBreve(r.data)} · {r.descrizione} · {r.metodo || 'metodo non indicato'}
                 {r.annullata && ` · ANNULLATA: ${r.motivo_annullo}`}
               </span>
             </span>
             <span style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-              <strong style={{ textDecoration: r.annullata ? 'line-through' : 'none' }}>{euro(r.importo_cent)}</strong>
+              <strong style={{ textDecoration: r.annullata ? 'line-through' : 'none' }}>
+                {r.tipo_documento === 'nota_credito' ? '−' : ''}{euro(r.importo_cent + r.iva_cent)}
+              </strong>
               <Link className="link-btn piccolo" href={`/gestione/ricevute/${r.id}`} target="_blank">stampa</Link>
+              {!r.annullata && r.tipo_documento !== 'nota_credito' && (
+                <button className="link-btn piccolo" disabled={invio} onClick={() => notaCredito(r)}>rimborso</button>
+              )}
               {!r.annullata && (
                 <button className="link-btn piccolo pericolo" disabled={invio} onClick={() => annulla(r)}>annulla</button>
               )}
@@ -142,9 +169,9 @@ export default function Ricevute({ righe, mancanti, riepilogo, dal, al }) {
       </ul>
 
       <p className="piccolo muto" style={{ marginTop: 18 }}>
-        Sono documenti non fiscali, con IVA a zero: la numerazione riparte da 1 ogni anno ed è senza buchi, e una
-        ricevuta annullata tiene comunque il suo numero. La dicitura stampata in fondo si cambia in
-        Struttura → Sede e contatti.
+        Ricevute e note di credito hanno numerazioni separate: ripartono da 1 ogni anno, senza buchi, e un documento
+        annullato tiene comunque il suo numero. "Annulla" è per un documento sbagliato; "rimborso" emette una nota di
+        credito quando restituisci dei soldi. La dicitura stampata in fondo si cambia in Struttura → Sede e contatti.
       </p>
     </>
   );

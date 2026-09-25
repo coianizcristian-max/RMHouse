@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase/admin';
 import { SLUG } from '@/lib/palestra';
+import { stripeAttivo, creaCheckout, baseUrl } from '@/lib/stripe';
 
 const MESSAGGI = {
   consenso_privacy_mancante: 'Per prenotare serve il consenso al trattamento dei dati.',
@@ -60,11 +61,31 @@ export async function POST(request) {
     );
   }
 
-  // Finché Stripe non è attivo, la prova a pagamento si conferma e si paga in sede
-  if (data.esito === 'pagamento_richiesto' && process.env.PAGAMENTI_ONLINE !== 'true') {
-    await db.from('prove').update({ stato: 'confermata' }).eq('id', data.prova_id);
-    return NextResponse.json({ esito: 'da_pagare_in_sede', importo_cent: data.importo_cent });
+  if (data.esito === 'pagamento_richiesto') {
+    const { data: pal } = await db.from('palestre').select('stripe').eq('slug', SLUG).maybeSingle();
+    const online = stripeAttivo() && pal?.stripe?.prove_online !== false;
+    // Senza pagamenti online la prova si conferma e si paga in sede
+    if (!online) {
+      await db.from('prove').update({ stato: 'confermata' }).eq('id', data.prova_id);
+      return NextResponse.json({ esito: 'da_pagare_in_sede', importo_cent: data.importo_cent });
+    }
+    const { data: pag } = await db.from('pagamenti').select('descrizione').eq('id', data.pagamento_id).maybeSingle();
+    const sito = baseUrl(request);
+    try {
+      const s = await creaCheckout({
+        righe: [{ descrizione: pag?.descrizione || 'Lezione di prova', importo_cent: data.importo_cent }],
+        metadata: { tipo: 'prova', pagamento_id: data.pagamento_id, riferimento: data.prova_id },
+        email: payload.titolare.email, scadenzaMinuti: 45,
+        successo: `${sito}/prova/pagata`, annullato: `${sito}/prova?pagamento=annullato`,
+      });
+      await db.from('pagamenti').update({ stripe_session_id: s.id }).eq('id', data.pagamento_id);
+      return NextResponse.json({ esito: 'paga_online', url: s.url, importo_cent: data.importo_cent });
+    } catch (e) {
+      // Stripe non risponde: meglio confermare e far pagare in sede che perdere la prova
+      console.error(e);
+      await db.from('prove').update({ stato: 'confermata' }).eq('id', data.prova_id);
+      return NextResponse.json({ esito: 'da_pagare_in_sede', importo_cent: data.importo_cent });
+    }
   }
-  // TODO fase 2: con PAGAMENTI_ONLINE=true creare la sessione Stripe Checkout e restituire l'URL
   return NextResponse.json({ esito: data.esito, importo_cent: data.importo_cent ?? 0 });
 }

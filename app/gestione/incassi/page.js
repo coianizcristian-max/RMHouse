@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation';
 import { staffCorrente } from '@/lib/staff';
 import { oggiISO, spostaGiorni } from '@/lib/formato';
 import Incassi from './Incassi';
+import { stripeAttivo } from '@/lib/stripe';
 
 export const dynamic = 'force-dynamic';
 
@@ -24,6 +25,6 @@ export default async function PaginaIncassi({ searchParams }) {
 
   return (
     <Incassi palestraId={staff.palestra_id} righe={righe || []} totali={totali || {}}
-             dal={da} al={a} stato={stato || 'periodo'} />
+             dal={da} al={a} stato={stato || 'periodo'} online={stripeAttivo()} />
   );
 }

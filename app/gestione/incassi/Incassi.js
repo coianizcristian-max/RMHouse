@@ -4,15 +4,16 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { supabaseBrowser } from '@/lib/supabase/browser';
 import { euro, dataBreve } from '@/lib/formato';
+import LinkPagamento from '../LinkPagamento';
 
 const CAUSALI = [
   ['quota_iscrizione', 'Quota annuale'], ['abbonamento', 'Abbonamento'], ['prova', 'Lezione di prova'],
   ['evento', 'Evento o stage'], ['spazio', 'Affitto sala'], ['materiale', 'Materiale'], ['altro', 'Altro'],
 ];
-const METODI = [['contanti', 'Contanti'], ['bonifico', 'Bonifico'], ['pos', 'POS'], ['online', 'Online'], ['altro', 'Altro']];
+const METODI = [['contanti', 'Contanti'], ['bonifico', 'Bonifico'], ['pos', 'POS'], ['online', 'Online'], ['assegno', 'Assegno'], ['altro', 'Altro']];
 const NOME = (k) => (CAUSALI.find(([v]) => v === k) || [null, k])[1];
 
-export default function Incassi({ palestraId, righe, totali, dal, al, stato }) {
+export default function Incassi({ palestraId, righe, totali, dal, al, stato, online = false }) {
   const router = useRouter();
   const [apri, setApri] = useState(false);
   const [f, setF] = useState({ importo: '', causale: 'quota_iscrizione', metodo: 'contanti', descrizione: '', cerca: '', account_id: '', allievo_id: '' });
@@ -51,7 +52,7 @@ export default function Incassi({ palestraId, righe, totali, dal, al, stato }) {
   }
 
   async function incassa(r) {
-    const metodo = prompt('Come è stato pagato? contanti, bonifico, pos, online, altro', 'contanti');
+    const metodo = prompt('Come è stato pagato? contanti, bonifico, pos, online, assegno, altro', 'contanti');
     if (!metodo) return;
     const { error } = await supabaseBrowser().rpc('segna_pagato', { p_pagamento: r.id, p_metodo: metodo.trim().toLowerCase() });
     if (error) { setErrore('Metodo non valido o operazione non riuscita.'); return; }
@@ -188,6 +189,7 @@ export default function Incassi({ palestraId, righe, totali, dal, al, stato }) {
                 <>
                   <span className="tag tag-attenzione">da incassare</span>
                   <button className="link-btn piccolo" onClick={() => incassa(r)}>segna incassato</button>
+                  {online && <LinkPagamento pagamentoId={r.id} telefono={r.telefono} nome={r.titolare_nome} />}
                 </>
               )}
               {r.stato === 'annullato' && <span className="tag tag-neutro">annullato</span>}
