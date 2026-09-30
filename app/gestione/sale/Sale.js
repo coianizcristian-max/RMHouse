@@ -130,7 +130,7 @@ export default function Sale({ palestraId, sale, sedi, orari, postazioni = {} })
           <div key={s.id} className="tessera" style={{ padding: 0, overflow: 'hidden' }}>
             {s.foto_url
               ? <img src={s.foto_url} alt="" className="copertina" style={{ borderRadius: 0 }} />
-              : <div className="copertina segnaposto" style={{ borderRadius: 0 }}>{s.nome.slice(0, 2).toUpperCase()}</div>}
+              : <div className="copertina segnaposto senza-foto" style={{ borderRadius: 0 }}>{s.nome.slice(0, 2).toUpperCase()}</div>}
             <div style={{ padding: 14 }}>
               <div style={{ fontWeight: 700, color: 'var(--nero)' }}>{s.nome}</div>
               <div className="piccolo muto">

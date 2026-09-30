@@ -68,7 +68,11 @@ export default function Pipeline({ righe }) {
                     <div className="piccolo muto">
                       {[r.eta != null && `${r.eta} anni`, r.fonte, `da ${giorniDa(r.created_at)} gg`].filter(Boolean).join(' · ')}
                     </div>
-                    {r.prova && <div className="piccolo">Prova: {r.prova}</div>}
+                    {r.prova?.inizio && (
+                      <div className="piccolo">
+                        Prova: {r.prova.corso} · {new Date(r.prova.inizio).toLocaleString('it-IT', { timeZone: 'Europe/Rome', weekday: 'short', day: 'numeric', month: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                      </div>
+                    )}
                     {r.ultima_nota && <div className="piccolo muto pipe-nota">“{r.ultima_nota}”</div>}
                     {r.prossimo_contatto && (
                       <div className={`piccolo ${scaduto ? 'scaduta' : ''}`}>Richiamare il {dataBreve(r.prossimo_contatto)}</div>

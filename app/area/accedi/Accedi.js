@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { supabaseBrowser } from '@/lib/supabase/browser';
+import SchermataAccesso from '../../SchermataAccesso';
 
 // Accesso senza password: arriva un link per email
 export default function Accedi({ errore: erroreIniziale }) {
@@ -24,47 +25,37 @@ export default function Accedi({ errore: erroreIniziale }) {
     setInviato(true);
   }
 
+  const altra = { href: '/login', titolo: 'Sei della segreteria o insegni qui?', testo: 'Entra nell\'area staff con email e password' };
+
   if (inviato) {
     return (
-      <>
-        <h1>Controlla la posta</h1>
-        <p>Ti abbiamo mandato un link a <strong>{email.trim().toLowerCase()}</strong>: aprilo da questo telefono ed entri direttamente, senza password.</p>
+      <SchermataAccesso tipo="iscritti" titolo="Controlla la posta" altra={altra}>
+        <p className="accesso-testo">
+          Ti abbiamo mandato un link a <strong>{email.trim().toLowerCase()}</strong>: aprilo da questo telefono ed entri
+          direttamente, senza password.
+        </p>
         <p className="piccolo muto">Non lo trovi? Guarda nello spam, oppure <button className="link-btn" onClick={() => setInviato(false)}>riprova</button>.</p>
-      </>
+      </SchermataAccesso>
     );
   }
 
   return (
-    <>
-      <div className="intestazione">
-        <div className="occhiello">Area iscritti</div>
-        <h1>Entra con la tua email</h1>
-        <p>
-          Qui entrano gli allievi e i genitori: usa l'indirizzo che hai lasciato in segreteria e ti arriva un
-          link, niente password da ricordare.
-        </p>
-      </div>
-
+    <SchermataAccesso tipo="iscritti" titolo="Ciao!" altra={altra}
+                      testo="Allievi e genitori: scrivi l'email che hai lasciato in segreteria e ti mandiamo un link per entrare. Niente password.">
       {errore && <div className="errore" role="alert">{errore}</div>}
-
       <form onSubmit={manda}>
         <div className="campo">
           <label htmlFor="em">Email</label>
-          <input id="em" type="email" autoComplete="email" value={email}
+          <input id="em" type="email" autoComplete="email" inputMode="email" value={email}
                  onChange={(e) => setEmail(e.target.value)} placeholder="nome@esempio.it" />
         </div>
-        <button className="btn btn-primario btn-pieno" disabled={invio}>
+        <button className="btn btn-primario btn-pieno btn-grande" disabled={invio}>
           {invio ? 'Invio…' : 'Mandami il link'}
         </button>
       </form>
-
-      <p className="piccolo muto" style={{ marginTop: 20 }}>
-        Se l'indirizzo non risulta, vuol dire che in segreteria ne è registrato un altro: scrivici e lo sistemiamo.
+      <p className="piccolo muto" style={{ marginTop: 14, marginBottom: 0 }}>
+        Se l'indirizzo non risulta, in segreteria ne è registrato un altro: scrivici e lo sistemiamo.
       </p>
-
-      <p className="piccolo muto" style={{ marginTop: 24, paddingTop: 16, borderTop: '1px solid var(--linea)' }}>
-        Sei della segreteria o insegni qui? <Link href="/login">Entra dall'accesso staff</Link>, con email e password.
-      </p>
-    </>
+    </SchermataAccesso>
   );
 }

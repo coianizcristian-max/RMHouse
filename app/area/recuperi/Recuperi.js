@@ -51,7 +51,6 @@ export default function Recuperi({ crediti, piuAllievi }) {
       {crediti.length === 0 && (
         <div className="vuoto">
           Non hai recuperi da usare.
-          <div className="piccolo" style={{ marginTop: 8 }}><Link href="/area">Torna alla mia area</Link></div>
         </div>
       )}
 

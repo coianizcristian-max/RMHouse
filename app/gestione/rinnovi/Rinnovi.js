@@ -145,7 +145,7 @@ export default function Rinnovi({ righe, tipi, giorni }) {
               {!r.gia_rinnovata && (
                 <span className="azioni-riga">
                   <button className="link-btn piccolo" disabled={invio} onClick={() => rinnova([r.iscrizione_id])}>Rinnova</button>
-                  <button className="link-btn piccolo" disabled={invio} onClick={() => cambiaAbbonamento(r)}>Rinnova con altro abbonamento</button>
+                  <button className="link-btn piccolo" disabled={invio} onClick={() => cambiaAbbonamento(r)}>Cambia abbonamento</button>
                   {r.telefono && (
                     <a className="link-btn piccolo" target="_blank" rel="noreferrer"
                        href={`https://wa.me/39${(r.telefono || '').replace(/\D/g, '')}`}>WhatsApp</a>

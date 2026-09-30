@@ -32,11 +32,11 @@ export default async function PaginaCorso({ params }) {
 
   return (
     <>
-      <Testata destra={<Link href="/prova" className="piccolo">Prenota una prova</Link>} />
+      <Testata destra={<Link href="/prova" className="testata-link">Prenota</Link>} />
       <main className="pagina">
         {c.foto_url
           ? <img src={c.foto_url} alt="" className="copertina" />
-          : <div className="copertina segnaposto" style={{ fontSize: 40 }}>{c.nome.slice(0, 2).toUpperCase()}</div>}
+          : <div className="copertina segnaposto senza-foto" style={{ fontSize: 40 }}>{c.nome.slice(0, 2).toUpperCase()}</div>}
 
         <div className="intestazione" style={{ marginTop: 18 }}>
           <div className="occhiello" style={{ color: c.colore || 'var(--rosso)' }}>

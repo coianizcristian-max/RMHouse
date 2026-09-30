@@ -195,15 +195,7 @@ export default function Spazi({ palestraId, giorno, richieste, prossime, agenda,
             <h2 style={{ fontSize: 17, margin: 0, textTransform: 'capitalize' }}>{giornoLungo(giorno + 'T12:00:00')}</h2>
             <Link className="btn" href={`/gestione/spazi?giorno=${spostaGiorni(giorno, 1)}`} aria-label="Giorno successivo">›</Link>
           </div>
-          <p className="piccolo muto" style={{ marginTop: -6, marginBottom: 12 }}>
-            <Link href={`/gestione/spazi?giorno=${oggiISO()}`}>Torna a oggi</Link>
-          </p>
-          <div className="giorno-nav">
-            <Link className="btn" href={`/gestione/spazi?giorno=${spostaGiorni(giorno, -1)}`} aria-label="Giorno precedente">‹</Link>
-            <h1 style={{ fontSize: 18 }}>{new Date(giorno + 'T12:00:00').toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long' })}</h1>
-            <Link className="btn" href={`/gestione/spazi?giorno=${spostaGiorni(giorno, 1)}`} aria-label="Giorno successivo">›</Link>
-          </div>
-          {giorno !== oggiISO() && <p><Link className="piccolo" href={`/gestione/spazi?giorno=${oggiISO()}`}>Torna a oggi</Link></p>}
+          {giorno !== oggiISO() && <p className="piccolo" style={{ marginTop: -4 }}><Link href={`/gestione/spazi?giorno=${oggiISO()}`}>Torna a oggi</Link></p>}
 
           <div style={{ overflowX: 'auto', paddingBottom: 8 }}>
             <div style={{ display: 'grid', gridTemplateColumns: `42px repeat(${Math.max(sale.length, 1)}, minmax(120px, 1fr))`, minWidth: 320 }}>

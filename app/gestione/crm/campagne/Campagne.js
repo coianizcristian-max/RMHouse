@@ -74,7 +74,7 @@ export default function Campagne({ palestraId, campagne, corsi, etichette, sonda
             <section className="pannello">
               <h2>A chi</h2>
               <div className="piccolo muto">Stato</div>
-              <div className="pastiglie">
+              <div className="pastiglie scorre">
                 {PUBBLICI.map((s) => (
                   <button type="button" key={s} className="stato-pillola"
                           aria-current={f.stati.includes(s) ? 'true' : undefined} onClick={() => alterna('stati', s)}>
@@ -83,7 +83,7 @@ export default function Campagne({ palestraId, campagne, corsi, etichette, sonda
                 ))}
               </div>
               <div className="piccolo muto">Corsi</div>
-              <div className="pastiglie">
+              <div className="pastiglie scorre">
                 {corsi.map((c) => (
                   <button type="button" key={c.id} className="stato-pillola" aria-current={f.corsi.includes(c.id) ? 'true' : undefined}
                           onClick={() => alterna('corsi', c.id)}>
@@ -98,7 +98,7 @@ export default function Campagne({ palestraId, campagne, corsi, etichette, sonda
               {etichette.length > 0 && (
                 <>
                   <div className="piccolo muto">Etichette</div>
-                  <div className="pastiglie">
+                  <div className="pastiglie scorre">
                     {etichette.map((t) => (
                       <button type="button" key={t.id} className="stato-pillola eti" aria-current={f.etichette.includes(t.id) ? 'true' : undefined}
                               onClick={() => alterna('etichette', t.id)}>

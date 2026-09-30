@@ -20,6 +20,7 @@ export default function Sede({ palestraId, sedi, palestra }) {
     nome: palestra.nome || '', email: palestra.email || '', telefono: palestra.telefono || '',
     base_url: palestra.base_url || '', email_mittente: palestra.email_mittente || '',
     google_review_url: palestra.google_review_url || '',
+    dati_fiscali: palestra.dati_fiscali || '', dicitura_ricevuta: palestra.dicitura_ricevuta || '',
   });
 
   const set = (k) => (e) => setF({ ...f, [k]: e.target.type === 'checkbox' ? e.target.checked : e.target.value });
@@ -51,6 +52,7 @@ export default function Sede({ palestraId, sedi, palestra }) {
       nome: gen.nome, email: gen.email || null, telefono: gen.telefono || null,
       base_url: gen.base_url || null, email_mittente: gen.email_mittente || null,
       google_review_url: gen.google_review_url || null,
+      dati_fiscali: gen.dati_fiscali.trim() || null, dicitura_ricevuta: gen.dicitura_ricevuta.trim() || null,
     }).eq('id', palestraId);
     setInvio(false);
     if (error) { setErrore('Salvataggio non riuscito.'); return; }
@@ -90,6 +92,17 @@ export default function Sede({ palestraId, sedi, palestra }) {
         <div className="campo">
           <label htmlFor="gr">Link recensioni Google</label>
           <input id="gr" value={gen.google_review_url} onChange={setG('google_review_url')} />
+        </div>
+        <div className="campo">
+          <label htmlFor="gf">Dati fiscali</label>
+          <textarea id="gf" rows={4} value={gen.dati_fiscali} onChange={setG('dati_fiscali')}
+                    placeholder={'Ritmo Metropolitano ASD\nVia Artigianato 24, 36100 Vicenza\nC.F. … · P.IVA …'} />
+          <span className="piccolo muto">Stampati in testa a ricevute, note di credito, attestati e moduli firmati. Si va a capo per ogni riga.</span>
+        </div>
+        <div className="campo">
+          <label htmlFor="gd">Dicitura in fondo alle ricevute</label>
+          <textarea id="gd" rows={2} value={gen.dicitura_ricevuta} onChange={setG('dicitura_ricevuta')} />
+          <span className="piccolo muto">Es. "Documento non fiscale. Operazione esente da IVA…": fattela confermare dal commercialista.</span>
         </div>
         <button className="btn btn-primario" disabled={invio}>Salva i dati della scuola</button>
       </form>

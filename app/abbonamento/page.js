@@ -21,6 +21,10 @@ export default async function Abbonamento({ searchParams }) {
         <main className="pagina">
           <h1>Vuoi continuare con noi?</h1>
           <p>L'acquisto online dell'abbonamento sarà disponibile a breve. Per ora rispondi all'email che hai ricevuto o passa in segreteria: ti iscriviamo al corso in un attimo.</p>
+          <div className="home-bottoni" style={{ marginTop: 18 }}>
+            <Link href="/area" className="btn btn-primario btn-grande">Vai alla tua area</Link>
+            <Link href="/" className="btn btn-grande">Torna al sito</Link>
+          </div>
         </main>
       </>
     );
