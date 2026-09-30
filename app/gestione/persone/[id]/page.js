@@ -41,7 +41,7 @@ export default async function Persona({ params, searchParams }) {
     supabase.from('v_stato_clienti').select('stato, attivo, fine_prossima, prima_data, ultima_fine, certificato_scaduto, quota_mancante, quota_valida_fino, senza_orari, etichette_id, giorni_al_compleanno, ultima_presenza')
       .eq('id', id).maybeSingle(),
     supabase.from('iscrizioni')
-      .select('id, palestra_id, data_inizio, data_fine, stato, sconto_cent, ingressi_residui, corsi ( id, nome ), tipi_abbonamento ( nome, modalita, lezioni_settimanali ), iscrizioni_orari ( orario_id )')
+      .select('id, palestra_id, tipo_abbonamento_id, data_inizio, data_fine, stato, sconto_cent, note, ingressi_residui, corsi ( id, nome ), tipi_abbonamento ( nome, modalita, lezioni_settimanali, prezzo_cent ), iscrizioni_orari ( orario_id )')
       .eq('allievo_id', id).order('data_inizio', { ascending: false }),
     supabase.from('v_crediti').select('*').eq('allievo_id', id).order('scadenza', { ascending: false }),
     supabase.from('prove')
@@ -51,7 +51,7 @@ export default async function Persona({ params, searchParams }) {
       .order('caricato_at', { ascending: false }).limit(5),
     supabase.from('corsi').select('id, nome').eq('palestra_id', p).eq('attivo', true).order('nome'),
     supabase.from('tipi_abbonamento')
-      .select('id, nome, codice, famiglia, modalita, durata_mesi, durata_giorni, prezzo_cent, tipi_abbonamento_corsi ( corso_id )')
+      .select('id, nome, codice, famiglia, gruppo_id, modalita, durata_mesi, durata_giorni, prezzo_cent, tipi_abbonamento_corsi ( corso_id )')
       .eq('palestra_id', p).eq('attivo', true).eq('archiviato', false).order('famiglia').order('nome'),
     supabase.from('orari').select('id, corso_id, giorno_settimana, ora_inizio').eq('palestra_id', p).eq('attivo', true)
       .order('giorno_settimana').order('ora_inizio'),

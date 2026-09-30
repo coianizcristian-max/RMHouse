@@ -13,12 +13,13 @@ export default async function Area() {
 
   // al primo ingresso si collega l'utente all'anagrafica della segreteria
   await supabase.rpc('collega_account');
-  const [{ data }, { data: materiali }, { data: inVerifica }, aspetto, { data: miei }] = await Promise.all([
+  const [{ data }, { data: materiali }, { data: inVerifica }, aspetto, { data: miei }, { data: disdette }] = await Promise.all([
     supabase.rpc('area_riepilogo'),
     supabase.rpc('materiali_area'),
     supabase.from('certificati').select('allievo_id, scadenza, caricato_at').eq('stato', 'da_verificare'),
     aspettoAreaCliente(),
     supabase.from('account').select('consenso_marketing, consenso_chiesto_at').eq('user_id', user.id).limit(1),
+    supabase.rpc('disdette_area'),
   ]);
   // moduli obbligatori ancora da firmare, per sé e per i figli
   let moduliDaFirmare = 0;
@@ -41,5 +42,6 @@ export default async function Area() {
     );
   }
 
-  return <Riepilogo dati={data} materiali={materiali || []} inVerifica={inVerifica || []} aspetto={aspetto} chiediConsenso={chiediConsenso} moduliDaFirmare={moduliDaFirmare} />;
+  return <Riepilogo dati={data} materiali={materiali || []} inVerifica={inVerifica || []} aspetto={aspetto} chiediConsenso={chiediConsenso} moduliDaFirmare={moduliDaFirmare}
+                    disdette={disdette || {}} />;
 }

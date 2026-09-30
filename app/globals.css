@@ -1727,3 +1727,114 @@ a.persona-nome:hover { text-decoration: underline; text-underline-offset: 3px; }
 .guscio .carta-lezione .riga { font-size: 12px; margin-top: 2px; }
 .guscio .carta-lezione .numeri { margin-top: 5px; gap: 4px; }
 .guscio .carta-lezione .tag { margin-top: 5px; font-size: 11px; padding: 2px 8px; }
+
+/* ==================================================================
+   048 — iscrizioni, disdette, recuperi, gruppi di listino
+   ================================================================== */
+/* pannello che si apre sotto un'iscrizione */
+.azione-iscrizione {
+  margin-top: 10px; padding: 12px 14px; border: 1px solid var(--linea); border-radius: 12px;
+  background: var(--carta); display: grid; gap: 8px;
+}
+.azione-iscrizione.pericolo { border-color: #f5b5b5; background: var(--rosso-tenue); }
+.azione-iscrizione .campo { margin-bottom: 4px; }
+.azione-iscrizione .errore { margin: 0; }
+.ai-titolo { color: var(--nero); font-size: 15px; }
+.ai-griglia { display: grid; gap: 0 10px; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
+.ai-conti { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 14px; color: var(--testo-2); }
+.ai-conti strong { color: var(--nero); }
+.ai-incassi { display: grid; gap: 6px; padding: 10px 12px; background: var(--bianco); border: 1px solid var(--linea); border-radius: 10px; }
+.ai-incasso { margin: 0; font-size: 14px; }
+.ai-importo { display: inline-flex; align-items: center; gap: 6px; margin-top: 6px; font-size: 14px; }
+.ai-importo input { width: 90px; min-height: 36px; padding: 6px 10px; border: 1px solid var(--linea); border-radius: 8px; font: inherit; }
+.btn-pericolo { background: var(--rosso-scuro); border-color: var(--rosso-scuro); color: var(--bianco); }
+.btn-pericolo:hover { background: var(--rosso); border-color: var(--rosso); color: var(--bianco); }
+.azioni-riga .link-btn[aria-pressed='true'] { border-color: var(--nero); color: var(--nero); background: var(--carta); }
+
+/* sottopagine a schede: pulsanti veri, niente link sottolineati */
+.schede-sezione { display: flex; gap: 4px; margin-bottom: 16px; border-bottom: 1px solid var(--linea); overflow-x: auto; scrollbar-width: none; }
+.schede-sezione::-webkit-scrollbar { display: none; }
+.schede-sezione button {
+  flex: none; background: none; border: 0; border-bottom: 2.5px solid transparent; padding: 10px 12px; margin-bottom: -1px;
+  font: inherit; font-size: 14px; font-weight: 650; color: var(--testo-2); cursor: pointer; white-space: nowrap;
+  display: inline-flex; align-items: center; gap: 6px;
+}
+.schede-sezione button:hover { color: var(--nero); }
+.schede-sezione button[aria-selected='true'] { color: var(--nero); border-bottom-color: var(--rosso); }
+.conta-mini { background: var(--attenzione-tenue); color: var(--attenzione); border-radius: 999px; font-size: 11px; font-weight: 750; padding: 1px 7px; }
+
+/* scelta del gruppo: pochi segmenti, con il numero */
+.segmenti { display: inline-flex; flex-wrap: wrap; gap: 4px; padding: 4px; background: var(--carta); border-radius: 12px; margin-bottom: 12px; max-width: 100%; }
+.segmenti button {
+  border: 0; background: none; border-radius: 9px; padding: 8px 14px; font: inherit; font-size: 14px; font-weight: 650;
+  color: var(--testo-2); cursor: pointer; display: inline-flex; gap: 6px; align-items: center;
+}
+.segmenti button span { font-size: 12px; font-weight: 600; opacity: .7; }
+.segmenti button[aria-pressed='true'] { background: var(--bianco); color: var(--nero); box-shadow: 0 1px 4px rgba(0, 0, 0, .12); }
+.avviso-ok { background: var(--ok-tenue); color: var(--ok); border-radius: 10px; padding: 10px 14px; font-size: 14px; font-weight: 600; margin-bottom: 12px; }
+
+/* gruppi di listino */
+.gruppi-riquadri { display: grid; gap: 10px; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); margin-bottom: 14px; }
+.gruppo-riquadro {
+  text-align: left; display: grid; gap: 2px; padding: 12px 14px; border-radius: 12px; cursor: pointer;
+  border: 1.5px solid var(--linea); background: var(--bianco); font: inherit;
+}
+.gruppo-riquadro strong { font-size: 15px; color: var(--nero); }
+.gruppo-riquadro span { font-size: 13px; color: var(--testo-2); }
+.gruppo-riquadro:hover { border-color: var(--nero); }
+.gruppo-riquadro[aria-pressed='true'] { border-color: var(--rosso); background: var(--rosso-tenue); }
+.gruppo-riquadro.attenzione { border-style: dashed; }
+.gruppo-rinomina { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.gruppo-rinomina input, .gruppo-nuovo input { min-height: 40px; padding: 8px 12px; border: 1px solid var(--linea); border-radius: 10px; font: inherit; }
+.barra-sposta {
+  position: sticky; top: 8px; z-index: 5; display: flex; flex-wrap: wrap; gap: 8px; align-items: center;
+  padding: 10px 12px; margin-bottom: 10px; background: var(--nero); color: var(--bianco); border-radius: 12px;
+}
+.barra-sposta .muto { color: #cfcfcf; }
+.barra-sposta .link-btn { background: transparent; color: var(--bianco); border-color: #555; }
+.gruppo-famiglia { border-top: 1px solid var(--linea); padding: 8px 0 4px; }
+.gruppo-famiglia-testa { margin-bottom: 4px; }
+.gruppo-voce { margin: 0 0 6px 30px; font-size: 14px; }
+.guscio form.gruppo-nuovo { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 14px; }
+.guscio form.gruppo-nuovo > * { grid-column: auto; }
+.gruppo-nuovo { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 14px; }
+.gruppo-nuovo input { flex: 1 1 220px; max-width: 360px; }
+.coperti-scelta { display: grid; gap: 0 12px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); max-width: 760px; }
+
+/* recuperi e disdette */
+.regole-recupero { display: grid; gap: 0 16px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); align-items: end; }
+.con-unita { display: flex; align-items: center; gap: 10px; font-size: 14px; color: var(--testo-2); }
+.azione-iscrizione .con-unita input, .con-unita input { width: 76px; text-align: center; }
+.regole-salva { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
+.recupero-scelta { display: grid; gap: 0 12px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+.recupero-discipline { display: grid; gap: 4px; margin-bottom: 12px; }
+.recupero-disciplina { border-top: 1px solid var(--linea); padding-top: 8px; }
+.recupero-testa { margin-bottom: 6px; }
+.recupero-disciplina .pastiglie { margin-bottom: 6px; }
+.recupero-sottotitolo { margin: 18px 0 6px; font-size: 14px; }
+.riga-regola {
+  width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 2px;
+  background: none; border: 0; font: inherit; text-align: left; cursor: pointer; color: var(--testo);
+}
+.riga-regola:hover strong { text-decoration: underline; text-underline-offset: 3px; }
+
+/* area clienti: conferma del "Non vengo" dentro la scheda della lezione */
+.conferma-disdetta {
+  grid-column: 1 / -1; display: grid; gap: 8px; padding: 10px 12px; margin: 4px 8px 8px;
+  background: var(--rosso-tenue); border-radius: 10px; font-size: 14px; color: var(--nero);
+}
+
+@media (max-width: 899px) {
+  .segmenti { display: flex; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
+  .segmenti button { flex: none; white-space: nowrap; padding: 7px 11px; font-size: 13px; }
+  .gruppi-riquadri { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .gruppo-voce { margin-left: 26px; }
+  .barra-sposta { top: 4px; }
+  .ai-griglia { grid-template-columns: 1fr 1fr; }
+}
+.recuperi-pagina { display: grid; gap: 14px; }
+@media (max-width: 899px) {
+  .filtri-listino input[type='search'] { flex: 1 1 100%; }
+  .filtri-listino select { flex: 1 1 calc(50% - 4px); min-width: 0; }
+  .filtri-listino > .piccolo { display: none; }
+}

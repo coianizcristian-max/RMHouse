@@ -18,7 +18,7 @@ export default function Regole({ palestraId, aliquote, numerazioni }) {
             { k: 'percentuale', etichetta: 'Percentuale IVA', tipo: 'numero', obbligatorio: true },
             { k: 'natura', etichetta: 'Natura (se IVA a zero)', tipo: 'testo', aiuto: 'Es. N4 esente, N2.2 non soggetta' },
             { k: 'riferimento', etichetta: 'Dicitura sul documento', tipo: 'testo' },
-            { k: 'predefinita', etichetta: 'Predefinita', tipo: 'check' },
+            { k: 'predefinita', etichetta: 'Predefinita', tipo: 'check', predefinito: false },
             { k: 'attiva', etichetta: 'Attiva', tipo: 'check' },
           ]}
           riassunto={(x) => ({
@@ -41,7 +41,7 @@ export default function Regole({ palestraId, aliquote, numerazioni }) {
             { k: 'nome', etichetta: 'Nome', tipo: 'testo', obbligatorio: true },
             { k: 'tipo_documento', etichetta: 'Documenti', tipo: 'select', obbligatorio: true,
               opzioni: [{ v: 'ricevuta', l: 'Ricevute' }, { v: 'nota_credito', l: 'Note di credito' }] },
-            { k: 'predefinita', etichetta: 'Usata per i nuovi documenti di questo tipo', tipo: 'check' },
+            { k: 'predefinita', etichetta: 'Usata per i nuovi documenti di questo tipo', tipo: 'check', predefinito: false },
             { k: 'attiva', etichetta: 'Attiva', tipo: 'check' },
           ]}
           riassunto={(x) => ({

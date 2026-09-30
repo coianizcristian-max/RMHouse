@@ -1,7 +1,11 @@
 'use client';
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { supabaseBrowser } from '@/lib/supabase/browser';
 import Gestore from '../Gestore';
 import CorsiCoperti from './CorsiCoperti';
+import GruppiListino from './GruppiListino';
+import DoveSiRecupera from './DoveSiRecupera';
 import { euro } from '@/lib/formato';
 
 const MODALITA = [
@@ -15,67 +19,114 @@ const CATEGORIE_VOCI = [
   { v: 'evento', l: 'Evento o campus' }, { v: 'quota', l: 'Quota' }, { v: 'altro', l: 'Altro' },
 ];
 
+const SEZIONI = [
+  ['tipi', 'Tipi di abbonamento'], ['gruppi', 'Gruppi di listino'], ['coperti', 'Corsi coperti'],
+  ['recuperi', 'Recuperi e disdette'], ['listino', 'Altre voci a listino'],
+];
 
 const durata = (t) => t.durata_giorni
   ? `${t.durata_giorni} ${t.durata_giorni === 1 ? 'giorno' : 'giorni'}`
   : t.scadenza_fine_mese && t.durata_mesi === 1 ? 'mese solare'
   : `${t.durata_mesi} ${t.durata_mesi === 1 ? 'mese' : 'mesi'}${t.scadenza_fine_mese ? ' a fine mese' : ''}`;
 
-export default function Abbonamenti({ palestraId, tipi, corsi, regole, palestra, voci = [], coperti = [], aliquote = [] }) {
-  const opzioniAliquota = aliquote.map((a) => ({ v: a.id, l: a.predefinita ? `${a.nome} (predefinita)` : a.nome }));
+export default function Abbonamenti({ palestraId, sezioneIniziale = 'tipi', tipi, corsi, regole, palestra, voci = [], coperti = [], aliquote = [], gruppi = [] }) {
+  const router = useRouter();
+  // nel menù si vede sempre la percentuale: "Esente IVA · 0% N4"
+  const opzioniAliquota = aliquote.map((a) => {
+    const perc = `${Number(a.percentuale || 0)}%${a.natura ? ` ${a.natura}` : ''}`;
+    const nome = a.nome.includes('%') ? a.nome : `${a.nome} · ${perc}`;
+    return { v: a.id, l: a.predefinita ? `${nome} (predefinita)` : nome };
+  });
+  const opzioniGruppo = gruppi.map((g) => ({ v: g.id, l: g.nome }));
+  const [sezione, setSezione] = useState(SEZIONI.some(([k]) => k === sezioneIniziale) ? sezioneIniziale : 'tipi');
   const [cerca, setCerca] = useState('');
+  const [gruppo, setGruppo] = useState('');         // '' = tutti, 'nessuno' = senza gruppo
   const [famiglia, setFamiglia] = useState('');
   const [archiviati, setArchiviati] = useState(false);
-  const famiglie = [...new Set(tipi.filter((t) => !t.archiviato).map((t) => t.famiglia).filter(Boolean))];
+  const [avviso, setAvviso] = useState('');
+
+  const nelGruppo = (t) => !gruppo || (gruppo === 'nessuno' ? !t.gruppo_id : t.gruppo_id === gruppo);
+  const quanti = (g) => tipi.filter((t) => !t.archiviato && (g === 'nessuno' ? !t.gruppo_id : t.gruppo_id === g)).length;
+  const famiglie = [...new Set(tipi.filter((t) => !t.archiviato && nelGruppo(t)).map((t) => t.famiglia).filter(Boolean))].sort();
   const testo = cerca.trim().toLowerCase();
   const visibili = tipi.filter((t) =>
-    (archiviati ? t.archiviato : !t.archiviato) &&
+    (archiviati ? t.archiviato : !t.archiviato) && nelGruppo(t) &&
     (!famiglia || t.famiglia === famiglia) &&
-    (!testo || `${t.nome} ${t.codice || ''}`.toLowerCase().includes(testo)));
+    (!testo || `${t.nome} ${t.codice || ''} ${t.famiglia || ''}`.toLowerCase().includes(testo)));
   const quantiCorsi = (id) => coperti.filter((c) => c.tipo_abbonamento_id === id).length;
-  const [sezione, setSezione] = useState('tipi');
-  const nomeOrigine = (r) =>
-    r.origine === 'corso'
-      ? corsi.find((c) => c.id === r.origine_id)?.nome || 'corso eliminato'
-      : tipi.find((t) => t.id === r.origine_id)?.nome || 'abbonamento eliminato';
+  const nomeGruppo = (id) => gruppi.find((g) => g.id === id)?.nome;
+  const senzaGruppo = quanti('nessuno');
+
+  function vaiA(k) {
+    setSezione(k); setAvviso('');
+    window.history.replaceState(null, '', k === 'tipi' ? '/gestione/abbonamenti' : `/gestione/abbonamenti?sezione=${k}`);
+  }
+
+  // Un abbonamento già usato non si elimina: si archivia e resta nello storico
+  async function eliminaTipo(t, setErrore) {
+    if (!confirm(`Togliere "${t.nome}" dal listino?\nSe qualcuno l'ha già usato viene archiviato: non si vende più ma resta nello storico.`)) return;
+    const { data, error } = await supabaseBrowser().rpc('elimina_o_archivia_tipo', { p_tipo: t.id });
+    if (error) { setErrore('Operazione non riuscita.'); return; }
+    setAvviso(data === 'archiviato'
+      ? `"${t.nome}" è già stato usato: l'ho archiviato. Lo ritrovi con il filtro "Archiviati".`
+      : `"${t.nome}" eliminato.`);
+  }
 
   return (
     <>
       <div className="intestazione">
         <div className="occhiello">Impostazioni</div>
         <h1>Abbonamenti, recuperi e sconti</h1>
-        <p>Tipi di abbonamento, quota annuale, regole dei recuperi e preavvisi.</p>
+        <p>Listino diviso per gruppi, corsi coperti, regole dei recuperi e delle disdette.</p>
       </div>
-      <div className="filtri">
-        {[['tipi', 'Tipi di abbonamento'], ['coperti', 'Corsi coperti'], ['listino', 'Altre voci a listino'],
-          ['recuperi', 'Dove si recupera']].map(([k, l]) => (
-          <a key={k} href="#" onClick={(e) => { e.preventDefault(); setSezione(k); }}
-             aria-current={sezione === k ? 'true' : undefined}>{l}</a>
+      <div className="schede-sezione" role="tablist">
+        {SEZIONI.map(([k, l]) => (
+          <button key={k} type="button" role="tab" aria-selected={sezione === k} onClick={() => vaiA(k)}>
+            {l}{k === 'gruppi' && senzaGruppo > 0 && <span className="conta-mini">{senzaGruppo}</span>}
+          </button>
         ))}
       </div>
 
       {sezione === 'tipi' && (
         <>
-          <div className="barra-cerca">
-            <input type="search" placeholder="Cerca per nome o codice" value={cerca} onChange={(e) => setCerca(e.target.value)} />
+          {gruppi.length > 0 && (
+            <div className="segmenti" role="group" aria-label="Gruppo di listino">
+              <button type="button" aria-pressed={!gruppo} onClick={() => { setGruppo(''); setFamiglia(''); }}>
+                Tutti <span>{tipi.filter((t) => !t.archiviato).length}</span>
+              </button>
+              {gruppi.map((g) => (
+                <button key={g.id} type="button" aria-pressed={gruppo === g.id} onClick={() => { setGruppo(g.id); setFamiglia(''); }}>
+                  {g.nome} <span>{quanti(g.id)}</span>
+                </button>
+              ))}
+              {senzaGruppo > 0 && (
+                <button type="button" aria-pressed={gruppo === 'nessuno'} onClick={() => { setGruppo('nessuno'); setFamiglia(''); }}>
+                  Senza gruppo <span>{senzaGruppo}</span>
+                </button>
+              )}
+            </div>
+          )}
+          <div className="filtri-persone filtri-listino">
+            <input type="search" placeholder="Cerca per nome o codice" value={cerca} onChange={(e) => setCerca(e.target.value)} aria-label="Cerca abbonamento" />
+            <select value={famiglia} onChange={(e) => setFamiglia(e.target.value)} aria-label="Famiglia" className={famiglia ? 'scelto' : ''}>
+              <option value="">Famiglia: tutte ({famiglie.length})</option>
+              {famiglie.map((x) => <option key={x} value={x}>{x}</option>)}
+            </select>
+            <select value={archiviati ? 'si' : ''} onChange={(e) => setArchiviati(e.target.value === 'si')} aria-label="In vendita o archiviati"
+                    className={archiviati ? 'scelto' : ''}>
+              <option value="">In vendita</option>
+              <option value="si">Archiviati ({tipi.filter((t) => t.archiviato).length})</option>
+            </select>
             <span className="piccolo muto">{visibili.length} abbonamenti</span>
           </div>
-          <div className="pastiglie">
-            <button type="button" aria-pressed={!famiglia && !archiviati} onClick={() => { setFamiglia(''); setArchiviati(false); }}>Tutti</button>
-            {famiglie.map((x) => (
-              <button type="button" key={x} aria-pressed={famiglia === x && !archiviati}
-                      onClick={() => { setFamiglia(x); setArchiviati(false); }}>{x}</button>
-            ))}
-            {tipi.some((t) => t.archiviato) && (
-              <button type="button" aria-pressed={archiviati} onClick={() => { setArchiviati(true); setFamiglia(''); }}>Archiviati</button>
-            )}
-          </div>
+          {avviso && <div className="avviso-ok" role="status">{avviso}</div>}
           <Gestore
             tabella="tipi_abbonamento" fissi={{ palestra_id: palestraId }} righe={visibili} etichettaNuovo="Aggiungi abbonamento"
-            vuoto="Nessun abbonamento con questi filtri."
+            vuoto="Nessun abbonamento con questi filtri." onElimina={eliminaTipo}
             campi={[
               { k: 'nome', etichetta: 'Nome', tipo: 'testo', obbligatorio: true, aiuto: 'Es. "POLE DANCE 2 volte Trimestrale"' },
               { k: 'codice', etichetta: 'Codice', tipo: 'testo', aiuto: 'Il codice breve usato in segreteria, es. "P 24 lez"' },
+              { k: 'gruppo_id', etichetta: 'Gruppo di listino', tipo: 'select', opzioni: opzioniGruppo, vuotoTesto: '— nessuno —' },
               { k: 'famiglia', etichetta: 'Famiglia', tipo: 'testo', aiuto: 'Raggruppa gli abbonamenti simili: Aerea adulti, Street Kids e Teen…' },
               { k: 'modalita', etichetta: 'Tipo', tipo: 'select', opzioni: MODALITA, obbligatorio: true },
               { k: 'lezioni_settimanali', etichetta: 'Lezioni a settimana', tipo: 'numero' },
@@ -86,16 +137,17 @@ export default function Abbonamenti({ palestraId, tipi, corsi, regole, palestra,
               { k: 'durata_giorni', etichetta: 'Oppure durata in giorni', tipo: 'numero', aiuto: 'Se compilato vale questo: 1 = lezione singola, 28 = quattro settimane' },
               { k: 'scadenza_fine_mese', etichetta: 'Scade a fine mese solare', tipo: 'check' },
               { k: 'aliquota_id', etichetta: 'Aliquota IVA', tipo: 'select', opzioni: opzioniAliquota, vuotoTesto: '— la predefinita —' },
-              { k: 'recuperi_max', etichetta: 'Recuperi massimi', tipo: 'numero', aiuto: 'Vuoto = illimitati, 0 = nessun recupero' },
+              { k: 'recuperi_max', etichetta: 'Recuperi massimi', tipo: 'numero', aiuto: 'Per tutta la durata. Vuoto = illimitati, 0 = nessun recupero' },
               { k: 'giorni_validita_recupero', etichetta: 'Validità recupero (giorni)', tipo: 'numero' },
               { k: 'acquistabile_online', etichetta: 'Acquistabile online dal cliente', tipo: 'check' },
-              { k: 'rinnovo_automatico', etichetta: 'Online si può scegliere il rinnovo automatico mensile', tipo: 'check' },
+              { k: 'rinnovo_automatico', etichetta: 'Online si può scegliere il rinnovo automatico mensile', tipo: 'check', predefinito: false },
               { k: 'attivo', etichetta: 'Attivo', tipo: 'check' },
-              { k: 'archiviato', etichetta: 'Archiviato (non si vende più, resta nello storico)', tipo: 'check' },
+              { k: 'archiviato', etichetta: 'Archiviato (non si vende più, resta nello storico)', tipo: 'check', predefinito: false },
             ]}
             riassunto={(t) => ({
               titolo: t.codice ? `${t.nome} · ${t.codice}` : t.nome,
               dettaglio: [
+                !gruppo && nomeGruppo(t.gruppo_id),
                 t.famiglia,
                 MODALITA.find((m) => m.v === t.modalita)?.l
                   + (t.lezioni_settimanali ? ` ${t.lezioni_settimanali}×sett.` : '')
@@ -104,14 +156,21 @@ export default function Abbonamenti({ palestraId, tipi, corsi, regole, palestra,
                 euro(t.prezzo_cent) + (t.prezzo_web_cent != null && t.prezzo_web_cent !== t.prezzo_cent ? ` · online ${euro(t.prezzo_web_cent)}` : ''),
                 `${quantiCorsi(t.id) || 'tutti i'} corsi`,
               ].filter(Boolean).join(' · '),
-              tag: t.archiviato ? 'archiviato' : t.attivo ? (t.acquistabile_online ? null : 'solo segreteria') : 'non attivo',
+              tag: t.archiviato ? 'archiviato' : !t.gruppo_id ? 'senza gruppo' : t.attivo ? (t.acquistabile_online ? null : 'solo segreteria') : 'non attivo',
             })}
           />
         </>
       )}
 
+      {sezione === 'gruppi' && <GruppiListino palestraId={palestraId} gruppi={gruppi} tipi={tipi.filter((t) => !t.archiviato)} />}
+
       {sezione === 'coperti' && (
-        <CorsiCoperti tipi={tipi.filter((t) => !t.archiviato)} corsi={corsi} coperti={coperti} />
+        <CorsiCoperti tipi={tipi.filter((t) => !t.archiviato)} corsi={corsi} coperti={coperti} gruppi={gruppi} />
+      )}
+
+      {sezione === 'recuperi' && (
+        <DoveSiRecupera palestra={palestra} corsi={corsi} tipi={tipi.filter((t) => !t.archiviato)} regole={regole} gruppi={gruppi}
+                        onSalvato={() => router.refresh()} />
       )}
 
       {sezione === 'listino' && (
@@ -135,33 +194,6 @@ export default function Abbonamenti({ palestraId, tipi, corsi, regole, palestra,
               titolo: v.codice ? `${v.nome} · ${v.codice}` : v.nome,
               dettaglio: [CATEGORIE_VOCI.find((c) => c.v === v.categoria)?.l, euro(v.prezzo_cent)].filter(Boolean).join(' · '),
               tag: v.attiva ? null : 'non attiva',
-            })}
-          />
-        </>
-      )}
-
-      {sezione === 'recuperi' && (
-        <>
-          <h2>Dove si può recuperare</h2>
-          <p className="muto piccolo">
-            Una regola dice: chi frequenta questo corso (o ha questo abbonamento) può recuperare in quest'altro corso.
-            Il proprio corso è sempre ammesso, anche senza regole.
-          </p>
-          <Gestore
-            tabella="recuperi_ammessi" fissi={{ palestra_id: palestraId }} righe={regole} etichettaNuovo="Aggiungi regola"
-            vuoto="Nessuna regola: si recupera solo nello stesso corso."
-            campi={[
-              { k: 'origine', etichetta: 'La regola vale per', tipo: 'select', obbligatorio: true,
-                opzioni: [{ v: 'corso', l: 'Chi frequenta un corso' }, { v: 'abbonamento', l: 'Chi ha un abbonamento' }] },
-              { k: 'origine_id', etichetta: 'Corso o abbonamento di partenza', tipo: 'select', obbligatorio: true,
-                opzioni: [...corsi.map((c) => ({ v: c.id, l: `Corso: ${c.nome}` })),
-                          ...tipi.map((t) => ({ v: t.id, l: `Abbonamento: ${t.nome}` }))] },
-              { k: 'corso_ammesso_id', etichetta: 'Può recuperare in', tipo: 'select', obbligatorio: true,
-                opzioni: corsi.map((c) => ({ v: c.id, l: c.nome })) },
-            ]}
-            riassunto={(r) => ({
-              titolo: `${nomeOrigine(r)} → ${corsi.find((c) => c.id === r.corso_ammesso_id)?.nome || '—'}`,
-              dettaglio: r.origine === 'corso' ? 'Regola per corso' : 'Regola per abbonamento',
             })}
           />
         </>

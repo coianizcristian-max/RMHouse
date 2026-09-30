@@ -15,7 +15,8 @@ export default function Gestore({ tabella, campi, righe, fissi = {}, riassunto, 
   const [errore, setErrore] = useState('');
   const [invio, setInvio] = useState(false);
 
-  const vuota = Object.fromEntries(campi.map((c) => [c.k, c.tipo === 'check' ? true : '']));
+  // le caselle nuove partono spuntate, salvo quelle con predefinito: false
+  const vuota = Object.fromEntries(campi.map((c) => [c.k, c.tipo === 'check' ? (c.predefinito ?? true) : '']));
 
   function apriNuovo() {
     setBozza({ ...vuota, ...(campi.find((c) => c.k === 'ordine') ? { ordine: righe.length + 1 } : {}) });

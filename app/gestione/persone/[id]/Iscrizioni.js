@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import { supabaseBrowser } from '@/lib/supabase/browser';
 import { dataBreve, euro } from '@/lib/formato';
 import AssegnaGiorni from '../../AssegnaGiorni';
+import AzioniIscrizione from './AzioniIscrizione';
 
 const GIORNI = ['', 'lun', 'mar', 'mer', 'gio', 'ven', 'sab', 'dom'];
 const ERRORI = {
@@ -17,6 +18,7 @@ export default function Iscrizioni({ allievoId, iscrizioni, corsi, tipi, orari, 
   const [apri, setApri] = useState(apriSubito);
   const [errore, setErrore] = useState('');
   const [invio, setInvio] = useState(false);
+  const [azione, setAzione] = useState(null);   // { id, modo }
   const [f, setF] = useState({
     corso_id: '', tipo_abbonamento_id: '', data_inizio: new Date().toISOString().slice(0, 10),
     orari: [], sconto: '', quota: false, note: '',
@@ -81,23 +83,8 @@ export default function Iscrizioni({ allievoId, iscrizioni, corsi, tipi, orari, 
     router.refresh();
   }
 
-  async function sospendi(iscrizione) {
-    const dal = prompt('Sospensione dal (AAAA-MM-GG):', new Date().toISOString().slice(0, 10));
-    if (!dal) return;
-    const al = prompt('Fino al (AAAA-MM-GG):');
-    if (!al) return;
-    const motivo = prompt('Motivo (infortunio, gravidanza…):') || null;
-    const { error } = await supabaseBrowser().from('sospensioni').insert({
-      palestra_id: iscrizione.palestra_id, iscrizione_id: iscrizione.id, dal, al, motivo,
-    });
-    if (error) { setErrore('Sospensione non registrata. Controlla le date.'); return; }
-    router.refresh();
-  }
-
-  async function cambiaStato(id, stato) {
-    const { error } = await supabaseBrowser().from('iscrizioni').update({ stato }).eq('id', id);
-    if (error) { setErrore('Modifica non riuscita.'); return; }
-    router.refresh();
+  function apriAzione(id, modo) {
+    setAzione((a) => (a?.id === id && a.modo === modo ? null : { id, modo }));
   }
 
   return (
@@ -108,11 +95,12 @@ export default function Iscrizioni({ allievoId, iscrizioni, corsi, tipi, orari, 
       <ul className="elenco">
         {iscrizioni.map((i) => (
           <li key={i.id} className="persona" style={{ alignItems: 'start' }}>
-            <div>
+            <div style={{ minWidth: 0, flex: 1 }}>
               <span className="persona-nome">{i.corsi?.nome}</span>
               <div className="piccolo muto">
                 {i.tipi_abbonamento?.nome} · dal {dataBreve(i.data_inizio)} al {dataBreve(i.data_fine)}
                 {i.sconto_cent > 0 && ` · sconto ${euro(i.sconto_cent)}`}
+                {i.note && <span style={{ display: 'block' }}>{i.note}</span>}
               </div>
               {i.stato === 'attiva' && i.tipi_abbonamento?.modalita === 'orari_fissi' && (
                 <div style={{ marginTop: 6 }}>
@@ -126,14 +114,19 @@ export default function Iscrizioni({ allievoId, iscrizioni, corsi, tipi, orari, 
                   />
                 </div>
               )}
-              {i.stato === 'attiva' && (
-                <div className="azioni-riga">
-                  <button className="link-btn piccolo" onClick={() => sospendi(i)}>Sospendi</button>
-                  <button className="link-btn piccolo" onClick={() => cambiaStato(i.id, 'annullata')}>Annulla</button>
-                </div>
+              <div className="azioni-riga">
+                {(i.stato === 'attiva' || i.stato === 'sospesa') && <>
+                  <button className="link-btn piccolo" aria-pressed={azione?.id === i.id && azione.modo === 'modifica'} onClick={() => apriAzione(i.id, 'modifica')}>Modifica</button>
+                  <button className="link-btn piccolo" aria-pressed={azione?.id === i.id && azione.modo === 'sospendi'} onClick={() => apriAzione(i.id, 'sospendi')}>Sospendi</button>
+                  <button className="link-btn piccolo" aria-pressed={azione?.id === i.id && azione.modo === 'annulla'} onClick={() => apriAzione(i.id, 'annulla')}>Annulla</button>
+                </>}
+                <button className="link-btn piccolo pericolo" aria-pressed={azione?.id === i.id && azione.modo === 'elimina'} onClick={() => apriAzione(i.id, 'elimina')}>Elimina</button>
+              </div>
+              {azione?.id === i.id && (
+                <AzioniIscrizione key={azione.modo} iscrizione={i} tipi={tipi} modo={azione.modo} chiudi={() => setAzione(null)} />
               )}
             </div>
-            <span className={`tag ${i.stato === 'attiva' ? 'tag-ok' : 'tag-neutro'}`}>{i.stato}</span>
+            <span className={`tag ${i.stato === 'attiva' ? 'tag-ok' : i.stato === 'sospesa' ? 'tag-attenzione' : 'tag-neutro'}`}>{i.stato}</span>
           </li>
         ))}
       </ul>

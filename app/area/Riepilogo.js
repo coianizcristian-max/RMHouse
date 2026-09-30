@@ -7,8 +7,23 @@ import { ora, dataBreve, giornoLungo } from '@/lib/formato';
 import Notifiche from './Notifiche';
 import CaricaCertificato from '../CaricaCertificato';
 
-export default function Riepilogo({ dati, materiali = [], inVerifica = [], aspetto = {}, chiediConsenso = false, moduliDaFirmare = 0 }) {
+const MOTIVI_DISDETTA = {
+  troppo_tardi: 'Ormai è tardi per disdire da qui: chiama la segreteria.',
+  lezione_gia_iniziata: 'La lezione è già iniziata.',
+  gia_disdetta: 'Questa lezione era già disdetta.',
+  credito_gia_usato: 'Il recupero di questa lezione è già stato usato: non si può tornare indietro.',
+  lezione_al_completo: 'Nel frattempo il posto è stato preso: la lezione è al completo.',
+};
+const motivo = (e, base) => MOTIVI_DISDETTA[Object.keys(MOTIVI_DISDETTA).find((k) => e?.message?.includes(k))] || base;
+
+export default function Riepilogo({ dati, materiali = [], inVerifica = [], aspetto = {}, chiediConsenso = false, moduliDaFirmare = 0, disdette = {} }) {
   const router = useRouter();
+  const [chiedo, setChiedo] = useState(null);   // lezione su cui si sta confermando "Non vengo"
+  const ore = disdette.ore_disdetta ?? 4;
+  const giaDisdette = disdette.disdette || [];
+  const chiave = (l) => `${l.lezione_id}-${l.allievo_id}`;
+  const disdicibile = (l) => new Date(l.inizio).getTime() - ore * 3600000 > Date.now();
+  const prossime = dati.prossime.filter((l) => !giaDisdette.some((d) => d.lezione_id === l.lezione_id && d.allievo_id === l.allievo_id));
   const [errore, setErrore] = useState('');
   const [avviso, setAvviso] = useState('');
   const [invio, setInvio] = useState(false);
@@ -33,8 +48,28 @@ export default function Riepilogo({ dati, materiali = [], inVerifica = [], aspet
     setInvio(true); setErrore(''); setAvviso('');
     const { error } = await supabaseBrowser().rpc('annulla_recupero', { p_prenotazione: l.prenotazione_id });
     setInvio(false);
-    if (error) { setErrore('Non è stato possibile disdire. Chiama la segreteria.'); return; }
+    if (error) { setErrore(motivo(error, 'Non è stato possibile disdire. Chiama la segreteria.')); return; }
     setAvviso('Recupero disdetto: il credito è di nuovo disponibile.');
+    router.refresh();
+  }
+
+  async function nonVengo(l) {
+    setInvio(true); setErrore(''); setAvviso('');
+    const { data, error } = await supabaseBrowser().rpc('disdici_lezione', { p_lezione: l.lezione_id, p_allievo: l.allievo_id });
+    setInvio(false); setChiedo(null);
+    if (error) { setErrore(motivo(error, 'Non è stato possibile disdire. Chiama la segreteria.')); router.refresh(); return; }
+    setAvviso(data?.credito
+      ? `Lezione disdetta: hai un recupero da usare entro il ${dataBreve(data.scadenza)}.`
+      : 'Lezione disdetta. Questo abbonamento non prevede recuperi.');
+    router.refresh();
+  }
+
+  async function ciVengo(d) {
+    setInvio(true); setErrore(''); setAvviso('');
+    const { error } = await supabaseBrowser().rpc('ripristina_lezione', { p_lezione: d.lezione_id, p_allievo: d.allievo_id });
+    setInvio(false);
+    if (error) { setErrore(motivo(error, 'Non è stato possibile. Chiama la segreteria.')); return; }
+    setAvviso('Perfetto, ti aspettiamo a lezione.');
     router.refresh();
   }
 
@@ -51,8 +86,8 @@ export default function Riepilogo({ dati, materiali = [], inVerifica = [], aspet
         <h1>Ciao {dati.titolare.nome}</h1>
         {aspetto.benvenuto && <p style={{ whiteSpace: 'pre-line' }}>{aspetto.benvenuto}</p>}
         <p>
-          {dati.prossime.length > 0
-            ? `La prossima lezione è ${giornoLungo(dati.prossime[0].inizio).toLowerCase()} alle ${ora(dati.prossime[0].inizio)}.`
+          {prossime.length > 0
+            ? `La prossima lezione è ${giornoLungo(prossime[0].inizio).toLowerCase()} alle ${ora(prossime[0].inizio)}.`
             : 'Non ci sono lezioni in programma nei prossimi giorni.'}
         </p>
       </div>
@@ -134,9 +169,14 @@ export default function Riepilogo({ dati, materiali = [], inVerifica = [], aspet
       )}
 
       <h2 className="sezione">Le prossime lezioni</h2>
-      {dati.prossime.length === 0 && <div className="vuoto">Nessuna lezione nei prossimi giorni.</div>}
-      {dati.prossime.map((l) => (
-        <div key={`${l.lezione_id}-${l.allievo_id}`} className="scheda-corso" style={{ gridTemplateColumns: '6px 1fr auto' }}>
+      {prossime.length === 0 && <div className="vuoto">Nessuna lezione nei prossimi giorni.</div>}
+      {prossime.length > 0 && (
+        <p className="piccolo muto" style={{ marginTop: -4 }}>
+          Non puoi venire? Tocca "Non vengo" fino a {ore} {ore === 1 ? 'ora' : 'ore'} prima: il posto si libera e ti diamo un recupero.
+        </p>
+      )}
+      {prossime.map((l) => (
+        <div key={chiave(l)} className="scheda-corso" style={{ gridTemplateColumns: '6px 1fr auto' }}>
           <span className="banda" style={{ background: l.colore || 'var(--rosso)' }} />
           <span className="centro">
             <span className="ora-grande">{ora(l.inizio)}</span>
@@ -151,14 +191,52 @@ export default function Riepilogo({ dati, materiali = [], inVerifica = [], aspet
             {l.tipo === 'recupero' && (
               <>
                 <span className="tag tag-neutro">recupero</span>
-                <button className="link-btn piccolo" style={{ display: 'block', marginTop: 6 }}
-                        disabled={invio} onClick={() => disdici(l)}>disdici</button>
+                {disdicibile(l)
+                  ? <button className="link-btn piccolo" style={{ display: 'block', marginTop: 6 }}
+                            disabled={invio} onClick={() => disdici(l)}>disdici</button>
+                  : <span className="piccolo muto" style={{ display: 'block', marginTop: 6 }}>disdetta chiusa</span>}
               </>
             )}
             {l.tipo === 'prova' && <span className="tag tag-rosso">prova</span>}
+            {l.tipo === 'iscritto' && l.stato_lezione !== 'annullata' && (
+              disdicibile(l)
+                ? <button className="link-btn piccolo" disabled={invio} onClick={() => setChiedo(chiave(l))}>Non vengo</button>
+                : <span className="piccolo muto">disdetta chiusa</span>
+            )}
           </span>
+          {chiedo === chiave(l) && (
+            <span className="conferma-disdetta">
+              <span>Disdici {l.corso} di {giornoLungo(l.inizio).toLowerCase()} alle {ora(l.inizio)}{dati.allievi.length > 1 ? ` per ${l.allievo}` : ''}?</span>
+              <span className="azioni">
+                <button className="btn btn-primario btn-piccolo" disabled={invio} onClick={() => nonVengo(l)}>{invio ? 'Un attimo…' : 'Sì, disdico'}</button>
+                <button className="btn btn-piccolo" onClick={() => setChiedo(null)}>No</button>
+              </span>
+            </span>
+          )}
         </div>
       ))}
+
+      {giaDisdette.length > 0 && (
+        <>
+          <h2 className="sezione">Lezioni disdette</h2>
+          <ul className="elenco">
+            {giaDisdette.map((d) => (
+              <li key={`${d.lezione_id}-${d.allievo_id}`} className="persona">
+                <span>
+                  {d.corso}
+                  <span className="piccolo muto" style={{ display: 'block', textTransform: 'capitalize' }}>
+                    {giornoLungo(d.inizio)} alle {ora(d.inizio)}{dati.allievi.length > 1 ? ` · ${d.allievo}` : ''}
+                    {d.credito ? (d.credito_usato ? ' · recupero già usato' : ' · recupero disponibile') : ''}
+                  </span>
+                </span>
+                {!d.credito_usato && (
+                  <button className="link-btn piccolo" disabled={invio} onClick={() => ciVengo(d)}>Ci vengo lo stesso</button>
+                )}
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
 
       {dati.crediti.length > 0 && (
         <>

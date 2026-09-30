@@ -12,9 +12,11 @@ const MOTIVI = {
   certificato_scaduto: 'Prima serve il certificato medico valido.',
   corso_non_ammesso_per_recupero: 'Su quel corso non si può recuperare.',
   credito_non_valido: 'Questo credito è già stato usato.',
+  lezione_disdetta: 'È la lezione che è stata disdetta: scegline un\'altra.',
+  limite_recuperi_mese: 'Hai già fatto tutti i recuperi di quel mese: scegli una lezione del mese dopo, se il recupero vale ancora.',
 };
 
-export default function Recuperi({ crediti, piuAllievi }) {
+export default function Recuperi({ crediti, piuAllievi, massimo = null, usati = {} }) {
   const router = useRouter();
   const [errore, setErrore] = useState('');
   const [avviso, setAvviso] = useState('');
@@ -43,6 +45,11 @@ export default function Recuperi({ crediti, piuAllievi }) {
         <div className="occhiello">La mia area</div>
         <h1>Recuperi</h1>
         <p>Le lezioni che puoi recuperare e dove usarle.</p>
+        {massimo != null && (
+          <p className="piccolo muto">
+            Si possono fare al massimo {massimo} {massimo === 1 ? 'recupero' : 'recuperi'} al mese a persona.
+          </p>
+        )}
       </div>
 
       {errore && <div className="errore" role="alert">{errore}</div>}
@@ -59,6 +66,7 @@ export default function Recuperi({ crediti, piuAllievi }) {
           <h2 className="sezione">{c.corso}</h2>
           <p className="piccolo muto" style={{ marginTop: -4 }}>
             {piuAllievi ? `${c.allievo} · ` : ''}da usare entro il {dataBreve(c.scadenza)}
+            {massimo != null && ` · questo mese ${usati[c.allievo_id] || 0} di ${massimo}`}
           </p>
 
           {c.lezioni.length === 0 ? (

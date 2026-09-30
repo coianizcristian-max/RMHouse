@@ -4,8 +4,10 @@ import { useRouter } from 'next/navigation';
 import { supabaseBrowser } from '@/lib/supabase/browser';
 
 // Quali corsi dà diritto a frequentare ogni abbonamento. Nessun corso = tutti.
-export default function CorsiCoperti({ tipi, corsi, coperti }) {
+export default function CorsiCoperti({ tipi: tutti, corsi, coperti, gruppi = [] }) {
   const router = useRouter();
+  const [gruppo, setGruppo] = useState('');
+  const tipi = gruppo ? tutti.filter((t) => t.gruppo_id === gruppo) : tutti;
   const [tipoId, setTipoId] = useState(tipi[0]?.id || '');
   const [errore, setErrore] = useState('');
   const iniziali = useMemo(() => new Set(coperti.filter((c) => c.tipo_abbonamento_id === tipoId).map((c) => c.corso_id)),
@@ -37,7 +39,20 @@ export default function CorsiCoperti({ tipi, corsi, coperti }) {
         qualcuno a un corso. Se non ne tocchi nessuno, l'abbonamento vale per tutti i corsi.
       </p>
       {errore && <div className="errore" role="alert">{errore}</div>}
-      <div className="campo" style={{ maxWidth: 560 }}>
+      <div className="coperti-scelta">
+      {gruppi.length > 0 && (
+        <div className="campo">
+          <label htmlFor="gruppo-coperti">Gruppo</label>
+          <select id="gruppo-coperti" value={gruppo} onChange={(e) => {
+            const g = e.target.value; setGruppo(g);
+            setTipoId((g ? tutti.filter((t) => t.gruppo_id === g) : tutti)[0]?.id || '');
+          }}>
+            <option value="">Tutti i gruppi</option>
+            {gruppi.map((g) => <option key={g.id} value={g.id}>{g.nome}</option>)}
+          </select>
+        </div>
+      )}
+      <div className="campo">
         <label htmlFor="tipo-coperti">Abbonamento</label>
         <select id="tipo-coperti" value={tipoId} onChange={(e) => setTipoId(e.target.value)}>
           {famiglie.map((f) => (
@@ -48,6 +63,7 @@ export default function CorsiCoperti({ tipi, corsi, coperti }) {
             </optgroup>
           ))}
         </select>
+      </div>
       </div>
       <p className="piccolo muto">{scelti.size ? `${scelti.size} corsi coperti` : 'Vale per tutti i corsi'}</p>
       <div className="pastiglie">
