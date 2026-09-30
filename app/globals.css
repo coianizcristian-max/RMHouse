@@ -1838,3 +1838,7 @@ a.persona-nome:hover { text-decoration: underline; text-underline-offset: 3px; }
   .filtri-listino select { flex: 1 1 calc(50% - 4px); min-width: 0; }
   .filtri-listino > .piccolo { display: none; }
 }
+
+/* 049 — appello: chi ha avvisato */
+.avvisati .persona-nome { color: var(--testo-2); }
+.avvisato-destra { display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }

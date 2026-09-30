@@ -10,12 +10,15 @@ export default async function PaginaAppello({ params }) {
   const { id } = await params;
   const { supabase, staff } = await staffCorrente();
 
-  const [{ data: lezione }, { data: persone }, { data: dettagli }] = await Promise.all([
+  const [{ data: lezione }, { data: persone }, { data: dettagli }, { data: avvisati }] = await Promise.all([
     supabase.from('v_lezioni').select('*').eq('id', id).maybeSingle(),
     supabase.from('v_appello')
       .select('allievo_id, tipo, nome, cognome, data_nascita, certificato_scadenza, bloccato, certificato_in_scadenza, quota_mancante, presente')
       .eq('lezione_id', id),
     supabase.from('v_prenotati').select('allievo_id, origine, telefono, email, prenotato_il').eq('lezione_id', id),
+    // chi ha avvisato che non viene: non è più in appello, ma si vede sotto
+    supabase.from('assenze_avvisate').select('allievo_id, da, created_at, credito_id, allievi ( nome, cognome )')
+      .eq('lezione_id', id).order('created_at'),
   ]);
 
   const { data: postazioni } = await supabase.rpc('postazioni_lezione', { p_lezione: id });
@@ -38,7 +41,8 @@ export default async function PaginaAppello({ params }) {
       {lezione.stato === 'annullata' && <div className="errore">Lezione annullata{lezione.note ? `: ${lezione.note}` : ''}.</div>}
       <Appello lezioneId={lezione.id} palestraId={staff.palestra_id} persone={elenco}
                corsoNome={lezione.corso_nome} gestione={staff.ruolo !== 'insegnante'}
-               postazioni={postazioni || []} />
+               postazioni={postazioni || []} avvisati={avvisati || []}
+               finita={new Date(lezione.fine) < new Date()} />
     </>
   );
 }

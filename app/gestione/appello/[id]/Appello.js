@@ -2,14 +2,25 @@
 import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabaseBrowser } from '@/lib/supabase/browser';
-import { etaAl } from '@/lib/formato';
+import { etaAl, ora, dataBreve } from '@/lib/formato';
 
 const ETICHETTE = { prova: ['In prova', 'tag-rosso'], recupero: ['Recupero', 'tag-attenzione'], ingresso: ['Ingresso', 'tag-neutro'] };
 
-export default function Appello({ lezioneId, palestraId, persone, corsoNome = '', gestione = true, postazioni = [] }) {
+const ERRORI_AVVISO = {
+  gia_presente: 'È già segnato presente: togli prima la presenza.',
+  lezione_finita: 'La lezione è finita: segna "No" nella presenza.',
+  lezione_annullata: 'La lezione è annullata.',
+  non_iscritto_a_questa_lezione: 'Non è fra gli iscritti fissi di questa lezione: per prove e recuperi usa "togli".',
+  credito_gia_usato: 'Il recupero di questa lezione è già stato usato: non si può tornare indietro.',
+  lezione_al_completo: 'Nel frattempo il posto è stato preso.',
+};
+const erroreAvviso = (e) => ERRORI_AVVISO[Object.keys(ERRORI_AVVISO).find((k) => e?.message?.includes(k))] || 'Operazione non riuscita.';
+
+export default function Appello({ lezioneId, palestraId, persone, corsoNome = '', gestione = true, postazioni = [], avvisati = [], finita = false }) {
   const router = useRouter();
   const [presenze, setPresenze] = useState(Object.fromEntries(persone.map((p) => [p.allievo_id, p.presente])));
   const [errore, setErrore] = useState('');
+  const [avviso, setAvviso] = useState('');
   const [cerca, setCerca] = useState('');
   const [aggiungi, setAggiungi] = useState(false);
   const [testoCerca, setTestoCerca] = useState('');
@@ -76,6 +87,26 @@ export default function Appello({ lezioneId, palestraId, persone, corsoNome = ''
     router.refresh();
   }
 
+  // "Ha avvisato": esce dall'appello, il posto si libera, nasce il recupero se l'abbonamento lo prevede
+  async function haAvvisato(p) {
+    if (!confirm(`${p.nome} ${p.cognome} ha avvisato che non viene?\nEsce da questo appello, il posto si libera e riceve il recupero (se l'abbonamento lo prevede).`)) return;
+    setErrore(''); setAvviso('');
+    const { data, error } = await supabaseBrowser().rpc('disdici_lezione', { p_lezione: lezioneId, p_allievo: p.allievo_id });
+    if (error) { setErrore(erroreAvviso(error)); return; }
+    setAvviso(data?.credito
+      ? `${p.nome} ${p.cognome}: segnato, recupero da usare entro il ${dataBreve(data.scadenza)}.`
+      : `${p.nome} ${p.cognome}: segnato. Il suo abbonamento non prevede recuperi.`);
+    router.refresh();
+  }
+
+  async function ripristina(a) {
+    if (!confirm(`Rimettere ${a.allievi?.nome} ${a.allievi?.cognome} in appello? Il recupero dato per questa lezione viene tolto.`)) return;
+    setErrore(''); setAvviso('');
+    const { error } = await supabaseBrowser().rpc('ripristina_lezione', { p_lezione: lezioneId, p_allievo: a.allievo_id });
+    if (error) { setErrore(erroreAvviso(error)); return; }
+    router.refresh();
+  }
+
   async function messaggio() {
     const testo = prompt('Cosa vuoi scrivere a chi è prenotato a questa lezione?');
     if (!testo?.trim()) return;
@@ -133,7 +164,35 @@ export default function Appello({ lezioneId, palestraId, persone, corsoNome = ''
     segna(p.allievo_id, v !== true, p.bloccato && v !== true);
   };
 
-  if (!persone.length) return <div className="vuoto">Nessun iscritto o prova per questa lezione.</div>;
+  const sezioneAvvisati = avvisati.length > 0 && (
+    <>
+      <h2 className="sezione">Hanno avvisato <span className="piccolo muto">· {avvisati.length}</span></h2>
+      <ul className="elenco avvisati">
+        {avvisati.map((a) => (
+          <li key={a.allievo_id} className="persona">
+            <span>
+              <span className="persona-nome">{a.allievi?.cognome} {a.allievi?.nome}</span>
+              <span className="piccolo muto" style={{ display: 'block' }}>
+                {a.da === 'cliente' ? 'ha disdetto dall\'area clienti' : 'segnato dalla segreteria'} il {dataBreve(a.created_at)} alle {ora(a.created_at)}
+              </span>
+            </span>
+            <span className="avvisato-destra">
+              <span className={`tag ${a.credito_id ? 'tag-ok' : 'tag-neutro'}`}>{a.credito_id ? 'recupero dato' : 'senza recupero'}</span>
+              {gestione && !finita && <button className="link-btn piccolo" onClick={() => ripristina(a)}>rimetti</button>}
+            </span>
+          </li>
+        ))}
+      </ul>
+    </>
+  );
+
+  if (!persone.length) return (
+    <>
+      {errore && <div className="errore" role="alert">{errore}</div>}
+      <div className="vuoto">Nessun iscritto o prova per questa lezione.</div>
+      {sezioneAvvisati}
+    </>
+  );
 
   const presenti = Object.values(presenze).filter((v) => v === true).length;
   const nProve = persone.filter((p) => p.tipo === 'prova').length;
@@ -147,6 +206,7 @@ export default function Appello({ lezioneId, palestraId, persone, corsoNome = ''
         {persone.length - nProve} iscritti{nProve > 0 && `, ${nProve} in prova`} · tocca una riga per segnare la presenza
       </p>
       {errore && <div className="errore" role="alert">{errore}</div>}
+      {avviso && <div className="avviso-ok" role="status">{avviso}</div>}
 
       {postazioni.length > 0 && (
         <>
@@ -227,7 +287,10 @@ export default function Appello({ lezioneId, palestraId, persone, corsoNome = ''
                   {p.certificato_in_scadenza && <span className="tag tag-attenzione">Certificato in scadenza</span>}
                   {p.quota_mancante && <span className="tag tag-attenzione">Quota da pagare</span>}
                   {p.origine && p.origine !== 'abbonamento' && <span className="tag tag-neutro">da {p.origine}</span>}
-                  {gestione && (
+                  {gestione && p.tipo === 'iscritto' && !finita && valore !== true && (
+                    <button className="link-btn piccolo" onClick={(e) => { e.stopPropagation(); haAvvisato(p); }}>ha avvisato</button>
+                  )}
+                  {gestione && p.tipo !== 'iscritto' && (
                     <button className="link-btn piccolo" onClick={(e) => { e.stopPropagation(); togli(p); }}>togli</button>
                   )}
                 </div>
@@ -241,6 +304,8 @@ export default function Appello({ lezioneId, palestraId, persone, corsoNome = ''
           );
         })}
       </ul>
+
+      {sezioneAvvisati}
 
       {/* riepilogo sempre visibile mentre si scorre l'elenco */}
       <div className="barra-appello">
