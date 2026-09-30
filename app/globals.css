@@ -1851,3 +1851,14 @@ a.persona-nome:hover { text-decoration: underline; text-underline-offset: 3px; }
 .nuova-campi { display: flex; flex-wrap: wrap; gap: 8px; }
 .nuova-campi input { flex: 1 1 180px; min-width: 0; min-height: 42px; padding: 8px 12px; border: 1px solid var(--linea); border-radius: 10px; font: inherit; }
 .azioni-riga .link-btn[aria-pressed='true'] { border-color: var(--nero); color: var(--nero); background: var(--carta); }
+
+/* 051 — titoletti nelle liste divise per sezione (abbonamenti per durata) */
+.elenco > li.gestore-sezione {
+  display: flex; align-items: center; gap: 8px; padding: 16px 4px 6px; border-bottom: 2px solid var(--nero);
+  font-size: 13px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; color: var(--nero); background: none;
+}
+.elenco > li.gestore-sezione:hover { background: none; }
+.elenco > li.gestore-sezione span { font-weight: 650; color: var(--testo-2); letter-spacing: 0; }
+@media (max-width: 899px) {
+  .filtri-listino select:first-of-type { flex-basis: 100%; }
+}

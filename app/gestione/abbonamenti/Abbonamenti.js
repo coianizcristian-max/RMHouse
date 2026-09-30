@@ -24,10 +24,28 @@ const SEZIONI = [
   ['recuperi', 'Recuperi e disdette'], ['listino', 'Altre voci a listino'],
 ];
 
-const durata = (t) => t.durata_giorni
-  ? `${t.durata_giorni} ${t.durata_giorni === 1 ? 'giorno' : 'giorni'}`
-  : t.scadenza_fine_mese && t.durata_mesi === 1 ? 'mese solare'
-  : `${t.durata_mesi} ${t.durata_mesi === 1 ? 'mese' : 'mesi'}${t.scadenza_fine_mese ? ' a fine mese' : ''}`;
+// Durata come la calcola il database: il mese solare vince sui "28 giorni"
+const solare = (t) => t.scadenza_fine_mese && !(t.durata_giorni && t.durata_giorni < 28);
+const durata = (t) => {
+  if (t.durata_giorni && !solare(t)) return `${t.durata_giorni} ${t.durata_giorni === 1 ? 'giorno' : 'giorni'}`;
+  const m = t.durata_mesi || 1;
+  if (solare(t)) return m === 1 ? 'mese solare' : `${m} mesi solari`;
+  return `${m} ${m === 1 ? 'mese' : 'mesi'} dal giorno d'inizio`;
+};
+
+// Per l'ordine "per durata": singole, mensili, trimestrali, annuali…, poi i pacchetti a ingressi
+const NOMI_MESI = { 1: 'Mensili', 2: 'Bimestrali', 3: 'Trimestrali', 4: 'Quadrimestrali', 6: 'Semestrali' };
+function fascia(t) {
+  if (t.modalita === 'ingressi') return { ordine: 900, chiave: 'ingressi', titolo: 'Pacchetti a ingressi' };
+  const g = t.durata_giorni;
+  if (g && g < 28) return g === 1
+    ? { ordine: 0, chiave: 'singola', titolo: 'Lezioni singole' }
+    : { ordine: 1, chiave: 'giorni', titolo: 'A giorni' };
+  const m = g && !solare(t) ? Math.max(1, Math.round(g / 30)) : (t.durata_mesi || 1);
+  if (m >= 9) return { ordine: 12, chiave: 'annuali', titolo: 'Annuali (da 9 a 12 mesi)' };
+  return { ordine: m, chiave: `m${m}`, titolo: NOMI_MESI[m] || `${m} mesi` };
+}
+const perNome = (a, b) => a.nome.localeCompare(b.nome, 'it', { numeric: true, sensitivity: 'base' });
 
 export default function Abbonamenti({ palestraId, sezioneIniziale = 'tipi', tipi, corsi, regole, palestra, voci = [], coperti = [], aliquote = [], gruppi = [] }) {
   const router = useRouter();
@@ -43,6 +61,7 @@ export default function Abbonamenti({ palestraId, sezioneIniziale = 'tipi', tipi
   const [gruppo, setGruppo] = useState('');         // '' = tutti, 'nessuno' = senza gruppo
   const [famiglia, setFamiglia] = useState('');
   const [archiviati, setArchiviati] = useState(false);
+  const [ordine, setOrdine] = useState('durata');   // 'durata' | 'nome'
   const [avviso, setAvviso] = useState('');
 
   const nelGruppo = (t) => !gruppo || (gruppo === 'nessuno' ? !t.gruppo_id : t.gruppo_id === gruppo);
@@ -52,7 +71,8 @@ export default function Abbonamenti({ palestraId, sezioneIniziale = 'tipi', tipi
   const visibili = tipi.filter((t) =>
     (archiviati ? t.archiviato : !t.archiviato) && nelGruppo(t) &&
     (!famiglia || t.famiglia === famiglia) &&
-    (!testo || `${t.nome} ${t.codice || ''} ${t.famiglia || ''}`.toLowerCase().includes(testo)));
+    (!testo || `${t.nome} ${t.codice || ''} ${t.famiglia || ''}`.toLowerCase().includes(testo)))
+    .sort(ordine === 'durata' ? (a, b) => (fascia(a).ordine - fascia(b).ordine) || perNome(a, b) : perNome);
   const quantiCorsi = (id) => coperti.filter((c) => c.tipo_abbonamento_id === id).length;
   const nomeGruppo = (id) => gruppi.find((g) => g.id === id)?.nome;
   const senzaGruppo = quanti('nessuno');
@@ -112,6 +132,10 @@ export default function Abbonamenti({ palestraId, sezioneIniziale = 'tipi', tipi
               <option value="">Famiglia: tutte ({famiglie.length})</option>
               {famiglie.map((x) => <option key={x} value={x}>{x}</option>)}
             </select>
+            <select value={ordine} onChange={(e) => setOrdine(e.target.value)} aria-label="Ordine" className={ordine !== 'durata' ? 'scelto' : ''}>
+              <option value="durata">Per durata</option>
+              <option value="nome">Alfabetico</option>
+            </select>
             <select value={archiviati ? 'si' : ''} onChange={(e) => setArchiviati(e.target.value === 'si')} aria-label="In vendita o archiviati"
                     className={archiviati ? 'scelto' : ''}>
               <option value="">In vendita</option>
@@ -123,6 +147,7 @@ export default function Abbonamenti({ palestraId, sezioneIniziale = 'tipi', tipi
           <Gestore
             tabella="tipi_abbonamento" fissi={{ palestra_id: palestraId }} righe={visibili} etichettaNuovo="Aggiungi abbonamento"
             vuoto="Nessun abbonamento con questi filtri." onElimina={eliminaTipo}
+            sezione={ordine === 'durata' ? fascia : undefined}
             campi={[
               { k: 'nome', etichetta: 'Nome', tipo: 'testo', obbligatorio: true, aiuto: 'Es. "POLE DANCE 2 volte Trimestrale"' },
               { k: 'codice', etichetta: 'Codice', tipo: 'testo', aiuto: 'Il codice breve usato in segreteria, es. "P 24 lez"' },
@@ -136,7 +161,7 @@ export default function Abbonamenti({ palestraId, sezioneIniziale = 'tipi', tipi
               { k: 'prezzo_web_cent', etichetta: 'Prezzo online (€)', tipo: 'euro', aiuto: 'Vuoto = uguale al prezzo in segreteria' },
               { k: 'durata_mesi', etichetta: 'Durata (mesi)', tipo: 'numero', obbligatorio: true, predefinito: '1' },
               { k: 'durata_giorni', etichetta: 'Oppure durata in giorni', tipo: 'numero', aiuto: 'Se compilato vale questo: 1 = lezione singola, 28 = quattro settimane' },
-              { k: 'scadenza_fine_mese', etichetta: 'Scade a fine mese solare', tipo: 'check' },
+              { k: 'scadenza_fine_mese', etichetta: 'Scade a fine mese solare', tipo: 'check', aiuto: 'Chi paga il 10 scade a fine mese (trimestrale: a fine del terzo mese). Vale anche se c\'è la durata in giorni, da 28 in su.' },
               { k: 'aliquota_id', etichetta: 'Aliquota IVA', tipo: 'select', opzioni: opzioniAliquota, vuotoTesto: '— la predefinita —' },
               { k: 'recuperi_max', etichetta: 'Recuperi massimi', tipo: 'numero', aiuto: 'Per tutta la durata. Vuoto = illimitati, 0 = nessun recupero' },
               { k: 'giorni_validita_recupero', etichetta: 'Validità recupero (giorni)', tipo: 'numero', predefinito: '30', aiuto: 'Vuoto = 30 giorni' },

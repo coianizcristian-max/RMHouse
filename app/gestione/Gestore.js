@@ -8,7 +8,8 @@ import { supabaseBrowser } from '@/lib/supabase/browser';
 //           opzioni?: [{v,l}], obbligatorio?, aiuto?, meta? }]
 // fissi: valori sempre applicati (es. { palestra_id, corso_id })
 // riassunto(riga) -> { titolo, dettaglio, tag?, colore? }
-export default function Gestore({ tabella, campi, righe, fissi = {}, riassunto, etichettaNuovo = 'Aggiungi', vuoto = 'Ancora niente qui.', onElimina }) {
+// sezione(riga) -> { chiave, titolo }: se c'è, le righe (già in ordine) sono divise da un titoletto
+export default function Gestore({ tabella, campi, righe, fissi = {}, riassunto, etichettaNuovo = 'Aggiungi', vuoto = 'Ancora niente qui.', onElimina, sezione }) {
   const router = useRouter();
   const [apri, setApri] = useState(null);       // id della riga in modifica, oppure 'nuovo'
   const [bozza, setBozza] = useState({});
@@ -71,7 +72,15 @@ export default function Gestore({ tabella, campi, righe, fissi = {}, riassunto, 
       {righe.length === 0 && apri !== 'nuovo' && <div className="vuoto">{vuoto}</div>}
 
       <ul className="elenco">
-        {righe.map((r) => (
+        {righe.map((r, i) => {
+          const sez = sezione?.(r);
+          const nuovaSezione = sez && (i === 0 || sezione(righe[i - 1]).chiave !== sez.chiave);
+          return [
+          nuovaSezione && (
+            <li key={`sez-${sez.chiave}`} className="gestore-sezione">
+              {sez.titolo} <span>{righe.filter((x) => sezione(x).chiave === sez.chiave).length}</span>
+            </li>
+          ),
           <li key={r.id}>
             {apri === r.id ? (
               <Modulo campi={campi} bozza={bozza} setBozza={setBozza} salva={salva} annulla={() => setApri(null)} invio={invio} />
@@ -94,8 +103,9 @@ export default function Gestore({ tabella, campi, righe, fissi = {}, riassunto, 
                 </div>
               </div>
             )}
-          </li>
-        ))}
+          </li>,
+          ];
+        })}
       </ul>
 
       {apri === 'nuovo' ? (
@@ -119,7 +129,7 @@ function Modulo({ campi, bozza, setBozza, salva, annulla, invio }) {
           return (
             <label className="spunta" key={c.k}>
               <input type="checkbox" checked={!!bozza[c.k]} onChange={(e) => set(c.k, e.target.checked)} />
-              <span>{c.etichetta}</span>
+              <span>{c.etichetta}{c.aiuto && <span className="piccolo muto" style={{ display: 'block' }}>{c.aiuto}</span>}</span>
             </label>
           );
         }
