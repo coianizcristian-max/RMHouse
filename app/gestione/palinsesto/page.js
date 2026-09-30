@@ -9,7 +9,7 @@ export default async function PaginaPalinsesto() {
   if (staff.ruolo === 'insegnante') redirect('/gestione');
   const p = staff.palestra_id;
 
-  const [categorie, discipline, livelli, fasce, sale, insegnanti, chiusure] = await Promise.all([
+  const [categorie, discipline, livelli, fasce, sale, insegnanti, chiusure, corsiD] = await Promise.all([
     supabase.from('categorie').select('*').eq('palestra_id', p).order('ordine'),
     supabase.from('discipline').select('*').eq('palestra_id', p).order('ordine'),
     supabase.from('livelli').select('*').eq('palestra_id', p).order('ordine'),
@@ -17,6 +17,7 @@ export default async function PaginaPalinsesto() {
     supabase.from('sale').select('*').eq('palestra_id', p).order('nome'),
     supabase.from('staff').select('*').eq('palestra_id', p).order('nome'),
     supabase.from('chiusure').select('*').eq('palestra_id', p).order('dal', { ascending: false }),
+    supabase.from('corsi').select('id, disciplina_id').eq('palestra_id', p),
   ]);
 
   return (
@@ -25,6 +26,7 @@ export default async function PaginaPalinsesto() {
       dati={{
         categorie: categorie.data || [], discipline: discipline.data || [], livelli: livelli.data || [],
         fasce: fasce.data || [], sale: sale.data || [], insegnanti: insegnanti.data || [], chiusure: chiusure.data || [],
+        corsi: corsiD.data || [],
       }}
     />
   );

@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import ArchiviaCorso from './ArchiviaCorso';
 import Materiali from '../Materiali';
 import { notFound, redirect } from 'next/navigation';
 import { staffCorrente } from '@/lib/staff';
@@ -58,6 +59,7 @@ export default async function Corso({ params, searchParams }) {
           <h1>{corso.corso_nome}</h1>
           <div className="scheda-sotto">
             <span>{[corso.categoria, corso.disciplina, corso.fascia, corso.livello, corso.sede].filter(Boolean).join(' · ')}</span>
+            {corso.attivo === false && <span className="tag tag-attenzione">archiviato</span>}
             {corso.visibilita !== 'pubblico' && <span className="tag tag-neutro">nascosto</span>}
             {corso.prenotabile === false && <span className="tag tag-neutro">non prenotabile</span>}
           </div>
@@ -66,6 +68,7 @@ export default async function Corso({ params, searchParams }) {
           <Link className="btn btn-piccolo" href={`/gestione/corsi/${id}/modifica`}>Modifica corso</Link>
           {base?.slug && <Link className="btn btn-piccolo" href={`/corsi/${base.slug}`} target="_blank">Pagina pubblica</Link>}
           <a className="btn btn-piccolo" href={`/api/corsi/${id}/csv`}>Esporta iscritti</a>
+          <ArchiviaCorso corsoId={id} nome={corso.corso_nome} attivo={corso.attivo !== false} />
         </div>
       </div>
 

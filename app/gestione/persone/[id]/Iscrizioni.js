@@ -12,9 +12,9 @@ const ERRORI = {
   allievo_non_trovato: 'Allievo non trovato.',
 };
 
-export default function Iscrizioni({ allievoId, iscrizioni, corsi, tipi, orari, quotaCent, sconti = {}, famigliaIscritta = 0 }) {
+export default function Iscrizioni({ allievoId, iscrizioni, corsi, tipi, orari, quotaCent, sconti = {}, famigliaIscritta = 0, apriSubito = false }) {
   const router = useRouter();
-  const [apri, setApri] = useState(false);
+  const [apri, setApri] = useState(apriSubito);
   const [errore, setErrore] = useState('');
   const [invio, setInvio] = useState(false);
   const [f, setF] = useState({
@@ -24,7 +24,11 @@ export default function Iscrizioni({ allievoId, iscrizioni, corsi, tipi, orari, 
 
   // il pulsante "Nuova iscrizione" in cima alla scheda apre direttamente il modulo
   useEffect(() => {
-    const apriDaLink = () => { if (window.location.hash === '#nuova-iscrizione') setApri(true); };
+    const apriDaLink = () => {
+      if (window.location.hash !== '#nuova-iscrizione' && !apriSubito) return;
+      setApri(true);
+      setTimeout(() => document.getElementById('modulo-iscrizione')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 120);
+    };
     apriDaLink();
     window.addEventListener('hashchange', apriDaLink);
     return () => window.removeEventListener('hashchange', apriDaLink);
@@ -135,7 +139,7 @@ export default function Iscrizioni({ allievoId, iscrizioni, corsi, tipi, orari, 
       </ul>
 
       {apri ? (
-        <form onSubmit={crea} style={{ marginTop: 16 }}>
+        <form onSubmit={crea} style={{ marginTop: 16, scrollMarginTop: 80 }} id="modulo-iscrizione">
           <div className="campo">
             <label htmlFor="corso">Corso</label>
             <select id="corso" value={f.corso_id} onChange={(e) => setF({ ...f, corso_id: e.target.value, orari: [] })}>

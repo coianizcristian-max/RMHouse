@@ -69,6 +69,28 @@ export default function Settimana({ inizio, lezioni, corsi = [], palestraId, ges
   const dalle = Math.floor(Math.min(...inizi) / 60) * 60;
   const alle = Math.ceil(Math.max(...fini) / 60) * 60;
   const px = 1.1;
+
+  // Lezioni alla stessa ora in sale diverse: una accanto all'altra, non una sopra l'altra
+  const corsie = {};
+  for (const g of giorni) {
+    const delGiorno = lezioni.filter((l) => l.data === g).sort((a, b) => MINUTI(a.inizio) - MINUTI(b.inizio));
+    let gruppo = []; let fineGruppo = -1;
+    const chiudi = () => {
+      const n = Math.max(1, ...gruppo.map((x) => x.c + 1));
+      gruppo.forEach((x) => { corsie[x.l.lezione_id] = { i: x.c, n }; });
+      gruppo = [];
+    };
+    for (const l of delGiorno) {
+      const ini = MINUTI(l.inizio), fin = MINUTI(l.fine);
+      if (gruppo.length && ini >= fineGruppo) chiudi();
+      const occupate = gruppo.filter((x) => MINUTI(x.l.fine) > ini).map((x) => x.c);
+      let c = 0; while (occupate.includes(c)) c++;
+      gruppo.push({ l, c });
+      fineGruppo = Math.max(fineGruppo, fin);
+    }
+    if (gruppo.length) chiudi();
+  }
+  const colonneMax = Math.max(1, ...Object.values(corsie).map((x) => x.n));
   const altezza = (alle - dalle) * px;
   const oggi = new Date().toLocaleDateString('sv-SE');
   const proveGiorno = (g) => lezioni.filter((l) => l.data === g).reduce((s, l) => s + (l.prove || 0), 0);
@@ -90,8 +112,9 @@ export default function Settimana({ inizio, lezioni, corsi = [], palestraId, ges
     <>
       {errore && <div className="errore" role="alert">{errore}</div>}
 
-      <div style={{ overflowX: 'auto', paddingBottom: 8, WebkitOverflowScrolling: 'touch' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '42px repeat(7, minmax(96px, 1fr))', minWidth: 720 }}>
+      <div style={{ overflowX: 'auto', paddingBottom: 8, WebkitOverflowScrolling: 'touch', maxWidth: '100%' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: `42px repeat(7, minmax(${Math.min(96 * colonneMax, 300)}px, 1fr))`,
+                      minWidth: 42 + 7 * Math.min(96 * colonneMax, 300) }}>
           <div />
           {giorni.map((g, i) => (
             <button key={g} type="button" onClick={() => apriGiorno(g)}
@@ -124,15 +147,18 @@ export default function Settimana({ inizio, lezioni, corsi = [], palestraId, ges
               {lezioni.filter((l) => l.data === g).map((l) => {
                 const top = (MINUTI(l.inizio) - dalle) * px;
                 const h = Math.max((MINUTI(l.fine) - MINUTI(l.inizio)) * px, 34);
+                const k = corsie[l.lezione_id] || { i: 0, n: 1 };
                 return (
                   <button key={l.lezione_id} type="button" onClick={() => { setScelta(l); setDaOggi(false); setTavolozza(false); }}
                           style={{
-                            position: 'absolute', top, left: 2, right: 2, height: h - 2,
+                            position: 'absolute', top, height: h - 2,
+                            left: `calc(${(k.i * 100) / k.n}% + 2px)`, width: `calc(${100 / k.n}% - 4px)`,
                             borderRadius: 6, padding: '4px 5px', textAlign: 'left', cursor: 'pointer',
                             font: 'inherit', fontSize: 11, lineHeight: 1.15, overflow: 'hidden', ...stile(l),
                           }}>
                     <strong style={{ display: 'block', fontSize: 12 }}>{ora(l.inizio)}</strong>
                     <span style={{ display: 'block', fontWeight: 600 }}>{l.corso_nome}</span>
+                    {k.n > 1 && l.sala_nome && <span style={{ display: 'block', opacity: .8 }}>{l.sala_nome}</span>}
                     <span>
                       {l.iscritti}{l.capienza ? `/${l.capienza}` : ''}{l.prove > 0 ? ` +${l.prove}p` : ''}
                       {l.prenotabile === false ? ' · chiuso' : ''}

@@ -1584,3 +1584,63 @@ a.persona-nome:hover { text-decoration: underline; text-underline-offset: 3px; }
   .guscio .pipeline { grid-auto-columns: 80vw; scroll-snap-type: x mandatory; margin-right: calc(-1 * var(--spazio)); }
   .guscio .pipe-colonna { scroll-snap-align: start; }
 }
+
+/* Cerca veloce e promemoria nella pagina iniziale */
+.cerca-veloce { position: relative; margin: 0 0 16px; }
+.cv-riga { display: flex; gap: 8px; flex-wrap: wrap; }
+.cv-riga input {
+  flex: 1 1 320px; min-height: 48px; padding: 10px 16px; font: inherit; font-size: 16px;
+  border: 1.5px solid var(--linea); border-radius: 14px; background: var(--bianco);
+}
+.cv-riga input:focus { border-color: var(--rosso); box-shadow: 0 0 0 3px var(--rosso-tenue); outline: none; }
+.cv-riga .btn { flex: none; min-height: 48px; }
+.cv-risultati {
+  position: absolute; z-index: 30; left: 0; right: 0; top: calc(100% + 6px); list-style: none; margin: 0; padding: 6px;
+  background: var(--bianco); border: 1px solid var(--linea); border-radius: 16px; box-shadow: 0 16px 40px rgba(0,0,0,.12);
+  max-height: 60vh; overflow-y: auto;
+}
+.cv-risultati button {
+  width: 100%; display: grid; grid-template-columns: 1fr auto; gap: 0 10px; text-align: left; padding: 10px 12px;
+  border: 0; background: none; border-radius: 10px; font: inherit; cursor: pointer; color: var(--nero);
+}
+.cv-risultati button .piccolo { grid-column: 1; }
+.cv-risultati button .cv-vai { grid-column: 2; grid-row: 1 / span 2; align-self: center; font-weight: 750; color: var(--rosso-scuro); font-size: 14px; }
+.cv-risultati button:hover, .cv-risultati button.attivo { background: var(--carta); }
+.vuoto-cv { padding: 14px 16px; }
+
+.promemoria { margin-bottom: 16px; }
+.conta-rossa { display: inline-grid; place-items: center; min-width: 24px; height: 24px; padding: 0 7px; border-radius: 999px; background: var(--rosso); color: var(--bianco); font-size: 13px; vertical-align: 3px; }
+.pm-nuovo { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+.pm-nuovo input { min-height: 42px; padding: 8px 12px; font: inherit; border: 1.5px solid var(--linea); border-radius: 12px; background: var(--bianco); }
+.pm-nuovo input:not([type='date']) { flex: 1 1 240px; }
+.pm-elenco { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+.pm-elenco li { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; padding: 7px 2px; border-top: 1px solid var(--linea); }
+.pm-elenco li.fatto > label > span { text-decoration: line-through; color: var(--testo-2); }
+
+.pagamenti-totali { display: flex; flex-wrap: wrap; gap: 8px 22px; margin: -2px 0 10px; }
+.pagamenti-totali > span { display: grid; }
+.pagamenti-totali strong { font-size: 20px; color: var(--nero); }
+.pag-destra { display: grid; justify-items: end; gap: 2px; flex: none; }
+.unisci { display: grid; gap: 6px; background: var(--carta); border-radius: 12px; padding: 10px 12px; }
+.unisci input { min-height: 40px; padding: 8px 12px; font: inherit; border: 1.5px solid var(--linea); border-radius: 10px; background: var(--bianco); }
+
+/* Gli affitti delle sale (partner) sono sempre verdi */
+:root { --verde-affitto: #16a34a; }
+.calendario-scelta .impegno.noleggio { background: var(--verde-affitto); border-color: var(--verde-affitto); color: #fff; }
+.tag-affitto { background: #dcfce7; color: #166534; }
+/* il contenuto non si allarga mai oltre lo schermo: le griglie larghe scorrono dentro il loro riquadro */
+.guscio .contenuto { min-width: 0; }
+.pm-nuovo { display: grid; grid-template-columns: minmax(0, 1fr) 170px auto; align-items: center; }
+.pm-nuovo input { width: 100%; }
+.pm-nuovo .btn { min-height: 42px; }
+@media (max-width: 720px) {
+  .pm-nuovo { grid-template-columns: minmax(0, 1fr) auto; }
+  .pm-nuovo input:not([type='date']) { grid-column: 1 / -1; }
+}
+.guscio .pannello form.pm-nuovo { display: grid; grid-template-columns: minmax(0, 1fr) 170px auto; gap: 8px; }
+.guscio .pannello form.pm-nuovo > * { grid-column: auto; }
+@media (max-width: 720px) {
+  .guscio .pannello form.pm-nuovo { grid-template-columns: minmax(0, 1fr) auto; }
+  .guscio .pannello form.pm-nuovo > input:not([type='date']) { grid-column: 1 / -1; }
+}
+.guscio .scheda-testa h1 { font-size: clamp(26px, 3vw, 40px); line-height: 1.1; }

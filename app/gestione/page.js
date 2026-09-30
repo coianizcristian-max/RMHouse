@@ -1,4 +1,6 @@
 import Link from 'next/link';
+import CercaVeloce from './CercaVeloce';
+import Promemoria from './Promemoria';
 import { staffCorrente } from '@/lib/staff';
 import { ora, oggiISO, euro, dataBreve } from '@/lib/formato';
 import { STATI_CLIENTE, TIPI_SCADENZA } from '@/lib/stati';
@@ -45,7 +47,7 @@ export default async function Home() {
     .eq('palestra_id', p).eq('data', oggiISO()).order('inizio');
   if (!gestione) lezioniQ = lezioniQ.eq('insegnante_id', staff.id);
 
-  const [{ data: k }, { data: lezioni }, { data: corsi }, { data: scadenze }, { count: rateScadute }] = await Promise.all([
+  const [{ data: k }, { data: lezioni }, { data: corsi }, { data: scadenze }, { count: rateScadute }, { data: promemoria }] = await Promise.all([
     gestione ? supabase.rpc('cruscotto', { p_palestra: p }) : Promise.resolve({ data: null }),
     lezioniQ,
     supabase.from('corsi').select('id, colore').eq('palestra_id', p),
@@ -57,6 +59,9 @@ export default async function Home() {
     gestione
       ? supabase.from('v_rate').select('id', { count: 'exact', head: true }).eq('palestra_id', p).eq('scaduta', true)
       : Promise.resolve({ count: 0 }),
+    // promemoria di oggi, quelli rimasti indietro non fatti, e quelli fatti oggi
+    supabase.from('promemoria').select('*').eq('palestra_id', p).lte('data', oggiISO())
+      .or(`fatto.eq.false,data.eq.${oggiISO()}`).order('data').order('created_at').limit(40),
   ]);
 
   const colore = (id) => corsi?.find((c) => c.id === id)?.colore || 'var(--rosso)';
@@ -98,12 +103,14 @@ export default async function Home() {
         </div>
         {gestione && (
           <div className="azioni">
-            <Link className="btn btn-primario" href="/gestione/persone/nuova">Registra una persona</Link>
+            <Link className="btn btn-primario" href="/gestione/persone/nuova">Nuovo cliente</Link>
             <Link className="btn" href="/gestione/incassi">Incassa</Link>
             <Link className="btn" href="/gestione/scadenze">Scadenze</Link>
           </div>
         )}
       </div>
+
+      {gestione && <CercaVeloce palestraId={p} />}
 
       {gestione && k && (
         <div className="kpi">
@@ -139,6 +146,8 @@ export default async function Home() {
           </Link>
         </div>
       )}
+
+      <Promemoria palestraId={p} voci={promemoria || []} chi={staff.nome} oggi={oggiISO()} />
 
       <div className={gestione ? 'cruscotto-3' : ''}>
         {gestione && (

@@ -5,7 +5,7 @@ import { supabaseBrowser } from '@/lib/supabase/browser';
 import { dataBreve } from '@/lib/formato';
 import Immagine from '../../Immagine';
 
-export default function Anagrafica({ allievo, linkCertificato }) {
+export default function Anagrafica({ allievo, linkCertificato, ente}) {
   const router = useRouter();
   const [apri, setApri] = useState(false);
   const [copiato, setCopiato] = useState(false);
@@ -69,7 +69,7 @@ export default function Anagrafica({ allievo, linkCertificato }) {
           <dd>{a.email ? <a href={`mailto:${a.email}`}>{a.email}</a> : <span style={{ color: 'var(--rosso-scuro)' }}>nessuna: non riceve messaggi</span>}</dd>
           {allievo.codice_fiscale && <><dt>Codice fiscale</dt><dd>{allievo.codice_fiscale}</dd></>}
           {a.codice_fiscale && a.codice_fiscale !== allievo.codice_fiscale && <><dt>CF di chi paga</dt><dd>{a.codice_fiscale}</dd></>}
-          {allievo.tessera && <><dt>Tessera</dt><dd>{allievo.tessera}</dd></>}
+          <dt>Tessera {ente || ''}</dt><dd>{allievo.tessera || <span className="muto">da inserire (Modifica)</span>}</dd>
           {allievo.luogo_nascita && <><dt>Nato a</dt><dd>{allievo.luogo_nascita}</dd></>}
           <dt>Certificato</dt>
           <dd>
@@ -102,7 +102,7 @@ export default function Anagrafica({ allievo, linkCertificato }) {
       </div>
       <div className="riga-2">
         <div className="campo"><label htmlFor="cfa">Codice fiscale</label><input id="cfa" value={f.cf_allievo} onChange={set('cf_allievo')} /></div>
-        <div className="campo"><label htmlFor="tes">Tessera</label><input id="tes" value={f.tessera} onChange={set('tessera')} /></div>
+        <div className="campo"><label htmlFor="tes">Numero di tessera {ente || ''}</label><input id="tes" value={f.tessera} onChange={set('tessera')} /></div>
       </div>
       <div className="campo"><label htmlFor="note">Note</label><textarea id="note" value={f.note} onChange={set('note')} /></div>
 

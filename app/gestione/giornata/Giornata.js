@@ -66,7 +66,7 @@ export default function Giornata({ colonne, blocchi, oggi }) {
               const stile = {
                 top, height: h - 3,
                 ...(b.tipo === 'affitto'
-                  ? { background: 'repeating-linear-gradient(135deg, var(--carta), var(--carta) 6px, #fff 6px, #fff 12px)', borderColor: 'var(--testo-2)' }
+                  ? { background: 'var(--verde-affitto)', borderColor: 'var(--verde-affitto)', color: '#fff' }
                   : { background: colore, borderColor: colore, color: testoSu(colore) }),
                 opacity: b.annullata ? 0.45 : 1,
               };

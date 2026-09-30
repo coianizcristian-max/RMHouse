@@ -8,7 +8,7 @@ import { supabaseBrowser } from '@/lib/supabase/browser';
 //           opzioni?: [{v,l}], obbligatorio?, aiuto?, meta? }]
 // fissi: valori sempre applicati (es. { palestra_id, corso_id })
 // riassunto(riga) -> { titolo, dettaglio, tag?, colore? }
-export default function Gestore({ tabella, campi, righe, fissi = {}, riassunto, etichettaNuovo = 'Aggiungi', vuoto = 'Ancora niente qui.' }) {
+export default function Gestore({ tabella, campi, righe, fissi = {}, riassunto, etichettaNuovo = 'Aggiungi', vuoto = 'Ancora niente qui.', onElimina }) {
   const router = useRouter();
   const [apri, setApri] = useState(null);       // id della riga in modifica, oppure 'nuovo'
   const [bozza, setBozza] = useState({});
@@ -55,6 +55,7 @@ export default function Gestore({ tabella, campi, righe, fissi = {}, riassunto, 
   }
 
   async function elimina(r) {
+    if (onElimina) { await onElimina(r, setErrore); router.refresh(); return; }
     const { titolo } = riassunto(r);
     if (!confirm(`Eliminare "${titolo}"? L'operazione non si può annullare.`)) return;
     const { error } = await supabaseBrowser().from(tabella).delete().eq('id', r.id);

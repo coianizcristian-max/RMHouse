@@ -5,7 +5,9 @@ import { staffCorrente } from '@/lib/staff';
 export const dynamic = 'force-dynamic';
 
 // "Chi è iscritto a danza aerea?" — elenco corsi con i numeri che servono alla segreteria
-export default async function Corsi() {
+export default async function Corsi({ searchParams }) {
+  const { archiviati } = await searchParams;
+  const vediArchiviati = archiviati === '1';
   const { supabase, staff } = await staffCorrente();
   if (staff.ruolo === 'insegnante') redirect('/gestione');
 
@@ -13,7 +15,7 @@ export default async function Corsi() {
     .from('v_riepilogo_corsi')
     .select('*')
     .eq('palestra_id', staff.palestra_id)
-    .eq('attivo', true)
+    .eq('attivo', !vediArchiviati)
     .order('categoria')
     .order('corso_nome');
 
@@ -26,9 +28,14 @@ export default async function Corsi() {
         <h1>Corsi</h1>
         <p>Ogni corso con i suoi orari, gli iscritti e le prove in arrivo.</p>
       </div>
-      <p><Link className="btn btn-primario" href="/gestione/corsi/nuovo">Nuovo corso</Link></p>
+      <div className="pastiglie">
+        <Link className="stato-pillola" aria-current={!vediArchiviati ? 'true' : undefined} href="/gestione/corsi">Attivi</Link>
+        <Link className="stato-pillola" aria-current={vediArchiviati ? 'true' : undefined} href="/gestione/corsi?archiviati=1">Archiviati</Link>
+      </div>
+      {!vediArchiviati && <p><Link className="btn btn-primario" href="/gestione/corsi/nuovo">Nuovo corso</Link></p>}
+      {vediArchiviati && <p className="piccolo muto">Corsi tolti dal palinsesto: aprine uno e tocca "Riattiva il corso" per rimetterlo.</p>}
       {error && <div className="errore">Impossibile caricare i corsi.</div>}
-      {corsi?.length === 0 && <div className="vuoto">Nessun corso attivo.</div>}
+      {corsi?.length === 0 && <div className="vuoto">{vediArchiviati ? 'Nessun corso archiviato.' : 'Nessun corso attivo.'}</div>}
 
       {categorie.map((cat) => (
         <section key={cat}>

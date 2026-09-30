@@ -1,6 +1,7 @@
 'use client';
 import { useState } from 'react';
 import Gestore from '../Gestore';
+import { supabaseBrowser } from '@/lib/supabase/browser';
 import Ricolora from './Ricolora';
 import { dataBreve } from '@/lib/formato';
 
@@ -13,6 +14,23 @@ export default function Palinsesto({ palestraId, dati }) {
   const [sezione, setSezione] = useState('categorie');
   const fissi = { palestra_id: palestraId };
   const opz = (righe) => righe.map((r) => ({ v: r.id, l: r.nome }));
+
+  // Una disciplina con dei corsi: si chiede dove spostarli, poi si elimina
+  async function eliminaDisciplina(d, setErrore) {
+    const quanti = (dati.corsi || []).filter((c) => c.disciplina_id === d.id).length;
+    let dest = null;
+    if (quanti > 0) {
+      const altre = dati.discipline.filter((x) => x.id !== d.id);
+      const scelta = prompt(`"${d.nome}" è usata da ${quanti} corsi. In quale disciplina li sposto?\n\n` +
+        altre.map((x, i) => `${i + 1}. ${x.nome}`).join('\n') + '\n\nScrivi il numero:');
+      if (scelta === null) return;
+      dest = altre[parseInt(scelta, 10) - 1];
+      if (!dest) { setErrore('Numero non valido: niente è stato cambiato.'); return; }
+      if (!confirm(`Spostare ${quanti} corsi in "${dest.nome}" ed eliminare "${d.nome}"?`)) return;
+    } else if (!confirm(`Eliminare "${d.nome}"?`)) return;
+    const { error } = await supabaseBrowser().rpc('elimina_disciplina', { p_disciplina: d.id, p_sposta_a: dest?.id || null });
+    if (error) setErrore('Eliminazione non riuscita.');
+  }
 
   return (
     <>
@@ -55,6 +73,7 @@ export default function Palinsesto({ palestraId, dati }) {
           <Ricolora palestraId={fissi.palestra_id} />
           <Gestore
             tabella="discipline" fissi={fissi} righe={dati.discipline} etichettaNuovo="Aggiungi disciplina"
+            onElimina={eliminaDisciplina}
             campi={[
               { k: 'nome', etichetta: 'Nome', tipo: 'testo', obbligatorio: true },
               { k: 'categoria_id', etichetta: 'Categoria', tipo: 'select', opzioni: opz(dati.categorie), obbligatorio: true },

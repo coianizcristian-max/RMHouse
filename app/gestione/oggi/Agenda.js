@@ -12,12 +12,23 @@ export default async function AgendaGiorno({ searchParams }) {
 
   let query = supabase
     .from('v_lezioni')
-    .select('id, corso_nome, inizio, fine, sala_nome, insegnante_nome, insegnante_id, stato, iscritti, prove, capienza')
+    .select('id, corso_nome, inizio, fine, sala_nome, insegnante_nome, insegnante_id, stato, iscritti, prove, capienza, colore')
     .eq('palestra_id', staff.palestra_id)
     .eq('data', giorno)
     .order('inizio');
   if (mie === '1') query = query.eq('insegnante_id', staff.id);
-  const { data: lezioni, error } = await query;
+  const [{ data: lezioni, error }, { data: affitti }] = await Promise.all([
+    query,
+    mie === '1' ? Promise.resolve({ data: [] }) : supabase.from('prenotazioni_spazi')
+      .select('id, titolo, contatto_nome, inizio, fine, stato, sale ( nome )').eq('palestra_id', staff.palestra_id)
+      .in('stato', ['confermata', 'opzione']).gte('inizio', `${giorno}T00:00:00`).lt('inizio', `${spostaGiorni(giorno, 1)}T00:00:00`)
+      .order('inizio'),
+  ]);
+  // lezioni e affitti insieme, in ordine di orario
+  const righe = [
+    ...(lezioni || []).map((l) => ({ ...l, tipo: 'lezione' })),
+    ...(affitti || []).map((a) => ({ ...a, tipo: 'affitto' })),
+  ].sort((a, b) => a.inizio.localeCompare(b.inizio));
 
   const titolo = new Date(giorno + 'T12:00:00').toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long' });
   const link = (d, m = mie) => `/gestione/oggi?data=${d}${m === '1' ? '&mie=1' : ''}`;
@@ -36,7 +47,7 @@ export default async function AgendaGiorno({ searchParams }) {
       </div>
 
       {error && <div className="errore">Impossibile caricare le lezioni.</div>}
-      {lezioni?.length === 0 && (
+      {righe.length === 0 && (
         <div className="vuoto">
           Nessuna lezione in questo giorno.
           <div className="piccolo" style={{ marginTop: 8 }}>
@@ -45,10 +56,23 @@ export default async function AgendaGiorno({ searchParams }) {
         </div>
       )}
 
-      <ul className="elenco">
-        {lezioni?.map((l) => (
+      <ul className="elenco agenda-giorno">
+        {righe.map((l) => l.tipo === 'affitto' ? (
+          <li key={`a${l.id}`}>
+            <Link className="voce" href={`/gestione/spazi?giorno=${giorno}`} style={{ borderLeft: '5px solid var(--verde-affitto)' }}>
+              <span className="slot-ora">{ora(l.inizio)}</span>
+              <span>
+                <strong style={{ color: 'var(--nero)' }}>{l.titolo || 'Affitto sala'}</strong>
+                <span className="piccolo muto" style={{ display: 'block' }}>
+                  {[l.sale?.nome, l.contatto_nome, `fino alle ${ora(l.fine)}`].filter(Boolean).join(' · ')}
+                </span>
+              </span>
+              <span className="tag tag-affitto">{l.stato === 'opzione' ? 'affitto in opzione' : 'affitto'}</span>
+            </Link>
+          </li>
+        ) : (
           <li key={l.id}>
-            <Link className="voce" href={`/gestione/appello/${l.id}`}>
+            <Link className="voce" href={`/gestione/appello/${l.id}`} style={{ borderLeft: `5px solid ${l.colore || 'var(--rosso)'}` }}>
               <span className="slot-ora">{ora(l.inizio)}</span>
               <span>
                 <strong style={{ color: 'var(--nero)' }}>{l.corso_nome}</strong>
@@ -65,7 +89,7 @@ export default async function AgendaGiorno({ searchParams }) {
                       <span style={{ display: 'block', width: 76, height: 5, borderRadius: 3, background: 'var(--linea)', overflow: 'hidden' }}>
                         <span style={{ display: 'block', height: '100%',
                                        width: `${Math.min(100, Math.round(((l.iscritti + l.prove) / l.capienza) * 100))}%`,
-                                       background: 'var(--rosso)' }} />
+                                       background: l.colore || 'var(--rosso)' }} />
                       </span>
                     )}
                   </>

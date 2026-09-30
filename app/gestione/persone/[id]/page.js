@@ -9,6 +9,8 @@ import Recuperi from './Recuperi';
 import EtichettePersona from './EtichettePersona';
 import Privacy from './Privacy';
 import ModuliPersona from './ModuliPersona';
+import Pagamenti from './Pagamenti';
+import UnisciPersona from './UnisciPersona';
 
 export const dynamic = 'force-dynamic';
 
@@ -19,8 +21,9 @@ const whatsapp = (tel) => {
 
 // Scheda della persona: in alto chi è e com'è messa, sotto a sinistra
 // quello che si fa (iscrizioni, giorni, recuperi), a destra i dati
-export default async function Persona({ params }) {
+export default async function Persona({ params, searchParams }) {
   const { id } = await params;
+  const { iscrivi } = await searchParams;
   const { supabase, staff } = await staffCorrente();
   if (staff.ruolo === 'insegnante') redirect('/gestione');
   const p = staff.palestra_id;
@@ -33,7 +36,8 @@ export default async function Persona({ params }) {
 
   const [{ data: stato }, { data: iscrizioni }, { data: crediti }, { data: prove }, { data: certificati },
          { data: corsi }, { data: tipi }, { data: orari }, { data: palestra }, { data: storico, count: storicoTotale },
-         { data: etichette }, { data: famiglia }, { data: famigliaIscritta }, { data: moduli }, { data: firme }] = await Promise.all([
+         { data: etichette }, { data: famiglia }, { data: famigliaIscritta }, { data: moduli }, { data: firme },
+         { data: pagamenti }] = await Promise.all([
     supabase.from('v_stato_clienti').select('stato, attivo, fine_prossima, prima_data, ultima_fine, certificato_scaduto, quota_mancante, quota_valida_fino, senza_orari, etichette_id, giorni_al_compleanno, ultima_presenza')
       .eq('id', id).maybeSingle(),
     supabase.from('iscrizioni')
@@ -51,7 +55,7 @@ export default async function Persona({ params }) {
       .eq('palestra_id', p).eq('attivo', true).eq('archiviato', false).order('famiglia').order('nome'),
     supabase.from('orari').select('id, corso_id, giorno_settimana, ora_inizio').eq('palestra_id', p).eq('attivo', true)
       .order('giorno_settimana').order('ora_inizio'),
-    supabase.from('palestre').select('base_url, quota_iscrizione_cent, sconti').eq('id', p).maybeSingle(),
+    supabase.from('palestre').select('base_url, quota_iscrizione_cent, sconti, ente').eq('id', p).maybeSingle(),
     supabase.from('storico_abbonamenti').select('id, abbonamento, dal, al, stato, valore_cent', { count: 'exact' })
       .eq('allievo_id', id).order('dal', { ascending: false }).limit(60),
     supabase.from('etichette').select('id, nome').eq('palestra_id', p).order('nome'),
@@ -60,12 +64,20 @@ export default async function Persona({ params }) {
       .eq('stato', 'attiva').neq('allievo_id', id),
     supabase.rpc('moduli_da_firmare', { p_allievo: id }),
     supabase.from('firme').select('id, modulo_id, versione').eq('allievo_id', id),
+    // i suoi pagamenti, più quelli della famiglia che non dicono per chi sono
+    supabase.from('pagamenti').select('id, pagato_at, created_at, descrizione, importo_cent, metodo, stato, allievo_id')
+      .eq('palestra_id', p).or(`allievo_id.eq.${id},and(account_id.eq.${allievo.account_id},allievo_id.is.null)`)
+      .order('created_at', { ascending: false }).limit(100),
   ]);
+  const { data: ricevute } = (pagamenti || []).length
+    ? await supabase.from('ricevute').select('id, pagamento_id, numero, anno, tipo_documento, annullata').in('pagamento_id', pagamenti.map((x) => x.id))
+    : { data: [] };
 
   const linkCertificato = `${palestra?.base_url || ''}/certificato?t=${allievo.token}`;
   const st = STATI_CLIENTE[stato?.stato];
   const attive = (iscrizioni || []).filter((i) => i.stato === 'attiva' || i.stato === 'sospesa');
-  const speso = (storico || []).reduce((s, x) => s + (x.valore_cent || 0), 0);
+  const spesoStorico = (storico || []).reduce((s, x) => s + (x.valore_cent || 0), 0);
+  const speso = spesoStorico + (pagamenti || []).filter((x) => x.stato === 'pagato').reduce((s, x) => s + x.importo_cent, 0);
   const tel = allievo.account?.telefono;
   const wa = whatsapp(tel);
   const nato = allievo.sesso === 'F' ? 'nata' : 'nato';
@@ -132,7 +144,7 @@ export default async function Persona({ params }) {
         </div>
         <div className="riquadro">
           <span className="etichetta">Speso in tutto</span>
-          <strong>{euro(speso)}</strong>
+          <strong><a href="#pagamenti" style={{ color: 'inherit', textDecoration: 'none' }}>{euro(speso)}</a></strong>
         </div>
         <div className="riquadro">
           <span className="etichetta">Ultima presenza</span>
@@ -149,6 +161,7 @@ export default async function Persona({ params }) {
               quotaCent={palestra?.quota_iscrizione_cent || 0}
               sconti={palestra?.sconti || {}}
               famigliaIscritta={new Set((famigliaIscritta || []).map((x) => x.allievo_id)).size}
+              apriSubito={iscrivi === '1'}
             />
           </section>
 
@@ -159,9 +172,11 @@ export default async function Persona({ params }) {
             </section>
           )}
 
+          <Pagamenti pagamenti={pagamenti || []} ricevute={ricevute || []} totaleStorico={spesoStorico} />
+
           {storico?.length > 0 && (
             <section className="pannello">
-              <h2>Storico abbonamenti <span className="piccolo muto">· {storicoTotale} da APP Palestre · {euro(speso)}</span></h2>
+              <h2>Storico abbonamenti <span className="piccolo muto">· {storicoTotale} da APP Palestre · {euro(spesoStorico)}</span></h2>
               <div className="tabella-scorre">
                 <table>
                   <thead><tr><th>Abbonamento</th><th>Dal</th><th>Al</th><th>Valore</th></tr></thead>
@@ -182,7 +197,8 @@ export default async function Persona({ params }) {
         </div>
 
         <aside>
-          <Anagrafica allievo={allievo} linkCertificato={linkCertificato} />
+          <Anagrafica allievo={allievo} linkCertificato={linkCertificato} ente={palestra?.ente?.nome} />
+          <div style={{ margin: '-6px 0 14px' }}><UnisciPersona palestraId={p} allievo={allievo} /></div>
 
           <section className="pannello">
             <h2>Etichette</h2>
