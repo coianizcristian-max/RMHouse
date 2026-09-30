@@ -4,6 +4,7 @@ import { staffCorrente } from '@/lib/staff';
 import { STATI_CLIENTE } from '@/lib/stati';
 import { CAMPANELLI, applicaFiltri } from '@/lib/filtriPersone';
 import ElencoPersone from './ElencoPersone';
+import FiltriPersone from './FiltriPersone';
 
 export const dynamic = 'force-dynamic';
 
@@ -47,44 +48,22 @@ export default async function Persone({ searchParams }) {
         <p>Cerca, filtra per stato, seleziona più persone per etichettarle, scrivere o esportare.</p>
       </div>
 
-      <form className="barra-cerca" action="/gestione/persone">
-        {stato && <input type="hidden" name="stato" value={stato} />}
-        {campanello && <input type="hidden" name="campanello" value={campanello} />}
-        {etichetta && <input type="hidden" name="etichetta" value={etichetta} />}
-        <input type="search" name="q" defaultValue={q} placeholder="Nome, cognome, email, telefono o codice fiscale" />
-        <button className="btn">Cerca</button>
-      </form>
+      <FiltriPersone
+        valori={{ q, stato, campanello, etichetta }}
+        stati={[['', 'Tutti', conti?.tutti], ['attivi', 'Iscritti attivi', conti?.attivi], ['nuovi', 'Nuovi nel mese', conti?.nuovi],
+                ...statiVisibili.map(([s, v]) => [s, v.testo, conti.stati[s]])]}
+        campanelli={Object.entries(CAMPANELLI).filter(([c]) => conti?.[c] > 0).map(([c, testo]) => [c, testo, conti[c]])}
+        etichette={(etichette || []).map((e) => [e.id, e.nome, conti?.etichette?.[e.id] ?? 0])}
+      />
 
-      <div className="pastiglie">
-        <Link className="stato-pillola" aria-current={!stato ? 'true' : undefined} href={link({ stato: '', pagina: '' })}>
-          Tutti <strong>{conti?.tutti ?? ''}</strong>
-        </Link>
-        <Link className="stato-pillola ok" aria-current={stato === 'attivi' ? 'true' : undefined} href={link({ stato: 'attivi', pagina: '' })}>
-          Iscritti attivi <strong>{conti?.attivi ?? ''}</strong>
-        </Link>
-        <Link className="stato-pillola" aria-current={stato === 'nuovi' ? 'true' : undefined} href={link({ stato: 'nuovi', pagina: '' })}>
-          Nuovi nel mese <strong>{conti?.nuovi ?? ''}</strong>
-        </Link>
-        {statiVisibili.map(([s, v]) => (
-          <Link key={s} className={`stato-pillola ${v.tono}`} aria-current={stato === s ? 'true' : undefined} href={link({ stato: s, pagina: '' })}>
-            {v.testo} <strong>{conti.stati[s]}</strong>
-          </Link>
-        ))}
-      </div>
-
-      <div className="pastiglie">
-        {Object.entries(CAMPANELLI).filter(([c]) => conti?.[c] > 0).map(([c, testo]) => (
-          <Link key={c} className="stato-pillola attenzione" aria-current={campanello === c ? 'true' : undefined}
-                href={link({ campanello: campanello === c ? '' : c, pagina: '' })}>
-            {testo} <strong>{conti[c]}</strong>
-          </Link>
-        ))}
-        {etichette?.map((e) => (
-          <Link key={e.id} className="stato-pillola eti" aria-current={etichetta === e.id ? 'true' : undefined}
-                href={link({ etichetta: etichetta === e.id ? '' : e.id, pagina: '' })}>
-            # {e.nome} <strong>{conti?.etichette?.[e.id] ?? 0}</strong>
-          </Link>
-        ))}
+      <div className="pastiglie scorciatoie">
+        {[['attivi', 'Iscritti attivi', conti?.attivi, 'ok'], ['in_scadenza', 'In scadenza', conti?.stati?.in_scadenza, 'attenzione'],
+          ['no_rinnovo', 'Non hanno rinnovato', conti?.stati?.no_rinnovo, 'rosso'], ['nuovi', 'Nuovi nel mese', conti?.nuovi, '']]
+          .filter(([, , n]) => n > 0).map(([k, testo, n, tono]) => (
+            <Link key={k} className={`stato-pillola ${tono}`} aria-current={stato === k ? 'true' : undefined} href={link({ stato: stato === k ? '' : k, pagina: '' })}>
+              {testo} <strong>{n}</strong>
+            </Link>
+          ))}
       </div>
 
       <ElencoPersone palestraId={p} persone={persone || []} etichette={etichette || []} totale={count || 0} esporta={esporta} />

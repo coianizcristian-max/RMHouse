@@ -60,7 +60,7 @@ export default function CercaVeloce({ palestraId }) {
       )}
       {testo.trim().length >= 2 && trovati.length === 0 && (
         <div className="cv-risultati vuoto-cv piccolo muto">
-          Nessuno con questo nome. <a href="/gestione/persone/nuova">Registra una persona nuova</a>
+          Nessuno con questo nome. <a href="/gestione/persone/nuova">Registralo come nuovo cliente</a>
         </div>
       )}
     </div>

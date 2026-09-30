@@ -109,6 +109,7 @@ export default function Rinnovi({ righe, tipi, giorni }) {
         </div>
       )}
 
+      <div className="griglia-schede">
       {righe.map((r) => {
         const prezzo = Math.max((r.prezzo_cent || 0) - (r.sconto_cent || 0), 0);
         return (
@@ -128,7 +129,7 @@ export default function Rinnovi({ righe, tipi, giorni }) {
                 </Link>
                 {r.gia_rinnovata && <span className="tag tag-ok">già rinnovato</span>}
                 {r.giorni_alla_scadenza < 0 && <span className="tag tag-rosso">scaduto da {-r.giorni_alla_scadenza} giorni</span>}
-                {r.giorni_alla_scadenza >= 0 && <span className="tag tag-tenue">scade fra {r.giorni_alla_scadenza} giorni</span>}
+                {r.giorni_alla_scadenza >= 0 && <span className="tag tag-tenue">{r.giorni_alla_scadenza === 0 ? 'scade oggi' : r.giorni_alla_scadenza === 1 ? 'scade domani' : `scade fra ${r.giorni_alla_scadenza} giorni`}</span>}
                 {!r.certificato_ok && <span className="tag tag-attenzione">certificato</span>}
                 {!r.quota_ok && <span className="tag tag-attenzione">quota</span>}
               </span>
@@ -156,6 +157,7 @@ export default function Rinnovi({ righe, tipi, giorni }) {
           </div>
         );
       })}
+      </div>
 
       <p className="piccolo muto" style={{ marginTop: 18 }}>
         Il rinnovo crea un nuovo periodo con lo stesso abbonamento e gli stessi orari, a partire dal giorno dopo la

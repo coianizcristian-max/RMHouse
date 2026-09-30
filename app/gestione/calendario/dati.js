@@ -27,7 +27,7 @@ export async function settimana({ da, sala, insegnante, mie, sede }) {
   if (mie === '1') q = q.eq('insegnante_id', staff.id);
   if (sede) q = q.eq('sede_id', sede);
 
-  const [{ data: lezioni }, { data: sale }, { data: insegnanti }, { data: corsi }, { data: note }] = await Promise.all([
+  const [{ data: lezioni }, { data: sale }, { data: insegnanti }, { data: corsi }, { data: note }, { data: sedi }] = await Promise.all([
     q,
     supabase.from('sale').select('id, nome').eq('palestra_id', staff.palestra_id).order('nome'),
     supabase.from('staff').select('id, nome, cognome').eq('palestra_id', staff.palestra_id)
@@ -35,10 +35,8 @@ export async function settimana({ da, sala, insegnante, mie, sede }) {
     supabase.from('corsi').select('id, colore').eq('palestra_id', staff.palestra_id),
     supabase.from('note_giorno').select('id, data, testo')
       .eq('palestra_id', staff.palestra_id).gte('data', inizio).lte('data', fine).order('created_at'),
+    supabase.from('sedi').select('id, nome').eq('palestra_id', staff.palestra_id).eq('visibile', true).order('ordine'),
   ]);
-
-  const { data: sedi } = await supabase.from('sedi').select('id, nome')
-    .eq('palestra_id', staff.palestra_id).eq('visibile', true).order('ordine');
 
   const idLezioni = (lezioni || []).map((l) => l.lezione_id);
   const { data: facce } = idLezioni.length

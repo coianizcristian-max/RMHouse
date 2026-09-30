@@ -1644,3 +1644,86 @@ a.persona-nome:hover { text-decoration: underline; text-underline-offset: 3px; }
   .guscio .pannello form.pm-nuovo > input:not([type='date']) { grid-column: 1 / -1; }
 }
 .guscio .scheda-testa h1 { font-size: clamp(26px, 3vw, 40px); line-height: 1.1; }
+
+/* Registrazione veloce */
+.reg-modo { display: inline-flex; gap: 4px; padding: 4px; border-radius: 14px; background: var(--carta); margin-bottom: 14px; flex-wrap: wrap; }
+.reg-modo button { border: 0; background: none; padding: 10px 16px; border-radius: 10px; font: inherit; font-weight: 700; cursor: pointer; color: var(--testo-2); }
+.reg-modo button[aria-selected='true'] { background: var(--bianco); color: var(--nero); box-shadow: 0 2px 8px rgba(0,0,0,.08); }
+.reg-griglia { display: grid; gap: 16px; align-items: start; }
+.reg-colonna { display: grid; gap: 12px; min-width: 0; }
+.reg-colonna .pannello { margin: 0; }
+.reg-campi { display: grid; gap: 4px 14px; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); }
+.reg-campi .campo { margin-bottom: 8px; }
+.reg-campi .reg-largo { grid-column: span 2; }
+.reg-consensi { display: grid; gap: 6px; align-content: center; }
+.reg-azioni { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.reg-lato { display: grid; gap: 12px; }
+.reg-lato .pannello { margin: 0; }
+.reg-doppioni { border-color: var(--attenzione); background: var(--attenzione-tenue); }
+@media (min-width: 1100px) {
+  .reg-griglia { grid-template-columns: minmax(0, 1fr) 300px; }
+  .reg-lato { position: sticky; top: 16px; }
+}
+@media (max-width: 720px) {
+  .reg-campi { grid-template-columns: 1fr 1fr; }
+  .reg-campi .campo:has(input[type='email']), .reg-campi .reg-largo { grid-column: 1 / -1; }
+  .reg-azioni .btn { flex: 1 1 100%; }
+  .reg-modo { display: flex; }
+  .reg-modo button { flex: 1; padding: 10px 8px; font-size: 14px; }
+}
+
+/* Filtri compatti: una riga con ricerca e menù a tendina */
+.filtri-persone { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 10px; }
+.filtri-persone input[type='search'] { flex: 1 1 280px; min-width: 0; }
+.filtri-persone input, .filtri-persone select, .bc-filtri select {
+  min-height: 42px; padding: 8px 12px; font: inherit; font-size: 14.5px; border: 1.5px solid var(--linea);
+  border-radius: 12px; background: var(--bianco); color: var(--nero); max-width: 100%;
+}
+.filtri-persone select, .bc-filtri select { flex: 0 1 auto; cursor: pointer; }
+.filtri-persone select.scelto, .bc-filtri select.scelto { border-color: var(--nero); background: var(--carta); font-weight: 700; }
+.filtri-persone .btn { min-height: 42px; }
+.pastiglie.scorciatoie { margin-bottom: 10px; }
+
+.barra-cal { display: flex; flex-wrap: wrap; gap: 10px 18px; align-items: center; margin-bottom: 14px; }
+.bc-settimana { display: flex; align-items: center; gap: 8px; }
+.bc-settimana strong { font-size: 17px; min-width: 130px; text-align: center; }
+.bc-filtri { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+@media (max-width: 720px) {
+  .filtri-persone select { flex: 1 1 45%; }
+  .filtri-persone .btn { flex: 1 1 100%; }
+  .bc-settimana { width: 100%; justify-content: space-between; }
+  .bc-filtri { width: 100%; }
+  .bc-filtri select { flex: 1 1 45%; }
+}
+
+/* Liste lunghe su due colonne quando lo schermo è largo */
+.griglia-schede { display: grid; gap: 8px; }
+.griglia-schede > .scheda-corso { margin-bottom: 0; }
+@media (min-width: 1200px) { .griglia-schede { grid-template-columns: 1fr 1fr; } }
+@media (min-width: 1700px) { .griglia-schede.corsi-compatti { grid-template-columns: 1fr 1fr 1fr; } }
+.corsi-compatti .scheda-corso .centro { padding: 10px 0; }
+.in-riga { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; }
+/* tabelle di persone: la colonna del nome non si stringe troppo */
+.tabella-persone td:has(.persona-nome) { min-width: 170px; }
+.reg-campi { align-items: start; }
+.guscio form.reg-griglia { display: grid; gap: 16px; align-items: start; }
+@media (min-width: 1100px) { .guscio form.reg-griglia { grid-template-columns: minmax(0, 1fr) 300px; } }
+.guscio form.filtri-persone { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.guscio form.filtri-persone .btn { width: auto; }
+@media (max-width: 720px) { .guscio form.filtri-persone .btn { flex: 1 1 100%; } }
+/* ultima colonna: resta su una riga solo se contiene pulsanti; email e testi vanno a capo */
+.tabella-persone td:last-child, .tabella-persone th:last-child { white-space: normal; }
+.tabella-persone td:last-child:has(button, .btn) { white-space: nowrap; }
+.tabella-persone td { overflow-wrap: anywhere; }
+.guscio form.reg-griglia > * { grid-column: auto; }
+@media (min-width: 721px) { .tabella-persone td { overflow-wrap: normal; } .tabella-persone td:last-child { min-width: 230px; } }
+
+/* Palinsesto più fitto: schede basse, numeri e riempimento sulla stessa riga */
+.guscio .carta-lezione { margin-bottom: 6px; border-radius: 12px; }
+.guscio .carta-lezione .testa { padding: 5px 9px; font-size: 13.5px; }
+.guscio .carta-lezione .piu { width: 24px; height: 24px; }
+.guscio .carta-lezione .corpo { padding: 7px 9px 8px; }
+.guscio .carta-lezione .nome { font-size: 13.5px; }
+.guscio .carta-lezione .riga { font-size: 12px; margin-top: 2px; }
+.guscio .carta-lezione .numeri { margin-top: 5px; gap: 4px; }
+.guscio .carta-lezione .tag { margin-top: 5px; font-size: 11px; padding: 2px 8px; }

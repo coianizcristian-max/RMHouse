@@ -91,7 +91,19 @@ export default function Settimana({ inizio, lezioni, corsi = [], palestraId, ges
     if (gruppo.length) chiudi();
   }
   const colonneMax = Math.max(1, ...Object.values(corsie).map((x) => x.n));
-  const altezza = (alle - dalle) * px;
+  // Le ore senza nessuna lezione in tutta la settimana si stringono a una striscia sottile
+  const ore = Array.from({ length: (alle - dalle) / 60 }, (_, i) => dalle + i * 60);
+  const piena = (h) => lezioni.some((l) => MINUTI(l.inizio) < h + 60 && MINUTI(l.fine) > h);
+  const ALTA = 60 * px, STRETTA = 16;
+  const inizioOra = []; let acc = 0;
+  ore.forEach((h) => { inizioOra.push(acc); acc += piena(h) ? ALTA : STRETTA; });
+  const altezza = acc;
+  const y = (min) => {
+    const i = Math.min(ore.length - 1, Math.max(0, Math.floor((min - dalle) / 60)));
+    const h = ore[i];
+    const dentro = Math.min(60, Math.max(0, min - h));
+    return inizioOra[i] + (piena(h) ? dentro * px : (dentro / 60) * STRETTA) + (min >= alle ? (piena(ore[i]) ? 0 : 0) : 0);
+  };
   const oggi = new Date().toLocaleDateString('sv-SE');
   const proveGiorno = (g) => lezioni.filter((l) => l.data === g).reduce((s, l) => s + (l.prove || 0), 0);
 
@@ -113,8 +125,8 @@ export default function Settimana({ inizio, lezioni, corsi = [], palestraId, ges
       {errore && <div className="errore" role="alert">{errore}</div>}
 
       <div style={{ overflowX: 'auto', paddingBottom: 8, WebkitOverflowScrolling: 'touch', maxWidth: '100%' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: `42px repeat(7, minmax(${Math.min(96 * colonneMax, 300)}px, 1fr))`,
-                      minWidth: 42 + 7 * Math.min(96 * colonneMax, 300) }}>
+        <div style={{ display: 'grid', gridTemplateColumns: `42px repeat(7, minmax(${Math.min(62 * colonneMax, 250)}px, 1fr))`,
+                      minWidth: 42 + 7 * Math.min(62 * colonneMax, 250) }}>
           <div />
           {giorni.map((g, i) => (
             <button key={g} type="button" onClick={() => apriGiorno(g)}
@@ -132,34 +144,36 @@ export default function Settimana({ inizio, lezioni, corsi = [], palestraId, ges
           ))}
 
           <div style={{ position: 'relative', height: altezza }}>
-            {Array.from({ length: (alle - dalle) / 60 + 1 }, (_, i) => (
-              <div key={i} className="piccolo muto" style={{ position: 'absolute', top: i * 60 * px - 6, fontSize: 11 }}>
-                {String(dalle / 60 + i).padStart(2, '0')}:00
+            {ore.map((h, i) => (piena(h) || !piena(ore[i - 1] ?? -1)) && (
+              <div key={h} className="piccolo muto" style={{ position: 'absolute', top: inizioOra[i] - (piena(h) ? 6 : 2), fontSize: piena(h) ? 11 : 9 }}>
+                {String(h / 60).padStart(2, '0')}:00
               </div>
             ))}
           </div>
 
           {giorni.map((g) => (
             <div key={g} style={{ position: 'relative', height: altezza, borderLeft: '1px solid var(--linea)' }}>
-              {Array.from({ length: (alle - dalle) / 60 + 1 }, (_, i) => (
-                <div key={i} style={{ position: 'absolute', top: i * 60 * px, left: 0, right: 0, borderTop: '1px solid var(--linea)', opacity: .6 }} />
+              {ore.map((h, i) => (
+                <div key={h} style={{ position: 'absolute', top: inizioOra[i], left: 0, right: 0, borderTop: '1px solid var(--linea)', opacity: .6,
+                                      height: piena(h) ? undefined : STRETTA, background: piena(h) ? undefined : 'var(--carta)' }} />
               ))}
               {lezioni.filter((l) => l.data === g).map((l) => {
-                const top = (MINUTI(l.inizio) - dalle) * px;
-                const h = Math.max((MINUTI(l.fine) - MINUTI(l.inizio)) * px, 34);
+                const top = y(MINUTI(l.inizio));
+                const h = Math.max(y(MINUTI(l.fine)) - top, 34);
                 const k = corsie[l.lezione_id] || { i: 0, n: 1 };
                 return (
                   <button key={l.lezione_id} type="button" onClick={() => { setScelta(l); setDaOggi(false); setTavolozza(false); }}
+                          title={`${ora(l.inizio)} ${l.corso_nome} · ${l.sala_nome || ''} · ${l.iscritti}${l.capienza ? `/${l.capienza}` : ''}`}
                           style={{
                             position: 'absolute', top, height: h - 2,
                             left: `calc(${(k.i * 100) / k.n}% + 2px)`, width: `calc(${100 / k.n}% - 4px)`,
-                            borderRadius: 6, padding: '4px 5px', textAlign: 'left', cursor: 'pointer',
+                            borderRadius: 6, padding: k.n >= 3 ? '3px 3px' : '4px 5px', textAlign: 'left', cursor: 'pointer',
                             font: 'inherit', fontSize: 11, lineHeight: 1.15, overflow: 'hidden', ...stile(l),
                           }}>
-                    <strong style={{ display: 'block', fontSize: 12 }}>{ora(l.inizio)}</strong>
-                    <span style={{ display: 'block', fontWeight: 600 }}>{l.corso_nome}</span>
-                    {k.n > 1 && l.sala_nome && <span style={{ display: 'block', opacity: .8 }}>{l.sala_nome}</span>}
-                    <span>
+                    <strong style={{ display: 'block', fontSize: k.n >= 3 ? 11 : 12 }}>{ora(l.inizio)}</strong>
+                    <span style={{ display: 'block', fontWeight: 600, fontSize: k.n >= 3 ? 10.5 : undefined, wordBreak: 'break-word' }}>{l.corso_nome}</span>
+                    {k.n > 1 && k.n < 3 && l.sala_nome && <span style={{ display: 'block', opacity: .8 }}>{l.sala_nome}</span>}
+                    <span style={{ display: k.n >= 3 ? 'none' : undefined }}>
                       {l.iscritti}{l.capienza ? `/${l.capienza}` : ''}{l.prove > 0 ? ` +${l.prove}p` : ''}
                       {l.prenotabile === false ? ' · chiuso' : ''}
                     </span>

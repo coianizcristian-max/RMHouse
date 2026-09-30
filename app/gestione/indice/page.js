@@ -44,7 +44,7 @@ const SEZIONI = [
   {
     area: 'Persone',
     voci: [
-      ['Registra una persona nuova', '/gestione/persone/nuova', 'Chi paga e chi frequenta al banco: poi dalla scheda si crea l\'iscrizione al corso.'],
+      ['Nuovo cliente', '/gestione/persone/nuova', 'Chi paga e chi frequenta al banco: poi dalla scheda si crea l\'iscrizione al corso.'],
       ['Anagrafiche', '/gestione/persone', 'Ricerca, filtri per stato (in scadenza, non ha rinnovato, perso…), etichette, selezione multipla ed export CSV.'],
       ['Recuperi', '/gestione/persone', 'Nella scheda della persona: crediti maturati, scadenza e prenotazione del recupero.'],
       ['Scadenze', '/gestione/scadenze', 'Abbonamenti, ingressi, certificati e quote da gestire: si segnano come gestiti, si scrive o si esporta.'],

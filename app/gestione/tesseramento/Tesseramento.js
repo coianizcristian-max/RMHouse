@@ -139,10 +139,10 @@ export default function Tesseramento({ palestra, stagione, corrente, righe }) {
                     <div className="piccolo muto">{r.corsi || '—'}</div>
                   </td>
                   <td>
-                    {r.stato ? <span className={`tag ${STATI[r.stato][1]}`}>{STATI[r.stato][0]}</span> : <span className="tag tag-rosso">senza tessera</span>}
-                    <div className="piccolo">
+                    <span className="in-riga">
+                      {r.stato ? <span className={`tag ${STATI[r.stato][1]}`}>{STATI[r.stato][0]}</span> : <span className="tag tag-rosso">senza tessera</span>}
                       <button className="link-btn piccolo" onClick={() => numero(r)}>{r.numero ? `n. ${r.numero}` : 'scrivi il numero'}</button>
-                    </div>
+                    </span>
                   </td>
                   <td className="col-desktop piccolo">
                     {r.mancano?.length ? <span style={{ color: 'var(--attenzione)' }}>manca: {r.mancano.join(', ')}</span> : <span className="muto">completi</span>}

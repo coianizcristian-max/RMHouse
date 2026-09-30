@@ -23,7 +23,7 @@ export default function AzioniRapide({ palestraId }) {
   }
 
   const voci = [
-    ['Registra una persona', '/gestione/persone/nuova'],
+    ['Nuovo cliente', '/gestione/persone/nuova'],
     ['Registra un incasso', '/gestione/incassi'],
     ['Nuovo corso', '/gestione/corsi/nuovo'],
     ['Scrivi un avviso', '/gestione/bacheca'],

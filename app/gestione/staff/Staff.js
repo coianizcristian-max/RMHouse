@@ -149,7 +149,7 @@ export default function Staff({ palestraId, persone, orari, archiviati }) {
         <div className="vuoto" style={{ marginTop: 16 }}>{archiviati ? 'Nessuno in archivio.' : 'Ancora nessuno.'}</div>
       )}
 
-      <div style={{ marginTop: 20 }}>
+      <div className="griglia-schede" style={{ marginTop: 16 }}>
         {persone.map((p) => (
           <div key={p.id} className="scheda-corso">
             <span className="banda" style={{ background: p.colore || 'var(--rosso)' }} />

@@ -83,8 +83,10 @@ export default function Scadenze({ palestraId, righe }) {
                     {!r.is_titolare && <div className="piccolo muto">paga {r.titolare_nome} {r.titolare_cognome}</div>}
                   </td>
                   <td>
-                    <span className="tag tag-neutro">{TIPI_SCADENZA[r.tipo]}</span>
-                    <div className="piccolo">{r.dettaglio}{r.importo_cent != null && <> · {euro(r.importo_cent)}</>}</div>
+                    <span className="in-riga">
+                      <span className="tag tag-neutro">{TIPI_SCADENZA[r.tipo]}</span>
+                      <span className="piccolo">{r.dettaglio}{r.importo_cent != null && <> · {euro(r.importo_cent)}</>}</span>
+                    </span>
                     {r.gestito && <div className="piccolo muto">gestita il {dataBreve(r.gestito_at)}{r.nota_gestione && `: ${r.nota_gestione}`}</div>}
                   </td>
                   <td className="piccolo">

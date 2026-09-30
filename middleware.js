@@ -18,7 +18,15 @@ export async function middleware(request) {
       },
     }
   );
-  const { data: { user } } = await supabase.auth.getUser();
+  // getClaims: verifica il token localmente se possibile (niente viaggio al server a ogni pagina),
+  // altrimenti chiede all'Auth di Supabase come prima; in entrambi i casi rinnova la sessione se serve
+  let user = null;
+  if (typeof supabase.auth.getClaims === 'function') {
+    const { data } = await supabase.auth.getClaims();
+    user = data?.claims?.sub ? { id: data.claims.sub } : null;
+  } else {
+    user = (await supabase.auth.getUser()).data.user;
+  }
 
   const { pathname } = request.nextUrl;
   const staff = pathname.startsWith('/gestione');
