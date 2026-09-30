@@ -1,5 +1,5 @@
 'use client';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabaseBrowser } from '@/lib/supabase/browser';
 import { etaAl, ora, dataBreve } from '@/lib/formato';
@@ -16,15 +16,24 @@ const ERRORI_AVVISO = {
 };
 const erroreAvviso = (e) => ERRORI_AVVISO[Object.keys(ERRORI_AVVISO).find((k) => e?.message?.includes(k))] || 'Operazione non riuscita.';
 
-export default function Appello({ lezioneId, palestraId, persone, corsoNome = '', gestione = true, postazioni = [], avvisati = [], finita = false }) {
+export default function Appello({ lezioneId, palestraId, persone, corsoNome = '', gestione = true, postazioni = [], avvisati = [], nuove = [], finita = false }) {
   const router = useRouter();
   const [presenze, setPresenze] = useState(Object.fromEntries(persone.map((p) => [p.allievo_id, p.presente])));
+  // chi arriva dopo (aggiunto in appello) porta con sé la sua presenza
+  useEffect(() => {
+    setPresenze((attuali) => {
+      const nuove = persone.filter((p) => !(p.allievo_id in attuali));
+      return nuove.length ? { ...attuali, ...Object.fromEntries(nuove.map((p) => [p.allievo_id, p.presente])) } : attuali;
+    });
+  }, [persone]);
   const [errore, setErrore] = useState('');
   const [avviso, setAvviso] = useState('');
   const [cerca, setCerca] = useState('');
   const [aggiungi, setAggiungi] = useState(false);
   const [testoCerca, setTestoCerca] = useState('');
   const [candidati, setCandidati] = useState(null);
+  const [nuova, setNuova] = useState({ nome: '', telefono: '' });
+  const [invio, setInvio] = useState(false);
 
   // Posti numerati: tocca il posto e scegli chi ci va
   async function assegna(post) {
@@ -50,28 +59,37 @@ export default function Appello({ lezioneId, palestraId, persone, corsoNome = ''
   }
 
   async function cerca2(testo) {
-    setCandidati(null);
-    const { data } = await supabaseBrowser().rpc('candidati_lezione', { p_lezione: lezioneId, p_cerca: testo });
+    setNuova((n) => ({ ...n, nome: testo }));
+    if (testo.trim().length < 2) { setCandidati(null); return; }
+    const { data } = await supabaseBrowser().rpc('candidati_appello', { p_lezione: lezioneId, p_cerca: testo });
     setCandidati(data || []);
   }
 
+  // Già registrata: entra in appello e viene segnata presente (usa il recupero se ne ha uno valido)
   async function aggiungiPersona(c) {
-    let forza = false;
-    if (!c.certificato_ok || c.abbonamento === 'nessun abbonamento') {
-      forza = confirm(`${c.nome} ${c.cognome}: ${!c.certificato_ok ? 'certificato non valido' : 'nessun abbonamento attivo'}. Aggiungere lo stesso?`);
-      if (!forza) return;
-    }
-    const tipo = confirm('È un recupero? Premi Annulla per un ingresso normale.') ? 'recupero' : 'ingresso';
-    const { error } = await supabaseBrowser().rpc('aggiungi_partecipante', {
-      p_lezione: lezioneId, p_allievo: c.allievo_id, p_tipo: tipo, p_forza: forza, p_note: null,
+    setInvio(true); setErrore(''); setAvviso('');
+    const { data, error } = await supabaseBrowser().rpc('aggiungi_in_appello', { p_lezione: lezioneId, p_allievo: c.allievo_id });
+    setInvio(false);
+    if (error) { setErrore(error.message?.includes('gia_presente') ? 'È già in questa lezione.' : 'Non aggiunta. Riprova.'); return; }
+    const come = data === 'recupero' ? 'come recupero' : data === 'iscritto' ? 'di nuovo (aveva disdetto)' : 'come ingresso';
+    const problemi = [c.abbonamento === 'nessun abbonamento' && 'senza abbonamento', !c.certificato_ok && 'certificato non valido'].filter(Boolean);
+    setAvviso(`${c.nome} ${c.cognome} aggiunta ${come} e segnata presente.${problemi.length ? ` Attenzione: ${problemi.join(' e ')}.` : ''}`);
+    setAggiungi(false); setTestoCerca(''); setCandidati(null);
+    router.refresh();
+  }
+
+  // Non registrata: la segreteria la trova in "Da fare oggi"
+  async function segnalaNuova() {
+    if (nuova.nome.trim().length < 3) { setErrore('Scrivi nome e cognome.'); return; }
+    setInvio(true); setErrore('');
+    const { error } = await supabaseBrowser().rpc('segnala_nuovo_in_appello', {
+      p_lezione: lezioneId, p_nome: nuova.nome.trim(), p_telefono: nuova.telefono.trim() || null,
     });
-    if (error) {
-      setErrore(error.message?.includes('lezione_al_completo')
-        ? 'La lezione è al completo: alza i posti da calendario, oppure forza.'
-        : 'Non aggiunto: controlla abbonamento e certificato.');
-      return;
-    }
-    setAggiungi(false); router.refresh();
+    setInvio(false);
+    if (error) { setErrore('Segnalazione non riuscita. Riprova.'); return; }
+    setAvviso(`Segnalata alla segreteria: ${nuova.nome.trim()} è nuova e va registrata.`);
+    setAggiungi(false); setTestoCerca(''); setCandidati(null); setNuova({ nome: '', telefono: '' });
+    router.refresh();
   }
 
   async function togli(p) {
@@ -164,6 +182,20 @@ export default function Appello({ lezioneId, palestraId, persone, corsoNome = ''
     segna(p.allievo_id, v !== true, p.bloccato && v !== true);
   };
 
+  const sezioneNuove = nuove.length > 0 && (
+    <>
+      <h2 className="sezione">Nuove, da registrare <span className="piccolo muto">· {nuove.length}</span></h2>
+      <ul className="elenco">
+        {nuove.map((n) => (
+          <li key={n.id} className="persona">
+            <span>{n.testo.replace(/^Nuova persona in appello da registrare: /, '').replace(/ — .*$/, '')}</span>
+            <span className={`tag ${n.fatto ? 'tag-ok' : 'tag-attenzione'}`}>{n.fatto ? 'registrata' : 'in segreteria'}</span>
+          </li>
+        ))}
+      </ul>
+    </>
+  );
+
   const sezioneAvvisati = avvisati.length > 0 && (
     <>
       <h2 className="sezione">Hanno avvisato <span className="piccolo muto">· {avvisati.length}</span></h2>
@@ -186,14 +218,8 @@ export default function Appello({ lezioneId, palestraId, persone, corsoNome = ''
     </>
   );
 
-  if (!persone.length) return (
-    <>
-      {errore && <div className="errore" role="alert">{errore}</div>}
-      <div className="vuoto">Nessun iscritto o prova per questa lezione.</div>
-      {sezioneAvvisati}
-    </>
-  );
 
+  const vuota = persone.length === 0;
   const presenti = Object.values(presenze).filter((v) => v === true).length;
   const nProve = persone.filter((p) => p.tipo === 'prova').length;
   const visibili = cerca.trim()
@@ -202,9 +228,9 @@ export default function Appello({ lezioneId, palestraId, persone, corsoNome = ''
 
   return (
     <>
-      <p className="piccolo muto">
+      {vuota ? <div className="vuoto">Nessun iscritto o prova per questa lezione.</div> : <p className="piccolo muto">
         {persone.length - nProve} iscritti{nProve > 0 && `, ${nProve} in prova`} · tocca una riga per segnare la presenza
-      </p>
+      </p>}
       {errore && <div className="errore" role="alert">{errore}</div>}
       {avviso && <div className="avviso-ok" role="status">{avviso}</div>}
 
@@ -224,37 +250,48 @@ export default function Appello({ lezioneId, palestraId, persone, corsoNome = ''
         </>
       )}
 
-      {gestione && (
-        <div className="filtri" style={{ marginTop: 10 }}>
-          <a href="#" onClick={(e) => { e.preventDefault(); setAggiungi(true); cerca2(''); }}>Aggiungi qualcuno</a>
-          <a href="#" onClick={(e) => { e.preventDefault(); messaggio(); }}>Scrivi ai prenotati</a>
-          <a href="#" onClick={(e) => { e.preventDefault(); scarica(); }}>Scarica la lista</a>
-        </div>
-      )}
+      <div className="azioni-riga" style={{ marginBottom: 10 }}>
+        <button className="link-btn" aria-pressed={aggiungi} onClick={() => { setAggiungi(!aggiungi); setCandidati(null); setTestoCerca(''); }}>+ Aggiungi una persona</button>
+        {gestione && <button className="link-btn" onClick={messaggio}>Scrivi ai prenotati</button>}
+        {gestione && <button className="link-btn" onClick={scarica}>Scarica la lista</button>}
+      </div>
 
       {aggiungi && (
-        <div className="scheda" style={{ marginBottom: 14 }}>
+        <div className="scheda aggiungi-appello">
           <div className="campo" style={{ marginBottom: 8 }}>
-            <label htmlFor="cerca-cand">Chi vuoi aggiungere?</label>
-            <input id="cerca-cand" value={testoCerca} placeholder="Cognome o nome"
+            <label htmlFor="cerca-cand">Chi c'è in più?</label>
+            <input id="cerca-cand" value={testoCerca} placeholder="Cognome e nome" autoFocus autoComplete="off"
                    onChange={(e) => { setTestoCerca(e.target.value); cerca2(e.target.value); }} />
           </div>
-          {candidati === null && <p className="piccolo muto">Cerco…</p>}
-          {candidati?.length === 0 && <p className="piccolo muto">Nessuno da aggiungere.</p>}
-          <ul className="elenco">
-            {(candidati || []).map((c) => (
-              <li key={c.allievo_id} className="persona">
-                <span>
-                  {c.cognome} {c.nome}
-                  <span className="piccolo muto" style={{ display: 'block' }}>
-                    {c.abbonamento}{!c.certificato_ok && ' · certificato scaduto'}
-                  </span>
-                </span>
-                <button className="link-btn piccolo" onClick={() => aggiungiPersona(c)}>Aggiungi</button>
-              </li>
-            ))}
-          </ul>
-          <button className="link-btn piccolo" onClick={() => setAggiungi(false)}>Chiudi</button>
+          {candidati === null && <p className="piccolo muto">Scrivi almeno due lettere.</p>}
+          {candidati?.length > 0 && (
+            <ul className="elenco">
+              {candidati.map((c) => {
+                const guai = c.abbonamento === 'nessun abbonamento' || !c.certificato_ok;
+                return (
+                  <li key={c.allievo_id} className="persona">
+                    <span>
+                      <span className={`persona-nome${guai ? ' nome-rosso' : ''}`}>{c.cognome} {c.nome}</span>
+                      <span className="piccolo muto" style={{ display: 'block' }}>
+                        {c.abbonamento}{!c.certificato_ok && ' · certificato non valido'}{c.recupero && ' · ha un recupero'}
+                      </span>
+                    </span>
+                    <button className="btn btn-piccolo btn-primario" disabled={invio} onClick={() => aggiungiPersona(c)}>Aggiungi</button>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+          {candidati !== null && testoCerca.trim().length >= 3 && (
+            <div className="nuova-appello">
+              <strong>{candidati.length ? 'Non è nessuno di questi?' : 'Non la trovo: è una persona nuova'}</strong>
+              <div className="nuova-campi">
+                <input value={nuova.nome} onChange={(e) => setNuova({ ...nuova, nome: e.target.value })} placeholder="Nome e cognome" aria-label="Nome e cognome" />
+                <input value={nuova.telefono} onChange={(e) => setNuova({ ...nuova, telefono: e.target.value })} placeholder="Telefono (se c'è)" inputMode="tel" aria-label="Telefono" />
+                <button className="btn btn-piccolo" disabled={invio} onClick={segnalaNuova}>Segnala alla segreteria</button>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -279,7 +316,7 @@ export default function Appello({ lezioneId, palestraId, persone, corsoNome = ''
                   ...(valore === false ? { opacity: .55 } : {}),
                 }}>
               <div>
-                <span className="persona-nome">{p.cognome} {p.nome}</span>
+                <span className={`persona-nome${p.bloccato || p.quota_mancante ? ' nome-rosso' : ''}`}>{p.cognome} {p.nome}</span>
                 <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 4 }}>
                   {etichetta && <span className={`tag ${classe}`}>{etichetta}</span>}
                   {p.data_nascita && etaAl(p.data_nascita) < 18 && <span className="tag tag-neutro">{etaAl(p.data_nascita)} anni</span>}
@@ -305,10 +342,11 @@ export default function Appello({ lezioneId, palestraId, persone, corsoNome = ''
         })}
       </ul>
 
+      {sezioneNuove}
       {sezioneAvvisati}
 
       {/* riepilogo sempre visibile mentre si scorre l'elenco */}
-      <div className="barra-appello">
+      {!vuota && <div className="barra-appello">
         <div>
           <strong>{presenti} presenti</strong>
           <span className="muto"> · {Object.values(presenze).filter((v) => v != null).length}/{persone.length} segnati</span>
@@ -318,7 +356,7 @@ export default function Appello({ lezioneId, palestraId, persone, corsoNome = ''
           </div>
         </div>
         <button type="button" className="btn btn-primario" onClick={tuttiPresenti}>Tutti presenti</button>
-      </div>
+      </div>}
     </>
   );
 }

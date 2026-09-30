@@ -17,8 +17,17 @@ function RegoleDisdetta({ palestra, onSalvato }) {
   const [f, setF] = useState({
     ore: String(palestra.ore_disdetta ?? 4),
     max: palestra.recuperi_max_mese == null ? '' : String(palestra.recuperi_max_mese),
+    solo: palestra.recupero_solo_disdetta ?? true,
   });
   const [stato, setStato] = useState('');
+
+  // si salva subito, al tocco
+  async function cambiaSolo(solo) {
+    setF((x) => ({ ...x, solo }));
+    const { error } = await supabaseBrowser().from('palestre').update({ recupero_solo_disdetta: solo }).eq('id', palestra.id);
+    if (error) { setF((x) => ({ ...x, solo: !solo })); setStato('Salvataggio non riuscito.'); return; }
+    onSalvato?.();
+  }
 
   async function salva() {
     const ore = parseInt(f.ore, 10);
@@ -59,6 +68,17 @@ function RegoleDisdetta({ palestra, onSalvato }) {
           {stato && !['salvo', 'fatto'].includes(stato) && <span className="piccolo" style={{ color: 'var(--rosso-scuro)' }}>{stato}</span>}
         </div>
       </div>
+      <label className="spunta" style={{ marginBottom: 8 }}>
+        <input type="checkbox" checked={f.solo} onChange={(e) => cambiaSolo(e.target.checked)} />
+        <span>
+          Il recupero spetta solo a chi disdice o avvisa
+          <span className="piccolo muto" style={{ display: 'block' }}>
+            {f.solo
+              ? 'Chi manca senza avvisare perde la lezione: ha tenuto il posto occupato.'
+              : 'Anche chi viene segnato assente in appello riceve il recupero.'}
+          </span>
+        </span>
+      </label>
       <p className="piccolo muto" style={{ marginBottom: 0 }}>
         Il limite conta i recuperi prenotati nel mese della lezione di recupero. Quanti recuperi dà ogni abbonamento
         in tutto e quanti giorni valgono si decide nel singolo abbonamento.

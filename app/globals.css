@@ -1842,3 +1842,12 @@ a.persona-nome:hover { text-decoration: underline; text-underline-offset: 3px; }
 /* 049 — appello: chi ha avvisato */
 .avvisati .persona-nome { color: var(--testo-2); }
 .avvisato-destra { display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+
+/* 050 — appello: nomi in rosso, persona in più, persona nuova */
+.persona-nome.nome-rosso, .guscio .persona-nome.nome-rosso { color: var(--rosso); }
+.aggiungi-appello { margin-bottom: 14px; }
+.aggiungi-appello .elenco { margin-bottom: 8px; }
+.nuova-appello { display: grid; gap: 8px; padding: 12px; margin-top: 6px; border: 1.5px dashed var(--linea); border-radius: 12px; font-size: 14px; }
+.nuova-campi { display: flex; flex-wrap: wrap; gap: 8px; }
+.nuova-campi input { flex: 1 1 180px; min-width: 0; min-height: 42px; padding: 8px 12px; border: 1px solid var(--linea); border-radius: 10px; font: inherit; }
+.azioni-riga .link-btn[aria-pressed='true'] { border-color: var(--nero); color: var(--nero); background: var(--carta); }

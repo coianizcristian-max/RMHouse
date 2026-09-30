@@ -15,8 +15,8 @@ export default function Gestore({ tabella, campi, righe, fissi = {}, riassunto, 
   const [errore, setErrore] = useState('');
   const [invio, setInvio] = useState(false);
 
-  // le caselle nuove partono spuntate, salvo quelle con predefinito: false
-  const vuota = Object.fromEntries(campi.map((c) => [c.k, c.tipo === 'check' ? (c.predefinito ?? true) : '']));
+  // valori di partenza delle righe nuove: le caselle spuntate, salvo "predefinito" diverso
+  const vuota = Object.fromEntries(campi.map((c) => [c.k, c.predefinito ?? (c.tipo === 'check' ? true : '')]));
 
   function apriNuovo() {
     setBozza({ ...vuota, ...(campi.find((c) => c.k === 'ordine') ? { ordine: righe.length + 1 } : {}) });
@@ -51,7 +51,7 @@ export default function Gestore({ tabella, campi, righe, fissi = {}, riassunto, 
       ? await db.from(tabella).insert({ ...fissi, ...dati })
       : await db.from(tabella).update(dati).eq('id', apri);
     setInvio(false);
-    if (error) { setErrore(messaggio(error)); return; }
+    if (error) { setErrore(messaggio(error, campi)); return; }
     setApri(null); router.refresh();
   }
 
@@ -158,8 +158,13 @@ function Modulo({ campi, bozza, setBozza, salva, annulla, invio }) {
   );
 }
 
-function messaggio(error) {
+function messaggio(error, campi = []) {
   const m = error.message || '';
+  // dice quale campo non va, con il nome che si vede nel modulo
+  const colonna = m.match(/column "([a-z_]+)"/)?.[1] || m.match(/constraint "[a-z_]+?_([a-z_]+)_check"/)?.[1];
+  const campo = campi.find((c) => c.k === colonna || (colonna && c.k.endsWith(colonna)) || (colonna && colonna.endsWith(c.k)));
+  if (m.includes('not-null') && campo) return `Compila "${campo.etichetta}".`;
+  if (m.includes('check constraint') && campo) return `Il valore di "${campo.etichetta}" non va bene.`;
   if (m.includes('duplicate key')) return 'Esiste già una riga con questo nome.';
   if (m.includes('violates foreign key') || m.includes('still referenced')) return 'Non si può eliminare: è collegata ad altri dati.';
   if (m.includes('row-level security')) return 'Non hai i permessi per questa operazione.';
