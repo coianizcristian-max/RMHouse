@@ -21,5 +21,5 @@ export default async function PaginaRecuperi() {
   }));
 
   return <Recuperi crediti={crediti} piuAllievi={(data.allievi || []).length > 1}
-                   massimo={regole?.recuperi_max_mese ?? null} usati={regole?.recuperi_mese || {}} />;
+                   massimo={regole?.recuperi_max_mese ?? null} fineAbbonamento={regole?.scadenza_recupero === 'abbonamento'} usati={regole?.recuperi_mese || {}} />;
 }

@@ -163,8 +163,11 @@ export default function Abbonamenti({ palestraId, sezioneIniziale = 'tipi', tipi
               { k: 'durata_giorni', etichetta: 'Oppure durata in giorni', tipo: 'numero', aiuto: 'Se compilato vale questo: 1 = lezione singola, 28 = quattro settimane' },
               { k: 'scadenza_fine_mese', etichetta: 'Scade a fine mese solare', tipo: 'check', aiuto: 'Chi paga il 10 scade a fine mese (trimestrale: a fine del terzo mese). Vale anche se c\'è la durata in giorni, da 28 in su.' },
               { k: 'aliquota_id', etichetta: 'Aliquota IVA', tipo: 'select', opzioni: opzioniAliquota, vuotoTesto: '— la predefinita —' },
-              { k: 'recuperi_max', etichetta: 'Recuperi massimi', tipo: 'numero', aiuto: 'Per tutta la durata. Vuoto = illimitati, 0 = nessun recupero' },
-              { k: 'giorni_validita_recupero', etichetta: 'Validità recupero (giorni)', tipo: 'numero', predefinito: '30', aiuto: 'Vuoto = 30 giorni' },
+              { k: 'recuperi_max', etichetta: 'Recuperi massimi', tipo: 'numero', aiuto: 'Per tutta la durata dell\'abbonamento. Vuoto = illimitati, 0 = nessun recupero. Il limite al mese è in Recuperi e disdette' },
+              // con i recuperi validi fino a fine abbonamento i giorni non servono
+              ...(palestra.scadenza_recupero === 'abbonamento' ? [] : [
+                { k: 'giorni_validita_recupero', etichetta: 'Validità recupero (giorni)', tipo: 'numero', predefinito: '30', aiuto: 'Giorni dalla lezione persa. Vuoto = 30' },
+              ]),
               { k: 'acquistabile_online', etichetta: 'Acquistabile online dal cliente', tipo: 'check' },
               { k: 'rinnovo_automatico', etichetta: 'Online si può scegliere il rinnovo automatico mensile', tipo: 'check', predefinito: false },
               { k: 'attivo', etichetta: 'Attivo', tipo: 'check' },

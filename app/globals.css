@@ -1862,3 +1862,12 @@ a.persona-nome:hover { text-decoration: underline; text-underline-offset: 3px; }
 @media (max-width: 899px) {
   .filtri-listino select:first-of-type { flex-basis: 100%; }
 }
+
+/* 052 — recuperi: scelta di più abbonamenti */
+.elenco-abbonamenti { max-height: 380px; overflow-y: auto; border: 1px solid var(--linea); border-radius: 12px; padding: 4px 12px; margin-bottom: 4px; }
+.elenco-abbonamenti .gruppo-famiglia:first-child { border-top: 0; }
+.barra-salva-recuperi { position: sticky; bottom: 8px; background: var(--bianco); padding: 8px 0; align-items: center; z-index: 2; }
+@media (max-width: 899px) {
+  .elenco-abbonamenti { max-height: 300px; }
+  .barra-salva-recuperi { bottom: calc(72px + env(safe-area-inset-bottom, 0px)); }
+}

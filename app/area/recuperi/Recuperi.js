@@ -16,7 +16,7 @@ const MOTIVI = {
   limite_recuperi_mese: 'Hai già fatto tutti i recuperi di quel mese: scegli una lezione del mese dopo, se il recupero vale ancora.',
 };
 
-export default function Recuperi({ crediti, piuAllievi, massimo = null, usati = {} }) {
+export default function Recuperi({ crediti, piuAllievi, massimo = null, usati = {}, fineAbbonamento = false }) {
   const router = useRouter();
   const [errore, setErrore] = useState('');
   const [avviso, setAvviso] = useState('');
@@ -45,6 +45,11 @@ export default function Recuperi({ crediti, piuAllievi, massimo = null, usati = 
         <div className="occhiello">La mia area</div>
         <h1>Recuperi</h1>
         <p>Le lezioni che puoi recuperare e dove usarle.</p>
+        {fineAbbonamento && (
+          <p className="piccolo muto">
+            Un recupero vale fino alla scadenza del tuo abbonamento: se rinnovi, passa al nuovo.
+          </p>
+        )}
         {massimo != null && (
           <p className="piccolo muto">
             Si possono fare al massimo {massimo} {massimo === 1 ? 'recupero' : 'recuperi'} al mese a persona.
