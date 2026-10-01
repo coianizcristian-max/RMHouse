@@ -6,7 +6,14 @@ import { supabaseBrowser } from '@/lib/supabase/browser';
 import Immagine from '../Immagine';
 
 // Pagina dedicata: una sala, nuova o da modificare, tutta in una videata
-export default function SchedaSala({ palestraId, sala = null, sedi = [], orari = 0, posti = 0 }) {
+const GIORNI = ['', 'Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato', 'Domenica'];
+const fineOra = (inizio, min) => {
+  const [h, m] = String(inizio).split(':').map(Number);
+  const t = h * 60 + m + (min || 60);
+  return `${String(Math.floor(t / 60) % 24).padStart(2, '0')}:${String(t % 60).padStart(2, '0')}`;
+};
+
+export default function SchedaSala({ palestraId, sala = null, sedi = [], orari = [], posti = 0 }) {
   const router = useRouter();
   const nuova = !sala;
   const [f, setF] = useState({
@@ -17,6 +24,8 @@ export default function SchedaSala({ palestraId, sala = null, sedi = [], orari =
   });
   const [errore, setErrore] = useState('');
   const [invio, setInvio] = useState(false);
+  const [vediOrari, setVediOrari] = useState(false);
+  const corsiDistinti = [...new Set(orari.map((o) => o.corsi?.id).filter(Boolean))].length;
   const set = (k) => (e) => setF({ ...f, [k]: e.target.type === 'checkbox' ? e.target.checked : e.target.value });
 
   async function salva(e) {
@@ -48,8 +57,39 @@ export default function SchedaSala({ palestraId, sala = null, sedi = [], orari =
       <div className="intestazione">
         <div className="occhiello">Struttura · Sale</div>
         <h1>{nuova ? 'Nuova sala' : sala.nome}</h1>
-        {!nuova && <p>{orari} {orari === 1 ? 'orario la usa' : 'orari la usano'}{sala.gestione_postazioni ? ` · ${posti} posti numerati` : ''}</p>}
+        {!nuova && (
+          <p>
+            {orari.length > 0
+              ? <button type="button" className="link-orari" aria-expanded={vediOrari} onClick={() => setVediOrari(!vediOrari)}>
+                  {orari.length} {orari.length === 1 ? 'orario la usa' : 'orari la usano'} · {corsiDistinti} {corsiDistinti === 1 ? 'corso' : 'corsi'} {vediOrari ? '▴' : '▾'}
+                </button>
+              : 'Nessun orario la usa'}
+            {sala.gestione_postazioni ? ` · ${posti} posti numerati` : ''}
+          </p>
+        )}
       </div>
+
+      {vediOrari && (
+        <div className="orari-sala">
+          {[1, 2, 3, 4, 5, 6, 7].filter((g) => orari.some((o) => o.giorno_settimana === g)).map((g) => (
+            <div key={g} className="os-giorno">
+              <strong>{GIORNI[g]}</strong>
+              <ul>
+                {orari.filter((o) => o.giorno_settimana === g).map((o) => (
+                  <li key={o.id}>
+                    <span className="os-ora">{String(o.ora_inizio).slice(0, 5)}–{fineOra(o.ora_inizio, o.durata_min)}</span>
+                    <span className="os-pallino" style={{ background: o.corsi?.colore || 'var(--rosso)' }} aria-hidden="true" />
+                    <span className="os-corso">
+                      {o.corsi ? <Link href={`/gestione/corsi/${o.corsi.id}`}>{o.corsi.nome}</Link> : 'corso'}
+                      {o.insegnante && <span className="piccolo muto">{o.insegnante}</span>}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
+      )}
 
       <form onSubmit={salva} className="scheda scheda-staff">
         <div className="ss-griglia">

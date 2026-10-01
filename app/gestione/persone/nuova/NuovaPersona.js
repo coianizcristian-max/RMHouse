@@ -65,10 +65,13 @@ function Data({ id, valore, onChange, etichetta }) {
   const anni = eta(iso);
   return (
     <div className="campo">
-      <label htmlFor={id}>{etichetta}</label>
-      <input id={id} inputMode="numeric" placeholder="gg/mm/aaaa" value={testo} autoComplete="off"
+      {/* l'età (o "non valida") sta accanto all'etichetta: niente riga in più sotto */}
+      <label htmlFor={id}>{etichetta}
+        {testo && !iso ? <span className="eti-info errore-testo"> · non valida</span>
+          : anni != null && etichetta.startsWith('Data') ? <span className="eti-info"> · {anni} anni</span> : null}
+      </label>
+      <input id={id} inputMode="numeric" placeholder="gg/mm/aaaa" title="Si può scrivere anche 12052015" value={testo} autoComplete="off"
              onChange={(e) => { const t = formattaData(e.target.value); setTesto(t); onChange(dataISO(t) || ''); }} />
-      <span className="piccolo muto">{testo && !iso ? 'Data non valida' : anni != null ? `${anni} anni` : 'es. 12052015'}</span>
     </div>
   );
 }
@@ -210,13 +213,11 @@ export default function NuovaPersona({ palestraId }) {
             </section>
           )}
 
-          <section className="pannello">
-            <div className="reg-campi">
-              <Data id="cert" etichetta="Certificato medico: scade il" valore={f.certificato} onChange={(v) => setF((x) => ({ ...x, certificato: v }))} />
-              <div className="reg-consensi">
-                <label className="spunta"><input type="checkbox" checked={f.privacy} onChange={set('privacy')} /><span>Privacy accettata</span></label>
-                <label className="spunta"><input type="checkbox" checked={f.marketing} onChange={set('marketing')} /><span>Vuole ricevere novità e promozioni</span></label>
-              </div>
+          <section className="pannello reg-chiusura">
+            <Data id="cert" etichetta="Certificato medico: scade il" valore={f.certificato} onChange={(v) => setF((x) => ({ ...x, certificato: v }))} />
+            <div className="reg-consensi">
+              <label className="spunta"><input type="checkbox" checked={f.privacy} onChange={set('privacy')} /><span>Privacy accettata</span></label>
+              <label className="spunta"><input type="checkbox" checked={f.marketing} onChange={set('marketing')} /><span>Vuole ricevere novità e promozioni</span></label>
             </div>
           </section>
 

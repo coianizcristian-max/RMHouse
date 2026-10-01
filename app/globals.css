@@ -2005,3 +2005,42 @@ a.titolo-sala:hover { text-decoration: underline; text-underline-offset: 3px; }
 @media (max-width: 899px) { .ss-nota { grid-column: span 2; } }
 .ss-6 { grid-column: span 6; }
 @media (max-width: 899px) { .ss-6 { grid-column: span 2; } }
+
+/* 062 — sala: quali corsi la usano */
+.link-orari { background: none; border: 0; padding: 0; font: inherit; color: var(--rosso-scuro); font-weight: 650; cursor: pointer; }
+.link-orari:hover { text-decoration: underline; text-underline-offset: 3px; }
+.orari-sala { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px 22px;
+  padding: 12px 14px; margin-bottom: 14px; border: 1px solid var(--linea); border-radius: 12px; background: var(--bianco); }
+.os-giorno strong { display: block; font-size: 13px; text-transform: uppercase; letter-spacing: .05em; color: var(--testo-2); margin-bottom: 4px; }
+.os-giorno ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; font-size: 14px; }
+.os-giorno li { display: grid; grid-template-columns: 92px 10px minmax(0, 1fr); align-items: baseline; gap: 6px; }
+.os-corso { display: grid; line-height: 1.25; }
+.os-pallino { align-self: center; }
+.os-ora { font-variant-numeric: tabular-nums; color: var(--testo-2); min-width: 92px; }
+.os-pallino { width: 10px; height: 10px; border-radius: 50%; flex: none; }
+.os-giorno a { color: var(--nero); font-weight: 650; text-decoration: none; }
+.os-giorno a:hover { text-decoration: underline; }
+
+/* 063 — nuovo cliente più compatto */
+.registra .intestazione { margin-bottom: 10px; }
+.registra .intestazione p { margin-top: 2px; }
+.registra .reg-modo { margin-bottom: 10px; }
+.registra .reg-modo button { padding: 8px 14px; }
+.registra .pannello { padding: 14px 16px; }
+.registra .pannello > h2 { margin: 0 0 8px; font-size: 17px; }
+.registra .reg-colonna { gap: 10px; }
+.registra .reg-campi .campo { margin-bottom: 6px; }
+.eti-info { font-weight: 600; color: var(--testo-2); }
+.eti-info.errore-testo { color: var(--rosso-scuro); }
+.reg-chiusura { display: grid; grid-template-columns: minmax(200px, 1fr) 2fr; gap: 0 14px; align-items: end; }
+.reg-chiusura .campo { margin-bottom: 0; }
+.reg-chiusura .reg-consensi { display: flex; flex-wrap: wrap; gap: 4px 22px; align-content: end; padding-bottom: 8px; }
+.reg-chiusura .reg-consensi .spunta { margin: 0; }
+.registra .reg-lato .pannello p { font-size: 13px; }
+@media (min-width: 1100px) {
+  .registra .reg-campi { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .guscio form.reg-griglia { grid-template-columns: minmax(0, 1fr) 270px; }
+}
+@media (max-width: 899px) {
+  .reg-chiusura { grid-template-columns: 1fr; gap: 8px; }
+}
