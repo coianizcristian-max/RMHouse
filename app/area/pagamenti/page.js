@@ -30,7 +30,7 @@ export default async function Pagamenti({ searchParams }) {
       <div className="intestazione">
         <div className="occhiello">La mia area</div>
         <h1>Pagamenti</h1>
-        {acquisti && <p><Link prefetch={false} className="btn btn-primario" href="/abbonamento">Acquista o rinnova un abbonamento</Link></p>}
+        {acquisti && <p><Link prefetch={false} className="btn btn-primario" href="/area/acquista">Acquista o rinnova un abbonamento</Link></p>}
       </div>
       {pagato && <div className="errore" role="status" style={{ background: 'var(--ok-tenue)', color: 'var(--ok)' }}>Pagamento ricevuto, grazie!</div>}
 

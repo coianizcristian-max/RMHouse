@@ -150,6 +150,7 @@ export default function Abbonamenti({ palestraId, sezioneIniziale = 'tipi', tipi
             sezione={ordine === 'durata' ? fascia : undefined}
             campi={[
               { k: 'nome', etichetta: 'Nome', tipo: 'testo', obbligatorio: true, aiuto: 'Es. "POLE DANCE 2 volte Trimestrale"' },
+              { k: 'descrizione', etichetta: 'Descrizione per il cliente', tipo: 'testolungo', aiuto: 'Si legge nel negozio dell\'app: cosa comprende, validità, regole.' },
               { k: 'codice', etichetta: 'Codice', tipo: 'testo', aiuto: 'Il codice breve usato in segreteria, es. "P 24 lez"' },
               { k: 'gruppo_id', etichetta: 'Gruppo di listino', tipo: 'select', opzioni: opzioniGruppo, vuotoTesto: '— nessuno —',
                 predefinito: gruppo && gruppo !== 'nessuno' ? gruppo : '' },

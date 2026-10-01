@@ -13,13 +13,19 @@ export default async function PaginaPrenota() {
   const user = await utenteCorrente();
   if (!user) redirect('/area/accedi');
 
-  const [{ data }, { data: regole }] = await Promise.all([supabase.rpc('area_riepilogo'), supabase.rpc('disdette_area')]);
+  const [{ data }, { data: regole }, { data: perMese }] = await Promise.all([
+    supabase.rpc('area_riepilogo'), supabase.rpc('disdette_area'), supabase.rpc('recuperi_per_mese'),
+  ]);
+  const massimo = regole?.recuperi_max_mese ?? null;
+  const meseDi = (iso) => new Date(iso).toLocaleDateString('sv-SE', { timeZone: 'Europe/Rome' }).slice(0, 7);
+  // niente recuperi proposti in un mese in cui il limite è già raggiunto
+  const pieno = (allievo, iso) => massimo != null && ((perMese?.[allievo]?.[meseDi(iso)] || 0) >= massimo);
   if (!data?.collegato) redirect('/area');
 
   const disdetteDi = (id) => (regole?.disdette || []).filter((d) => d.allievo_id === id).map((d) => d.lezione_id);
   const crediti = await Promise.all((data.crediti || []).map(async (c) => {
     const { data: lezioni } = await supabase.rpc('lezioni_per_recupero', { p_credito: c.id });
-    return { ...c, lezioni: (lezioni || []).filter((l) => !disdetteDi(c.allievo_id).includes(l.lezione_id)) };
+    return { ...c, lezioni: (lezioni || []).filter((l) => !disdetteDi(c.allievo_id).includes(l.lezione_id) && !pieno(c.allievo_id, l.inizio)) };
   }));
   const pacchetti = await Promise.all((data.allievi || []).map(async (a) => {
     const [{ data: abb }, { data: lezioni }] = await Promise.all([

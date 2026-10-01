@@ -147,6 +147,15 @@ export default function Recuperi({ crediti, pacchetti = [], allievi = [], piuAll
           </section>
         );
       })}
+      <a href="/area/personal" className="ac-recupero" style={{ background: 'var(--carta)' }}>
+        <span><strong>Lezione privata</strong><span className="piccolo">con l'insegnante che vuoi: la segreteria conferma giorno e ora</span></span>
+        <span aria-hidden="true">›</span>
+      </a>
+      <a href="/spazi" className="ac-recupero" style={{ background: 'var(--carta)' }}>
+        <span><strong>Prenota una sala</strong><span className="piccolo">per allenarti da solo o con il tuo gruppo</span></span>
+        <span aria-hidden="true">›</span>
+      </a>
+
       {fineAbbonamento && crediti.length > 0 && (
         <p className="ac-nota">I recuperi valgono fino alla scadenza dell'abbonamento: se rinnovi, passano al nuovo.</p>
       )}

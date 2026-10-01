@@ -1,0 +1,34 @@
+TUTTE LE QUERY DI RMHOUSE (001 → 080)
+====================================
+
+Cosa fare
+---------
+Copia la cartella supabase/migrations sopra quella del progetto
+(D:\SITO\RMHouse\supabase\migrations), poi:
+git pull --no-edit · git add . · git commit -m "Query fino alla 080" · git push
+
+Sul repository mancavano solo le ultime cinque (076, 077, 078, 079, 080):
+le altre sono identiche a quelle che hai già.
+
+Quali vanno ESEGUITE su Supabase
+--------------------------------
+Copiarle nel repository non le esegue: il database cambia solo quando le
+lanci nel SQL Editor. Ad oggi, se hai applicato fino al 075 compreso, da
+eseguire restano, IN QUEST'ORDINE:
+  076_app_cliente_orario_profilo.sql
+  077_app_cliente_scuola.sql
+  078_negozio_personal.sql
+  079_iscrizioni_corso.sql
+  080_notifiche_figli.sql
+Tutte si possono rieseguire senza danni.
+Se non sei sicuro di aver lanciato anche la 065, la 068 o la 070, rilanciale:
+anche loro si possono rieseguire.
+
+DA NON RIESEGUIRE
+-----------------
+- Le query dalla 027 alla 046 sono l'archivio dell'import da APP Palestre
+  e delle prime sistemazioni: sono già state applicate al database vero e
+  rilanciarle potrebbe reimportare o sovrascrivere dati.
+- La 003 (cron) contiene l'indirizzo del sito e la chiave segreta da
+  scrivere a mano: è già impostata, non rilanciarla (la 070 l'ha già resa
+  più leggera senza toccare indirizzo e chiave).

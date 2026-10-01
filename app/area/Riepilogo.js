@@ -3,6 +3,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { supabaseBrowser } from '@/lib/supabase/browser';
+import InstallaApp from './InstallaApp';
 import { ora, dataBreve, giornoLungo } from '@/lib/formato';
 import Notifiche from './Notifiche';
 import CaricaCertificato from '../CaricaCertificato';
@@ -87,6 +88,8 @@ export default function Riepilogo({ dati, materiali = [], inVerifica = [], aspet
   };
   const [tutte, setTutte] = useState(false);
   const [vediDisdette, setVediDisdette] = useState(false);
+  const [leggiTutto, setLeggiTutto] = useState(false);
+  const senzaAbbonamento = dati.allievi.every((a) => !(a.iscrizioni || []).length);
   const piu = dati.allievi.length > 1;
   const daMostrare = tutte ? prossime : prossime.slice(0, 5);
   // recuperi raggruppati per persona: un riquadro e un pulsante solo
@@ -99,8 +102,23 @@ export default function Riepilogo({ dati, materiali = [], inVerifica = [], aspet
     <div className="area-casa">
       <div className="ac-testa">
         <h1>Ciao {dati.titolare.nome}</h1>
-        {aspetto.benvenuto && <p className="piccolo" style={{ whiteSpace: 'pre-line', margin: '2px 0 0' }}>{aspetto.benvenuto}</p>}
       </div>
+
+      {senzaAbbonamento && (
+        <Link prefetch={false} href="/area/acquista" className="ac-avviso rosso ac-compra">
+          <span><strong>Non hai un abbonamento attivo</strong> · scegli il tuo e prenota le lezioni</span>
+          <span className="btn btn-piccolo btn-primario">Acquista</span>
+        </Link>
+      )}
+
+      {/* benvenuto e informazioni della scuola: chiuso, si apre quando serve */}
+      {aspetto.benvenuto && (
+        <section className={`ac-benvenuto${leggiTutto ? ' aperto' : ''}`}>
+          <strong>Benvenuto e informazioni</strong>
+          <p>{aspetto.benvenuto}</p>
+          <button type="button" className="link-btn piccolo" onClick={() => setLeggiTutto(!leggiTutto)}>{leggiTutto ? 'Chiudi' : 'Leggi tutto'}</button>
+        </section>
+      )}
 
       {errore && <div className="errore" role="alert">{errore}</div>}
       {avviso && <div className="avviso-ok" role="status">{avviso}</div>}
@@ -143,6 +161,8 @@ export default function Riepilogo({ dati, materiali = [], inVerifica = [], aspet
           {aspetto.avviso && <div className="ac-avviso piccolo" style={{ whiteSpace: 'pre-line' }}>{aspetto.avviso}</div>}
         </div>
       )}
+
+      <InstallaApp compatto />
 
       {materiali.length > 0 && (
         <section className="ac-sezione">

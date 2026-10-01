@@ -11,6 +11,27 @@ export default function Aspetto({ palestra }) {
   const [f, setF] = useState({ benvenuto: a.benvenuto || '', avviso: a.avviso || '', colore: a.colore || '#f40000' });
   const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
   const colore = /^#[0-9a-f]{6}$/i.test(f.colore) ? f.colore : '#f40000';
+  // "La scuola" nell'app: contatti con orari, apertura, social, responsabile safeguarding
+  const [contatti, setContatti] = useState(() => {
+    const c = Array.isArray(a.contatti) ? a.contatti : [];
+    return [...c, ...Array(Math.max(0, 3 - c.length)).fill(null).map(() => ({ etichetta: '', telefono: '', orari: '' }))].slice(0, 3);
+  });
+  const [g, setG] = useState({
+    orari_apertura: a.orari_apertura || '', instagram: a.instagram || '', facebook: a.facebook || '', youtube: a.youtube || '',
+    sg_nome: a.safeguarding?.nome || '', sg_email: a.safeguarding?.email || '', sg_telefono: a.safeguarding?.telefono || '',
+    bn_intestatario: a.bonifico?.intestatario || '', bn_iban: a.bonifico?.iban || '', bn_banca: a.bonifico?.banca || '',
+  });
+  const setC = (i, k) => (e) => setContatti(contatti.map((c, j) => (j === i ? { ...c, [k]: e.target.value } : c)));
+  const setGg = (k) => (e) => setG({ ...g, [k]: e.target.value });
+  function salvaScuola(e) {
+    e.preventDefault();
+    salva({ area_cliente: { ...a, ...f, colore,
+      contatti: contatti.filter((c) => c.etichetta.trim() || c.telefono.trim()).map((c) => ({ etichetta: c.etichetta.trim(), telefono: c.telefono.trim(), orari: c.orari.trim() })),
+      orari_apertura: g.orari_apertura.trim(), instagram: g.instagram.trim(), facebook: g.facebook.trim(), youtube: g.youtube.trim(),
+      safeguarding: { nome: g.sg_nome.trim(), email: g.sg_email.trim(), telefono: g.sg_telefono.trim() },
+      bonifico: { intestatario: g.bn_intestatario.trim(), iban: g.bn_iban.trim().toUpperCase(), banca: g.bn_banca.trim() },
+    } });
+  }
 
   return (
     <div className="scheda-due">
@@ -37,6 +58,37 @@ export default function Aspetto({ palestra }) {
             <input type="color" value={colore} onChange={set('colore')} aria-label="Colore libero" />
             <input type="text" value={f.colore} onChange={set('colore')} aria-label="Codice colore" maxLength={7} />
           </div>
+        </div>
+        <BottoneSalva stato={stato} />
+      </form>
+
+      <form className="pannello scuola-app" onSubmit={salvaScuola}>
+        <h2>La scuola nell'app</h2>
+        <p className="piccolo muto">Compare in Io → "La scuola": i clienti chiamano o scrivono su WhatsApp con un tocco.</p>
+        {contatti.map((c, i) => (
+          <div key={i} className="scuola-contatto">
+            <input value={c.etichetta} onChange={setC(i, 'etichetta')} placeholder={i === 0 ? 'Segreteria corsi' : i === 1 ? 'Direzione ed eventi (Erika)' : 'Altro contatto'} aria-label={`Contatto ${i + 1}: chi`} />
+            <input value={c.telefono} onChange={setC(i, 'telefono')} placeholder="Telefono / WhatsApp" inputMode="tel" aria-label={`Contatto ${i + 1}: telefono`} />
+            <input value={c.orari} onChange={setC(i, 'orari')} placeholder="Lun-Ven 16:00-20:00" aria-label={`Contatto ${i + 1}: orari`} />
+          </div>
+        ))}
+        <div className="campo"><label htmlFor="ap">Orari di apertura</label><input id="ap" value={g.orari_apertura} onChange={setGg('orari_apertura')} placeholder="Lun-Ven 9:30-22:00" /></div>
+        <div className="scuola-contatto">
+          <input value={g.instagram} onChange={setGg('instagram')} placeholder="Instagram (link o @nome)" aria-label="Instagram" />
+          <input value={g.facebook} onChange={setGg('facebook')} placeholder="Facebook (link)" aria-label="Facebook" />
+          <input value={g.youtube} onChange={setGg('youtube')} placeholder="YouTube (link o @nome)" aria-label="YouTube" />
+        </div>
+        <label className="piccolo" style={{ fontWeight: 700 }}>Responsabile safeguarding</label>
+        <div className="scuola-contatto">
+          <input value={g.sg_nome} onChange={setGg('sg_nome')} placeholder="Nome e cognome" aria-label="Safeguarding: nome" />
+          <input value={g.sg_email} onChange={setGg('sg_email')} placeholder="Email" type="email" aria-label="Safeguarding: email" />
+          <input value={g.sg_telefono} onChange={setGg('sg_telefono')} placeholder="Telefono" inputMode="tel" aria-label="Safeguarding: telefono" />
+        </div>
+        <label className="piccolo" style={{ fontWeight: 700 }}>Pagamento con bonifico (compare nel negozio dell'app, solo a chi sta pagando)</label>
+        <div className="scuola-contatto">
+          <input value={g.bn_intestatario} onChange={setGg('bn_intestatario')} placeholder="Intestato a" aria-label="Bonifico: intestatario" />
+          <input value={g.bn_iban} onChange={setGg('bn_iban')} placeholder="IBAN" aria-label="Bonifico: IBAN" autoCapitalize="characters" />
+          <input value={g.bn_banca} onChange={setGg('bn_banca')} placeholder="Banca" aria-label="Bonifico: banca" />
         </div>
         <BottoneSalva stato={stato} />
       </form>

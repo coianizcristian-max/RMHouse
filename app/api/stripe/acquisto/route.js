@@ -21,6 +21,12 @@ export async function POST(request) {
   if (!user) return NextResponse.json({ errore: 'Accedi prima alla tua area.' }, { status: 401 });
   const b = await request.json().catch(() => ({}));
 
+  // corso "in partenza" o "chiuso" in segreteria: niente acquisto dall'app
+  const { data: corso } = await supabaseAdmin().from('corsi').select('iscrizioni_app').eq('id', b.corso_id || '00000000-0000-0000-0000-000000000000').maybeSingle();
+  if (corso && corso.iscrizioni_app && corso.iscrizioni_app !== 'aperte') {
+    return NextResponse.json({ errore: 'Le iscrizioni a questo corso non sono aperte.' }, { status: 400 });
+  }
+
   const { data: a, error } = await supabase.rpc('prepara_acquisto', { p: {
     allievo_id: b.allievo_id, tipo_abbonamento_id: b.tipo_abbonamento_id, corso_id: b.corso_id,
     orari: Array.isArray(b.orari) ? b.orari.slice(0, 7) : [], data_inizio: b.data_inizio || null, ricorrente: !!b.ricorrente,

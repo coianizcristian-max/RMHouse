@@ -9,6 +9,8 @@ const base64ToUint8 = (base64) => {
 };
 
 const TIPI = [
+  ['cliente', 'Nuovo cliente', 'Qualcuno si è iscritto da solo (sito, prova, app) o un genitore ha aggiunto un figlio.', ['admin', 'segreteria']],
+  ['richiesta', 'Richieste dall\'app', 'Abbonamento pagato con bonifico da attivare, lezione privata da fissare.', ['admin', 'segreteria']],
   ['prova', 'Nuova prova prenotata', 'Chi, quale corso e quando. Gli insegnanti la ricevono solo per le proprie lezioni.', ['admin', 'segreteria', 'insegnante']],
   ['affitto', 'Nuova richiesta di affitto', 'Una richiesta di sala o festa arrivata dal sito, da confermare.', ['admin', 'segreteria']],
   ['certificato', 'Certificato da approvare', 'Un cliente ha caricato il certificato.', ['admin', 'segreteria']],

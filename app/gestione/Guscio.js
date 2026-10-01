@@ -2,6 +2,7 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import Cronologia from './Cronologia';
+import Campanella from './Campanella';
 import { useEffect, useState } from 'react';
 import { supabaseBrowser } from '@/lib/supabase/browser';
 import { AREE, areaDi } from '@/lib/menu';
@@ -167,6 +168,7 @@ export default function Guscio({ gestione, nome, ruolo, palestraId, funzioni = {
             {titoloBarra && <><span className="b-sep" aria-hidden="true">›</span><span className="corrente">{titoloBarra}</span></>}
           </div>
           <div className="barra-destra">
+            {gestione && <Campanella />}
             {admin && path !== '/gestione/impostazioni/registro' && <Cronologia />}
             <div className="piccolo muto solo-desktop">{nome} · {ruolo}</div>
           </div>

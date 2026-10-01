@@ -19,6 +19,14 @@ export default async function Corsi({ searchParams }) {
     .order('categoria')
     .order('corso_nome');
 
+  // stato delle iscrizioni dall'app e chi aspetta che il corso parta
+  const [{ data: stati }, { data: attese }] = await Promise.all([
+    supabase.from('corsi').select('id, iscrizioni_app').eq('palestra_id', staff.palestra_id),
+    supabase.from('liste_attesa').select('corso_id').eq('palestra_id', staff.palestra_id).eq('stato', 'in_attesa').is('lezione_id', null),
+  ]);
+  const statoDi = (id) => (stati || []).find((x) => x.id === id)?.iscrizioni_app || 'aperte';
+  const inAttesa = (id) => (attese || []).filter((x) => x.corso_id === id).length;
+
   const categorie = [...new Set((corsi || []).map((c) => c.categoria || 'Senza categoria'))];
 
   return (
@@ -52,6 +60,8 @@ export default async function Corsi({ searchParams }) {
                 </span>
               </span>
               <span className="destra" style={{ display: 'flex', gap: 4, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                {statoDi(c.corso_id) === 'attesa' && <span className="tag tag-attenzione">in partenza{inAttesa(c.corso_id) ? ` · ${inAttesa(c.corso_id)} in attesa` : ''}</span>}
+                {statoDi(c.corso_id) === 'chiuse' && <span className="tag tag-neutro">iscrizioni chiuse</span>}
                 <span className="tag tag-neutro">{c.iscritti_attivi} iscritti</span>
                 {c.prove_in_arrivo > 0 && <span className="tag tag-rosso">{c.prove_in_arrivo} prove</span>}
                 {c.certificati_da_sistemare > 0 && <span className="tag tag-attenzione">{c.certificati_da_sistemare} cert.</span>}

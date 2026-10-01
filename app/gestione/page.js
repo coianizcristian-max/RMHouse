@@ -47,7 +47,7 @@ export default async function Home() {
     .eq('palestra_id', p).eq('data', oggiISO()).order('inizio');
   if (!gestione) lezioniQ = lezioniQ.eq('insegnante_id', staff.id);
 
-  const [{ data: k }, { data: lezioni }, { data: corsi }, { data: scadenze }, { count: rateScadute }, { data: promemoria }] = await Promise.all([
+  const [{ data: k }, { data: lezioni }, { data: corsi }, { data: scadenze }, { count: rateScadute }, { count: richieste }, { data: promemoria }] = await Promise.all([
     gestione ? supabase.rpc('cruscotto', { p_palestra: p }) : Promise.resolve({ data: null }),
     lezioniQ,
     supabase.from('corsi').select('id, colore').eq('palestra_id', p),
@@ -59,6 +59,8 @@ export default async function Home() {
     gestione
       ? supabase.from('v_rate').select('id', { count: 'exact', head: true }).eq('palestra_id', p).eq('scaduta', true)
       : Promise.resolve({ count: 0 }),
+    // richieste fatte dai clienti dall'app (abbonamenti con bonifico, lezioni private)
+    supabase.from('richieste_cliente').select('id', { count: 'exact', head: true }).eq('palestra_id', p).eq('stato', 'da_confermare'),
     // promemoria di oggi, quelli rimasti indietro non fatti, e quelli fatti oggi
     supabase.from('promemoria').select('*').eq('palestra_id', p).lte('data', oggiISO())
       .or(`fatto.eq.false,data.eq.${oggiISO()}`).order('data').order('created_at').limit(40),
@@ -71,6 +73,7 @@ export default async function Home() {
   const saluto = oraRoma < 13 ? 'Buongiorno' : oraRoma < 18 ? 'Buon pomeriggio' : 'Buonasera';
 
   const problemi = k ? [
+    ['Richieste dall\'app da confermare', richieste, '/gestione/richieste', 'urgente'],
     ['Certificati scaduti o mancanti', k.certificati_scaduti, '/gestione/scadenze?tipo=certificato', 'urgente'],
     ['Presenze da segnare', k.presenze_da_segnare, '/gestione/oggi', 'urgente'],
     ['Non hanno rinnovato', k.no_rinnovo, '/gestione/persone?stato=no_rinnovo', 'urgente'],

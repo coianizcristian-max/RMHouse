@@ -25,6 +25,8 @@ export default function CorsoForm({ palestraId, corso, discipline, fasce, livell
     foto_url: corso?.foto_url || null,
     visibilita: corso?.visibilita || 'pubblico',
     prenotabile: corso ? corso.prenotabile : true,
+    iscrizioni_app: corso?.iscrizioni_app || 'aperte',
+    nota_iscrizioni: corso?.nota_iscrizioni || '',
     sede_id: corso?.sede_id || (sedi[0]?.id ?? ''),
   });
   const [errore, setErrore] = useState('');
@@ -57,6 +59,8 @@ export default function CorsoForm({ palestraId, corso, discipline, fasce, livell
       foto_url: f.foto_url,
       visibilita: f.visibilita,
       prenotabile: f.prenotabile,
+      iscrizioni_app: f.iscrizioni_app,
+      nota_iscrizioni: f.nota_iscrizioni.trim() || null,
       sede_id: f.sede_id || null,
     };
     const db = supabaseBrowser();
@@ -130,6 +134,31 @@ export default function CorsoForm({ palestraId, corso, discipline, fasce, livell
                 <textarea id="info" rows={3} value={f.info_prova} onChange={set('info_prova')}
                           placeholder="Abbigliamento, cosa portare, quanto arrivare prima…" />
                 <span className="piccolo muto">Finisce nell'email di conferma della prova.</span></div>
+            </div>
+          </section>
+
+          <section className="cf-sezione">
+            <h3>Iscrizioni dall'app</h3>
+            <div className="cf-campi">
+              <div className="campo cf-6">
+                <div className="cf-stati" role="radiogroup" aria-label="Iscrizioni dall'app">
+                  {[['aperte', 'Aperte', 'si compra l\'abbonamento e si prenota'],
+                    ['attesa', 'In partenza', 'non si compra né si prenota: "Avvisami quando parte"'],
+                    ['chiuse', 'Chiuse', 'non si compra né si prenota dall\'app']].map(([v, t, d]) => (
+                    <label key={v} className={`cf-stato${f.iscrizioni_app === v ? ' scelto' : ''}`}>
+                      <input type="radio" name="iscrizioni_app" value={v} checked={f.iscrizioni_app === v} onChange={set('iscrizioni_app')} />
+                      <strong>{t}</strong><span>{d}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+              {f.iscrizioni_app !== 'aperte' && (
+                <div className="campo cf-6"><label htmlFor="notaisc">Messaggio per i clienti</label>
+                  <input id="notaisc" value={f.nota_iscrizioni} onChange={set('nota_iscrizioni')}
+                         placeholder={f.iscrizioni_app === 'attesa' ? 'Es. Parte appena siamo in 6: tocca "Avvisami" e ti scriviamo noi' : 'Es. Corso al completo per questa stagione'} />
+                  <span className="piccolo muto">La segreteria può sempre iscrivere e prenotare a mano. Quando passi da "In partenza" ad "Aperte", chi ha chiesto di essere avvisato riceve la notifica.</span>
+                </div>
+              )}
             </div>
           </section>
 

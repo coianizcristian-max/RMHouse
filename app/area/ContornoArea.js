@@ -1,4 +1,5 @@
 'use client';
+import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { supabaseBrowser } from '@/lib/supabase/browser';
 import Testata from '../Testata';
@@ -16,7 +17,18 @@ export default function ContornoArea({ children }) {
   if (path.startsWith('/area/accedi')) return children;
   return (
     <>
-      <Testata destra={<button type="button" className="testata-link" onClick={esci}>Esci</button>} />
+      <Testata destra={
+        <span className="testata-area">
+          {/* il pass si apre da qualsiasi pagina: alla reception basta un tocco */}
+          <Link prefetch={false} href="/area/pass" className="pulsante-pass" aria-label="Il mio pass">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" aria-hidden="true">
+              <rect x="3" y="3" width="7" height="7" rx="1" /><rect x="14" y="3" width="7" height="7" rx="1" /><rect x="3" y="14" width="7" height="7" rx="1" /><path d="M14 14h3v3M21 14v7h-7" />
+            </svg>
+            <span>Pass</span>
+          </Link>
+          <button type="button" className="testata-link solo-desktop" onClick={esci}>Esci</button>
+        </span>
+      } />
       <MenuArea />
       <main className="pagina pagina-area">{children}</main>
     </>
