@@ -47,7 +47,7 @@ function RegoleDisdetta({ palestra, onSalvato }) {
     <section className="pannello">
       <h2>Disdette e recuperi</h2>
       <p className="piccolo muto" style={{ marginTop: 0 }}>
-        Dall'area clienti, con "Non vengo", la persona libera il posto e riceve il recupero, poi si riprenota da sola.
+        Dall'app, con "Cancella prenotazione", la persona libera il posto e riceve il recupero, poi si riprenota da sola con "Prenota".
       </p>
       <div className="regole-recupero">
         <div className="campo">
@@ -94,9 +94,9 @@ function RegoleDisdetta({ palestra, onSalvato }) {
         </select>
         <span className="piccolo muto">
           {f.da === 'app'
-            ? 'Fa tutto la persona dall\'app: disdice con "Non vengo" e si riprenota in un altro corso entro la scadenza. Se avvisa la segreteria, in appello si può segnare "ha avvisato" per liberare il posto, ma il recupero non c\'è.'
+            ? 'Fa tutto la persona dall\'app: "Cancella prenotazione" e si riprenota in un altro corso entro la scadenza. Se avvisa la segreteria, in appello si può segnare "ha avvisato" per liberare il posto, ma il recupero non c\'è.'
             : f.da === 'avviso'
-              ? 'Il recupero c\'è con "Non vengo" dall\'app e anche quando la segreteria segna "ha avvisato". Chi manca senza avvisare perde la lezione.'
+              ? 'Il recupero c\'è con "Cancella prenotazione" dall\'app e anche quando la segreteria segna "ha avvisato". Chi manca senza avvisare perde la lezione.'
               : 'Anche chi viene segnato assente in appello riceve il recupero.'}
         </span>
       </div>

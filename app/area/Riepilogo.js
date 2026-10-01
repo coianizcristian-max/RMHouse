@@ -18,7 +18,7 @@ const motivo = (e, base) => MOTIVI_DISDETTA[Object.keys(MOTIVI_DISDETTA).find((k
 
 export default function Riepilogo({ dati, materiali = [], inVerifica = [], aspetto = {}, chiediConsenso = false, moduliDaFirmare = 0, disdette = {} }) {
   const router = useRouter();
-  const [chiedo, setChiedo] = useState(null);   // lezione su cui si sta confermando "Non vengo"
+  const [chiedo, setChiedo] = useState(null);   // lezione su cui si sta confermando "Cancella prenotazione"
   const ore = disdette.ore_disdetta ?? 4;
   const giaDisdette = disdette.disdette || [];
   const chiave = (l) => `${l.lezione_id}-${l.allievo_id}`;
@@ -43,13 +43,13 @@ export default function Riepilogo({ dati, materiali = [], inVerifica = [], aspet
     router.refresh();
   }
 
-  async function disdici(l) {
-    if (!confirm(`Disdire il recupero di ${l.corso} del ${dataBreve(l.inizio)}? Il credito torna disponibile.`)) return;
-    setInvio(true); setErrore(''); setAvviso('');
-    const { error } = await supabaseBrowser().rpc('annulla_recupero', { p_prenotazione: l.prenotazione_id });
+  // "Cancella prenotazione" su un recupero o su una lezione prenotata con gli ingressi
+  async function cancellaPrenotata(l) {
+    setInvio(true); setErrore(''); setAvviso(''); setChiedo(null);
+    const { data, error } = await supabaseBrowser().rpc('cancella_prenotazione', { p_prenotazione: l.prenotazione_id });
     setInvio(false);
-    if (error) { setErrore(motivo(error, 'Non è stato possibile disdire. Riprova tra poco.')); return; }
-    setAvviso('Recupero disdetto: il credito è di nuovo disponibile.');
+    if (error) { setErrore(motivo(error, 'Non è stato possibile cancellare. Riprova tra poco.')); router.refresh(); return; }
+    setAvviso(data === 'recupero' ? 'Prenotazione cancellata! Il recupero è di nuovo disponibile.' : 'Prenotazione cancellata!');
     router.refresh();
   }
 
@@ -59,8 +59,8 @@ export default function Riepilogo({ dati, materiali = [], inVerifica = [], aspet
     setInvio(false); setChiedo(null);
     if (error) { setErrore(motivo(error, 'Non è stato possibile disdire. Riprova tra poco.')); router.refresh(); return; }
     setAvviso(data?.credito
-      ? `Lezione disdetta: hai un recupero da usare entro il ${dataBreve(data.scadenza)}.`
-      : 'Lezione disdetta. Questo abbonamento non prevede recuperi.');
+      ? `Prenotazione cancellata! Hai un recupero da usare entro il ${dataBreve(data.scadenza)}.`
+      : 'Prenotazione cancellata!');
     router.refresh();
   }
 
@@ -69,7 +69,7 @@ export default function Riepilogo({ dati, materiali = [], inVerifica = [], aspet
     const { error } = await supabaseBrowser().rpc('ripristina_lezione', { p_lezione: d.lezione_id, p_allievo: d.allievo_id });
     setInvio(false);
     if (error) { setErrore(motivo(error, 'Non è stato possibile. Riprova tra poco.')); return; }
-    setAvviso('Perfetto, ti aspettiamo a lezione.');
+    setAvviso('Prenotazione confermata! Ti aspettiamo a lezione.');
     router.refresh();
   }
 
@@ -160,7 +160,7 @@ export default function Riepilogo({ dati, materiali = [], inVerifica = [], aspet
         <h2>Prossime lezioni</h2>
         {prossime.length === 0
           ? <div className="vuoto">Nessuna lezione nei prossimi giorni.</div>
-          : <p className="ac-nota">Non puoi venire? "Non vengo" fino a {ore} {ore === 1 ? 'ora' : 'ore'} prima: ti diamo un recupero.</p>}
+          : <p className="ac-nota">Non puoi venire? "Cancella prenotazione" fino a {ore} {ore === 1 ? 'ora' : 'ore'} prima: ti diamo un recupero.</p>}
         <ul className="ac-lezioni">
           {daMostrare.map((l) => (
             <li key={chiave(l)} className={l.stato_lezione === 'annullata' ? 'annullata' : ''}>
@@ -174,18 +174,16 @@ export default function Riepilogo({ dati, materiali = [], inVerifica = [], aspet
                 {l.tipo === 'recupero' && <span className="tag tag-neutro">recupero</span>}
               </span>
               <span className="ac-azione">
-                {l.tipo === 'recupero' && (disdicibile(l)
-                  ? <button className="link-btn piccolo" disabled={invio} onClick={() => disdici(l)}>Disdici</button>
-                  : <span className="piccolo muto">chiusa</span>)}
-                {l.tipo === 'iscritto' && l.stato_lezione !== 'annullata' && (disdicibile(l)
-                  ? <button className="link-btn piccolo" disabled={invio} onClick={() => setChiedo(chiave(l))}>Non vengo</button>
-                  : <span className="piccolo muto">chiusa</span>)}
+                {l.stato_lezione !== 'annullata' && l.tipo !== 'prova' && (l.tipo === 'iscritto' || l.prenotazione_id) && (disdicibile(l)
+                  ? <button className="link-btn piccolo ac-cancella" disabled={invio} onClick={() => setChiedo(chiave(l))}><span>Cancella</span> <span>prenotazione</span></button>
+                  : <span className="piccolo muto">non più cancellabile</span>)}
               </span>
               {chiedo === chiave(l) && (
                 <span className="conferma-disdetta">
-                  <span>Disdici {l.corso} di {giornoLungo(l.inizio).toLowerCase()} alle {ora(l.inizio)}{piu ? ` per ${l.allievo}` : ''}?</span>
+                  <span>Cancellare la prenotazione di {l.corso}, {giornoLungo(l.inizio).toLowerCase()} alle {ora(l.inizio)}{piu ? ` per ${l.allievo}` : ''}?</span>
                   <span className="azioni">
-                    <button className="btn btn-primario btn-piccolo" disabled={invio} onClick={() => nonVengo(l)}>{invio ? 'Un attimo…' : 'Sì, disdico'}</button>
+                    <button className="btn btn-primario btn-piccolo" disabled={invio}
+                            onClick={() => (l.tipo === 'iscritto' ? nonVengo(l) : cancellaPrenotata(l))}>{invio ? 'Un attimo…' : 'Sì, cancella'}</button>
                     <button className="btn btn-piccolo" onClick={() => setChiedo(null)}>No</button>
                   </span>
                 </span>
@@ -193,6 +191,7 @@ export default function Riepilogo({ dati, materiali = [], inVerifica = [], aspet
             </li>
           ))}
         </ul>
+        <Link href="/area/recuperi" className="btn btn-primario ac-prenota">+ Prenota una lezione</Link>
         {prossime.length > 5 && (
           <button className="link-btn piccolo ac-altre" onClick={() => setTutte(!tutte)}>
             {tutte ? 'Mostra meno' : `Mostra tutte (${prossime.length})`}
@@ -218,7 +217,7 @@ export default function Riepilogo({ dati, materiali = [], inVerifica = [], aspet
       {giaDisdette.length > 0 && (
         <section className="ac-sezione">
           <button type="button" className="ac-apri" aria-expanded={vediDisdette} onClick={() => setVediDisdette(!vediDisdette)}>
-            Lezioni disdette <span className="muto">({giaDisdette.length})</span> <span aria-hidden="true">{vediDisdette ? '▴' : '▾'}</span>
+            Prenotazioni cancellate <span className="muto">({giaDisdette.length})</span> <span aria-hidden="true">{vediDisdette ? '▴' : '▾'}</span>
           </button>
           {vediDisdette && (
             <ul className="ac-lezioni ac-disdette">
@@ -231,7 +230,7 @@ export default function Riepilogo({ dati, materiali = [], inVerifica = [], aspet
                     <span>{[piu && d.allievo, d.credito ? (d.credito_usato ? 'recupero già usato' : 'recupero disponibile') : null].filter(Boolean).join(' · ')}</span>
                   </span>
                   <span className="ac-azione">
-                    {!d.credito_usato && <button className="link-btn piccolo" disabled={invio} onClick={() => ciVengo(d)}>Ci vengo</button>}
+                    {!d.credito_usato && <button className="link-btn piccolo" disabled={invio} onClick={() => ciVengo(d)}>Riprenota</button>}
                   </span>
                 </li>
               ))}

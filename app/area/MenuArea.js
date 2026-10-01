@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation';
 
 const VOCI = [
   ['/area', 'Le mie lezioni'],
-  ['/area/recuperi', 'Recuperi'],
+  ['/area/recuperi', 'Prenota'],
   ['/area/eventi', 'Eventi'],
   ['/area/moduli', 'Moduli'],
   ['/area/pagamenti', 'Pagamenti'],
@@ -16,8 +16,8 @@ const Icona = ({ d }) => (
   <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{d}</svg>
 );
 const ICONE = {
-  lezioni: <><rect x="3" y="4" width="18" height="17" rx="3" /><path d="M8 2v4M16 2v4M3 10h18" /></>,
-  recuperi: <><path d="M3 12a9 9 0 1 0 3-6.7" /><path d="M3 4v5h5" /></>,
+  lezioni: <><path d="M4 6h16M4 12h16M4 18h10" /></>,
+  prenota: <><rect x="3" y="4" width="18" height="17" rx="3" /><path d="M8 2v4M16 2v4M12 11v6M9 14h6" /></>,
   pass: <><rect x="3" y="3" width="7" height="7" rx="1" /><rect x="14" y="3" width="7" height="7" rx="1" /><rect x="3" y="14" width="7" height="7" rx="1" /><path d="M14 14h3v3M21 14v7h-7" /></>,
   altro: <><circle cx="5" cy="12" r="1.6" /><circle cx="12" cy="12" r="1.6" /><circle cx="19" cy="12" r="1.6" /></>,
 };
@@ -41,7 +41,7 @@ export default function MenuArea() {
 
       <nav className="barra-area" aria-label="La mia area">
         <Link href="/area" aria-current={path === '/area' ? 'page' : undefined}><Icona d={ICONE.lezioni} /><span>Lezioni</span></Link>
-        <Link href="/area/recuperi" aria-current={path === '/area/recuperi' ? 'page' : undefined}><Icona d={ICONE.recuperi} /><span>Recuperi</span></Link>
+        <Link href="/area/recuperi" aria-current={path === '/area/recuperi' ? 'page' : undefined}><Icona d={ICONE.prenota} /><span>Prenota</span></Link>
         <Link href="/area/pass" aria-current={path === '/area/pass' ? 'page' : undefined}><Icona d={ICONE.pass} /><span>Pass</span></Link>
         <button type="button" aria-expanded={altro} aria-current={inAltro ? 'page' : undefined} onClick={() => setAltro(!altro)}>
           <Icona d={ICONE.altro} /><span>Altro</span>

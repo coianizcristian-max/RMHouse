@@ -4,7 +4,10 @@ import Recuperi from './Recuperi';
 
 export const dynamic = 'force-dynamic';
 
-export default async function PaginaRecuperi() {
+// "Prenota": tutto quello che il cliente può prenotare da solo
+//  - con un pacchetto a ingressi o un abbonamento ad accesso libero
+//  - con i recuperi delle lezioni che ha cancellato
+export default async function PaginaPrenota() {
   const supabase = await supabaseServer();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/area/accedi');
@@ -12,14 +15,22 @@ export default async function PaginaRecuperi() {
   const [{ data }, { data: regole }] = await Promise.all([supabase.rpc('area_riepilogo'), supabase.rpc('disdette_area')]);
   if (!data?.collegato) redirect('/area');
 
-  // per ogni credito, le lezioni su cui si può usare
+  const disdetteDi = (id) => (regole?.disdette || []).filter((d) => d.allievo_id === id).map((d) => d.lezione_id);
   const crediti = await Promise.all((data.crediti || []).map(async (c) => {
     const { data: lezioni } = await supabase.rpc('lezioni_per_recupero', { p_credito: c.id });
-    // fuori le lezioni che la persona stessa ha disdetto
-    const disdette = (regole?.disdette || []).filter((d) => d.allievo_id === c.allievo_id).map((d) => d.lezione_id);
-    return { ...c, lezioni: (lezioni || []).filter((l) => !disdette.includes(l.lezione_id)) };
+    return { ...c, lezioni: (lezioni || []).filter((l) => !disdetteDi(c.allievo_id).includes(l.lezione_id)) };
+  }));
+  const pacchetti = await Promise.all((data.allievi || []).map(async (a) => {
+    const [{ data: abb }, { data: lezioni }] = await Promise.all([
+      supabase.rpc('abbonamenti_prenotabili', { p_allievo: a.id }),
+      supabase.rpc('lezioni_prenotabili', { p_allievo: a.id }),
+    ]);
+    return { allievo_id: a.id, allievo: a.nome, abbonamenti: abb || [], lezioni: lezioni || [] };
   }));
 
-  return <Recuperi crediti={crediti} piuAllievi={(data.allievi || []).length > 1}
-                   massimo={regole?.recuperi_max_mese ?? null} fineAbbonamento={regole?.scadenza_recupero === 'abbonamento'} usati={regole?.recuperi_mese || {}} />;
+  return <Recuperi crediti={crediti} pacchetti={pacchetti.filter((x) => x.abbonamenti.length > 0)}
+                   allievi={(data.allievi || []).map((a) => ({ id: a.id, nome: a.nome }))}
+                   piuAllievi={(data.allievi || []).length > 1}
+                   massimo={regole?.recuperi_max_mese ?? null} fineAbbonamento={regole?.scadenza_recupero === 'abbonamento'}
+                   usati={regole?.recuperi_mese || {}} ore={regole?.ore_disdetta ?? 4} />;
 }

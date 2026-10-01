@@ -9,7 +9,7 @@ import SceltaColore from '../SceltaColore';
 export const RUOLI = { insegnante: 'Insegnante', segreteria: 'Segreteria', admin: 'Amministratore' };
 
 // Pagina dedicata: scheda di una persona dello staff (nuova o da modificare)
-export default function SchedaStaff({ palestraId, persona = null, corsi = [] }) {
+export default function SchedaStaff({ palestraId, persona = null, corsi = [], usata = true, sonoIo = false }) {
   const router = useRouter();
   const nuova = !persona;
   const [f, setF] = useState({
@@ -22,6 +22,24 @@ export default function SchedaStaff({ palestraId, persona = null, corsi = [] }) 
   });
   const [errore, setErrore] = useState('');
   const [invio, setInvio] = useState(false);
+  // Archivia / Riporta in forza / Elimina, dalla scheda
+  async function archivia(valore) {
+    if (valore && !confirm(`Archiviare ${persona.nome}? Non compare più nello staff in forza; lezioni, presenze e compensi restano. Si può riportare in forza quando vuoi.`)) return;
+    setInvio(true); setErrore('');
+    const { data, error } = await supabaseBrowser().from('staff').update({ archiviato: valore }).eq('id', persona.id).select('id');
+    setInvio(false);
+    if (error || !data?.length) { setErrore('Operazione non riuscita. Ricarica la pagina e riprova.'); return; }
+    router.push(valore ? '/gestione/staff' : `/gestione/staff?salvato=${persona.id}`); router.refresh();
+  }
+  async function elimina() {
+    if (!confirm(`Eliminare per sempre la scheda di ${persona.nome}? Non si può annullare.`)) return;
+    setInvio(true); setErrore('');
+    const { error } = await supabaseBrowser().from('staff').delete().eq('id', persona.id);
+    setInvio(false);
+    if (error) { setErrore('Non si può eliminare: è collegata ad altri dati (lezioni, compensi…). Archiviala.'); return; }
+    router.push('/gestione/staff'); router.refresh();
+  }
+
   const set = (k) => (e) => setF({ ...f, [k]: e.target.type === 'checkbox' ? e.target.checked : e.target.value });
   const indietro = persona?.archiviato ? '/gestione/staff?archiviati=1' : '/gestione/staff';
 
@@ -68,6 +86,13 @@ export default function SchedaStaff({ palestraId, persona = null, corsi = [] }) 
             ? <span className="tag tag-ok">entra nell'app</span>
             : <span className="tag tag-attenzione">senza accesso</span>}
           {persona.archiviato && <span className="tag tag-neutro">archiviato</span>}
+          {!persona.attivo && <span className="tag tag-neutro">non attivo</span>}
+          <span className="ss-gestione">
+            {!sonoIo && (persona.archiviato
+              ? <button type="button" className="link-btn piccolo" disabled={invio} onClick={() => archivia(false)}>Riporta in forza</button>
+              : <button type="button" className="link-btn piccolo" disabled={invio} onClick={() => archivia(true)}>Archivia</button>)}
+            {!sonoIo && !usata && <button type="button" className="link-btn piccolo pericolo" disabled={invio} onClick={elimina}>Elimina</button>}
+          </span>
         </div>
       )}
 
@@ -80,7 +105,8 @@ export default function SchedaStaff({ palestraId, persona = null, corsi = [] }) 
               <label>Colore in calendario</label>
               <SceltaColore valore={f.colore} onChange={(c) => setF((x) => ({ ...x, colore: c }))} />
             </div>
-            <label className="spunta"><input type="checkbox" checked={f.attivo} onChange={set('attivo')} /><span>Attivo</span></label>
+            <label className="spunta"><input type="checkbox" checked={f.attivo} onChange={set('attivo')} />
+          <span>Attivo<span className="piccolo muto" style={{ display: 'block' }}>se tolto, non entra nel gestionale</span></span></label>
             <label className="spunta"><input type="checkbox" checked={f.collaboratore} onChange={set('collaboratore')} /><span>Collaboratore esterno</span></label>
           </div>
 

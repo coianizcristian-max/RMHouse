@@ -2167,3 +2167,27 @@ a.titolo-sala:hover { text-decoration: underline; text-underline-offset: 3px; }
   .barra-area [aria-current='page'] { color: var(--rosso); }
 
 }
+
+/* 068 — prenotare da soli */
+.ac-prenota { display: flex; justify-content: center; margin-top: 8px; width: 100%; }
+.ac-cancella { white-space: nowrap; font-size: 12.5px; }
+.ac-saldi { display: grid; gap: 6px; margin-bottom: 8px; }
+.ac-saldo { display: grid; padding: 9px 12px; border-radius: 12px; background: var(--carta); font-size: 13px; color: var(--testo-2); }
+.ac-saldo strong { color: var(--nero); font-size: 15px; }
+.ac-saldo.verde { background: var(--ok-tenue); }
+@media (max-width: 420px) {
+  .ac-lezioni > li { grid-template-columns: 5px 58px minmax(0, 1fr) auto; gap: 8px; }
+  .ac-cancella { padding: 6px 8px !important; font-size: 12px; }
+}
+.ac-quando span { white-space: nowrap; }
+@media (max-width: 420px) {
+  .ac-lezioni > li { grid-template-columns: 5px 62px minmax(0, 1fr) auto; }
+  .ac-quando span { font-size: 11.5px; }
+}
+/* "Cancella prenotazione" su due righe: lascia spazio al nome del corso */
+.ac-cancella { display: inline-grid; line-height: 1.15; text-align: center; padding: 6px 10px !important; border-radius: 12px !important; }
+.ac-cancella span { display: block; }
+
+/* 069 — archivia / elimina dalla scheda staff */
+.ss-gestione { display: inline-flex; gap: 8px; margin-left: auto; }
+.segni-staff:has(.ss-gestione) { align-items: center; }
