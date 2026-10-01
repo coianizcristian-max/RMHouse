@@ -1996,3 +1996,12 @@ a.persona-nome:hover { text-decoration: underline; text-underline-offset: 3px; }
 .cf-spunte { padding-top: 20px; display: grid; gap: 0; }
 .cf-spunte .spunta { margin-bottom: 4px; }
 @media (max-width: 899px) { .cf-spunte { grid-column: span 2; padding-top: 0; } }
+
+/* 061 — sala su pagina dedicata */
+.ss-nota { align-self: end; padding-bottom: 6px; }
+.tessera.appena-salvata { outline: 2px solid var(--ok); outline-offset: 2px; }
+a.titolo-sala { display: block; font-weight: 700; color: var(--nero); text-decoration: none; }
+a.titolo-sala:hover { text-decoration: underline; text-underline-offset: 3px; }
+@media (max-width: 899px) { .ss-nota { grid-column: span 2; } }
+.ss-6 { grid-column: span 6; }
+@media (max-width: 899px) { .ss-6 { grid-column: span 2; } }

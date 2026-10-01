@@ -4,7 +4,8 @@ import Sale from './Sale';
 
 export const dynamic = 'force-dynamic';
 
-export default async function PaginaSale() {
+export default async function PaginaSale({ searchParams }) {
+  const { salvato } = await searchParams;
   const { supabase, staff } = await staffCorrente();
   if (staff.ruolo === 'insegnante') redirect('/gestione');
   const [{ data: sale }, { data: sedi }, { data: orari }] = await Promise.all([
@@ -19,7 +20,6 @@ export default async function PaginaSale() {
   (post || []).forEach((p) => { conta[p.sala_id] = (conta[p.sala_id] || 0) + 1; });
 
   return (
-    <Sale palestraId={staff.palestra_id} sale={sale || []} sedi={sedi || []} orari={orari || []}
-          postazioni={conta} />
+    <Sale sale={sale || []} orari={orari || []} postazioni={conta} salvato={salvato || null} />
   );
 }
