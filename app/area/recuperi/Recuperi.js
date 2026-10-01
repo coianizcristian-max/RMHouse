@@ -1,6 +1,5 @@
 'use client';
 import { useState } from 'react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { supabaseBrowser } from '@/lib/supabase/browser';
 import { ora, dataBreve, giornoLungo } from '@/lib/formato';
@@ -22,9 +21,12 @@ export default function Recuperi({ crediti, piuAllievi, massimo = null, usati = 
   const [avviso, setAvviso] = useState('');
   const [invio, setInvio] = useState(false);
 
+  const [giorno, setGiorno] = useState('');        // '' = tutti i giorni
+  const [quante, setQuante] = useState(10);
+  const [chiedo, setChiedo] = useState(null);      // lezione da confermare
+
   async function prenota(credito, lezione) {
-    if (!confirm(`Prenotare ${lezione.corso} di ${giornoLungo(lezione.inizio).toLowerCase()} alle ${ora(lezione.inizio)}?`)) return;
-    setInvio(true); setErrore(''); setAvviso('');
+    setInvio(true); setErrore(''); setAvviso(''); setChiedo(null);
     const { error } = await supabaseBrowser().rpc('prenota_recupero', {
       p_credito: credito.id, p_lezione: lezione.lezione_id,
     });
@@ -35,74 +37,102 @@ export default function Recuperi({ crediti, piuAllievi, massimo = null, usati = 
       router.refresh();
       return;
     }
-    setAvviso('Recupero prenotato: lo trovi fra le prossime lezioni.');
+    setAvviso(`Fatto: ${lezione.corso} ${giornoCorto(lezione.inizio)} alle ${ora(lezione.inizio)}. La trovi fra le tue lezioni.`);
     router.refresh();
   }
 
+  // una lista sola per persona: ogni lezione usa il recupero che scade prima fra quelli validi
+  const persone = [...new Map(crediti.map((c) => [c.allievo_id, c.allievo])).entries()].map(([id, nome]) => {
+    const suoi = crediti.filter((c) => c.allievo_id === id).sort((x, y) => String(x.scadenza).localeCompare(String(y.scadenza)));
+    const lezioni = new Map();
+    suoi.forEach((c) => c.lezioni.forEach((l) => { if (!lezioni.has(l.lezione_id)) lezioni.set(l.lezione_id, { ...l, credito: c }); }));
+    return { id, nome, suoi, lezioni: [...lezioni.values()].sort((x, y) => x.inizio.localeCompare(y.inizio)) };
+  });
+  const giorniSettimana = ['Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab', 'Dom'];
+  const giornoDi = (iso) => giorniSettimana[(new Date(iso).getDay() + 6) % 7];
+
   return (
-    <>
-      <div className="intestazione">
-        <div className="occhiello">La mia area</div>
+    <div className="area-recuperi">
+      <div className="ac-testa">
         <h1>Recuperi</h1>
-        <p>Le lezioni che puoi recuperare e dove usarle.</p>
-        {fineAbbonamento && (
-          <p className="piccolo muto">
-            Un recupero vale fino alla scadenza del tuo abbonamento: se rinnovi, passa al nuovo.
-          </p>
-        )}
-        {massimo != null && (
-          <p className="piccolo muto">
-            Si possono fare al massimo {massimo} {massimo === 1 ? 'recupero' : 'recuperi'} al mese a persona.
-          </p>
-        )}
+        <p className="ac-nota" style={{ margin: '2px 0 0' }}>
+          {fineAbbonamento ? 'Valgono fino alla scadenza dell\'abbonamento (se rinnovi, passano al nuovo)' : 'Scegli la lezione e tocca Prenota'}
+          {massimo != null ? ` · massimo ${massimo} al mese` : ''}.
+        </p>
       </div>
 
       {errore && <div className="errore" role="alert">{errore}</div>}
-      {avviso && <div className="errore" style={{ background: 'var(--ok-tenue)', color: 'var(--ok)' }}>{avviso}</div>}
+      {avviso && <div className="avviso-ok" role="status">{avviso}</div>}
 
-      {crediti.length === 0 && (
-        <div className="vuoto">
-          Non hai recuperi da usare.
-        </div>
-      )}
+      {crediti.length === 0 && <div className="vuoto">Non hai recuperi da usare. Nascono quando tocchi "Non vengo" su una lezione.</div>}
 
-      {crediti.map((c) => (
-        <div key={c.id} id={c.id} style={{ marginBottom: 28 }}>
-          <h2 className="sezione">{c.corso}</h2>
-          <p className="piccolo muto" style={{ marginTop: -4 }}>
-            {piuAllievi ? `${c.allievo} · ` : ''}da usare entro il {dataBreve(c.scadenza)}
-            {massimo != null && ` · questo mese ${usati[c.allievo_id] || 0} di ${massimo}`}
-          </p>
+      {persone.map((pe) => {
+        const giorni = [...new Set(pe.lezioni.map((l) => giornoDi(l.inizio)))];
+        const filtrate = pe.lezioni.filter((l) => !giorno || giornoDi(l.inizio) === giorno);
+        return (
+          <section key={pe.id} className="ac-sezione">
+            <h2>{piuAllievi ? `${pe.nome} · ` : ''}{pe.suoi.length} {pe.suoi.length === 1 ? 'recupero' : 'recuperi'}</h2>
+            <p className="ac-nota">
+              entro il {dataBreve(pe.suoi[0].scadenza)}
+              {massimo != null && ` · questo mese ${usati[pe.id] || 0} di ${massimo}`}
+            </p>
 
-          {c.lezioni.length === 0 ? (
-            <div className="vuoto">
-              Al momento non ci sono lezioni disponibili per questo recupero.
-              <div className="piccolo" style={{ marginTop: 6 }}>Si liberano posti quando qualcuno disdice: riprova nei prossimi giorni.</div>
-            </div>
-          ) : (
-            <ul className="elenco">
-              {c.lezioni.map((l) => (
-                <li key={l.lezione_id} className="persona">
-                  <span>
-                    <strong style={{ color: 'var(--nero)', textTransform: 'capitalize' }}>
-                      {giornoLungo(l.inizio)} {ora(l.inizio)}
-                    </strong>
-                    <span className="piccolo muto" style={{ display: 'block' }}>
-                      {l.corso}{l.sala ? ` · ${l.sala}` : ''}{l.insegnante ? ` · ${l.insegnante}` : ''}
-                      {l.liberi > 0 ? ` · ${l.liberi} posti liberi` : ' · al completo'}
-                    </span>
-                  </span>
-                  <button className="btn" disabled={invio || l.liberi === 0} onClick={() => prenota(c, l)}>
-                    Prenota
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-      ))}
-
-      <p style={{ marginTop: 20 }}><Link href="/area">Torna alla mia area</Link></p>
-    </>
+            {pe.lezioni.length === 0 ? (
+              <div className="vuoto">
+                Ora non ci sono lezioni libere per recuperare.
+                <div className="piccolo" style={{ marginTop: 4 }}>Si liberano posti quando qualcuno disdice: riprova nei prossimi giorni.</div>
+              </div>
+            ) : (
+              <>
+                {giorni.length > 1 && (
+                  <div className="ac-giorni" role="group" aria-label="Giorno">
+                    <button type="button" aria-pressed={!giorno} onClick={() => { setGiorno(''); setQuante(10); }}>Tutti</button>
+                    {giorniSettimana.filter((g) => giorni.includes(g)).map((g) => (
+                      <button key={g} type="button" aria-pressed={giorno === g} onClick={() => { setGiorno(g); setQuante(10); }}>{g}</button>
+                    ))}
+                  </div>
+                )}
+                <ul className="ac-lezioni">
+                  {filtrate.slice(0, quante).map((l) => {
+                    const k = `${pe.id}-${l.lezione_id}`;
+                    return (
+                      <li key={k}>
+                        <span className="ac-banda" style={{ background: 'var(--rosso)' }} />
+                        <span className="ac-quando"><strong>{ora(l.inizio)}</strong><span>{giornoCorto(l.inizio)}</span></span>
+                        <span className="ac-cosa">
+                          <strong>{l.corso}</strong>
+                          <span>{[l.sala, l.liberi > 0 ? `${l.liberi} posti` : 'al completo'].filter(Boolean).join(' · ')}</span>
+                        </span>
+                        <span className="ac-azione">
+                          <button className="btn btn-piccolo btn-primario" disabled={invio || l.liberi === 0} onClick={() => setChiedo(k)}>Prenota</button>
+                        </span>
+                        {chiedo === k && (
+                          <span className="conferma-disdetta conferma-ok">
+                            <span>Recuperi {l.corso} di {giornoLungo(l.inizio).toLowerCase()} alle {ora(l.inizio)}{piuAllievi ? ` per ${pe.nome}` : ''}?</span>
+                            <span className="azioni">
+                              <button className="btn btn-primario btn-piccolo" disabled={invio} onClick={() => prenota(l.credito, l)}>{invio ? 'Un attimo…' : 'Sì, prenoto'}</button>
+                              <button className="btn btn-piccolo" onClick={() => setChiedo(null)}>No</button>
+                            </span>
+                          </span>
+                        )}
+                      </li>
+                    );
+                  })}
+                </ul>
+                {filtrate.length > quante && (
+                  <button className="link-btn piccolo ac-altre" onClick={() => setQuante(quante + 10)}>Mostra altre ({filtrate.length - quante})</button>
+                )}
+              </>
+            )}
+          </section>
+        );
+      })}
+    </div>
   );
+}
+
+function giornoCorto(iso) {
+  const d = new Date(iso);
+  const g = d.toLocaleDateString('it-IT', { weekday: 'short', timeZone: 'Europe/Rome' }).replace('.', '');
+  return `${g.charAt(0).toUpperCase()}${g.slice(1)} ${d.toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', timeZone: 'Europe/Rome' })}`;
 }

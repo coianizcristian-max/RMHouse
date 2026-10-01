@@ -18,7 +18,7 @@ export default function ContornoArea({ children }) {
     <>
       <Testata destra={<button type="button" className="testata-link" onClick={esci}>Esci</button>} />
       <MenuArea />
-      <main className="pagina">{children}</main>
+      <main className="pagina pagina-area">{children}</main>
     </>
   );
 }

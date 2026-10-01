@@ -2075,3 +2075,95 @@ a.titolo-sala:hover { text-decoration: underline; text-underline-offset: 3px; }
 @media (min-width: 1100px) {
   .scheda-persona .riquadri { grid-template-columns: repeat(6, minmax(0, 1fr)); }
 }
+
+/* ==================================================================
+   067 — area clienti pensata per il telefono
+   ================================================================== */
+.barra-area { display: none; }
+.foglio-sfondo { position: fixed; inset: 0; z-index: 45; background: rgba(0, 0, 0, .35); display: flex; align-items: flex-end; }
+.foglio-altro {
+  width: 100%; background: var(--bianco); border-radius: 18px 18px 0 0; display: grid;
+  padding: 10px 16px calc(78px + env(safe-area-inset-bottom, 0px));
+}
+.foglio-altro a {
+  display: flex; justify-content: space-between; align-items: center; padding: 15px 4px; font-size: 16px;
+  font-weight: 650; color: var(--nero); text-decoration: none; border-bottom: 1px solid var(--linea);
+}
+.foglio-altro .link-btn { margin-top: 10px; justify-self: center; }
+
+.area-casa, .area-recuperi { display: grid; gap: 14px; }
+.ac-testa h1 { font-size: 28px; margin: 0; line-height: 1.1; }
+.ac-nota { font-size: 13px; color: var(--testo-2); margin: -2px 0 8px; }
+.ac-sezione > h2 { font-size: 17px; margin: 0 0 6px; color: var(--nero); }
+.ac-avvisi { display: grid; gap: 8px; }
+.ac-avviso {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 12px;
+  border-radius: 12px; background: var(--carta); color: var(--testo); text-decoration: none; font-size: 14px;
+}
+.ac-avviso.rosso { border-left: 4px solid var(--rosso); }
+.ac-avviso strong { color: var(--nero); }
+.ac-certificato { display: grid; gap: 6px; }
+.ac-si-no { display: flex; gap: 6px; flex: none; }
+
+.ac-lezioni { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.ac-lezioni > li {
+  display: grid; grid-template-columns: 5px 64px minmax(0, 1fr) auto; align-items: center; gap: 10px;
+  padding: 8px 10px 8px 0; border-radius: 12px; background: var(--bianco); border: 1px solid var(--linea); overflow: hidden;
+}
+.ac-lezioni > li.annullata { opacity: .6; }
+.ac-banda { align-self: stretch; margin: -8px 0; }
+.ac-quando { display: grid; line-height: 1.15; }
+.ac-quando strong { font-size: 17px; color: var(--nero); font-variant-numeric: tabular-nums; }
+.ac-quando span { font-size: 12px; color: var(--testo-2); }
+.ac-cosa { display: grid; min-width: 0; line-height: 1.25; }
+.ac-cosa strong { color: var(--nero); font-size: 15px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ac-cosa > span { font-size: 12.5px; color: var(--testo-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ac-cosa .tag { justify-self: start; margin-top: 3px; }
+.ac-azione { text-align: right; }
+.ac-azione .link-btn { padding: 7px 11px; }
+.ac-lezioni .conferma-disdetta { grid-column: 1 / -1; margin: 2px 0 0 10px; }
+.conferma-ok { background: var(--ok-tenue); }
+.ac-disdette > li { background: var(--carta); border-color: transparent; }
+.ac-altre { margin-top: 8px; }
+.ac-apri { background: none; border: 0; padding: 4px 0; font: inherit; font-size: 17px; font-weight: 750; color: var(--nero); cursor: pointer; }
+
+.ac-recupero {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 12px 14px; margin-bottom: 6px;
+  border-radius: 12px; background: var(--ok-tenue); text-decoration: none; color: var(--testo);
+}
+.ac-recupero > span:first-child { display: grid; }
+.ac-recupero strong { color: var(--nero); }
+
+.ac-abbonamenti { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.ac-abbonamenti > li { display: grid; gap: 4px; padding: 10px 12px; border-radius: 12px; background: var(--carta); }
+.ac-chi { color: var(--nero); }
+.ac-abb { display: flex; justify-content: space-between; gap: 10px; font-size: 14px; }
+.ac-abb > span:first-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ac-abb > span:last-child { flex: none; font-size: 13px; }
+.ac-scade { color: var(--attenzione); font-weight: 700; }
+.ac-cert { color: var(--testo-2); }
+.ac-cert.rosso { color: var(--rosso-scuro); font-weight: 700; }
+
+.ac-giorni { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; margin-bottom: 8px; padding-bottom: 2px; }
+.ac-giorni::-webkit-scrollbar { display: none; }
+.ac-giorni button {
+  flex: none; padding: 6px 12px; border-radius: 999px; border: 1px solid var(--linea); background: var(--bianco);
+  font: inherit; font-size: 13px; font-weight: 650; color: var(--testo-2); cursor: pointer;
+}
+.ac-giorni button[aria-pressed='true'] { background: var(--nero); border-color: var(--nero); color: var(--bianco); }
+
+@media (max-width: 899px) {
+  .menu-area { display: none; }
+  .pagina-area { padding-top: 12px; padding-bottom: calc(84px + env(safe-area-inset-bottom, 0px)); }
+  .barra-area {
+    display: grid; grid-template-columns: repeat(4, 1fr); position: fixed; left: 0; right: 0; bottom: 0; z-index: 50;
+    background: rgba(255, 255, 255, .97); border-top: 1px solid var(--linea); backdrop-filter: blur(8px);
+    padding: 6px 4px calc(6px + env(safe-area-inset-bottom, 0px));
+  }
+  .barra-area a, .barra-area button {
+    display: grid; justify-items: center; gap: 2px; padding: 6px 2px; border: 0; background: none; cursor: pointer;
+    font: inherit; font-size: 11.5px; font-weight: 650; color: var(--testo-2); text-decoration: none; border-radius: 10px;
+  }
+  .barra-area [aria-current='page'] { color: var(--rosso); }
+
+}

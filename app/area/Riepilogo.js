@@ -8,7 +8,7 @@ import Notifiche from './Notifiche';
 import CaricaCertificato from '../CaricaCertificato';
 
 const MOTIVI_DISDETTA = {
-  troppo_tardi: 'Ormai è tardi per disdire da qui: chiama la segreteria.',
+  troppo_tardi: 'Ormai è tardi: si può disdire solo fino a qualche ora prima della lezione.',
   lezione_gia_iniziata: 'La lezione è già iniziata.',
   gia_disdetta: 'Questa lezione era già disdetta.',
   credito_gia_usato: 'Il recupero di questa lezione è già stato usato: non si può tornare indietro.',
@@ -48,7 +48,7 @@ export default function Riepilogo({ dati, materiali = [], inVerifica = [], aspet
     setInvio(true); setErrore(''); setAvviso('');
     const { error } = await supabaseBrowser().rpc('annulla_recupero', { p_prenotazione: l.prenotazione_id });
     setInvio(false);
-    if (error) { setErrore(motivo(error, 'Non è stato possibile disdire. Chiama la segreteria.')); return; }
+    if (error) { setErrore(motivo(error, 'Non è stato possibile disdire. Riprova tra poco.')); return; }
     setAvviso('Recupero disdetto: il credito è di nuovo disponibile.');
     router.refresh();
   }
@@ -57,7 +57,7 @@ export default function Riepilogo({ dati, materiali = [], inVerifica = [], aspet
     setInvio(true); setErrore(''); setAvviso('');
     const { data, error } = await supabaseBrowser().rpc('disdici_lezione', { p_lezione: l.lezione_id, p_allievo: l.allievo_id });
     setInvio(false); setChiedo(null);
-    if (error) { setErrore(motivo(error, 'Non è stato possibile disdire. Chiama la segreteria.')); router.refresh(); return; }
+    if (error) { setErrore(motivo(error, 'Non è stato possibile disdire. Riprova tra poco.')); router.refresh(); return; }
     setAvviso(data?.credito
       ? `Lezione disdetta: hai un recupero da usare entro il ${dataBreve(data.scadenza)}.`
       : 'Lezione disdetta. Questo abbonamento non prevede recuperi.');
@@ -68,7 +68,7 @@ export default function Riepilogo({ dati, materiali = [], inVerifica = [], aspet
     setInvio(true); setErrore(''); setAvviso('');
     const { error } = await supabaseBrowser().rpc('ripristina_lezione', { p_lezione: d.lezione_id, p_allievo: d.allievo_id });
     setInvio(false);
-    if (error) { setErrore(motivo(error, 'Non è stato possibile. Chiama la segreteria.')); return; }
+    if (error) { setErrore(motivo(error, 'Non è stato possibile. Riprova tra poco.')); return; }
     setAvviso('Perfetto, ti aspettiamo a lezione.');
     router.refresh();
   }
@@ -79,285 +79,245 @@ export default function Riepilogo({ dati, materiali = [], inVerifica = [], aspet
     router.refresh();
   }
 
+  // date brevi per il telefono: "Gio 15/10"
+  const giornoCorto = (iso) => {
+    const d = new Date(iso);
+    const g = d.toLocaleDateString('it-IT', { weekday: 'short', timeZone: 'Europe/Rome' }).replace('.', '');
+    return `${g.charAt(0).toUpperCase()}${g.slice(1)} ${d.toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', timeZone: 'Europe/Rome' })}`;
+  };
+  const [tutte, setTutte] = useState(false);
+  const [vediDisdette, setVediDisdette] = useState(false);
+  const piu = dati.allievi.length > 1;
+  const daMostrare = tutte ? prossime : prossime.slice(0, 5);
+  // recuperi raggruppati per persona: un riquadro e un pulsante solo
+  const recuperiPer = dati.allievi.map((a) => {
+    const c = dati.crediti.filter((x) => x.allievo_id === a.id);
+    return { allievo: a, n: c.length, scade: c.map((x) => x.scadenza).sort()[0] };
+  }).filter((x) => x.n > 0);
+
   return (
-    <>
-      <div className="intestazione">
-        <div className="occhiello">La mia area</div>
+    <div className="area-casa">
+      <div className="ac-testa">
         <h1>Ciao {dati.titolare.nome}</h1>
-        {aspetto.benvenuto && <p style={{ whiteSpace: 'pre-line' }}>{aspetto.benvenuto}</p>}
-        <p>
-          {prossime.length > 0
-            ? `La prossima lezione è ${giornoLungo(prossime[0].inizio).toLowerCase()} alle ${ora(prossime[0].inizio)}.`
-            : 'Non ci sono lezioni in programma nei prossimi giorni.'}
-        </p>
+        {aspetto.benvenuto && <p className="piccolo" style={{ whiteSpace: 'pre-line', margin: '2px 0 0' }}>{aspetto.benvenuto}</p>}
       </div>
 
       {errore && <div className="errore" role="alert">{errore}</div>}
-      {avviso && <div className="errore" style={{ background: 'var(--ok-tenue)', color: 'var(--ok)' }}>{avviso}</div>}
+      {avviso && <div className="avviso-ok" role="status">{avviso}</div>}
+
+      {/* cose da fare: una riga ciascuna, si toccano */}
+      {(moduliDaFirmare > 0 || daSistemare.length > 0 || consenso || aspetto.avviso) && (
+        <div className="ac-avvisi">
+          {moduliDaFirmare > 0 && (
+            <Link href="/area/moduli" className="ac-avviso rosso">
+              <span><strong>{moduliDaFirmare === 1 ? 'Un modulo da firmare' : `${moduliDaFirmare} moduli da firmare`}</strong> · si firmano col dito</span>
+              <span aria-hidden="true">›</span>
+            </Link>
+          )}
+          {daSistemare.length > 0 && (
+            <div className="ac-avviso rosso ac-certificato">
+              <strong>Certificato medico da sistemare</strong>
+              {daSistemare.map((a) => {
+                const inviato = inVerifica.find((c) => c.allievo_id === a.id);
+                return (
+                  <div key={a.id} className="piccolo">
+                    {a.nome}: {inviato
+                      ? <span style={{ color: 'var(--ok)' }}>inviato, la segreteria lo sta controllando</span>
+                      : <>{a.certificato_scadenza ? `scaduto il ${dataBreve(a.certificato_scadenza)}` : 'da consegnare'}
+                          <CaricaCertificato token={a.token} nome={a.nome}
+                            onFatto={() => { setAvviso('Certificato inviato: la segreteria lo controlla.'); router.refresh(); }} /></>}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+          {consenso && (
+            <div className="ac-avviso">
+              <span className="piccolo"><strong>Novità e promozioni?</strong> Poche email, cambi idea quando vuoi.</span>
+              <span className="ac-si-no">
+                <button className="btn btn-piccolo btn-primario" onClick={() => rispondiConsenso(true)}>Sì</button>
+                <button className="btn btn-piccolo" onClick={() => rispondiConsenso(false)}>No</button>
+              </span>
+            </div>
+          )}
+          {aspetto.avviso && <div className="ac-avviso piccolo" style={{ whiteSpace: 'pre-line' }}>{aspetto.avviso}</div>}
+        </div>
+      )}
 
       {materiali.length > 0 && (
-        <>
-          <h2 className="sezione">Per la lezione di oggi</h2>
+        <section className="ac-sezione">
+          <h2>Per la lezione di oggi</h2>
           {materiali.map((m) => (
-            <div key={m.id} className="avviso-card">
-              <h3>{m.titolo}</h3>
-              <p>{m.corso} · {ora(m.inizio)}{m.testo ? ` — ${m.testo}` : ''}</p>
-              {m.url && (
-                <p style={{ marginTop: 8 }}>
-                  <a className="btn" href={m.url} target="_blank" rel="noreferrer">
-                    {m.tipo === 'video' ? 'Guarda il video' : 'Apri'}
-                  </a>
-                </p>
-              )}
+            <div key={m.id} className="ac-avviso">
+              <span className="piccolo"><strong>{m.titolo}</strong> · {m.corso} {ora(m.inizio)}{m.testo ? ` — ${m.testo}` : ''}</span>
+              {m.url && <a className="btn btn-piccolo" href={m.url} target="_blank" rel="noreferrer">{m.tipo === 'video' ? 'Video' : 'Apri'}</a>}
             </div>
           ))}
-        </>
+        </section>
       )}
 
-
-      {moduliDaFirmare > 0 && (
-        <Link href="/area/moduli" className="scheda" style={{ display: 'block', borderLeft: '4px solid var(--rosso)', marginBottom: 16, textDecoration: 'none' }}>
-          <strong style={{ color: 'var(--nero)' }}>
-            {moduliDaFirmare === 1 ? 'Un modulo da firmare' : `${moduliDaFirmare} moduli da firmare`}
-          </strong>
-          <span className="piccolo muto" style={{ display: 'block' }}>Regolamento e autorizzazioni: si firmano qui col dito, in un minuto. Tocca per aprirli.</span>
-        </Link>
-      )}
-
-      {consenso && (
-        <div className="scheda" style={{ marginBottom: 16 }}>
-          <strong style={{ color: 'var(--nero)' }}>Vuoi ricevere novità e promozioni?</strong>
-          <p className="piccolo muto" style={{ margin: '6px 0 10px' }}>
-            Nuovi corsi, stage, offerte per chi è già iscritto. Poche email, e puoi cambiare idea quando vuoi.
-          </p>
-          <div className="azioni">
-            <button className="btn btn-primario btn-piccolo" onClick={() => rispondiConsenso(true)}>Sì, volentieri</button>
-            <button className="btn btn-piccolo" onClick={() => rispondiConsenso(false)}>No, grazie</button>
-          </div>
-        </div>
-      )}
-
-      {aspetto.avviso && (
-        <div className="avviso-card"><p style={{ margin: 0, whiteSpace: 'pre-line' }}>{aspetto.avviso}</p></div>
-      )}
-
-      {daSistemare.length > 0 && (
-        <div className="scheda" style={{ borderLeft: '4px solid var(--rosso)', marginBottom: 20 }}>
-          <strong style={{ color: 'var(--nero)' }}>Certificato medico da sistemare</strong>
-          {daSistemare.map((a) => {
-            const inviato = inVerifica.find((c) => c.allievo_id === a.id);
-            return (
-              <div key={a.id} style={{ marginTop: 12 }}>
-                <div className="piccolo" style={{ marginBottom: 8 }}>
-                  <strong>{a.nome}</strong>: {a.certificato_scadenza ? `scaduto il ${dataBreve(a.certificato_scadenza)}` : 'non ancora consegnato'}
-                </div>
-                {inviato ? (
-                  <div className="piccolo" style={{ color: 'var(--ok)' }}>
-                    Inviato il {dataBreve(inviato.caricato_at)}{inviato.scadenza ? `, scade il ${dataBreve(inviato.scadenza)}` : ''}: la segreteria lo sta controllando.
-                  </div>
-                ) : (
-                  <CaricaCertificato token={a.token} nome={a.nome}
-                                     onFatto={() => { setAvviso('Certificato inviato: la segreteria lo controlla e lo approva.'); router.refresh(); }} />
-                )}
-              </div>
-            );
-          })}
-          <p className="piccolo muto" style={{ marginTop: 10 }}>
-            Basta una foto ben leggibile. Senza certificato valido non si può entrare in sala.
-          </p>
-        </div>
-      )}
-
-      <h2 className="sezione">Le prossime lezioni</h2>
-      {prossime.length === 0 && <div className="vuoto">Nessuna lezione nei prossimi giorni.</div>}
-      {prossime.length > 0 && (
-        <p className="piccolo muto" style={{ marginTop: -4 }}>
-          Non puoi venire? Tocca "Non vengo" fino a {ore} {ore === 1 ? 'ora' : 'ore'} prima: il posto si libera e ti diamo un recupero.
-        </p>
-      )}
-      {prossime.map((l) => (
-        <div key={chiave(l)} className="scheda-corso" style={{ gridTemplateColumns: '6px 1fr auto' }}>
-          <span className="banda" style={{ background: l.colore || 'var(--rosso)' }} />
-          <span className="centro">
-            <span className="ora-grande">{ora(l.inizio)}</span>
-            <span className="titolo" style={{ display: 'block' }}>{l.corso}</span>
-            <span className="riga" style={{ textTransform: 'capitalize' }}>
-              {giornoLungo(l.inizio)} · {dati.allievi.length > 1 ? `${l.allievo} · ` : ''}
-              {[l.sala, l.insegnante].filter(Boolean).join(' · ')}
-            </span>
-            {l.stato_lezione === 'annullata' && <span className="tag tag-rosso">Lezione annullata</span>}
-          </span>
-          <span className="destra">
-            {l.tipo === 'recupero' && (
-              <>
-                <span className="tag tag-neutro">recupero</span>
-                {disdicibile(l)
-                  ? <button className="link-btn piccolo" style={{ display: 'block', marginTop: 6 }}
-                            disabled={invio} onClick={() => disdici(l)}>disdici</button>
-                  : <span className="piccolo muto" style={{ display: 'block', marginTop: 6 }}>disdetta chiusa</span>}
-              </>
-            )}
-            {l.tipo === 'prova' && <span className="tag tag-rosso">prova</span>}
-            {l.tipo === 'iscritto' && l.stato_lezione !== 'annullata' && (
-              disdicibile(l)
-                ? <button className="link-btn piccolo" disabled={invio} onClick={() => setChiedo(chiave(l))}>Non vengo</button>
-                : <span className="piccolo muto">disdetta chiusa</span>
-            )}
-          </span>
-          {chiedo === chiave(l) && (
-            <span className="conferma-disdetta">
-              <span>Disdici {l.corso} di {giornoLungo(l.inizio).toLowerCase()} alle {ora(l.inizio)}{dati.allievi.length > 1 ? ` per ${l.allievo}` : ''}?</span>
-              <span className="azioni">
-                <button className="btn btn-primario btn-piccolo" disabled={invio} onClick={() => nonVengo(l)}>{invio ? 'Un attimo…' : 'Sì, disdico'}</button>
-                <button className="btn btn-piccolo" onClick={() => setChiedo(null)}>No</button>
+      <section className="ac-sezione">
+        <h2>Prossime lezioni</h2>
+        {prossime.length === 0
+          ? <div className="vuoto">Nessuna lezione nei prossimi giorni.</div>
+          : <p className="ac-nota">Non puoi venire? "Non vengo" fino a {ore} {ore === 1 ? 'ora' : 'ore'} prima: ti diamo un recupero.</p>}
+        <ul className="ac-lezioni">
+          {daMostrare.map((l) => (
+            <li key={chiave(l)} className={l.stato_lezione === 'annullata' ? 'annullata' : ''}>
+              <span className="ac-banda" style={{ background: l.colore || 'var(--rosso)' }} />
+              <span className="ac-quando"><strong>{ora(l.inizio)}</strong><span>{giornoCorto(l.inizio)}</span></span>
+              <span className="ac-cosa">
+                <strong>{l.corso}</strong>
+                <span>{[piu && l.allievo, l.sala].filter(Boolean).join(' · ')}</span>
+                {l.stato_lezione === 'annullata' && <span className="tag tag-rosso">annullata</span>}
+                {l.tipo === 'prova' && <span className="tag tag-rosso">prova</span>}
+                {l.tipo === 'recupero' && <span className="tag tag-neutro">recupero</span>}
               </span>
-            </span>
-          )}
-        </div>
-      ))}
+              <span className="ac-azione">
+                {l.tipo === 'recupero' && (disdicibile(l)
+                  ? <button className="link-btn piccolo" disabled={invio} onClick={() => disdici(l)}>Disdici</button>
+                  : <span className="piccolo muto">chiusa</span>)}
+                {l.tipo === 'iscritto' && l.stato_lezione !== 'annullata' && (disdicibile(l)
+                  ? <button className="link-btn piccolo" disabled={invio} onClick={() => setChiedo(chiave(l))}>Non vengo</button>
+                  : <span className="piccolo muto">chiusa</span>)}
+              </span>
+              {chiedo === chiave(l) && (
+                <span className="conferma-disdetta">
+                  <span>Disdici {l.corso} di {giornoLungo(l.inizio).toLowerCase()} alle {ora(l.inizio)}{piu ? ` per ${l.allievo}` : ''}?</span>
+                  <span className="azioni">
+                    <button className="btn btn-primario btn-piccolo" disabled={invio} onClick={() => nonVengo(l)}>{invio ? 'Un attimo…' : 'Sì, disdico'}</button>
+                    <button className="btn btn-piccolo" onClick={() => setChiedo(null)}>No</button>
+                  </span>
+                </span>
+              )}
+            </li>
+          ))}
+        </ul>
+        {prossime.length > 5 && (
+          <button className="link-btn piccolo ac-altre" onClick={() => setTutte(!tutte)}>
+            {tutte ? 'Mostra meno' : `Mostra tutte (${prossime.length})`}
+          </button>
+        )}
+      </section>
+
+      {recuperiPer.length > 0 && (
+        <section className="ac-sezione">
+          <h2>Recuperi da usare</h2>
+          {recuperiPer.map((r) => (
+            <Link key={r.allievo.id} href="/area/recuperi" className="ac-recupero">
+              <span>
+                <strong>{r.n} {r.n === 1 ? 'recupero' : 'recuperi'}{piu ? ` · ${r.allievo.nome}` : ''}</strong>
+                <span className="piccolo">entro il {dataBreve(r.scade)}</span>
+              </span>
+              <span className="btn btn-piccolo btn-primario">Prenota</span>
+            </Link>
+          ))}
+        </section>
+      )}
 
       {giaDisdette.length > 0 && (
-        <>
-          <h2 className="sezione">Lezioni disdette</h2>
-          <ul className="elenco">
-            {giaDisdette.map((d) => (
-              <li key={`${d.lezione_id}-${d.allievo_id}`} className="persona">
-                <span>
-                  {d.corso}
-                  <span className="piccolo muto" style={{ display: 'block' }}>
-                    {(() => { const g = giornoLungo(d.inizio); return g.charAt(0).toUpperCase() + g.slice(1); })()} alle {ora(d.inizio)}{dati.allievi.length > 1 ? ` · ${d.allievo}` : ''}
-                    {d.credito ? (d.credito_usato ? ' · recupero già usato' : ' · recupero disponibile') : ''}
+        <section className="ac-sezione">
+          <button type="button" className="ac-apri" aria-expanded={vediDisdette} onClick={() => setVediDisdette(!vediDisdette)}>
+            Lezioni disdette <span className="muto">({giaDisdette.length})</span> <span aria-hidden="true">{vediDisdette ? '▴' : '▾'}</span>
+          </button>
+          {vediDisdette && (
+            <ul className="ac-lezioni ac-disdette">
+              {giaDisdette.map((d) => (
+                <li key={`${d.lezione_id}-${d.allievo_id}`}>
+                  <span className="ac-banda" style={{ background: 'var(--linea)' }} />
+                  <span className="ac-quando"><strong>{ora(d.inizio)}</strong><span>{giornoCorto(d.inizio)}</span></span>
+                  <span className="ac-cosa">
+                    <strong>{d.corso}</strong>
+                    <span>{[piu && d.allievo, d.credito ? (d.credito_usato ? 'recupero già usato' : 'recupero disponibile') : null].filter(Boolean).join(' · ')}</span>
                   </span>
-                </span>
-                {!d.credito_usato && (
-                  <button className="link-btn piccolo" disabled={invio} onClick={() => ciVengo(d)}>Ci vengo lo stesso</button>
-                )}
-              </li>
-            ))}
-          </ul>
-        </>
-      )}
-
-      {dati.crediti.length > 0 && (
-        <>
-          <h2 className="sezione">Recuperi da usare</h2>
-          <div className="da-fare">
-            {dati.crediti.map((c) => (
-              <Link key={c.id} href={`/area/recuperi#${c.id}`}>
-                <span>
-                  <strong style={{ color: 'var(--nero)' }}>{c.corso}</strong>
-                  <span className="piccolo muto" style={{ display: 'block' }}>
-                    {dati.allievi.length > 1 ? `${c.allievo} · ` : ''}da usare entro il {dataBreve(c.scadenza)}
+                  <span className="ac-azione">
+                    {!d.credito_usato && <button className="link-btn piccolo" disabled={invio} onClick={() => ciVengo(d)}>Ci vengo</button>}
                   </span>
-                </span>
-                <span className="conta">›</span>
-              </Link>
-            ))}
-          </div>
-        </>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
       )}
 
       {dati.prove.length > 0 && (
-        <>
-          <h2 className="sezione">Lezioni di prova</h2>
-          {dati.prove.map((p, i) => (
-            <div key={i} className="scheda-corso" style={{ gridTemplateColumns: '6px 1fr auto' }}>
-              <span className="banda" style={{ background: 'var(--nero)' }} />
-              <span className="centro">
-                <span className="titolo" style={{ display: 'block' }}>{p.corso}</span>
-                <span className="riga" style={{ display: 'block' }}>{dataBreve(p.inizio)} alle {ora(p.inizio)} · {p.allievo}</span>
-              </span>
-              <span className="destra">
-                {p.stato === 'in_attesa_pagamento'
-                  ? <span className="tag tag-attenzione">da pagare</span>
-                  : <span className="tag tag-ok">confermata</span>}
-              </span>
-            </div>
-          ))}
-        </>
-      )}
-
-      {dati.attese.length > 0 && (
-        <>
-          <h2 className="sezione">In lista d'attesa</h2>
-          <ul className="elenco">
-            {dati.attese.map((a) => (
-              <li key={a.id} className="persona">
-                <span>{a.corso}<span className="piccolo muto" style={{ display: 'block' }}>{a.allievo}</span></span>
-                <button className="link-btn piccolo" onClick={() => togliDaAttesa(a)}>esci dalla lista</button>
+        <section className="ac-sezione">
+          <h2>Lezioni di prova</h2>
+          <ul className="ac-lezioni">
+            {dati.prove.map((p, i) => (
+              <li key={i}>
+                <span className="ac-banda" style={{ background: 'var(--nero)' }} />
+                <span className="ac-quando"><strong>{ora(p.inizio)}</strong><span>{giornoCorto(p.inizio)}</span></span>
+                <span className="ac-cosa"><strong>{p.corso}</strong><span>{p.allievo}</span></span>
+                <span className="ac-azione">
+                  {p.stato === 'in_attesa_pagamento' ? <span className="tag tag-attenzione">da pagare</span> : <span className="tag tag-ok">confermata</span>}
+                </span>
               </li>
             ))}
           </ul>
-          <p className="piccolo muto">Ti avvisiamo per email appena si libera un posto.</p>
-        </>
+        </section>
+      )}
+
+      {dati.attese.length > 0 && (
+        <section className="ac-sezione">
+          <h2>In lista d'attesa</h2>
+          <ul className="elenco">
+            {dati.attese.map((a) => (
+              <li key={a.id} className="persona">
+                <span>{a.corso}<span className="piccolo muto" style={{ display: 'block' }}>{a.allievo} · ti avvisiamo appena si libera un posto</span></span>
+                <button className="link-btn piccolo" onClick={() => togliDaAttesa(a)}>esci</button>
+              </li>
+            ))}
+          </ul>
+        </section>
       )}
 
       <Notifiche />
 
-      <h2 className="sezione">I miei abbonamenti</h2>
-      {dati.allievi.map((a) => (
-        <div key={a.id} className="scheda" style={{ marginBottom: 12 }}>
-          <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-            {a.foto
-              ? <img src={a.foto} alt="" className="miniatura" />
-              : <span className="miniatura segnaposto">{(a.nome[0] || '') + (a.cognome[0] || '')}</span>}
-            <div>
-              <strong style={{ color: 'var(--nero)' }}>{a.nome} {a.cognome}</strong>
-              <div className="piccolo muto">
-                {a.certificato_ok
-                  ? `certificato valido fino al ${dataBreve(a.certificato_scadenza)}`
-                  : 'certificato da sistemare'}
-              </div>
-            </div>
-          </div>
-          <ul className="elenco" style={{ marginTop: 10 }}>
-            {(a.iscrizioni || []).map((i, k) => (
-              <li key={k} className="persona">
-                <span>
-                  {i.corso}
-                  <span className="piccolo muto" style={{ display: 'block' }}>
-                    fino al {dataBreve(i.al)}{i.stato === 'sospesa' ? ' · sospeso' : ''}
+      <section className="ac-sezione">
+        <h2>{piu ? 'Abbonamenti' : 'Il mio abbonamento'}</h2>
+        <ul className="ac-abbonamenti">
+          {dati.allievi.map((a) => (
+            <li key={a.id}>
+              {piu && <strong className="ac-chi">{a.nome}</strong>}
+              {(a.iscrizioni || []).map((i, k) => {
+                const presto = new Date(i.al) < new Date(Date.now() + 15 * 86400000);
+                return (
+                  <span key={k} className="ac-abb">
+                    <span>{i.corso}</span>
+                    <span className={presto ? 'ac-scade' : 'muto'}>{i.stato === 'sospesa' ? 'sospeso · ' : ''}fino al {dataBreve(i.al)}</span>
                   </span>
-                </span>
-                {new Date(i.al) < new Date(Date.now() + 15 * 86400000) && <span className="tag tag-attenzione">in scadenza</span>}
-              </li>
-            ))}
-            {(a.iscrizioni || []).length === 0 && <li className="persona"><span className="muto">Nessun abbonamento attivo.</span></li>}
-          </ul>
-        </div>
-      ))}
+                );
+              })}
+              {(a.iscrizioni || []).length === 0 && <span className="ac-abb"><span className="muto">Nessun abbonamento attivo</span></span>}
+              <span className={`ac-cert piccolo${a.certificato_ok ? '' : ' rosso'}`}>
+                {a.certificato_ok ? `Certificato fino al ${dataBreve(a.certificato_scadenza)}` : 'Certificato da sistemare'}
+              </span>
+            </li>
+          ))}
+        </ul>
+      </section>
 
       {dati.avvisi.length > 0 && (
-        <>
-          <h2 className="sezione">Dalla scuola</h2>
+        <section className="ac-sezione">
+          <h2>Dalla scuola</h2>
           {dati.avvisi.map((a, i) => (
-            <div key={i} className="avviso-card">
-              <h3>{a.titolo}</h3>
-              <p>{a.testo}</p>
-            </div>
+            <div key={i} className="ac-avviso"><span className="piccolo"><strong>{a.titolo}</strong> — {a.testo}</span></div>
           ))}
-        </>
+        </section>
       )}
 
       {dati.eventi.length > 0 && (
-        <>
-          <h2 className="sezione">Prossimi eventi</h2>
-          <p className="piccolo" style={{ marginTop: -4 }}><Link href="/area/eventi">Vedi tutti e iscriviti</Link></p>
-          {dati.eventi.map((e, i) => (
-            <div key={i} className="scheda-corso" style={{ gridTemplateColumns: '6px 1fr' }}>
-              <span className="banda" style={{ background: 'var(--nero)' }} />
-              <span className="centro">
-                <span className="titolo">{e.titolo}</span>
-                <span className="riga">{dataBreve(e.inizio)} · {ora(e.inizio)}{e.luogo ? ` · ${e.luogo}` : ''}</span>
-              </span>
-            </div>
+        <section className="ac-sezione">
+          <h2>Prossimi eventi</h2>
+          {dati.eventi.slice(0, 3).map((e, i) => (
+            <Link key={i} href="/area/eventi" className="ac-recupero">
+              <span><strong>{e.titolo}</strong><span className="piccolo">{giornoCorto(e.inizio)} · {ora(e.inizio)}{e.luogo ? ` · ${e.luogo}` : ''}</span></span>
+              <span aria-hidden="true">›</span>
+            </Link>
           ))}
-        </>
+        </section>
       )}
-
-      <p style={{ marginTop: 28 }}>
-        <button className="link-btn" onClick={esci}>Esci dall'area</button>
-      </p>
-    </>
+    </div>
   );
 }
