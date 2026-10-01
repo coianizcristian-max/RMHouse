@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabaseBrowser } from '@/lib/supabase/browser';
 import Immagine from '../Immagine';
@@ -12,6 +12,8 @@ const VUOTO = {
 export default function Sede({ palestraId, sedi, palestra }) {
   const router = useRouter();
   const [apri, setApri] = useState(null);
+  // aprendo una scheda dall'elenco, il modulo (che sta in cima) viene portato in vista
+  useEffect(() => { if (apri) document.getElementById('modulo-aperto')?.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, [apri]);
   const [f, setF] = useState(VUOTO);
   const [errore, setErrore] = useState('');
   const [avviso, setAvviso] = useState('');
@@ -110,7 +112,7 @@ export default function Sede({ palestraId, sedi, palestra }) {
       <h2 className="sezione">Sedi</h2>
 
       {apri ? (
-        <form onSubmit={salvaSede} className="compare">
+        <form id="modulo-aperto" onSubmit={salvaSede} className="compare">
           <h3>{apri === 'nuovo' ? 'Nuova sede' : 'Modifica sede'}</h3>
           <Immagine url={f.logo_url} cartella="sedi" etichetta="Logo o foto della sede"
                     onChange={(url) => setF({ ...f, logo_url: url })} />

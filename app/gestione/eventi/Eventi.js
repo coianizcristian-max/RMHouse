@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabaseBrowser } from '@/lib/supabase/browser';
 import Immagine from '../Immagine';
@@ -14,6 +14,8 @@ const VUOTO = {
 export default function Eventi({ palestraId, eventi, sedi, iscritti }) {
   const router = useRouter();
   const [apri, setApri] = useState(null);
+  // aprendo una scheda dall'elenco, il modulo (che sta in cima) viene portato in vista
+  useEffect(() => { if (apri) document.getElementById('modulo-aperto')?.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, [apri]);
   const [f, setF] = useState(VUOTO);
   const [errore, setErrore] = useState('');
   const [invio, setInvio] = useState(false);
@@ -81,7 +83,7 @@ export default function Eventi({ palestraId, eventi, sedi, iscritti }) {
       {errore && <div className="errore" role="alert">{errore}</div>}
 
       {apri ? (
-        <form onSubmit={salva} className="compare">
+        <form id="modulo-aperto" onSubmit={salva} className="compare">
           <h2>{apri === 'nuovo' ? 'Nuovo evento' : 'Modifica evento'}</h2>
           <div className="campo"><label htmlFor="t">Titolo</label><input id="t" value={f.titolo} onChange={set('titolo')} placeholder="Es. Discovery Week" /></div>
           <Immagine url={f.locandina_url} cartella="eventi" etichetta="Locandina"

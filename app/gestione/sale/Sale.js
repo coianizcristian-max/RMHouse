@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabaseBrowser } from '@/lib/supabase/browser';
 import Immagine from '../Immagine';
@@ -10,6 +10,8 @@ const VUOTO = { nome: '', descrizione: '', attrezzatura: '', capienza: '', costo
 export default function Sale({ palestraId, sale, sedi, orari, postazioni = {} }) {
   const router = useRouter();
   const [apri, setApri] = useState(null);
+  // aprendo una scheda dall'elenco, il modulo (che sta in cima) viene portato in vista
+  useEffect(() => { if (apri) document.getElementById('modulo-aperto')?.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, [apri]);
   const [f, setF] = useState(VUOTO);
   const [errore, setErrore] = useState('');
   const [invio, setInvio] = useState(false);
@@ -80,7 +82,7 @@ export default function Sale({ palestraId, sale, sedi, orari, postazioni = {} })
       {errore && <div className="errore" role="alert">{errore}</div>}
 
       {apri ? (
-        <form onSubmit={salva} className="compare">
+        <form id="modulo-aperto" onSubmit={salva} className="compare">
           <h2>{apri === 'nuovo' ? 'Nuova sala' : 'Modifica sala'}</h2>
           <Immagine url={f.foto_url} cartella="sale" etichetta="Foto della sala"
                     onChange={(url) => setF({ ...f, foto_url: url })} />

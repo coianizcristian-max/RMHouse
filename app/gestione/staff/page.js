@@ -5,7 +5,7 @@ import Staff from './Staff';
 export const dynamic = 'force-dynamic';
 
 export default async function PaginaStaff({ searchParams }) {
-  const { archiviati } = await searchParams;
+  const { archiviati, salvato } = await searchParams;
   const { supabase, staff } = await staffCorrente();
   if (staff.ruolo === 'insegnante') redirect('/gestione');
 
@@ -16,7 +16,6 @@ export default async function PaginaStaff({ searchParams }) {
   ]);
 
   return (
-    <Staff palestraId={staff.palestra_id} persone={persone || []} orari={corsi || []}
-           archiviati={archiviati === '1'} />
+    <Staff persone={persone || []} orari={corsi || []} archiviati={archiviati === '1'} salvato={salvato || null} />
   );
 }
