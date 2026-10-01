@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { supabaseBrowser } from '@/lib/supabase/browser';
@@ -9,6 +9,14 @@ export default function Staff({ persone, orari, archiviati, salvato = null }) {
   const router = useRouter();
   const [errore, setErrore] = useState('');
   const [copiato, setCopiato] = useState(null);
+  const [cerca, setCerca] = useState('');
+  const [ruolo, setRuolo] = useState('');
+  const [accesso, setAccesso] = useState('');
+  const [vista, setVista] = useState('schede');
+
+  // la vista scelta (schede o elenco) resta per la prossima volta
+  useEffect(() => { try { const v = localStorage.getItem('staff-vista'); if (v) setVista(v); } catch {} }, []);
+  function cambiaVista(v) { setVista(v); try { localStorage.setItem('staff-vista', v); } catch {} }
 
   // Indirizzo personale da abbonare su Google Calendar o iPhone
   async function copiaCalendario(p) {
@@ -19,6 +27,14 @@ export default function Staff({ persone, orari, archiviati, salvato = null }) {
   }
 
   const corsiDi = (id) => [...new Set(orari.filter((o) => o.insegnante_id === id).map((o) => o.corsi?.nome).filter(Boolean))];
+
+  const testo = cerca.trim().toLowerCase();
+  const visibili = persone.filter((p) =>
+    (!ruolo || p.ruolo === ruolo) &&
+    (!accesso || (accesso === 'con' ? !!p.user_id : !p.user_id)) &&
+    (!testo || [p.nome, p.cognome, p.specialita, p.email, ...corsiDi(p.id)].filter(Boolean).join(' ').toLowerCase().includes(testo)));
+  const quanti = (r) => persone.filter((p) => p.ruolo === r).length;
+  const filtrato = testo || ruolo || accesso;
 
   async function archivia(p, valore) {
     const { error } = await supabaseBrowser().from('staff').update({ archiviato: valore }).eq('id', p.id);
@@ -48,12 +64,54 @@ export default function Staff({ persone, orari, archiviati, salvato = null }) {
         </div>
       )}
 
+      {persone.length > 0 && (
+        <div className="filtri-persone filtri-staff">
+          <input type="search" placeholder="Cerca nome, specialità o corso" value={cerca} onChange={(e) => setCerca(e.target.value)} aria-label="Cerca nello staff" />
+          <select value={ruolo} onChange={(e) => setRuolo(e.target.value)} aria-label="Ruolo" className={ruolo ? 'scelto' : ''}>
+            <option value="">Tutti i ruoli ({persone.length})</option>
+            {Object.entries(RUOLI).filter(([v]) => quanti(v) > 0).map(([v, l]) => <option key={v} value={v}>{l} ({quanti(v)})</option>)}
+          </select>
+          <select value={accesso} onChange={(e) => setAccesso(e.target.value)} aria-label="Accesso all'app" className={accesso ? 'scelto' : ''}>
+            <option value="">Accesso: tutti</option>
+            <option value="con">Entrano nell'app ({persone.filter((p) => p.user_id).length})</option>
+            <option value="senza">Senza accesso ({persone.filter((p) => !p.user_id).length})</option>
+          </select>
+          <div className="segmenti segmenti-piccoli" role="group" aria-label="Vista">
+            <button type="button" aria-pressed={vista === 'schede'} onClick={() => cambiaVista('schede')}>Schede</button>
+            <button type="button" aria-pressed={vista === 'elenco'} onClick={() => cambiaVista('elenco')}>Elenco</button>
+          </div>
+          <span className="piccolo muto">
+            {filtrato ? `${visibili.length} di ${persone.length}` : `${persone.length} persone`}
+            {filtrato && <> · <button type="button" className="link-btn piccolo" onClick={() => { setCerca(''); setRuolo(''); setAccesso(''); }}>togli i filtri</button></>}
+          </span>
+        </div>
+      )}
+
       {persone.length === 0 && (
         <div className="vuoto" style={{ marginTop: 16 }}>{archiviati ? 'Nessuno in archivio.' : 'Ancora nessuno.'}</div>
       )}
+      {persone.length > 0 && visibili.length === 0 && <div className="vuoto">Nessuno con questi filtri.</div>}
 
-      <div className="griglia-schede" style={{ marginTop: 16 }}>
-        {persone.map((p) => (
+      {vista === 'elenco' && visibili.length > 0 && (
+        <ul className="elenco elenco-staff">
+          {visibili.map((p) => (
+            <li key={p.id} className={salvato === p.id ? 'appena-salvata' : ''}>
+              <span className="pallino-staff" style={{ background: p.colore || 'var(--rosso)' }} aria-hidden="true" />
+              <Link href={`/gestione/staff/${p.id}`} className="es-nome">{p.nome} {p.cognome}</Link>
+              <span className="es-ruolo piccolo muto">{[RUOLI[p.ruolo], p.specialita].filter(Boolean).join(' · ')}</span>
+              <span className="es-corsi piccolo muto">{corsiDi(p.id).join(', ')}</span>
+              <span className="es-segni">
+                {!p.attivo && <span className="tag tag-neutro">non attivo</span>}
+                {!p.user_id && <span className="tag tag-attenzione">senza accesso</span>}
+              </span>
+              <Link href={`/gestione/staff/${p.id}`} className="link-btn piccolo">Modifica</Link>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      <div className="griglia-schede" style={{ marginTop: 16, display: vista === 'elenco' ? 'none' : undefined }}>
+        {visibili.map((p) => (
           <div key={p.id} className={`scheda-corso${salvato === p.id ? ' appena-salvata' : ''}`}>
             <span className="banda" style={{ background: p.colore || 'var(--rosso)' }} />
             <span className="centro" style={{ display: 'flex', gap: 12, alignItems: 'center' }}>

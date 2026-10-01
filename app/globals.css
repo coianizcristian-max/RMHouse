@@ -1936,3 +1936,28 @@ a.persona-nome:hover { text-decoration: underline; text-underline-offset: 3px; }
   .ss-colori button { width: 30px; height: 30px; }
 }
 .ss-dati { align-items: start; }
+
+/* 058 — staff: filtri ed elenco compatto */
+.filtri-staff { align-items: center; margin-top: 14px; }
+.filtri-staff input[type='search'] { flex: 1 1 260px; }
+.segmenti-piccoli { margin-bottom: 0; padding: 3px; }
+.segmenti-piccoli button { padding: 6px 12px; }
+.elenco-staff > li {
+  display: grid; grid-template-columns: 12px 210px 230px minmax(0, 1fr) 120px 84px;
+  gap: 12px; align-items: center; padding: 8px 8px;
+}
+.elenco-staff > li.appena-salvata { outline: 2px solid var(--ok); outline-offset: -2px; border-radius: 8px; }
+.pallino-staff { width: 12px; height: 12px; border-radius: 50%; }
+.es-nome { font-weight: 700; color: var(--nero); text-decoration: none; }
+.es-nome:hover { text-decoration: underline; text-underline-offset: 3px; }
+.es-corsi, .es-ruolo { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.es-nome { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.elenco-staff .link-btn { justify-self: end; }
+.es-segni { display: flex; gap: 4px; }
+@media (max-width: 899px) {
+  .filtri-staff select { flex: 1 1 calc(50% - 4px); min-width: 0; }
+  .elenco-staff > li { grid-template-columns: 12px minmax(0, 1fr) auto; row-gap: 2px; }
+  .elenco-staff .es-ruolo, .elenco-staff .es-corsi { grid-column: 2 / 4; }
+  .elenco-staff .es-segni { grid-column: 2 / 3; }
+  .elenco-staff .es-nome { grid-column: 2; }
+}
