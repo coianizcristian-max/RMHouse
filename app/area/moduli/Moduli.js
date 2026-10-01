@@ -24,8 +24,8 @@ export default function Moduli({ elenco }) {
             const chiave = `${a.id}:${m.modulo_id}`;
             return (
               <div key={chiave} className="scheda" style={{ marginBottom: 10 }}>
-                <div className="pannello-testa" style={{ marginBottom: 0 }}>
-                  <span>
+                <div className="pannello-testa riga-modulo" style={{ marginBottom: 0 }}>
+                  <span className="rm-testo">
                     <strong style={{ color: 'var(--nero)' }}>{m.titolo}</strong>
                     <span className="piccolo muto" style={{ display: 'block' }}>
                       {ok ? `firmato il ${dataBreve(m.firmato_at)}` : m.firmata_versione ? 'il testo è cambiato: va firmato di nuovo' : m.obbligatorio ? 'da firmare' : 'facoltativo'}

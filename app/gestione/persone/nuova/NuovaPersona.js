@@ -183,10 +183,20 @@ export default function NuovaPersona({ palestraId }) {
                 <input id="cf" value={f.cf} onChange={cambiaCF('cf', 'nascita', 'sesso')} autoComplete="off" spellCheck={false} />
                 {f.cf.length === 16 && !leggiCF(f.cf) && <span className="piccolo" style={{ color: 'var(--attenzione)' }}>Codice fiscale da controllare</span>}</div>
               {!figlio && <Data id="dn" etichetta="Data di nascita" valore={f.nascita} onChange={(v) => setF((x) => ({ ...x, nascita: v }))} />}
+              {/* per il genitore non serve la data di nascita: al suo posto il pulsante dell'indirizzo */}
+              {figlio && (
+                <div className="campo reg-cella-btn">
+                  <button type="button" className="link-btn piccolo" onClick={() => setAltri(!altri)}>
+                    {altri ? '− nascondi indirizzo' : '+ indirizzo, CAP, città'}
+                  </button>
+                </div>
+              )}
             </div>
-            <button type="button" className="link-btn piccolo" onClick={() => setAltri(!altri)}>
-              {altri ? '− nascondi indirizzo' : '+ indirizzo, CAP, città (per ricevute e tessera)'}
-            </button>
+            {!figlio && (
+              <button type="button" className="link-btn piccolo" onClick={() => setAltri(!altri)}>
+                {altri ? '− nascondi indirizzo' : '+ indirizzo, CAP, città (per ricevute e tessera)'}
+              </button>
+            )}
             {altri && (
               <div className="reg-campi" style={{ marginTop: 8 }}>
                 <div className="campo reg-largo"><label htmlFor="in">Indirizzo</label><input id="in" value={f.indirizzo} onChange={set('indirizzo')} /></div>
@@ -200,7 +210,7 @@ export default function NuovaPersona({ palestraId }) {
           {figlio && (
             <section className="pannello">
               <h2>Chi frequenta</h2>
-              <div className="reg-campi">
+              <div className="reg-campi reg-4">
                 <div className="campo"><label htmlFor="fn">Nome</label>
                   <input id="fn" value={f.f_nome} onChange={set('f_nome')} onBlur={sistema('f_nome', maiuscole)} autoComplete="off" /></div>
                 <div className="campo"><label htmlFor="fc">Cognome</label>

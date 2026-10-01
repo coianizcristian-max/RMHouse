@@ -85,7 +85,7 @@ export default async function Persona({ params, searchParams }) {
   const quotaValida = !!stato?.quota_valida_fino && stato.quota_valida_fino > new Date().toISOString().slice(0, 10);
 
   return (
-    <>
+    <div className="scheda-persona">
       <Link className="torna" href="/gestione/persone">Tutte le persone</Link>
 
       <div className="scheda-testa">
@@ -250,6 +250,6 @@ export default async function Persona({ params, searchParams }) {
           )}
         </aside>
       </div>
-    </>
+    </div>
   );
 }

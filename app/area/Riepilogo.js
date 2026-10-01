@@ -224,8 +224,8 @@ export default function Riepilogo({ dati, materiali = [], inVerifica = [], aspet
               <li key={`${d.lezione_id}-${d.allievo_id}`} className="persona">
                 <span>
                   {d.corso}
-                  <span className="piccolo muto" style={{ display: 'block', textTransform: 'capitalize' }}>
-                    {giornoLungo(d.inizio)} alle {ora(d.inizio)}{dati.allievi.length > 1 ? ` · ${d.allievo}` : ''}
+                  <span className="piccolo muto" style={{ display: 'block' }}>
+                    {(() => { const g = giornoLungo(d.inizio); return g.charAt(0).toUpperCase() + g.slice(1); })()} alle {ora(d.inizio)}{dati.allievi.length > 1 ? ` · ${d.allievo}` : ''}
                     {d.credito ? (d.credito_usato ? ' · recupero già usato' : ' · recupero disponibile') : ''}
                   </span>
                 </span>

@@ -77,7 +77,7 @@ export default function Recuperi({ crediti, piuAllievi, massimo = null, usati = 
           {c.lezioni.length === 0 ? (
             <div className="vuoto">
               Al momento non ci sono lezioni disponibili per questo recupero.
-              <div className="piccolo" style={{ marginTop: 6 }}>Chiedi in segreteria: possono aprirti un altro corso.</div>
+              <div className="piccolo" style={{ marginTop: 6 }}>Si liberano posti quando qualcuno disdice: riprova nei prossimi giorni.</div>
             </div>
           ) : (
             <ul className="elenco">

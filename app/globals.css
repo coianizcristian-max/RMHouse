@@ -2044,3 +2044,34 @@ a.titolo-sala:hover { text-decoration: underline; text-underline-offset: 3px; }
 @media (max-width: 899px) {
   .reg-chiusura { grid-template-columns: 1fr; gap: 8px; }
 }
+
+/* 064 — genitore e figlio più compatti */
+.reg-cella-btn { align-self: end; padding-bottom: 8px; }
+@media (min-width: 1100px) {
+  .registra .reg-campi.reg-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+
+/* 064 — area clienti: moduli sempre con il pulsante a destra */
+.riga-modulo { flex-wrap: nowrap; }
+.riga-modulo .rm-testo { min-width: 0; }
+.riga-modulo .btn { flex: none; }
+
+/* 066 — scheda persona più compatta */
+.scheda-persona .torna { margin-bottom: 4px; padding: 5px 12px; font-size: 13px; }
+.scheda-persona .scheda-testa { margin: 4px 0 10px; gap: 12px; }
+.scheda-persona .scheda-testa .miniatura-grande { width: 56px; height: 56px; border-radius: 12px; }
+.scheda-persona .scheda-testa h1 { font-size: clamp(26px, 3vw, 38px); overflow-wrap: anywhere; }
+.scheda-persona .scheda-sotto { margin-top: 2px; }
+.scheda-persona .riquadri { margin-bottom: 10px; gap: 6px; }
+.scheda-persona .riquadro { padding: 7px 10px; gap: 0; }
+.scheda-persona .riquadro .etichetta { font-size: 11px; }
+.scheda-persona .riquadro strong { font-size: 14px; }
+.scheda-persona .scheda-due, .scheda-persona .scheda-due > div, .scheda-persona .scheda-due > aside { gap: 10px; }
+.scheda-persona .pannello { padding: 12px 14px; margin: 0; }
+.scheda-persona .pannello > h2, .scheda-persona .pannello-testa h2 { font-size: 17px; margin-bottom: 6px; }
+.scheda-persona .pannello-testa { margin-bottom: 6px; }
+.scheda-persona .vuoto { padding: 10px 12px; font-size: 14px; }
+.scheda-persona .dati { gap: 4px 12px; }
+@media (min-width: 1100px) {
+  .scheda-persona .riquadri { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+}
