@@ -1,12 +1,13 @@
 import { redirect } from 'next/navigation';
 import { supabaseServer } from '@/lib/supabase/server';
+import { utenteCorrente } from '@/lib/utente';
 import EventiArea from './EventiArea';
 
 export const dynamic = 'force-dynamic';
 
 export default async function PaginaEventiArea() {
   const supabase = await supabaseServer();
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await utenteCorrente();
   if (!user) redirect('/area/accedi');
 
   const [{ data: riepilogo }, { data: eventi }] = await Promise.all([

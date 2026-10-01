@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase/admin';
+import { supabaseServer } from '@/lib/supabase/server';
 
 export const dynamic = 'force-dynamic';
 const MAX = 8 * 1024 * 1024;
@@ -40,6 +41,19 @@ export async function POST(request) {
   if (error) {
     console.error(error);
     return NextResponse.json({ errore: 'Salvataggio non riuscito. Riprova.' }, { status: 500 });
+  }
+
+  // caricato dalla segreteria (con il documento in mano): risulta subito approvato
+  if (form.get('segreteria') === '1' && typeof scadenza === 'string' && scadenza) {
+    const server = await supabaseServer();
+    const { data: { user } } = await server.auth.getUser();
+    if (user) {
+      const { data: staff } = await db.from('staff').select('ruolo').eq('user_id', user.id).eq('palestra_id', allievo.palestra_id).eq('attivo', true).maybeSingle();
+      if (staff && staff.ruolo !== 'insegnante') {
+        await db.from('certificati').update({ stato: 'valido', scadenza, verificato_da: user.id, verificato_at: new Date().toISOString() })
+          .eq('allievo_id', allievo.id).eq('file_path', percorso);
+      }
+    }
   }
   return NextResponse.json({ ok: true });
 }

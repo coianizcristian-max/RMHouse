@@ -29,7 +29,7 @@ export default function Pagamenti({ pagamenti, ricevute, totaleStorico }) {
     <section className="pannello" id="pagamenti">
       <div className="pannello-testa">
         <h2>Pagamenti</h2>
-        <Link className="btn btn-piccolo" href="/gestione/incassi">Incassa</Link>
+        <Link prefetch={false} className="btn btn-piccolo" href="/gestione/incassi">Incassa</Link>
       </div>
       <div className="pagamenti-totali">
         <span><strong>{euro(pagato)}</strong><span className="piccolo muto">pagati con RMHouse</span></span>
@@ -57,7 +57,7 @@ export default function Pagamenti({ pagamenti, ricevute, totaleStorico }) {
                   <span className="pag-destra">
                     <strong>{euro(p.importo_cent)}</strong>
                     {r ? (
-                      <Link className="link-btn piccolo" href={`/gestione/ricevute/${r.id}`}>ricevuta {r.numero}/{r.anno}</Link>
+                      <Link prefetch={false} className="link-btn piccolo" href={`/gestione/ricevute/${r.id}`}>ricevuta {r.numero}/{r.anno}</Link>
                     ) : p.stato === 'pagato' ? (
                       <button className="link-btn piccolo" disabled={invio === p.id} onClick={() => emetti(p)}>
                         {invio === p.id ? '…' : 'emetti ricevuta'}

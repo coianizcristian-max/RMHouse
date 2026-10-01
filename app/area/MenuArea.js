@@ -10,6 +10,7 @@ const VOCI = [
   ['/area/moduli', 'Moduli'],
   ['/area/pagamenti', 'Pagamenti'],
   ['/area/pass', 'Pass'],
+  ['/area/privacy', 'I miei dati'],
 ];
 
 const Icona = ({ d }) => (
@@ -29,20 +30,20 @@ export default function MenuArea() {
   const [altro, setAltro] = useState(false);
   useEffect(() => { setAltro(false); }, [path]);
   if (path?.startsWith('/area/accedi')) return null;
-  const inAltro = ['/area/eventi', '/area/moduli', '/area/pagamenti'].includes(path);
+  const inAltro = ['/area/eventi', '/area/moduli', '/area/pagamenti', '/area/privacy'].includes(path);
 
   return (
     <>
       <nav className="menu-area" aria-label="La mia area">
         {VOCI.map(([href, testo]) => (
-          <Link key={href} href={href} aria-current={path === href ? 'page' : undefined}>{testo}</Link>
+          <Link prefetch={false} key={href} href={href} aria-current={path === href ? 'page' : undefined}>{testo}</Link>
         ))}
       </nav>
 
       <nav className="barra-area" aria-label="La mia area">
-        <Link href="/area" aria-current={path === '/area' ? 'page' : undefined}><Icona d={ICONE.lezioni} /><span>Lezioni</span></Link>
-        <Link href="/area/recuperi" aria-current={path === '/area/recuperi' ? 'page' : undefined}><Icona d={ICONE.prenota} /><span>Prenota</span></Link>
-        <Link href="/area/pass" aria-current={path === '/area/pass' ? 'page' : undefined}><Icona d={ICONE.pass} /><span>Pass</span></Link>
+        <Link prefetch={false} href="/area" aria-current={path === '/area' ? 'page' : undefined}><Icona d={ICONE.lezioni} /><span>Lezioni</span></Link>
+        <Link prefetch={false} href="/area/recuperi" aria-current={path === '/area/recuperi' ? 'page' : undefined}><Icona d={ICONE.prenota} /><span>Prenota</span></Link>
+        <Link prefetch={false} href="/area/pass" aria-current={path === '/area/pass' ? 'page' : undefined}><Icona d={ICONE.pass} /><span>Pass</span></Link>
         <button type="button" aria-expanded={altro} aria-current={inAltro ? 'page' : undefined} onClick={() => setAltro(!altro)}>
           <Icona d={ICONE.altro} /><span>Altro</span>
         </button>
@@ -51,9 +52,10 @@ export default function MenuArea() {
       {altro && (
         <div className="foglio-sfondo" onClick={() => setAltro(false)}>
           <div className="foglio-altro" role="dialog" aria-label="Altro" onClick={(e) => e.stopPropagation()}>
-            <Link href="/area/eventi">Eventi e stage<span>›</span></Link>
-            <Link href="/area/moduli">Moduli da firmare<span>›</span></Link>
-            <Link href="/area/pagamenti">Pagamenti e ricevute<span>›</span></Link>
+            <Link prefetch={false} href="/area/eventi">Eventi e stage<span>›</span></Link>
+            <Link prefetch={false} href="/area/moduli">Moduli da firmare<span>›</span></Link>
+            <Link prefetch={false} href="/area/pagamenti">Pagamenti e ricevute<span>›</span></Link>
+            <Link prefetch={false} href="/area/privacy">I miei dati e privacy<span>›</span></Link>
             <button type="button" className="link-btn" onClick={() => setAltro(false)}>Chiudi</button>
           </div>
         </div>

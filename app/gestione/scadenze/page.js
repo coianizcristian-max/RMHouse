@@ -36,13 +36,13 @@ export default async function PaginaScadenze({ searchParams }) {
       </div>
 
       <div className="pastiglie">
-        <Link className="stato-pillola" aria-current={!tipo ? 'true' : undefined} href={link({ tipo: '' })}>Tutte <strong>{conta('')}</strong></Link>
+        <Link prefetch={false} className="stato-pillola" aria-current={!tipo ? 'true' : undefined} href={link({ tipo: '' })}>Tutte <strong>{conta('')}</strong></Link>
         {Object.entries(TIPI_SCADENZA).map(([t, testo]) => (
-          <Link key={t} className="stato-pillola" aria-current={tipo === t ? 'true' : undefined} href={link({ tipo: t })}>
+          <Link prefetch={false} key={t} className="stato-pillola" aria-current={tipo === t ? 'true' : undefined} href={link({ tipo: t })}>
             {testo} <strong>{conta(t)}</strong>
           </Link>
         ))}
-        <Link className="stato-pillola neutro" aria-current={gestite === '1' ? 'true' : undefined}
+        <Link prefetch={false} className="stato-pillola neutro" aria-current={gestite === '1' ? 'true' : undefined}
               href={link({ gestite: gestite === '1' ? '' : '1' })}>
           {gestite === '1' ? 'Nascondi le gestite' : 'Mostra anche le gestite'}
         </Link>
@@ -50,7 +50,7 @@ export default async function PaginaScadenze({ searchParams }) {
 
       <Scadenze palestraId={p} righe={righe || []} />
       <p className="piccolo muto" style={{ marginTop: 14 }}>
-        Per rinnovare più abbonamenti in un colpo: <Link href="/gestione/rinnovi">Rinnovi in blocco</Link>.
+        Per rinnovare più abbonamenti in un colpo: <Link prefetch={false} href="/gestione/rinnovi">Rinnovi in blocco</Link>.
       </p>
     </>
   );

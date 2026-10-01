@@ -53,11 +53,11 @@ export default function Staff({ persone, orari, archiviati, salvato = null }) {
       {errore && <div className="errore" role="alert">{errore}</div>}
 
       <div className="filtri">
-        <Link href="/gestione/staff" aria-current={!archiviati ? 'true' : undefined}>In forza</Link>
-        <Link href="/gestione/staff?archiviati=1" aria-current={archiviati ? 'true' : undefined}>Archiviati</Link>
+        <Link prefetch={false} href="/gestione/staff" aria-current={!archiviati ? 'true' : undefined}>In forza</Link>
+        <Link prefetch={false} href="/gestione/staff?archiviati=1" aria-current={archiviati ? 'true' : undefined}>Archiviati</Link>
       </div>
 
-      <Link className="btn btn-primario" href="/gestione/staff/nuovo">Aggiungi persona</Link>
+      <Link prefetch={false} className="btn btn-primario" href="/gestione/staff/nuovo">Aggiungi persona</Link>
       {salvato && persone.some((p) => p.id === salvato) && (
         <div className="avviso-ok" role="status" style={{ marginTop: 14 }}>
           Scheda di {persone.find((p) => p.id === salvato).nome} salvata ✓
@@ -97,14 +97,14 @@ export default function Staff({ persone, orari, archiviati, salvato = null }) {
           {visibili.map((p) => (
             <li key={p.id} className={salvato === p.id ? 'appena-salvata' : ''}>
               <span className="pallino-staff" style={{ background: p.colore || 'var(--rosso)' }} aria-hidden="true" />
-              <Link href={`/gestione/staff/${p.id}`} className="es-nome">{p.nome} {p.cognome}</Link>
+              <Link prefetch={false} href={`/gestione/staff/${p.id}`} className="es-nome">{p.nome} {p.cognome}</Link>
               <span className="es-ruolo piccolo muto">{[RUOLI[p.ruolo], p.specialita].filter(Boolean).join(' · ')}</span>
               <span className="es-corsi piccolo muto">{corsiDi(p.id).join(', ')}</span>
               <span className="es-segni">
                 {!p.attivo && <span className="tag tag-neutro">non attivo</span>}
                 {!p.user_id && <span className="tag tag-attenzione">senza accesso</span>}
               </span>
-              <Link href={`/gestione/staff/${p.id}`} className="link-btn piccolo">Modifica</Link>
+              <Link prefetch={false} href={`/gestione/staff/${p.id}`} className="link-btn piccolo">Modifica</Link>
             </li>
           ))}
         </ul>
@@ -119,7 +119,7 @@ export default function Staff({ persone, orari, archiviati, salvato = null }) {
                 ? <img src={p.foto_url} alt="" className="miniatura" />
                 : <span className="miniatura segnaposto">{(p.nome[0] || '') + (p.cognome?.[0] || '')}</span>}
               <span style={{ minWidth: 0 }}>
-                <Link className="titolo" href={`/gestione/staff/${p.id}`} style={{ display: 'block' }}>{p.nome} {p.cognome}</Link>
+                <Link prefetch={false} className="titolo" href={`/gestione/staff/${p.id}`} style={{ display: 'block' }}>{p.nome} {p.cognome}</Link>
                 <span className="riga" style={{ display: 'block' }}>
                   {[RUOLI[p.ruolo], p.specialita, p.collaboratore && 'collaboratore'].filter(Boolean).join(' · ')}
                 </span>
@@ -134,7 +134,7 @@ export default function Staff({ persone, orari, archiviati, salvato = null }) {
                   </span>
                 )}
                 <span className="azioni-riga">
-                  <Link className="link-btn piccolo" href={`/gestione/staff/${p.id}`}>Modifica</Link>
+                  <Link prefetch={false} className="link-btn piccolo" href={`/gestione/staff/${p.id}`}>Modifica</Link>
                   <button className="link-btn piccolo" onClick={() => copiaCalendario(p)}>
                     {copiato === p.id ? 'Link copiato' : 'Calendario'}
                   </button>

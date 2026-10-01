@@ -19,7 +19,7 @@ export default async function FirmaReception({ params, searchParams }) {
   const genitore = !a.is_titolare && a.account ? `${a.account.nome} ${a.account.cognome || ''}`.trim() : '';
   return (
     <div style={{ maxWidth: 760 }}>
-      <div className="occhiello"><Link href={`/gestione/persone/${a.id}`}>{a.nome} {a.cognome}</Link></div>
+      <div className="occhiello"><Link prefetch={false} href={`/gestione/persone/${a.id}`}>{a.nome} {a.cognome}</Link></div>
       <Firma modulo={modulo} allievo={a} minore={!!minore} nome={minore ? genitore : `${a.nome} ${a.cognome}`} />
     </div>
   );

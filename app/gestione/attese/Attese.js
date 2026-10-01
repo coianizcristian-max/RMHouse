@@ -65,7 +65,7 @@ export default function Attese({ righe, conta, corsi, stato }) {
           <div className="cifra">{conta.in_attesa ?? 0}</div>
           <div className="sotto">{perCorso.length} corsi coinvolti</div>
         </div>
-        <Link className="tessera" href="/gestione/attese?stato=avvisato">
+        <Link prefetch={false} className="tessera" href="/gestione/attese?stato=avvisato">
           <div className="etichetta">Avvisati</div>
           <div className="cifra">{conta.avvisati ?? 0}</div>
           <div className="sotto">{conta.da_richiamare ?? 0} da più di 3 giorni</div>
@@ -100,7 +100,7 @@ export default function Attese({ righe, conta, corsi, stato }) {
 
       <div className="filtri">
         {STATI.map(([k, l]) => (
-          <Link key={k} href={`/gestione/attese?stato=${k}`} aria-current={stato === k ? 'true' : undefined}>{l}</Link>
+          <Link prefetch={false} key={k} href={`/gestione/attese?stato=${k}`} aria-current={stato === k ? 'true' : undefined}>{l}</Link>
         ))}
       </div>
 
@@ -111,7 +111,7 @@ export default function Attese({ righe, conta, corsi, stato }) {
           <span className="banda" style={{ background: r.colore || 'var(--rosso)' }} />
           <span className="centro" style={{ paddingRight: 14 }}>
             <span style={{ display: 'flex', gap: 10, alignItems: 'baseline', flexWrap: 'wrap' }}>
-              <Link className="titolo" href={`/gestione/persone/${r.allievo_id}`} style={{ textDecoration: 'none' }}>
+              <Link prefetch={false} className="titolo" href={`/gestione/persone/${r.allievo_id}`} style={{ textDecoration: 'none' }}>
                 {r.cognome} {r.nome}
               </Link>
               {r.stato === 'in_attesa' && <span className="tag tag-neutro">{r.posizione}ª in coda</span>}
@@ -135,7 +135,7 @@ export default function Attese({ righe, conta, corsi, stato }) {
                   {r.stato === 'avvisato' ? 'Riavvisa' : 'Avvisa: posto libero'}
                 </button>
                 {r.telefono && <a className="link-btn piccolo" href={wa(r.telefono)} target="_blank" rel="noreferrer">WhatsApp</a>}
-                <Link className="link-btn piccolo" href={`/gestione/persone/${r.allievo_id}`}>Iscrivilo</Link>
+                <Link prefetch={false} className="link-btn piccolo" href={`/gestione/persone/${r.allievo_id}`}>Iscrivilo</Link>
                 <button className="link-btn piccolo" disabled={invio} onClick={() => chiudi(r, 'iscritto')}>Si è iscritto</button>
                 <button className="link-btn piccolo pericolo" disabled={invio} onClick={() => chiudi(r, 'rinunciato')}>Ha rinunciato</button>
               </span>

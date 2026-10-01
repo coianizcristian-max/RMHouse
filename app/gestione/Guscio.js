@@ -96,7 +96,7 @@ export default function Guscio({ gestione, nome, ruolo, palestraId, funzioni = {
       {/* colonna delle aree: solo su desktop */}
       <nav className="aree" aria-label="Aree">
         {aree.map((a) => (
-          <Link key={a.k} href={a.voci.find(visibile)?.href || a.href} aria-current={a.k === attiva ? 'page' : undefined}>
+          <Link prefetch={false} key={a.k} href={a.voci.find(visibile)?.href || a.href} aria-current={a.k === attiva ? 'page' : undefined}>
             <Icona nome={a.icona} />
             {a.titolo}
           </Link>
@@ -107,7 +107,7 @@ export default function Guscio({ gestione, nome, ruolo, palestraId, funzioni = {
       {/* barra in basso del telefono */}
       <nav className="barra-mobile" aria-label="Scorciatoie">
         {scorciatoie.map(([href, testo, icona]) => (
-          <Link key={href} href={href} aria-current={scorciatoiaAttiva === href ? 'page' : undefined}>
+          <Link prefetch={false} key={href} href={href} aria-current={scorciatoiaAttiva === href ? 'page' : undefined}>
             <Icona nome={icona} /><span>{testo}</span>
           </Link>
         ))}
@@ -137,7 +137,7 @@ export default function Guscio({ gestione, nome, ruolo, palestraId, funzioni = {
                   </button>
                 </li>
               ))}
-              <li><Link href="/gestione/indice"><Icona nome="menu" /><span>Tutte le funzioni</span></Link></li>
+              <li><Link prefetch={false} href="/gestione/indice"><Icona nome="menu" /><span>Tutte le funzioni</span></Link></li>
             </ul>
           ) : (
             <>
@@ -147,7 +147,7 @@ export default function Guscio({ gestione, nome, ruolo, palestraId, funzioni = {
               <ul className="cassetto-voci">
                 {areaAperta.voci.filter(visibile).map((v) => (
                   <li key={v.href}>
-                    <Link href={v.href} aria-current={scelta === v ? 'page' : undefined}>{v.testo}</Link>
+                    <Link prefetch={false} href={v.href} aria-current={scelta === v ? 'page' : undefined}>{v.testo}</Link>
                   </li>
                 ))}
               </ul>
@@ -176,7 +176,7 @@ export default function Guscio({ gestione, nome, ruolo, palestraId, funzioni = {
           <nav className="sottomenu" aria-label={area?.titolo}>
             <div className="titolo-colonna solo-desktop">{area?.titolo}</div>
             {voci.map((v) => (
-              <Link key={v.href} href={v.href} aria-current={voceAttiva(v) ? 'page' : undefined}>{v.testo}</Link>
+              <Link prefetch={false} key={v.href} href={v.href} aria-current={voceAttiva(v) ? 'page' : undefined}>{v.testo}</Link>
             ))}
           </nav>
         )}

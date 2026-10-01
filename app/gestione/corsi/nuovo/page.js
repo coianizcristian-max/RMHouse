@@ -19,7 +19,7 @@ export default async function NuovoCorso() {
 
   return (
     <>
-      <Link className="torna" href="/gestione/corsi">Tutti i corsi</Link>
+      <Link prefetch={false} className="torna" href="/gestione/corsi">Tutti i corsi</Link>
       <h1>Nuovo corso</h1>
       <CorsoForm palestraId={p} discipline={discipline.data || []} fasce={fasce.data || []} livelli={livelli.data || []} sedi={sedi.data || []}
         tavolozza={scuola.data?.tema?.tavolozza || []} />

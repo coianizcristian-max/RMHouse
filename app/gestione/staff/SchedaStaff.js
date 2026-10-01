@@ -68,7 +68,7 @@ export default function SchedaStaff({ palestraId, persona = null, corsi = [], us
 
   return (
     <>
-      <p><Link href={indietro}>‹ Torna allo staff</Link></p>
+      <p><Link prefetch={false} href={indietro}>‹ Torna allo staff</Link></p>
       <div className="intestazione">
         <div className="occhiello">Struttura · Staff</div>
         <h1>{nuova ? 'Nuova persona' : [persona.nome, persona.cognome].filter(Boolean).join(' ')}</h1>
@@ -146,7 +146,7 @@ export default function SchedaStaff({ palestraId, persona = null, corsi = [], us
         {errore && <div className="errore" role="alert">{errore}</div>}
         <div className="azioni">
           <button className="btn btn-primario" disabled={invio}>{invio ? 'Salvo…' : nuova ? 'Aggiungi' : 'Salva'}</button>
-          <Link href={indietro} className="btn">Annulla</Link>
+          <Link prefetch={false} href={indietro} className="btn">Annulla</Link>
         </div>
       </form>
 

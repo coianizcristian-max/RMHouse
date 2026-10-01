@@ -174,7 +174,7 @@ export default function AppPalestre({ palestraId }) {
             <p className="piccolo muto">Nessuna email automatica è partita per effetto dell'import.</p>
           </div>
           <div className="azioni">
-            <Link className="btn btn-primario" href="/gestione/persone">Vai alle persone</Link>
+            <Link prefetch={false} className="btn btn-primario" href="/gestione/persone">Vai alle persone</Link>
             <button className="btn" onClick={() => { setEsito(null); setClienti(null); setStorico(null); }}>Importa di nuovo</button>
           </div>
         </>

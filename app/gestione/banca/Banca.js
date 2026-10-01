@@ -215,12 +215,12 @@ export default function Banca({ palestraId, movimenti, conti, differenze, flusso
 
       <div className="azioni-riga" style={{ marginBottom: 12 }}>
         <button className="btn" disabled={invio} onClick={automatica}>Abbina in automatico</button>
-        <Link className="link-btn" href="/gestione/incassi">Vai agli incassi</Link>
+        <Link prefetch={false} className="link-btn" href="/gestione/incassi">Vai agli incassi</Link>
       </div>
 
       <div className="filtri">
         {[['da_verificare', 'Da verificare'], ['abbinato', 'Abbinati'], ['ignorato', 'Ignorati'], ['tutti', 'Tutti']].map(([k, l]) => (
-          <Link key={k} href={`/gestione/banca?vista=${k}&dal=${dal}&al=${al}`}
+          <Link prefetch={false} key={k} href={`/gestione/banca?vista=${k}&dal=${dal}&al=${al}`}
                 aria-current={vista === k ? 'true' : undefined}>{l}</Link>
         ))}
       </div>

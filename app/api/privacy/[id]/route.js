@@ -14,9 +14,18 @@ async function staffDi(supabase) {
 // Tutti i dati di una persona, per una richiesta di accesso (GDPR art. 15)
 export async function GET(_request, { params }) {
   const { id } = await params;
-  const supabase = await supabaseServer();
-  const staff = await staffDi(supabase);
-  if (!staff || staff.ruolo === 'insegnante') return new Response('Non autorizzato.', { status: 403 });
+  const server = await supabaseServer();
+  const staff = await staffDi(server);
+  let supabase = server;
+  if (!staff || staff.ruolo === 'insegnante') {
+    // il cliente può scaricare i dati suoi e dei figli che segue dall'area clienti
+    const { data: { user } } = await server.auth.getUser();
+    if (!user) return new Response('Non autorizzato.', { status: 403 });
+    const { data: mio } = await supabaseAdmin().from('allievi').select('id, account!inner ( user_id )')
+      .eq('id', id).eq('account.user_id', user.id).maybeSingle();
+    if (!mio) return new Response('Non autorizzato.', { status: 403 });
+    supabase = supabaseAdmin();
+  }
 
   const { data: allievo } = await supabase.from('allievi').select('*').eq('id', id).maybeSingle();
   if (!allievo) return new Response('Persona non trovata.', { status: 404 });

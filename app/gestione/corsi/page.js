@@ -29,10 +29,10 @@ export default async function Corsi({ searchParams }) {
         <p>Ogni corso con i suoi orari, gli iscritti e le prove in arrivo.</p>
       </div>
       <div className="pastiglie">
-        <Link className="stato-pillola" aria-current={!vediArchiviati ? 'true' : undefined} href="/gestione/corsi">Attivi</Link>
-        <Link className="stato-pillola" aria-current={vediArchiviati ? 'true' : undefined} href="/gestione/corsi?archiviati=1">Archiviati</Link>
+        <Link prefetch={false} className="stato-pillola" aria-current={!vediArchiviati ? 'true' : undefined} href="/gestione/corsi">Attivi</Link>
+        <Link prefetch={false} className="stato-pillola" aria-current={vediArchiviati ? 'true' : undefined} href="/gestione/corsi?archiviati=1">Archiviati</Link>
       </div>
-      {!vediArchiviati && <p><Link className="btn btn-primario" href="/gestione/corsi/nuovo">Nuovo corso</Link></p>}
+      {!vediArchiviati && <p><Link prefetch={false} className="btn btn-primario" href="/gestione/corsi/nuovo">Nuovo corso</Link></p>}
       {vediArchiviati && <p className="piccolo muto">Corsi tolti dal palinsesto: aprine uno e tocca "Riattiva il corso" per rimetterlo.</p>}
       {error && <div className="errore">Impossibile caricare i corsi.</div>}
       {corsi?.length === 0 && <div className="vuoto">{vediArchiviati ? 'Nessun corso archiviato.' : 'Nessun corso attivo.'}</div>}
@@ -42,7 +42,7 @@ export default async function Corsi({ searchParams }) {
           <h2 style={{ marginTop: 20 }}>{cat}</h2>
           <div className="griglia-schede corsi-compatti">
           {corsi.filter((c) => (c.categoria || 'Senza categoria') === cat).map((c) => (
-            <Link key={c.corso_id} className="scheda-corso" href={`/gestione/corsi/${c.corso_id}`}>
+            <Link prefetch={false} key={c.corso_id} className="scheda-corso" href={`/gestione/corsi/${c.corso_id}`}>
               <span className="banda" style={{ background: c.colore || 'var(--rosso)' }} />
               <span className="centro" style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
                 {c.foto_url && <img src={c.foto_url} alt="" className="miniatura" />}

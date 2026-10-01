@@ -94,7 +94,7 @@ export default function ElencoPersone({ palestraId, persone, etichette, totale, 
                     <td><input type="checkbox" aria-label={`Seleziona ${p.nome} ${p.cognome}`}
                                checked={scelti.has(p.id)} onChange={() => cambia(p.id)} /></td>
                     <td>
-                      <Link className="persona-nome" href={`/gestione/persone/${p.id}`}>{p.cognome} {p.nome}</Link>
+                      <Link prefetch={false} className="persona-nome" href={`/gestione/persone/${p.id}`}>{p.cognome} {p.nome}</Link>
                       {p.data_nascita && <span className="piccolo muto"> · {etaAl(p.data_nascita)} anni</span>}
                       {!p.is_titolare && (
                         <div className="piccolo muto">paga {p.titolare_nome} {p.titolare_cognome}</div>

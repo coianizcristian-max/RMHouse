@@ -36,14 +36,14 @@ export default async function AgendaGiorno({ searchParams }) {
   return (
     <>
       <div className="giorno-nav">
-        <Link className="btn" href={link(spostaGiorni(giorno, -1))} aria-label="Giorno precedente">‹</Link>
+        <Link prefetch={false} className="btn" href={link(spostaGiorni(giorno, -1))} aria-label="Giorno precedente">‹</Link>
         <h1>{titolo}</h1>
-        <Link className="btn" href={link(spostaGiorni(giorno, 1))} aria-label="Giorno successivo">›</Link>
+        <Link prefetch={false} className="btn" href={link(spostaGiorni(giorno, 1))} aria-label="Giorno successivo">›</Link>
       </div>
       <div className="filtri">
-        <Link href={link(giorno, '0')} aria-current={mie !== '1' ? 'true' : undefined}>Tutte</Link>
-        <Link href={link(giorno, '1')} aria-current={mie === '1' ? 'true' : undefined}>Solo le mie</Link>
-        {giorno !== oggiISO() && <Link href={link(oggiISO())}>Oggi</Link>}
+        <Link prefetch={false} href={link(giorno, '0')} aria-current={mie !== '1' ? 'true' : undefined}>Tutte</Link>
+        <Link prefetch={false} href={link(giorno, '1')} aria-current={mie === '1' ? 'true' : undefined}>Solo le mie</Link>
+        {giorno !== oggiISO() && <Link prefetch={false} href={link(oggiISO())}>Oggi</Link>}
       </div>
 
       {error && <div className="errore">Impossibile caricare le lezioni.</div>}
@@ -51,45 +51,46 @@ export default async function AgendaGiorno({ searchParams }) {
         <div className="vuoto">
           Nessuna lezione in questo giorno.
           <div className="piccolo" style={{ marginTop: 8 }}>
-            <Link href={link(spostaGiorni(giorno, 1))}>Vai al giorno successivo</Link>
+            <Link prefetch={false} href={link(spostaGiorni(giorno, 1))}>Vai al giorno successivo</Link>
           </div>
         </div>
       )}
 
-      <ul className="elenco agenda-giorno">
+      {/* righe compatte: ora, corso, e a fianco quanti sono (grandi), con la barra del riempimento */}
+      <ul className="ag-elenco">
         {righe.map((l) => l.tipo === 'affitto' ? (
           <li key={`a${l.id}`}>
-            <Link className="voce" href={`/gestione/spazi?giorno=${giorno}`} style={{ borderLeft: '5px solid var(--verde-affitto)' }}>
-              <span className="slot-ora">{ora(l.inizio)}</span>
-              <span>
-                <strong style={{ color: 'var(--nero)' }}>{l.titolo || 'Affitto sala'}</strong>
-                <span className="piccolo muto" style={{ display: 'block' }}>
-                  {[l.sale?.nome, l.contatto_nome, `fino alle ${ora(l.fine)}`].filter(Boolean).join(' · ')}
-                </span>
+            <Link prefetch={false} className="ag-riga" href={`/gestione/spazi?giorno=${giorno}`}>
+              <span className="ag-banda" style={{ background: 'var(--verde-affitto)' }} />
+              <span className="ag-ora"><strong>{ora(l.inizio)}</strong><span>{ora(l.fine)}</span></span>
+              <span className="ag-cosa">
+                <strong>{l.titolo || 'Affitto sala'}</strong>
+                <span>{[l.sale?.nome, l.contatto_nome].filter(Boolean).join(' · ')}</span>
               </span>
-              <span className="tag tag-affitto">{l.stato === 'opzione' ? 'affitto in opzione' : 'affitto'}</span>
+              <span className="ag-numeri"><span className="tag tag-affitto">{l.stato === 'opzione' ? 'in opzione' : 'affitto'}</span></span>
             </Link>
           </li>
         ) : (
           <li key={l.id}>
-            <Link className="voce" href={`/gestione/appello/${l.id}`} style={{ borderLeft: `5px solid ${l.colore || 'var(--rosso)'}` }}>
-              <span className="slot-ora">{ora(l.inizio)}</span>
-              <span>
-                <strong style={{ color: 'var(--nero)' }}>{l.corso_nome}</strong>
-                <span className="piccolo muto" style={{ display: 'block' }}>
-                  {[l.sala_nome, l.insegnante_nome].filter(Boolean).join(' · ') || 'Sala e insegnante da assegnare'}
-                </span>
+            <Link prefetch={false} className={`ag-riga${l.stato === 'annullata' ? ' annullata' : ''}`} href={`/gestione/appello/${l.id}`}>
+              <span className="ag-banda" style={{ background: l.colore || 'var(--rosso)' }} />
+              <span className="ag-ora"><strong>{ora(l.inizio)}</strong><span>{ora(l.fine)}</span></span>
+              <span className="ag-cosa">
+                <strong>{l.corso_nome}</strong>
+                <span>{[l.sala_nome, l.insegnante_nome].filter(Boolean).join(' · ') || 'Sala e insegnante da assegnare'}</span>
               </span>
-              <span style={{ display: 'grid', gap: 4, justifyItems: 'end', minWidth: 96 }}>
+              <span className="ag-numeri">
                 {l.stato === 'annullata' ? <span className="tag tag-neutro">Annullata</span> : (
                   <>
-                    <span className="tag tag-neutro">{l.iscritti}{l.capienza ? `/${l.capienza}` : ''}</span>
-                    {l.prove > 0 && <span className="tag tag-rosso">{l.prove} in prova</span>}
+                    <span className="ag-conto">
+                      <strong>{l.iscritti + (l.prove || 0)}</strong>
+                      {l.capienza ? <span>/{l.capienza}</span> : null}
+                      {l.prove > 0 && <em>{l.prove} in prova</em>}
+                    </span>
                     {l.capienza > 0 && (
-                      <span style={{ display: 'block', width: 76, height: 5, borderRadius: 3, background: 'var(--linea)', overflow: 'hidden' }}>
-                        <span style={{ display: 'block', height: '100%',
-                                       width: `${Math.min(100, Math.round(((l.iscritti + l.prove) / l.capienza) * 100))}%`,
-                                       background: l.colore || 'var(--rosso)' }} />
+                      <span className="ag-barra">
+                        <span style={{ width: `${Math.min(100, Math.round(((l.iscritti + (l.prove || 0)) / l.capienza) * 100))}%`,
+                                       background: (l.iscritti + (l.prove || 0)) >= l.capienza ? 'var(--rosso)' : (l.colore || 'var(--rosso)') }} />
                       </span>
                     )}
                   </>

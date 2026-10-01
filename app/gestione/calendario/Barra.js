@@ -14,13 +14,13 @@ export default function Barra({ base, inizio, fine, sale, insegnanti, sedi = [],
   return (
     <div className="barra-cal">
       <div className="bc-settimana">
-        <Link className="btn btn-piccolo" href={qs(spostaGiorni(inizio, -7))} aria-label="Settimana precedente">‹</Link>
+        <Link prefetch={false} className="btn btn-piccolo" href={qs(spostaGiorni(inizio, -7))} aria-label="Settimana precedente">‹</Link>
         <strong>
           {new Date(inizio + 'T12:00:00').toLocaleDateString('it-IT', { day: 'numeric', month: 'short' })} –{' '}
           {new Date(fine + 'T12:00:00').toLocaleDateString('it-IT', { day: 'numeric', month: 'short' })}
         </strong>
-        <Link className="btn btn-piccolo" href={qs(spostaGiorni(inizio, 7))} aria-label="Settimana successiva">›</Link>
-        {!settimanaCorrente && <Link className="btn btn-piccolo" href={qs(oggiISO())}>Oggi</Link>}
+        <Link prefetch={false} className="btn btn-piccolo" href={qs(spostaGiorni(inizio, 7))} aria-label="Settimana successiva">›</Link>
+        {!settimanaCorrente && <Link prefetch={false} className="btn btn-piccolo" href={qs(oggiISO())}>Oggi</Link>}
       </div>
       <Filtri base={base} inizio={inizio} sale={sale} insegnanti={insegnanti} sedi={sedi}
               scelti={{ sala: sala || '', insegnante: insegnante || '', mie: mie || '', sede: sede || '' }} />

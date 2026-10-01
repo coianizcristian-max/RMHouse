@@ -96,7 +96,7 @@ export default function Ricevute({ righe, mancanti, riepilogo, dal, al }) {
             <input id="d2" type="date" value={periodo.al} onChange={(e) => setPeriodo({ ...periodo, al: e.target.value })} /></div>
         </div>
         <div className="azioni-riga">
-          <Link className="btn" href={`/gestione/ricevute?dal=${periodo.dal}&al=${periodo.al}`}>Mostra il periodo</Link>
+          <Link prefetch={false} className="btn" href={`/gestione/ricevute?dal=${periodo.dal}&al=${periodo.al}`}>Mostra il periodo</Link>
           <a className="link-btn" href={`/api/incassi/csv?dal=${periodo.dal}&al=${periodo.al}`}>CSV per il commercialista</a>
         </div>
       </div>
@@ -156,7 +156,7 @@ export default function Ricevute({ righe, mancanti, riepilogo, dal, al }) {
               <strong style={{ textDecoration: r.annullata ? 'line-through' : 'none' }}>
                 {r.tipo_documento === 'nota_credito' ? '−' : ''}{euro(r.importo_cent + r.iva_cent)}
               </strong>
-              <Link className="link-btn piccolo" href={`/gestione/ricevute/${r.id}`} target="_blank">stampa</Link>
+              <Link prefetch={false} className="link-btn piccolo" href={`/gestione/ricevute/${r.id}`} target="_blank">stampa</Link>
               {!r.annullata && r.tipo_documento !== 'nota_credito' && (
                 <button className="link-btn piccolo" disabled={invio} onClick={() => notaCredito(r)}>rimborso</button>
               )}

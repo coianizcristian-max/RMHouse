@@ -43,7 +43,7 @@ export default function Pipeline({ righe }) {
         <div className="occhiello">Persone</div>
         <h1>Contatti e prove</h1>
         <p>Chi ha chiesto informazioni o una prova, fase per fase. Trascina una scheda nella colonna giusta
-          (sul telefono usa il menù sotto la scheda). <Link href="/gestione/lead">Elenco con il diario dei contatti</Link></p>
+          (sul telefono usa il menù sotto la scheda). <Link prefetch={false} href="/gestione/lead">Elenco con il diario dei contatti</Link></p>
       </div>
       {errore && <div className="errore" role="alert">{errore}</div>}
 
@@ -64,7 +64,7 @@ export default function Pipeline({ righe }) {
                 const scaduto = r.prossimo_contatto && r.prossimo_contatto <= new Date().toISOString().slice(0, 10);
                 return (
                   <article key={r.id} className="pipe-carta" draggable onDragStart={() => setTrascina(r.id)}>
-                    <Link href={`/gestione/persone/${r.id}`} className="persona-nome">{r.nome} {r.cognome}</Link>
+                    <Link prefetch={false} href={`/gestione/persone/${r.id}`} className="persona-nome">{r.nome} {r.cognome}</Link>
                     <div className="piccolo muto">
                       {[r.eta != null && `${r.eta} anni`, r.fonte, `da ${giorniDa(r.created_at)} gg`].filter(Boolean).join(' · ')}
                     </div>

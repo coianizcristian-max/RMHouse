@@ -52,7 +52,7 @@ export async function GET(request, { params }) {
   return new Response(righe.filter(Boolean).join('\r\n'), {
     headers: {
       'Content-Type': 'text/calendar; charset=utf-8',
-      'Cache-Control': 'public, max-age=900',
+      'Cache-Control': 'public, max-age=900, s-maxage=900, stale-while-revalidate=1800',
       'Content-Disposition': 'inline; filename="lezioni.ics"',
     },
   });

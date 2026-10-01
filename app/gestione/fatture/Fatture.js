@@ -117,10 +117,10 @@ export default function Fatture({ righe, quadratura, dal, al, tipo, stato }) {
       </div>
 
       <div className="filtri">
-        <Link href={`/gestione/fatture?tipo=passiva&dal=${dal}&al=${al}`} aria-current={tipo === 'passiva' ? 'true' : undefined}>Ricevute</Link>
-        <Link href={`/gestione/fatture?tipo=attiva&dal=${dal}&al=${al}`} aria-current={tipo === 'attiva' ? 'true' : undefined}>Emesse</Link>
-        <Link href={`/gestione/fatture?tipo=${tipo}&stato=da_registrare&dal=${dal}&al=${al}`} aria-current={stato === 'da_registrare' ? 'true' : undefined}>Da registrare</Link>
-        <Link href="/gestione/banca">Vai alla banca</Link>
+        <Link prefetch={false} href={`/gestione/fatture?tipo=passiva&dal=${dal}&al=${al}`} aria-current={tipo === 'passiva' ? 'true' : undefined}>Ricevute</Link>
+        <Link prefetch={false} href={`/gestione/fatture?tipo=attiva&dal=${dal}&al=${al}`} aria-current={tipo === 'attiva' ? 'true' : undefined}>Emesse</Link>
+        <Link prefetch={false} href={`/gestione/fatture?tipo=${tipo}&stato=da_registrare&dal=${dal}&al=${al}`} aria-current={stato === 'da_registrare' ? 'true' : undefined}>Da registrare</Link>
+        <Link prefetch={false} href="/gestione/banca">Vai alla banca</Link>
       </div>
 
       {righe.length === 0 && <div className="vuoto">Nessuna fattura in questo elenco.</div>}

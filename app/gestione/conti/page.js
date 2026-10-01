@@ -50,22 +50,22 @@ export default async function RiepilogoConti() {
           <h1>Riepilogo dei conti</h1>
         </div>
         <div className="azioni">
-          <Link className="btn btn-primario" href="/gestione/incassi">Registra un incasso</Link>
-          <Link className="btn" href="/gestione/rate">Rate</Link>
-          <Link className="btn" href="/gestione/commercialista">Per il commercialista</Link>
+          <Link prefetch={false} className="btn btn-primario" href="/gestione/incassi">Registra un incasso</Link>
+          <Link prefetch={false} className="btn" href="/gestione/rate">Rate</Link>
+          <Link prefetch={false} className="btn" href="/gestione/commercialista">Per il commercialista</Link>
         </div>
       </div>
 
       <div className="kpi">
         <div className="tessera tessera-rossa"><div className="etichetta">Incassato oggi</div><div className="cifra">{euro(giorno?.incassato_cent || 0)}</div></div>
-        <Link className="tessera" href="/gestione/incassi"><div className="etichetta">Nel mese</div><div className="cifra">{euro(mese?.incassato_cent || 0)}</div></Link>
-        <Link className="tessera" href="/gestione/statistiche"><div className="etichetta">Da inizio anno</div><div className="cifra">{euro(anno?.incassato_cent || 0)}</div></Link>
-        <Link className={`tessera${daIncassare ? ' tessera-nera' : ''}`} href="/gestione/rate?vista=scadute">
+        <Link prefetch={false} className="tessera" href="/gestione/incassi"><div className="etichetta">Nel mese</div><div className="cifra">{euro(mese?.incassato_cent || 0)}</div></Link>
+        <Link prefetch={false} className="tessera" href="/gestione/statistiche"><div className="etichetta">Da inizio anno</div><div className="cifra">{euro(anno?.incassato_cent || 0)}</div></Link>
+        <Link prefetch={false} className={`tessera${daIncassare ? ' tessera-nera' : ''}`} href="/gestione/rate?vista=scadute">
           <div className="etichetta">Da incassare</div><div className="cifra">{euro(daIncassare)}</div>
           <div className="sotto">in attesa e rate scadute</div></Link>
-        <Link className="tessera" href="/gestione/ricevute"><div className="etichetta">Senza ricevuta</div><div className="cifra">{mancanti?.length || 0}</div>
+        <Link prefetch={false} className="tessera" href="/gestione/ricevute"><div className="etichetta">Senza ricevuta</div><div className="cifra">{mancanti?.length || 0}</div>
           <div className="sotto">incassi da inizio anno</div></Link>
-        <Link className="tessera" href="/gestione/fatture"><div className="etichetta">Fatture da registrare</div><div className="cifra">{fatture?.length || 0}</div></Link>
+        <Link prefetch={false} className="tessera" href="/gestione/fatture"><div className="etichetta">Fatture da registrare</div><div className="cifra">{fatture?.length || 0}</div></Link>
       </div>
 
       <div className="cruscotto-3">
@@ -74,7 +74,7 @@ export default async function RiepilogoConti() {
           {problemi.length === 0 ? <div className="vuoto">Tutto in ordine.</div> : (
             <div className="da-fare compatta">
               {problemi.map(([t, n, href, tono]) => (
-                <Link key={t} href={href} className={tono}><span>{t}</span><span className="conta">{n}</span></Link>
+                <Link prefetch={false} key={t} href={href} className={tono}><span>{t}</span><span className="conta">{n}</span></Link>
               ))}
             </div>
           )}
@@ -114,7 +114,7 @@ export default async function RiepilogoConti() {
           <ul className="mini-lista">
             {(prossime || []).map((r) => (
               <li key={r.id}>
-                <Link href={r.allievo_id ? `/gestione/persone/${r.allievo_id}` : '/gestione/rate'}>
+                <Link prefetch={false} href={r.allievo_id ? `/gestione/persone/${r.allievo_id}` : '/gestione/rate'}>
                   <span className="ml-giorni">{r.giorni === 0 ? 'oggi' : `tra ${r.giorni}g`}</span>
                   <span className="ml-testo">
                     <strong>{r.allievo_cognome} {r.allievo_nome}</strong>

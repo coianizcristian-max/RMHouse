@@ -23,7 +23,7 @@ export default async function ModificaCorso({ params }) {
 
   return (
     <>
-      <p><Link href={`/gestione/corsi/${id}`}>‹ Torna al corso</Link></p>
+      <p><Link prefetch={false} href={`/gestione/corsi/${id}`}>‹ Torna al corso</Link></p>
       <h1>Modifica corso</h1>
       <CorsoForm palestraId={p} corso={corso} discipline={discipline.data || []} fasce={fasce.data || []} livelli={livelli.data || []} sedi={sedi.data || []}
         tavolozza={scuola.data?.tema?.tavolozza || []} />

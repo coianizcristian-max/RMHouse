@@ -79,7 +79,7 @@ export default function Scadenze({ palestraId, righe }) {
                 <tr key={k} className={scelte.has(k) ? 'selezionata' : r.gestito ? 'gestita' : undefined}>
                   <td><input type="checkbox" aria-label={`Seleziona ${r.nome} ${r.cognome}`} checked={scelte.has(k)} onChange={() => cambia(k)} /></td>
                   <td>
-                    <Link className="persona-nome" href={`/gestione/persone/${r.allievo_id}`}>{r.cognome} {r.nome}</Link>
+                    <Link prefetch={false} className="persona-nome" href={`/gestione/persone/${r.allievo_id}`}>{r.cognome} {r.nome}</Link>
                     {!r.is_titolare && <div className="piccolo muto">paga {r.titolare_nome} {r.titolare_cognome}</div>}
                   </td>
                   <td>

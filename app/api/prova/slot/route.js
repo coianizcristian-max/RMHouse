@@ -30,7 +30,7 @@ export async function GET(request) {
       .filter((l) => l.prove < l.max_prove_per_lezione && (l.capienza == null || l.partecipanti < l.capienza))
       .map(({ id, corso_id, corso_nome, inizio, fine, sala_nome, insegnante_nome }) =>
         ({ id, corso_id, corso_nome, inizio, fine, sala_nome, insegnante_nome }));
-    return NextResponse.json({ slot });
+    return NextResponse.json({ slot }, { headers: { 'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=120' } });
   } catch (e) {
     console.error(e);
     return NextResponse.json({ errore: 'Orari non disponibili al momento.' }, { status: 500 });

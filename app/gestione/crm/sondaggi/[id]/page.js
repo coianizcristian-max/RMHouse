@@ -36,7 +36,7 @@ export default async function Risultati({ params }) {
   return (
     <>
       <div className="intestazione">
-        <div className="occhiello"><Link href="/gestione/crm/sondaggi">Sondaggi</Link></div>
+        <div className="occhiello"><Link prefetch={false} href="/gestione/crm/sondaggi">Sondaggi</Link></div>
         <h1>{s.titolo}</h1>
         <p>{r.risposte} risposte su {r.inviti} inviti ({perc}%) · creato il {dataBreve(s.created_at)}{s.anonimo ? ' · anonimo' : ''}</p>
       </div>

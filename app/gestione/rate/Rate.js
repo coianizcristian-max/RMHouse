@@ -86,7 +86,7 @@ export default function Rate({ palestraId, rate, vista, conti, online = false })
       <div className="pannello-testa">
         <div className="pastiglie" style={{ margin: 0 }}>
           {[['da_pagare', 'Da pagare'], ['scadute', 'Scadute'], ['pagate', 'Pagate'], ['tutte', 'Tutte']].map(([k, t]) => (
-            <Link key={k} className="stato-pillola" aria-current={vista === k ? 'true' : undefined} href={`/gestione/rate?vista=${k}`}>{t}</Link>
+            <Link prefetch={false} key={k} className="stato-pillola" aria-current={vista === k ? 'true' : undefined} href={`/gestione/rate?vista=${k}`}>{t}</Link>
           ))}
         </div>
         {!apri && <button className="btn btn-piccolo btn-primario" onClick={() => setApri(true)}>Nuovo piano di rate</button>}
@@ -148,7 +148,7 @@ export default function Rate({ palestraId, rate, vista, conti, online = false })
                 <tr key={r.id} className={r.stato !== 'da_pagare' ? 'gestita' : undefined}>
                   <td>
                     {r.allievo_id
-                      ? <Link className="persona-nome" href={`/gestione/persone/${r.allievo_id}`}>{r.allievo_cognome} {r.allievo_nome}</Link>
+                      ? <Link prefetch={false} className="persona-nome" href={`/gestione/persone/${r.allievo_id}`}>{r.allievo_cognome} {r.allievo_nome}</Link>
                       : <span className="persona-nome">{r.titolare_nome} {r.titolare_cognome}</span>}
                     {r.telefono && <div className="piccolo muto">{r.telefono}</div>}
                   </td>

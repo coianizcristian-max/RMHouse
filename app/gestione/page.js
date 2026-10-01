@@ -103,9 +103,9 @@ export default async function Home() {
         </div>
         {gestione && (
           <div className="azioni">
-            <Link className="btn btn-primario" href="/gestione/persone/nuova">Nuovo cliente</Link>
-            <Link className="btn" href="/gestione/incassi">Incassa</Link>
-            <Link className="btn" href="/gestione/scadenze">Scadenze</Link>
+            <Link prefetch={false} className="btn btn-primario" href="/gestione/persone/nuova">Nuovo cliente</Link>
+            <Link prefetch={false} className="btn" href="/gestione/incassi">Incassa</Link>
+            <Link prefetch={false} className="btn" href="/gestione/scadenze">Scadenze</Link>
           </div>
         )}
       </div>
@@ -114,32 +114,32 @@ export default async function Home() {
 
       {gestione && k && (
         <div className="kpi">
-          <Link className="tessera tessera-rossa" href="/gestione/persone?stato=attivi">
+          <Link prefetch={false} className="tessera tessera-rossa" href="/gestione/persone?stato=attivi">
             <div className="etichetta">Iscritti attivi</div>
             <div className="cifra">{k.attivi}</div>
             <div className="sotto"><Delta adesso={k.attivi} prima={k.attivi_mese_scorso} suffisso=" su un mese fa" /></div>
           </Link>
-          <Link className="tessera" href="/gestione/statistiche">
+          <Link prefetch={false} className="tessera" href="/gestione/statistiche">
             <div className="etichetta">Venduto nel mese</div>
             <div className="cifra">{euro(k.venduto_mese)}</div>
             <div className="sotto"><Delta adesso={k.venduto_mese} prima={k.venduto_mese_scorso} suffisso=" sul mese scorso" /></div>
           </Link>
-          <Link className="tessera" href="/gestione/scadenze?tipo=abbonamento">
+          <Link prefetch={false} className="tessera" href="/gestione/scadenze?tipo=abbonamento">
             <div className="etichetta">Da rinnovare in 14 giorni</div>
             <div className="cifra">{k.da_rinnovare_14?.quanti ?? 0}</div>
             <div className="sotto">valgono {euro(k.da_rinnovare_14?.valore || 0)}</div>
           </Link>
-          <Link className="tessera" href="/gestione/persone?stato=nuovi">
+          <Link prefetch={false} className="tessera" href="/gestione/persone?stato=nuovi">
             <div className="etichetta">Nuovi nel mese</div>
             <div className="cifra">{k.nuovi_mese}</div>
             <div className="sotto">{k.prove_settimana} prove questa settimana</div>
           </Link>
-          <Link className="tessera" href="/gestione/calendario">
+          <Link prefetch={false} className="tessera" href="/gestione/calendario">
             <div className="etichetta">Posti occupati, settimana</div>
             <div className="cifra">{k.occupazione_settimana != null ? `${k.occupazione_settimana}%` : '—'}</div>
             <div className="sotto">sui posti disponibili nelle sale</div>
           </Link>
-          <Link className="tessera tessera-nera" href="/gestione/oggi">
+          <Link prefetch={false} className="tessera tessera-nera" href="/gestione/oggi">
             <div className="etichetta">Oggi</div>
             <div className="cifra">{k.lezioni_oggi}<small> lezioni</small></div>
             <div className="sotto">{k.attesi_oggi} persone attese{prossima ? ` · prossima alle ${ora(prossima.inizio)}` : ''}</div>
@@ -158,7 +158,7 @@ export default async function Home() {
               : (
                 <div className="da-fare compatta">
                   {problemi.map(([testo, n, href, tono]) => (
-                    <Link key={testo} href={href} className={tono}>
+                    <Link prefetch={false} key={testo} href={href} className={tono}>
                       <span>{testo}</span>
                       <span className="conta">{n}</span>
                     </Link>
@@ -177,7 +177,7 @@ export default async function Home() {
               const passata = new Date(l.inizio) <= adesso;
               return (
                 <li key={l.lezione_id}>
-                  <Link href={`/gestione/appello/${l.lezione_id}`}>
+                  <Link prefetch={false} href={`/gestione/appello/${l.lezione_id}`}>
                     <span className="pallino-colore" style={{ background: colore(l.corso_id) }} />
                     <span className="ml-ora">{ora(l.inizio)}</span>
                     <span className="ml-testo">
@@ -204,7 +204,7 @@ export default async function Home() {
             <ul className="mini-lista">
               {scadenze?.map((s) => (
                 <li key={`${s.tipo}-${s.allievo_id}-${s.data}`}>
-                  <Link href={`/gestione/persone/${s.allievo_id}`}>
+                  <Link prefetch={false} href={`/gestione/persone/${s.allievo_id}`}>
                     <span className={`ml-giorni ${s.giorni < 0 ? 'passato' : s.giorni <= 2 ? 'vicino' : ''}`}>
                       {s.giorni < 0 ? `${-s.giorni}g fa` : s.giorni === 0 ? 'oggi' : `tra ${s.giorni}g`}
                     </span>
@@ -217,7 +217,7 @@ export default async function Home() {
                 </li>
               ))}
             </ul>
-            <p className="piccolo" style={{ marginTop: 10 }}><Link href="/gestione/scadenze">Tutte le scadenze</Link></p>
+            <p className="piccolo" style={{ marginTop: 10 }}><Link prefetch={false} href="/gestione/scadenze">Tutte le scadenze</Link></p>
           </section>
         )}
       </div>
@@ -232,7 +232,7 @@ export default async function Home() {
             <h2>Com'è messa la clientela</h2>
             <div className="pastiglie">
               {statiOrdinati.map(([s, v]) => (
-                <Link key={s} className={`stato-pillola ${v.tono}`} href={`/gestione/persone?stato=${s}`}>
+                <Link prefetch={false} key={s} className={`stato-pillola ${v.tono}`} href={`/gestione/persone?stato=${s}`}>
                   {v.testo} <strong>{stati[s]}</strong>
                 </Link>
               ))}
@@ -244,7 +244,7 @@ export default async function Home() {
                   {k.compleanni.map((c, i) => (
                     <span key={c.id}>
                       {i > 0 && ' · '}
-                      <Link href={`/gestione/persone/${c.id}`}>{c.nome} {c.cognome}</Link>
+                      <Link prefetch={false} href={`/gestione/persone/${c.id}`}>{c.nome} {c.cognome}</Link>
                       {' '}<span className="muto">{c.giorni === 0 ? 'oggi' : c.giorni === 1 ? 'domani' : `tra ${c.giorni} giorni`}</span>
                     </span>
                   ))}

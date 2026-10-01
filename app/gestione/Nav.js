@@ -53,7 +53,7 @@ export default function Nav({ gestione }) {
   return (
     <nav className="nav-gestione" aria-label="Gestione">
       {voci.map(([href, testo, icona]) => (
-        <Link key={href} href={href} aria-current={attiva(href) ? 'page' : undefined}>
+        <Link prefetch={false} key={href} href={href} aria-current={attiva(href) ? 'page' : undefined}>
           <Icona nome={icona} />
           {testo}
         </Link>

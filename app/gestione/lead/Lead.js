@@ -74,17 +74,17 @@ export default function Lead({ righe, conta, vista }) {
       {errore && <div className="errore" role="alert">{errore}</div>}
 
       <div className="griglia" style={{ marginBottom: 14 }}>
-        <Link className="tessera tessera-rossa" href="/gestione/lead?vista=da_richiamare">
+        <Link prefetch={false} className="tessera tessera-rossa" href="/gestione/lead?vista=da_richiamare">
           <div className="etichetta">Da richiamare oggi</div>
           <div className="cifra">{conta.da_richiamare ?? 0}</div>
           <div className="sotto">promemoria scaduti</div>
         </Link>
-        <Link className="tessera" href="/gestione/lead?vista=da_seguire">
+        <Link prefetch={false} className="tessera" href="/gestione/lead?vista=da_seguire">
           <div className="etichetta">Da seguire</div>
           <div className="cifra">{conta.da_seguire ?? 0}</div>
           <div className="sotto">{conta.mai_contattati ?? 0} mai contattati</div>
         </Link>
-        <Link className="tessera" href="/gestione/lead?vista=prova_prenotata">
+        <Link prefetch={false} className="tessera" href="/gestione/lead?vista=prova_prenotata">
           <div className="etichetta">Prova prenotata</div>
           <div className="cifra">{conta.prova_prenotata ?? 0}</div>
           <div className="sotto">in arrivo</div>
@@ -98,7 +98,7 @@ export default function Lead({ righe, conta, vista }) {
 
       <div className="filtri">
         {VISTE.map(([k, l]) => (
-          <Link key={k} href={`/gestione/lead?vista=${k}`} aria-current={vista === k ? 'true' : undefined}>{l}</Link>
+          <Link prefetch={false} key={k} href={`/gestione/lead?vista=${k}`} aria-current={vista === k ? 'true' : undefined}>{l}</Link>
         ))}
       </div>
 
@@ -111,7 +111,7 @@ export default function Lead({ righe, conta, vista }) {
             <span className="banda" style={{ background: scaduto ? 'var(--rosso)' : 'var(--nero)' }} />
             <span className="centro" style={{ paddingRight: 14 }}>
               <span style={{ display: 'flex', gap: 10, alignItems: 'baseline', flexWrap: 'wrap' }}>
-                <Link className="titolo" href={`/gestione/persone/${r.id}`} style={{ textDecoration: 'none' }}>
+                <Link prefetch={false} className="titolo" href={`/gestione/persone/${r.id}`} style={{ textDecoration: 'none' }}>
                   {r.cognome} {r.nome}
                 </Link>
                 {r.data_nascita && <span className="piccolo muto">{etaAl(r.data_nascita)} anni</span>}

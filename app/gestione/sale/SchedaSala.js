@@ -53,7 +53,7 @@ export default function SchedaSala({ palestraId, sala = null, sedi = [], orari =
 
   return (
     <>
-      <p><Link href="/gestione/sale">‹ Torna alle sale</Link></p>
+      <p><Link prefetch={false} href="/gestione/sale">‹ Torna alle sale</Link></p>
       <div className="intestazione">
         <div className="occhiello">Struttura · Sale</div>
         <h1>{nuova ? 'Nuova sala' : sala.nome}</h1>
@@ -80,7 +80,7 @@ export default function SchedaSala({ palestraId, sala = null, sedi = [], orari =
                     <span className="os-ora">{String(o.ora_inizio).slice(0, 5)}–{fineOra(o.ora_inizio, o.durata_min)}</span>
                     <span className="os-pallino" style={{ background: o.corsi?.colore || 'var(--rosso)' }} aria-hidden="true" />
                     <span className="os-corso">
-                      {o.corsi ? <Link href={`/gestione/corsi/${o.corsi.id}`}>{o.corsi.nome}</Link> : 'corso'}
+                      {o.corsi ? <Link prefetch={false} href={`/gestione/corsi/${o.corsi.id}`}>{o.corsi.nome}</Link> : 'corso'}
                       {o.insegnante && <span className="piccolo muto">{o.insegnante}</span>}
                     </span>
                   </li>
@@ -121,7 +121,7 @@ export default function SchedaSala({ palestraId, sala = null, sedi = [], orari =
         {errore && <div className="errore" role="alert">{errore}</div>}
         <div className="azioni">
           <button className="btn btn-primario" disabled={invio}>{invio ? 'Salvo…' : nuova ? 'Aggiungi' : 'Salva'}</button>
-          <Link href="/gestione/sale" className="btn">Annulla</Link>
+          <Link prefetch={false} href="/gestione/sale" className="btn">Annulla</Link>
         </div>
       </form>
     </>

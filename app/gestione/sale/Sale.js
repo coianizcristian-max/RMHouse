@@ -43,7 +43,7 @@ export default function Sale({ sale, orari, postazioni = {}, salvato = null }) {
 
       {errore && <div className="errore" role="alert">{errore}</div>}
 
-      <Link className="btn btn-primario" href="/gestione/sale/nuova">Aggiungi sala</Link>
+      <Link prefetch={false} className="btn btn-primario" href="/gestione/sale/nuova">Aggiungi sala</Link>
       {salvato && sale.some((x) => x.id === salvato) && (
         <div className="avviso-ok" role="status" style={{ marginTop: 14 }}>Sala "{sale.find((x) => x.id === salvato).nome}" salvata ✓</div>
       )}
@@ -57,7 +57,7 @@ export default function Sale({ sale, orari, postazioni = {}, salvato = null }) {
               ? <img src={s.foto_url} alt="" className="copertina" style={{ borderRadius: 0 }} />
               : <div className="copertina segnaposto senza-foto" style={{ borderRadius: 0 }}>{s.nome.slice(0, 2).toUpperCase()}</div>}
             <div style={{ padding: 14 }}>
-              <Link href={`/gestione/sale/${s.id}`} className="titolo-sala">{s.nome}</Link>
+              <Link prefetch={false} href={`/gestione/sale/${s.id}`} className="titolo-sala">{s.nome}</Link>
               <div className="piccolo muto">
                 {s.capienza ? `${s.capienza} posti` : 'capienza non impostata'}
                 {s.costo_ora_cent ? ` · ${euro(s.costo_ora_cent)} all'ora` : ''}
@@ -70,7 +70,7 @@ export default function Sale({ sale, orari, postazioni = {}, salvato = null }) {
                 </div>
               )}
               <div className="azioni-riga">
-                <Link className="link-btn piccolo" href={`/gestione/sale/${s.id}`}>Modifica</Link>
+                <Link prefetch={false} className="link-btn piccolo" href={`/gestione/sale/${s.id}`}>Modifica</Link>
                 <button className="link-btn piccolo" onClick={() => creaPostazioni(s)}>Posti numerati</button>
                 <button className="link-btn piccolo pericolo" onClick={() => elimina(s)}>Elimina</button>
               </div>

@@ -4,11 +4,13 @@ import { useRouter } from 'next/navigation';
 import { supabaseBrowser } from '@/lib/supabase/browser';
 import { dataBreve } from '@/lib/formato';
 import Immagine from '../../Immagine';
+import CaricaCertificato from '../../../CaricaCertificato';
 
 export default function Anagrafica({ allievo, linkCertificato, ente}) {
   const router = useRouter();
   const [apri, setApri] = useState(false);
   const [copiato, setCopiato] = useState(false);
+  const [caricaCert, setCaricaCert] = useState(false);
   const [errore, setErrore] = useState('');
   const [invio, setInvio] = useState(false);
   const [f, setF] = useState({
@@ -78,7 +80,14 @@ export default function Anagrafica({ allievo, linkCertificato, ente}) {
                   {new Date(allievo.certificato_scadenza) < new Date() ? 'scaduto il ' : 'fino al '}{dataBreve(allievo.certificato_scadenza)}
                 </span>
               : <span style={{ color: 'var(--rosso-scuro)', fontWeight: 700 }}>mancante</span>}
-            {' · '}<button className="link-btn piccolo" onClick={copia}>{copiato ? 'link copiato' : 'copia link per caricarlo'}</button>
+            {' · '}<button className="link-btn piccolo" onClick={() => setCaricaCert(!caricaCert)}>{caricaCert ? 'chiudi' : 'carica'}</button>
+            {' '}<button className="link-btn piccolo" onClick={copia}>{copiato ? 'link copiato' : 'copia link per caricarlo'}</button>
+            {caricaCert && allievo.token && (
+              <div style={{ marginTop: 8 }}>
+                <CaricaCertificato token={allievo.token} nome={allievo.nome} daSegreteria
+                                   onFatto={() => { setCaricaCert(false); router.refresh(); }} />
+              </div>
+            )}
           </dd>
           {allievo.note && <><dt>Note</dt><dd style={{ whiteSpace: 'pre-line' }}>{allievo.note}</dd></>}
         </dl>

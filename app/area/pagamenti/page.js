@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { supabaseServer } from '@/lib/supabase/server';
+import { utenteCorrente } from '@/lib/utente';
 import { stripeAttivo } from '@/lib/stripe';
 import { euro, dataBreve } from '@/lib/formato';
 import PagaRata from './PagaRata';
@@ -11,7 +12,7 @@ export const dynamic = 'force-dynamic';
 export default async function Pagamenti({ searchParams }) {
   const { pagato } = await searchParams;
   const supabase = await supabaseServer();
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await utenteCorrente();
   if (!user) redirect('/area/accedi');
   const [{ data: rate }, { data: ricorrenti }, { data: pagamenti }, { data: pal }] = await Promise.all([
     supabase.from('rate').select('id, descrizione, numero, di, importo_cent, scadenza, stato').eq('stato', 'da_pagare').order('scadenza'),
@@ -29,7 +30,7 @@ export default async function Pagamenti({ searchParams }) {
       <div className="intestazione">
         <div className="occhiello">La mia area</div>
         <h1>Pagamenti</h1>
-        {acquisti && <p><Link className="btn btn-primario" href="/abbonamento">Acquista o rinnova un abbonamento</Link></p>}
+        {acquisti && <p><Link prefetch={false} className="btn btn-primario" href="/abbonamento">Acquista o rinnova un abbonamento</Link></p>}
       </div>
       {pagato && <div className="errore" role="status" style={{ background: 'var(--ok-tenue)', color: 'var(--ok)' }}>Pagamento ricevuto, grazie!</div>}
 

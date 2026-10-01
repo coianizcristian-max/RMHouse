@@ -51,7 +51,7 @@ export default async function PerIlCommercialista({ searchParams }) {
 
       <div className="pastiglie">
         {scelte.map(([t, d1, d2]) => (
-          <Link key={t} className="stato-pillola" aria-current={d1 === da && d2 === a ? 'true' : undefined}
+          <Link prefetch={false} key={t} className="stato-pillola" aria-current={d1 === da && d2 === a ? 'true' : undefined}
                 href={`/gestione/commercialista?dal=${d1}&al=${d2}`}>{t}</Link>
         ))}
       </div>
@@ -68,7 +68,7 @@ export default async function PerIlCommercialista({ searchParams }) {
           <div className="sotto">tutti i pagamenti del periodo</div></div>
         <div className="tessera"><div className="etichetta">Documenti emessi</div><div className="cifra">{euro(r?.documenti_cent || 0)}</div>
           <div className="sotto">{r?.ricevute || 0} ricevute · {r?.note_credito || 0} note di credito</div></div>
-        <Link className={`tessera${r?.senza_ricevuta ? ' tessera-nera' : ''}`} href={`/gestione/ricevute?dal=${da}&al=${a}`}>
+        <Link prefetch={false} className={`tessera${r?.senza_ricevuta ? ' tessera-nera' : ''}`} href={`/gestione/ricevute?dal=${da}&al=${a}`}>
           <div className="etichetta">Incassi senza ricevuta</div><div className="cifra">{r?.senza_ricevuta || 0}</div>
           <div className="sotto">{r?.senza_ricevuta ? 'da emettere prima di mandare' : 'tutto in ordine'}</div></Link>
         <div className="tessera"><div className="etichetta">Acquisti</div><div className="cifra">{euro(r?.acquisti_cent || 0)}</div>
@@ -124,7 +124,7 @@ export default async function PerIlCommercialista({ searchParams }) {
               <h2>Detrazione sport dei ragazzi {annoDetrazioni}</h2>
               <div className="pastiglie" style={{ margin: 0 }}>
                 {[annoDetrazioni - 1, annoDetrazioni, annoDetrazioni + 1].filter((x) => x <= new Date().getFullYear()).map((x) => (
-                  <Link key={x} className="stato-pillola" aria-current={x === annoDetrazioni ? 'true' : undefined}
+                  <Link prefetch={false} key={x} className="stato-pillola" aria-current={x === annoDetrazioni ? 'true' : undefined}
                         href={`/gestione/commercialista?dal=${da}&al=${a}&anno=${x}`}>{x}</Link>
                 ))}
               </div>
@@ -134,7 +134,7 @@ export default async function PerIlCommercialista({ searchParams }) {
               venduti con APP Palestre. Controlla con il commercialista il testo e i limiti prima di consegnarli.
             </p>
             <div className="azioni" style={{ marginBottom: 10 }}>
-              <Link className="btn btn-piccolo btn-primario" href={`/gestione/commercialista/attestati?anno=${annoDetrazioni}`} target="_blank">
+              <Link prefetch={false} className="btn btn-piccolo btn-primario" href={`/gestione/commercialista/attestati?anno=${annoDetrazioni}`} target="_blank">
                 Stampa tutti gli attestati ({ragazzi?.length || 0})
               </Link>
               {senzaCf > 0 && <span className="piccolo" style={{ color: 'var(--attenzione)' }}>{senzaCf} senza codice fiscale del ragazzo o di chi paga</span>}
@@ -142,7 +142,7 @@ export default async function PerIlCommercialista({ searchParams }) {
             <ul className="mini-lista">
               {(ragazzi || []).slice(0, 12).map((x) => (
                 <li key={x.allievo_id}>
-                  <Link href={`/gestione/commercialista/attestati?anno=${annoDetrazioni}&id=${x.allievo_id}`} target="_blank">
+                  <Link prefetch={false} href={`/gestione/commercialista/attestati?anno=${annoDetrazioni}&id=${x.allievo_id}`} target="_blank">
                     <span className="ml-testo">
                       <strong>{x.cognome} {x.nome}</strong>
                       <span className="piccolo muto">paga {x.pagante}{!x.codice_fiscale || !x.pagante_cf ? ' · manca un codice fiscale' : ''}</span>

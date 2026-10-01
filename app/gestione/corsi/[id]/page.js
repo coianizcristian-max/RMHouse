@@ -52,7 +52,7 @@ export default async function Corso({ params, searchParams }) {
 
   return (
     <>
-      <Link className="torna" href="/gestione/corsi">Tutti i corsi</Link>
+      <Link prefetch={false} className="torna" href="/gestione/corsi">Tutti i corsi</Link>
       <div className="scheda-testa">
         <span className="banda-verticale" style={{ background: corso.colore || 'var(--rosso)' }} />
         <div style={{ minWidth: 0, flex: 1 }}>
@@ -65,8 +65,8 @@ export default async function Corso({ params, searchParams }) {
           </div>
         </div>
         <div className="azioni scheda-azioni">
-          <Link className="btn btn-piccolo" href={`/gestione/corsi/${id}/modifica`}>Modifica corso</Link>
-          {base?.slug && <Link className="btn btn-piccolo" href={`/corsi/${base.slug}`} target="_blank">Pagina pubblica</Link>}
+          <Link prefetch={false} className="btn btn-piccolo" href={`/gestione/corsi/${id}/modifica`}>Modifica corso</Link>
+          {base?.slug && <Link prefetch={false} className="btn btn-piccolo" href={`/corsi/${base.slug}`} target="_blank">Pagina pubblica</Link>}
           <a className="btn btn-piccolo" href={`/api/corsi/${id}/csv`}>Esporta iscritti</a>
           <ArchiviaCorso corsoId={id} nome={corso.corso_nome} attivo={corso.attivo !== false} />
         </div>
@@ -104,12 +104,12 @@ export default async function Corso({ params, searchParams }) {
           <div className="pannello-testa">
             <h2>Iscritti</h2>
             <div className="pastiglie" style={{ margin: 0 }}>
-              <Link className="stato-pillola" aria-current={!vista ? 'true' : undefined} href={`/gestione/corsi/${id}`}>In corso</Link>
+              <Link prefetch={false} className="stato-pillola" aria-current={!vista ? 'true' : undefined} href={`/gestione/corsi/${id}`}>In corso</Link>
               {senzaGiorni.length > 0 && (
-                <Link className="stato-pillola attenzione" aria-current={vista === 'senza_giorni' ? 'true' : undefined}
+                <Link prefetch={false} className="stato-pillola attenzione" aria-current={vista === 'senza_giorni' ? 'true' : undefined}
                       href={`/gestione/corsi/${id}?vista=senza_giorni`}>Senza giorni <strong>{senzaGiorni.length}</strong></Link>
               )}
-              <Link className="stato-pillola" aria-current={vista === 'tutti' ? 'true' : undefined} href={`/gestione/corsi/${id}?vista=tutti`}>Anche scaduti</Link>
+              <Link prefetch={false} className="stato-pillola" aria-current={vista === 'tutti' ? 'true' : undefined} href={`/gestione/corsi/${id}?vista=tutti`}>Anche scaduti</Link>
             </div>
           </div>
 
@@ -123,7 +123,7 @@ export default async function Corso({ params, searchParams }) {
                 <li key={i.iscrizione_id}>
                   <div className="ei-testa">
                     <div style={{ minWidth: 0 }}>
-                      <Link className="persona-nome" href={`/gestione/persone/${i.allievo_id}`}>{i.cognome} {i.nome}</Link>
+                      <Link prefetch={false} className="persona-nome" href={`/gestione/persone/${i.allievo_id}`}>{i.cognome} {i.nome}</Link>
                       {i.data_nascita && <span className="piccolo muto"> · {etaAl(i.data_nascita)} anni</span>}
                       <div className="piccolo muto">
                         {i.abbonamento} · {i.stato === 'attiva' ? `fino al ${dataBreve(i.data_fine)}` : i.stato}
@@ -162,13 +162,13 @@ export default async function Corso({ params, searchParams }) {
               <ul className="mini-lista">
                 {attese.map((a) => (
                   <li key={a.id}>
-                    <Link href={`/gestione/persone/${a.allievi?.id}`}>
+                    <Link prefetch={false} href={`/gestione/persone/${a.allievi?.id}`}>
                       <span className="ml-testo"><strong>{a.allievi?.cognome} {a.allievi?.nome}</strong></span>
                     </Link>
                   </li>
                 ))}
               </ul>
-              <p className="piccolo"><Link href="/gestione/attese">Gestisci le liste d'attesa</Link></p>
+              <p className="piccolo"><Link prefetch={false} href="/gestione/attese">Gestisci le liste d'attesa</Link></p>
             </section>
           )}
           <section className="pannello">

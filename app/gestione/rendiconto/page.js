@@ -40,7 +40,7 @@ export default async function Rendiconto({ searchParams }) {
       </div>
       <div className="pastiglie">
         {scelte.map(([t, d1, d2]) => (
-          <Link key={t} className="stato-pillola" aria-current={d1 === da && d2 === a ? 'true' : undefined}
+          <Link prefetch={false} key={t} className="stato-pillola" aria-current={d1 === da && d2 === a ? 'true' : undefined}
                 href={`/gestione/rendiconto?dal=${d1}&al=${d2}`}>{t}</Link>
         ))}
       </div>
@@ -82,7 +82,7 @@ export default async function Rendiconto({ searchParams }) {
       )}
       <p className="piccolo muto" style={{ marginTop: 12 }}>
         La tariffa oraria si imposta nella scheda di ogni insegnante (Struttura → Staff). Per approvare e pagare i
-        compensi del mese: <Link href="/gestione/compensi">Compensi insegnanti</Link>.
+        compensi del mese: <Link prefetch={false} href="/gestione/compensi">Compensi insegnanti</Link>.
       </p>
     </>
   );

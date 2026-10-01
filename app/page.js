@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import Testata from './Testata';
-import { supabaseServer } from '@/lib/supabase/server';
+import { supabaseAdmin } from '@/lib/supabase/admin';
 import { SLUG } from '@/lib/palestra';
 
 export const revalidate = 300;
@@ -11,8 +11,7 @@ const Icona = ({ d }) => (
 
 // La porta d'ingresso del sito: prova, affitto sale, e i due accessi ben visibili
 export default async function Home() {
-  const supabase = await supabaseServer();
-  const { data: pal } = await supabase.from('palestre').select('nome, indirizzo, telefono, email').eq('slug', SLUG).maybeSingle();
+  const { data: pal } = await supabaseAdmin().from('palestre').select('nome, indirizzo, telefono, email').eq('slug', SLUG).maybeSingle();
 
   return (
     <>
@@ -57,7 +56,9 @@ export default async function Home() {
               {pal.telefono && <a href={`tel:${pal.telefono.replace(/\s/g, '')}`}>{pal.telefono}</a>}
               {pal.email && <a href={`mailto:${pal.email}`}>{pal.email}</a>}
             </span>
-            <Link href="/privacy" className="piccolo">Privacy</Link>
+            <span className="piccolo home-legali">
+              <Link href="/privacy">Privacy</Link> · <Link href="/cookie">Cookie</Link> · <Link href="/area/privacy">I miei dati</Link>
+            </span>
           </footer>
         )}
       </main>

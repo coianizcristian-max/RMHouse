@@ -43,7 +43,7 @@ export default async function Statistiche({ searchParams }) {
   const daSistemare = corsiOrdinati.filter((c) => c.riempimento_pct != null && c.riempimento_pct < 50);
 
   const periodo = (etichetta, d1, d2) => (
-    <Link href={`/gestione/statistiche?dal=${d1}&al=${d2}`} aria-current={dal === d1 && al === d2 ? 'true' : undefined}>{etichetta}</Link>
+    <Link prefetch={false} href={`/gestione/statistiche?dal=${d1}&al=${d2}`} aria-current={dal === d1 && al === d2 ? 'true' : undefined}>{etichetta}</Link>
   );
   const meseScorso = new Date(oggi.slice(0, 8) + '01T12:00:00');
   meseScorso.setMonth(meseScorso.getMonth() - 1);
@@ -89,7 +89,7 @@ export default async function Statistiche({ searchParams }) {
             {d.certificati_scaduti > 0 && (
               <li className="persona">
                 <span>Iscritti senza certificato valido</span>
-                <Link className="tag tag-rosso" href="/gestione/certificati">{d.certificati_scaduti}</Link>
+                <Link prefetch={false} className="tag tag-rosso" href="/gestione/certificati">{d.certificati_scaduti}</Link>
               </li>
             )}
             {d.in_scadenza_15gg > 0 && (

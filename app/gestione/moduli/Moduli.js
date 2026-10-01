@@ -18,7 +18,7 @@ export default function Moduli({ palestraId, situazione, moduli, scelto, mancano
 
       <div className="kpi" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))' }}>
         {situazione.filter((s) => s.attivo).map((s) => (
-          <Link key={s.modulo_id} className={`tessera${s.mancano && s.obbligatorio ? ' tessera-rossa' : ''}`} href={`/gestione/moduli?m=${s.modulo_id}`}>
+          <Link prefetch={false} key={s.modulo_id} className={`tessera${s.mancano && s.obbligatorio ? ' tessera-rossa' : ''}`} href={`/gestione/moduli?m=${s.modulo_id}`}>
             <div className="etichetta">{s.titolo}</div>
             <div className="cifra">{s.firmati}<span className="piccolo"> / {Number(s.firmati) + Number(s.mancano)}</span></div>
             <div className="sotto">{s.mancano ? `mancano ${s.mancano}` : 'tutti firmati'} · versione {s.versione}</div>
@@ -30,7 +30,7 @@ export default function Moduli({ palestraId, situazione, moduli, scelto, mancano
         <section className="pannello" style={{ marginBottom: 16 }}>
           <div className="pannello-testa">
             <h2>Devono firmare: {modulo.titolo}</h2>
-            <Link className="link-btn piccolo" href="/gestione/moduli">chiudi</Link>
+            <Link prefetch={false} className="link-btn piccolo" href="/gestione/moduli">chiudi</Link>
           </div>
           {mancano.length === 0 ? <div className="vuoto">Tutti gli iscritti hanno firmato.</div> : (
             <ul className="mini-lista">
@@ -38,11 +38,11 @@ export default function Moduli({ palestraId, situazione, moduli, scelto, mancano
                 <li key={x.allievo_id}>
                   <span className="ml-riga">
                     <span className="ml-testo">
-                      <Link className="persona-nome" href={`/gestione/persone/${x.allievo_id}`}>{x.cognome} {x.nome}</Link>
+                      <Link prefetch={false} className="persona-nome" href={`/gestione/persone/${x.allievo_id}`}>{x.cognome} {x.nome}</Link>
                       <span className="piccolo muto">{x.firmata_versione ? `ha firmato la versione ${x.firmata_versione}` : 'mai firmato'}</span>
                     </span>
                     {x.telefono && <a className="link-btn piccolo" href={`${wa(x.telefono)}?text=${encodeURIComponent(`Ciao ${x.nome}! Ti chiediamo di firmare "${modulo.titolo}" dalla tua area clienti, voce Moduli. Grazie!`)}`} target="_blank" rel="noreferrer">WhatsApp</a>}
-                    <Link className="btn btn-piccolo" href={`/gestione/persone/${x.allievo_id}/firma?m=${modulo.modulo_id}`}>Fai firmare qui</Link>
+                    <Link prefetch={false} className="btn btn-piccolo" href={`/gestione/persone/${x.allievo_id}/firma?m=${modulo.modulo_id}`}>Fai firmare qui</Link>
                   </span>
                 </li>
               ))}

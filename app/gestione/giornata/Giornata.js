@@ -71,7 +71,7 @@ export default function Giornata({ colonne, blocchi, oggi }) {
                 opacity: b.annullata ? 0.45 : 1,
               };
               return b.href
-                ? <Link key={b.id} href={b.href} className="g-blocco" style={stile}>{contenuto}</Link>
+                ? <Link prefetch={false} key={b.id} href={b.href} className="g-blocco" style={stile}>{contenuto}</Link>
                 : <div key={b.id} className="g-blocco" style={stile}>{contenuto}</div>;
             })}
           </div>

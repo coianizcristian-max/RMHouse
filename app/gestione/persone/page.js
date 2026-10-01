@@ -60,7 +60,7 @@ export default async function Persone({ searchParams }) {
         {[['attivi', 'Iscritti attivi', conti?.attivi, 'ok'], ['in_scadenza', 'In scadenza', conti?.stati?.in_scadenza, 'attenzione'],
           ['no_rinnovo', 'Non hanno rinnovato', conti?.stati?.no_rinnovo, 'rosso'], ['nuovi', 'Nuovi nel mese', conti?.nuovi, '']]
           .filter(([, , n]) => n > 0).map(([k, testo, n, tono]) => (
-            <Link key={k} className={`stato-pillola ${tono}`} aria-current={stato === k ? 'true' : undefined} href={link({ stato: stato === k ? '' : k, pagina: '' })}>
+            <Link prefetch={false} key={k} className={`stato-pillola ${tono}`} aria-current={stato === k ? 'true' : undefined} href={link({ stato: stato === k ? '' : k, pagina: '' })}>
               {testo} <strong>{n}</strong>
             </Link>
           ))}
@@ -70,11 +70,11 @@ export default async function Persone({ searchParams }) {
 
       {count > PER_PAGINA && (
         <div className="azioni" style={{ marginTop: 16, alignItems: 'center' }}>
-          {n > 1 && <Link className="btn" href={link({ pagina: String(n - 1) })}>‹ Precedenti</Link>}
+          {n > 1 && <Link prefetch={false} className="btn" href={link({ pagina: String(n - 1) })}>‹ Precedenti</Link>}
           <span className="piccolo muto">
             {(n - 1) * PER_PAGINA + 1}–{Math.min(n * PER_PAGINA, count)} di {count}
           </span>
-          {n * PER_PAGINA < count && <Link className="btn" href={link({ pagina: String(n + 1) })}>Successive ›</Link>}
+          {n * PER_PAGINA < count && <Link prefetch={false} className="btn" href={link({ pagina: String(n + 1) })}>Successive ›</Link>}
         </div>
       )}
     </>

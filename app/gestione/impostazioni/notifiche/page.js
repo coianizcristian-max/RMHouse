@@ -66,12 +66,12 @@ export default async function PaginaNotifiche() {
                 </span></li>
               ))}
             </ul>
-            <p className="piccolo"><Link href="/gestione/staff">Aggiungi le email in Struttura → Staff</Link></p>
+            <p className="piccolo"><Link prefetch={false} href="/gestione/staff">Aggiungi le email in Struttura → Staff</Link></p>
           </section>
           <section className="pannello">
             <h2>Messaggi automatici ai clienti</h2>
             <p className="piccolo muto">Conferma della prova, promemoria, scadenze, compleanni: testi e attivazione.</p>
-            <Link className="btn btn-piccolo" href="/gestione/messaggi">Apri i messaggi automatici</Link>
+            <Link prefetch={false} className="btn btn-piccolo" href="/gestione/messaggi">Apri i messaggi automatici</Link>
           </section>
         </aside>
       </div>

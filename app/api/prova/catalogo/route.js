@@ -3,6 +3,8 @@ import { supabaseAdmin } from '@/lib/supabase/admin';
 import { palestraPubblica } from '@/lib/palestra';
 
 export const dynamic = 'force-dynamic';
+// uguale per tutti: la rete di Vercel lo tiene in cache 5 minuti (niente funzione a ogni visita)
+const CACHE = { 'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600' };
 
 // Catalogo pubblico per il percorso di prova: discipline, fasce d'età, livelli, corsi prenotabili
 export async function GET() {
@@ -23,7 +25,7 @@ export async function GET() {
     return NextResponse.json({
       palestra: { nome: pal.nome },
       categorie: cat.data, discipline: disc.data, fasce: fasce.data, livelli: livelli.data, corsi: corsi.data,
-    });
+    }, { headers: CACHE });
   } catch (e) {
     console.error(e);
     return NextResponse.json({ errore: 'Catalogo non disponibile al momento.' }, { status: 500 });

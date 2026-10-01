@@ -101,7 +101,7 @@ export default function EventiArea({ eventi, allievi }) {
         );
       })}
 
-      <p style={{ marginTop: 20 }}><Link href="/area">Torna alla mia area</Link></p>
+      <p style={{ marginTop: 20 }}><Link prefetch={false} href="/area">Torna alla mia area</Link></p>
     </>
   );
 }

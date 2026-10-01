@@ -14,7 +14,7 @@ function Esito({ e }) {
       <div className="ie-segno" aria-hidden="true">{e.esito === 'ok' ? '✓' : e.esito === 'attenzione' ? '!' : '✕'}</div>
       <div>
         <div className="ie-titolo">{TITOLO[e.esito]}</div>
-        <Link href={`/gestione/persone/${e.allievo_id}`} className="ie-nome">{e.nome} {e.cognome}</Link>
+        <Link prefetch={false} href={`/gestione/persone/${e.allievo_id}`} className="ie-nome">{e.nome} {e.cognome}</Link>
         <div className="piccolo">
           {e.abbonamento || 'nessun abbonamento'}
           {e.ingressi_residui != null && ` · restano ${e.ingressi_residui} ingressi`}
@@ -82,7 +82,7 @@ export default function Ingresso({ palestraId, esitoIniziale, oggi }) {
       <ul className="mini-lista">
         {oggi.map((i) => (
           <li key={i.id}>
-            <Link href={`/gestione/persone/${i.allievi?.id}`}>
+            <Link prefetch={false} href={`/gestione/persone/${i.allievi?.id}`}>
               <span className={`ml-giorni esito-${i.esito}`}>{ora(i.quando)}</span>
               <span className="ml-testo">
                 <strong>{i.allievi?.nome} {i.allievi?.cognome}</strong>

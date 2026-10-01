@@ -5,7 +5,9 @@ import { supabaseAdmin } from '@/lib/supabase/admin';
 import { palestraPubblica } from '@/lib/palestra';
 import { euro } from '@/lib/formato';
 
-export const dynamic = 'force-dynamic';
+export const revalidate = 600;
+// pagine dei corsi create alla prima visita e poi tenute pronte (rifatte al massimo ogni 10 minuti)
+export async function generateStaticParams() { return []; }
 
 const GIORNI = ['', 'Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato', 'Domenica'];
 

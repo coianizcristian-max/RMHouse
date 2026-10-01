@@ -153,7 +153,7 @@ export default function Spazi({ palestraId, giorno, richieste, prossime, agenda,
           <a key={k} href="#" onClick={(e) => { e.preventDefault(); setSezione(k); }}
              aria-current={sezione === k ? 'true' : undefined}>{l}</a>
         ))}
-        <Link href="/gestione/spazi/listino">Listino e pacchetti</Link>
+        <Link prefetch={false} href="/gestione/spazi/listino">Listino e pacchetti</Link>
       </div>
 
       {/* ---------- Richieste da confermare ---------- */}
@@ -191,11 +191,11 @@ export default function Spazi({ palestraId, giorno, richieste, prossime, agenda,
       {sezione === 'agenda' && (
         <>
           <div className="giorno-nav">
-            <Link className="btn" href={`/gestione/spazi?giorno=${spostaGiorni(giorno, -1)}`} aria-label="Giorno precedente">‹</Link>
+            <Link prefetch={false} className="btn" href={`/gestione/spazi?giorno=${spostaGiorni(giorno, -1)}`} aria-label="Giorno precedente">‹</Link>
             <h2 style={{ fontSize: 17, margin: 0, textTransform: 'capitalize' }}>{giornoLungo(giorno + 'T12:00:00')}</h2>
-            <Link className="btn" href={`/gestione/spazi?giorno=${spostaGiorni(giorno, 1)}`} aria-label="Giorno successivo">›</Link>
+            <Link prefetch={false} className="btn" href={`/gestione/spazi?giorno=${spostaGiorni(giorno, 1)}`} aria-label="Giorno successivo">›</Link>
           </div>
-          {giorno !== oggiISO() && <p className="piccolo" style={{ marginTop: -4 }}><Link href={`/gestione/spazi?giorno=${oggiISO()}`}>Torna a oggi</Link></p>}
+          {giorno !== oggiISO() && <p className="piccolo" style={{ marginTop: -4 }}><Link prefetch={false} href={`/gestione/spazi?giorno=${oggiISO()}`}>Torna a oggi</Link></p>}
 
           <div style={{ overflowX: 'auto', paddingBottom: 8 }}>
             <div style={{ display: 'grid', gridTemplateColumns: `42px repeat(${Math.max(sale.length, 1)}, minmax(120px, 1fr))`, minWidth: 320 }}>

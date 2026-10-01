@@ -95,9 +95,9 @@ export default function Compensi({ palestraId, righe, anno, mese }) {
       {avviso && <div className="errore" style={{ background: 'var(--ok-tenue)', color: 'var(--ok)' }}>{avviso}</div>}
 
       <div className="giorno-nav">
-        <Link className="btn" href={`/gestione/compensi?anno=${precedente.a}&mese=${precedente.m}`} aria-label="Mese precedente">‹</Link>
+        <Link prefetch={false} className="btn" href={`/gestione/compensi?anno=${precedente.a}&mese=${precedente.m}`} aria-label="Mese precedente">‹</Link>
         <h2 style={{ fontSize: 17, margin: 0, textTransform: 'capitalize' }}>{MESI[mese - 1]} {anno}</h2>
-        <Link className="btn" href={`/gestione/compensi?anno=${successivo.a}&mese=${successivo.m}`} aria-label="Mese successivo">›</Link>
+        <Link prefetch={false} className="btn" href={`/gestione/compensi?anno=${successivo.a}&mese=${successivo.m}`} aria-label="Mese successivo">›</Link>
       </div>
 
       <div className="griglia" style={{ marginBottom: 14 }}>
@@ -125,7 +125,7 @@ export default function Compensi({ palestraId, righe, anno, mese }) {
         {righe.some((r) => r.stato === 'bozza') && (
           <button className="btn" disabled={invio} onClick={approva}>Approva tutti</button>
         )}
-        <Link className="link-btn" href="/gestione/costi">Vedi i costi</Link>
+        <Link prefetch={false} className="link-btn" href="/gestione/costi">Vedi i costi</Link>
       </div>
 
       {righe.length === 0 && (

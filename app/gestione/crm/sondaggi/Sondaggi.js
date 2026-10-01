@@ -113,7 +113,7 @@ export default function Sondaggi({ palestraId, sondaggi }) {
                   {x.domande.length} domande · creato il {dataBreve(x.created_at)} · {x.risposte} risposte su {x.inviti} inviti{x.anonimo ? ' · anonimo' : ''}
                 </span>
               </span>
-              <Link className="btn btn-piccolo" href={`/gestione/crm/sondaggi/${x.id}`}>Risultati</Link>
+              <Link prefetch={false} className="btn btn-piccolo" href={`/gestione/crm/sondaggi/${x.id}`}>Risultati</Link>
               {x.risposte === 0 && <button className="link-btn piccolo" onClick={() => setS({ ...x })}>modifica</button>}
               <button className="link-btn piccolo" onClick={() => archivia(x)}>{x.attivo ? 'archivia' : 'riattiva'}</button>
             </span>

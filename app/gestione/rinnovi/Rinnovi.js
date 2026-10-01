@@ -90,7 +90,7 @@ export default function Rinnovi({ righe, tipi, giorni }) {
 
       <div className="filtri">
         {[10, 20, 30, 60].map((g) => (
-          <Link key={g} href={`/gestione/rinnovi?giorni=${g}`} aria-current={giorni === g ? 'true' : undefined}>
+          <Link prefetch={false} key={g} href={`/gestione/rinnovi?giorni=${g}`} aria-current={giorni === g ? 'true' : undefined}>
             {g} giorni
           </Link>
         ))}
@@ -124,7 +124,7 @@ export default function Rinnovi({ righe, tipi, giorni }) {
                     <span />
                   </label>
                 )}
-                <Link className="titolo" href={`/gestione/persone/${r.allievo_id}`} style={{ textDecoration: 'none' }}>
+                <Link prefetch={false} className="titolo" href={`/gestione/persone/${r.allievo_id}`} style={{ textDecoration: 'none' }}>
                   {r.cognome} {r.nome}
                 </Link>
                 {r.gia_rinnovata && <span className="tag tag-ok">già rinnovato</span>}

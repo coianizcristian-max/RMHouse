@@ -66,20 +66,20 @@ export default async function Registro({ searchParams }) {
 
       <div className="pastiglie">
         {[['1', 'Oggi'], ['7', '7 giorni'], ['30', '30 giorni'], ['365', 'Un anno']].map(([k, t]) => (
-          <Link key={k} className="stato-pillola" aria-current={String(g) === k ? 'true' : undefined} href={link({ giorni: k, pagina: '' })}>{t}</Link>
+          <Link prefetch={false} key={k} className="stato-pillola" aria-current={String(g) === k ? 'true' : undefined} href={link({ giorni: k, pagina: '' })}>{t}</Link>
         ))}
       </div>
       <div className="pastiglie">
-        <Link className="stato-pillola" aria-current={!gruppo ? 'true' : undefined} href={link({ gruppo: '', pagina: '' })}>Tutto</Link>
+        <Link prefetch={false} className="stato-pillola" aria-current={!gruppo ? 'true' : undefined} href={link({ gruppo: '', pagina: '' })}>Tutto</Link>
         {Object.entries(GRUPPI).map(([k, [t]]) => (
-          <Link key={k} className="stato-pillola" aria-current={gruppo === k ? 'true' : undefined} href={link({ gruppo: k, pagina: '' })}>{t}</Link>
+          <Link prefetch={false} key={k} className="stato-pillola" aria-current={gruppo === k ? 'true' : undefined} href={link({ gruppo: k, pagina: '' })}>{t}</Link>
         ))}
       </div>
       {persone.length > 0 && (
         <div className="pastiglie">
-          <Link className="stato-pillola eti" aria-current={!chi ? 'true' : undefined} href={link({ chi: '', pagina: '' })}>Chiunque</Link>
+          <Link prefetch={false} className="stato-pillola eti" aria-current={!chi ? 'true' : undefined} href={link({ chi: '', pagina: '' })}>Chiunque</Link>
           {persone.map((p) => (
-            <Link key={p} className="stato-pillola eti" aria-current={chi === p ? 'true' : undefined} href={link({ chi: p, pagina: '' })}>{p}</Link>
+            <Link prefetch={false} key={p} className="stato-pillola eti" aria-current={chi === p ? 'true' : undefined} href={link({ chi: p, pagina: '' })}>{p}</Link>
           ))}
         </div>
       )}
@@ -113,9 +113,9 @@ export default async function Registro({ searchParams }) {
       )}
       {count > PER_PAGINA && (
         <div className="azioni" style={{ marginTop: 14, alignItems: 'center' }}>
-          {n > 1 && <Link className="btn btn-piccolo" href={link({ pagina: String(n - 1) })}>‹ Più recenti</Link>}
+          {n > 1 && <Link prefetch={false} className="btn btn-piccolo" href={link({ pagina: String(n - 1) })}>‹ Più recenti</Link>}
           <span className="piccolo muto">{(n - 1) * PER_PAGINA + 1}–{Math.min(n * PER_PAGINA, count)} di {count}</span>
-          {n * PER_PAGINA < count && <Link className="btn btn-piccolo" href={link({ pagina: String(n + 1) })}>Meno recenti ›</Link>}
+          {n * PER_PAGINA < count && <Link prefetch={false} className="btn btn-piccolo" href={link({ pagina: String(n + 1) })}>Meno recenti ›</Link>}
         </div>
       )}
     </>

@@ -41,7 +41,7 @@ export default function AzioniRapide({ palestraId }) {
             <div className="piccolo muto" style={{ padding: '0 4px 8px' }}>Azioni rapide</div>
             <button className="voce-rapida" onClick={notaOggi}>Aggiungi una nota a oggi</button>
             {voci.map(([testo, href]) => (
-              <Link key={href} className="voce-rapida" href={href} onClick={() => setApri(false)}>{testo}</Link>
+              <Link prefetch={false} key={href} className="voce-rapida" href={href} onClick={() => setApri(false)}>{testo}</Link>
             ))}
           </div>
         </div>

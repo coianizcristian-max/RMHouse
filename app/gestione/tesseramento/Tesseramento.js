@@ -14,12 +14,15 @@ export default function Tesseramento({ palestra, stagione, corrente, righe }) {
   const [ente, setEnte] = useState({ nome: '', affiliazione: '', quota_comprende_tessera: false, ...(palestra.ente || {}) });
   const [apriEnte, setApriEnte] = useState(!palestra.ente?.nome);
   const [filtro, setFiltro] = useState('tutti');
+  const [cerca, setCerca] = useState('');
   const [scelti, setScelti] = useState([]);
   const [errore, setErrore] = useState('');
   const [invio, setInvio] = useState(false);
 
+  const testo = cerca.trim().toLowerCase();
   const visibili = useMemo(() => righe.filter((r) =>
-    filtro === 'tutti' ? true : filtro === 'senza' ? !r.stato : filtro === 'dati' ? r.mancano?.length > 0 : r.stato === filtro), [righe, filtro]);
+    (filtro === 'tutti' ? true : filtro === 'senza' ? !r.stato : filtro === 'dati' ? r.mancano?.length > 0 : r.stato === filtro) &&
+    (!testo || `${r.cognome} ${r.nome} ${r.corsi || ''} ${r.numero || ''}`.toLowerCase().includes(testo))), [righe, filtro, testo]);
   const conta = (k) => righe.filter((r) => (k === 'tutti' ? true : k === 'senza' ? !r.stato : k === 'dati' ? r.mancano?.length > 0 : r.stato === k)).length;
   const spunta = (id) => setScelti((v) => (v.includes(id) ? v.filter((x) => x !== id) : [...v, id]));
   const tutti = visibili.length > 0 && visibili.every((r) => scelti.includes(r.allievo_id));
@@ -71,7 +74,7 @@ export default function Tesseramento({ palestra, stagione, corrente, righe }) {
   }
 
   return (
-    <>
+    <div className="tesseramento">
       <div className="intestazione">
         <div className="occhiello">Persone</div>
         <h1>Tesseramento {stagione}/{String(stagione + 1).slice(2)}</h1>
@@ -82,7 +85,7 @@ export default function Tesseramento({ palestra, stagione, corrente, righe }) {
       <div className="pannello-testa">
         <div className="pastiglie" style={{ margin: 0 }}>
           {[corrente - 1, corrente, corrente + 1].map((x) => (
-            <Link key={x} className="stato-pillola" aria-current={x === stagione ? 'true' : undefined} href={`/gestione/tesseramento?stagione=${x}`}>{x}/{String(x + 1).slice(2)}</Link>
+            <Link prefetch={false} key={x} className="stato-pillola" aria-current={x === stagione ? 'true' : undefined} href={`/gestione/tesseramento?stagione=${x}`}>{x}/{String(x + 1).slice(2)}</Link>
           ))}
         </div>
         <button className="link-btn piccolo" onClick={() => setApriEnte(!apriEnte)}>{apriEnte ? 'chiudi' : `Ente: ${ente.nome || 'da impostare'}`}</button>
@@ -102,7 +105,8 @@ export default function Tesseramento({ palestra, stagione, corrente, righe }) {
         </form>
       )}
 
-      <div className="pastiglie">
+      <div className="ts-filtri">
+        <input type="search" placeholder="Cerca nome, corso o numero" value={cerca} onChange={(e) => setCerca(e.target.value)} aria-label="Cerca" />
         {FILTRI.map(([k, t]) => (
           <button key={k} type="button" className="stato-pillola" aria-current={filtro === k ? 'true' : undefined} onClick={() => { setFiltro(k); setScelti([]); }}>
             {t} <span className="conta">{conta(k)}</span>
@@ -135,8 +139,8 @@ export default function Tesseramento({ palestra, stagione, corrente, righe }) {
                 <tr key={r.allievo_id}>
                   <td><label className="spunta" style={{ margin: 0 }}><input type="checkbox" checked={scelti.includes(r.allievo_id)} onChange={() => spunta(r.allievo_id)} aria-label={r.nome} /><span /></label></td>
                   <td>
-                    <Link className="persona-nome" href={`/gestione/persone/${r.allievo_id}`}>{r.cognome} {r.nome}</Link>
-                    <div className="piccolo muto">{r.corsi || '—'}</div>
+                    <Link prefetch={false} className="persona-nome" href={`/gestione/persone/${r.allievo_id}`}>{r.cognome} {r.nome}</Link>
+                    <span className="ts-corsi">{r.corsi || '—'}</span>
                   </td>
                   <td>
                     <span className="in-riga">
@@ -157,6 +161,6 @@ export default function Tesseramento({ palestra, stagione, corrente, righe }) {
         Il file esportato ha le colonne che chiedono di solito gli enti (anagrafica, codice fiscale, indirizzo, disciplina).
         Se il portale del vostro ente vuole un ordine diverso, mandami un loro modello e lo adatto.
       </p>
-    </>
+    </div>
   );
 }

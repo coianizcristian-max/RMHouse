@@ -86,7 +86,7 @@ export default async function Persona({ params, searchParams }) {
 
   return (
     <div className="scheda-persona">
-      <Link className="torna" href="/gestione/persone">Tutte le persone</Link>
+      <Link prefetch={false} className="torna" href="/gestione/persone">Tutte le persone</Link>
 
       <div className="scheda-testa">
         {allievo.foto_url
@@ -109,14 +109,14 @@ export default async function Persona({ params, searchParams }) {
           {famiglia?.length > 0 && (
             <div className="piccolo muto" style={{ marginTop: 4 }}>
               In famiglia anche: {famiglia.map((f, i) => (
-                <span key={f.id}>{i > 0 && ', '}<Link href={`/gestione/persone/${f.id}`}>{f.nome} {f.cognome}</Link></span>
+                <span key={f.id}>{i > 0 && ', '}<Link prefetch={false} href={`/gestione/persone/${f.id}`}>{f.nome} {f.cognome}</Link></span>
               ))}
             </div>
           )}
         </div>
         <div className="azioni scheda-azioni">
           <a className="btn btn-piccolo btn-primario" href="#nuova-iscrizione">Nuova iscrizione</a>
-          <Link className="btn btn-piccolo" href="/gestione/incassi">Incassa</Link>
+          <Link prefetch={false} className="btn btn-piccolo" href="/gestione/incassi">Incassa</Link>
           {wa && <a className="btn btn-piccolo" href={wa} target="_blank" rel="noreferrer">WhatsApp</a>}
           {allievo.account?.email && <a className="btn btn-piccolo" href={`mailto:${allievo.account.email}`}>Email</a>}
         </div>
@@ -211,7 +211,7 @@ export default async function Persona({ params, searchParams }) {
               <ul className="mini-lista">
                 {certificati.map((c) => (
                   <li key={c.id}>
-                    <Link href="/gestione/certificati">
+                    <Link prefetch={false} href="/gestione/certificati">
                       <span className="ml-testo">
                         <strong>Caricato il {dataBreve(c.caricato_at)}</strong>
                         <span className="piccolo muto">{c.scadenza ? `scade il ${dataBreve(c.scadenza)}` : 'scadenza da leggere'}</span>

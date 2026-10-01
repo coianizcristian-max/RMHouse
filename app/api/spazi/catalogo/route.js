@@ -3,6 +3,8 @@ import { supabaseAdmin } from '@/lib/supabase/admin';
 import { palestraPubblica } from '@/lib/palestra';
 
 export const dynamic = 'force-dynamic';
+// uguale per tutti: la rete di Vercel lo tiene in cache 5 minuti (niente funzione a ogni visita)
+const CACHE = { 'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600' };
 
 export async function GET() {
   try {
@@ -19,7 +21,7 @@ export async function GET() {
     if (sale.error || tariffe.error || pacchetti.error) throw sale.error || tariffe.error || pacchetti.error;
     return NextResponse.json({
       palestra: { nome: pal.nome }, sale: sale.data, tariffe: tariffe.data, pacchetti: pacchetti.data,
-    });
+    }, { headers: CACHE });
   } catch (e) {
     console.error(e);
     return NextResponse.json({ errore: 'Informazioni non disponibili al momento.' }, { status: 500 });

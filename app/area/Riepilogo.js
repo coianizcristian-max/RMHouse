@@ -109,7 +109,7 @@ export default function Riepilogo({ dati, materiali = [], inVerifica = [], aspet
       {(moduliDaFirmare > 0 || daSistemare.length > 0 || consenso || aspetto.avviso) && (
         <div className="ac-avvisi">
           {moduliDaFirmare > 0 && (
-            <Link href="/area/moduli" className="ac-avviso rosso">
+            <Link prefetch={false} href="/area/moduli" className="ac-avviso rosso">
               <span><strong>{moduliDaFirmare === 1 ? 'Un modulo da firmare' : `${moduliDaFirmare} moduli da firmare`}</strong> · si firmano col dito</span>
               <span aria-hidden="true">›</span>
             </Link>
@@ -191,7 +191,7 @@ export default function Riepilogo({ dati, materiali = [], inVerifica = [], aspet
             </li>
           ))}
         </ul>
-        <Link href="/area/recuperi" className="btn btn-primario ac-prenota">+ Prenota una lezione</Link>
+        <Link prefetch={false} href="/area/recuperi" className="btn btn-primario ac-prenota">+ Prenota una lezione</Link>
         {prossime.length > 5 && (
           <button className="link-btn piccolo ac-altre" onClick={() => setTutte(!tutte)}>
             {tutte ? 'Mostra meno' : `Mostra tutte (${prossime.length})`}
@@ -203,7 +203,7 @@ export default function Riepilogo({ dati, materiali = [], inVerifica = [], aspet
         <section className="ac-sezione">
           <h2>Recuperi da usare</h2>
           {recuperiPer.map((r) => (
-            <Link key={r.allievo.id} href="/area/recuperi" className="ac-recupero">
+            <Link prefetch={false} key={r.allievo.id} href="/area/recuperi" className="ac-recupero">
               <span>
                 <strong>{r.n} {r.n === 1 ? 'recupero' : 'recuperi'}{piu ? ` · ${r.allievo.nome}` : ''}</strong>
                 <span className="piccolo">entro il {dataBreve(r.scade)}</span>
@@ -310,7 +310,7 @@ export default function Riepilogo({ dati, materiali = [], inVerifica = [], aspet
         <section className="ac-sezione">
           <h2>Prossimi eventi</h2>
           {dati.eventi.slice(0, 3).map((e, i) => (
-            <Link key={i} href="/area/eventi" className="ac-recupero">
+            <Link prefetch={false} key={i} href="/area/eventi" className="ac-recupero">
               <span><strong>{e.titolo}</strong><span className="piccolo">{giornoCorto(e.inizio)} · {ora(e.inizio)}{e.luogo ? ` · ${e.luogo}` : ''}</span></span>
               <span aria-hidden="true">›</span>
             </Link>

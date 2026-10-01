@@ -72,7 +72,7 @@ export default async function PaginaPagamenti() {
               <p className="piccolo muto" style={{ marginTop: -4 }}>Il pagamento è arrivato ma l'iscrizione non si è potuta creare (per esempio il corso era già attivo): falla a mano dalla scheda.</p>
               <ul className="mini-lista">
                 {errori.map((e) => (
-                  <li key={e.id}><Link href={`/gestione/persone/${e.allievi?.id}`}>
+                  <li key={e.id}><Link prefetch={false} href={`/gestione/persone/${e.allievi?.id}`}>
                     <span className="ml-testo"><strong>{e.allievi?.nome} {e.allievi?.cognome}</strong>
                       <span className="piccolo muto">{e.tipi_abbonamento?.nome} · {e.corsi?.nome} · {dataBreve(e.created_at)} · {e.errore}</span></span>
                   </Link></li>

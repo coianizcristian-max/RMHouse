@@ -20,8 +20,8 @@ export default function ModuliPersona({ allievoId, moduli, firme }) {
                     {ok ? `firmato il ${dataBreve(m.firmato_at)}` : m.firmata_versione ? 'testo cambiato: da rifirmare' : m.obbligatorio ? 'da firmare' : 'facoltativo, non firmato'}
                   </span>
                 </span>
-                {firma && <Link className="link-btn piccolo" href={`/gestione/firme/${firma.id}`} target="_blank">vedi</Link>}
-                {!ok && <Link className="btn btn-piccolo" href={`/gestione/persone/${allievoId}/firma?m=${m.modulo_id}`}>Fai firmare</Link>}
+                {firma && <Link prefetch={false} className="link-btn piccolo" href={`/gestione/firme/${firma.id}`} target="_blank">vedi</Link>}
+                {!ok && <Link prefetch={false} className="btn btn-piccolo" href={`/gestione/persone/${allievoId}/firma?m=${m.modulo_id}`}>Fai firmare</Link>}
               </span>
             </li>
           );

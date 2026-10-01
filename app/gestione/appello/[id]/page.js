@@ -35,7 +35,7 @@ export default async function PaginaAppello({ params }) {
 
   return (
     <>
-      <p><Link href={`/gestione?data=${lezione.data}`}>‹ Torna alle lezioni</Link></p>
+      <p><Link prefetch={false} href={`/gestione?data=${lezione.data}`}>‹ Torna alle lezioni</Link></p>
       <h1 style={{ marginBottom: 4 }}>{lezione.corso_nome}</h1>
       <p className="muto" style={{ marginBottom: 18 }}>
         <span style={{ textTransform: 'capitalize' }}>{giornoLungo(lezione.inizio)}</span>, {ora(lezione.inizio)}–{ora(lezione.fine)}

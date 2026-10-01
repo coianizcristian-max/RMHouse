@@ -1,4 +1,12 @@
-@import url('https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&display=swap');
+/* Font ospitato sul sito (niente richieste a Google: più veloce e conforme al GDPR) */
+@font-face {
+  font-family: 'Archivo';
+  src: url('/font/archivo-latin.woff2') format('woff2');
+  font-weight: 400 900;
+  font-stretch: 62% 125%;
+  font-style: normal;
+  font-display: swap;
+}
 
 /* ------------------------------------------------------------------
    Token di Ritmo Metropolitano — bianco, rosso e nero presi dal logo.
@@ -2191,3 +2199,136 @@ a.titolo-sala:hover { text-decoration: underline; text-underline-offset: 3px; }
 /* 069 — archivia / elimina dalla scheda staff */
 .ss-gestione { display: inline-flex; gap: 8px; margin-left: auto; }
 .segni-staff:has(.ss-gestione) { align-items: center; }
+
+/* 070 — pagine legali e piè di pagina */
+.legale { max-width: 780px; }
+.legale h2 { font-size: 18px; margin: 22px 0 6px; }
+.legale p, .legale li { line-height: 1.6; }
+.legale ul { padding-left: 20px; display: grid; gap: 6px; }
+.pie-pagina {
+  display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px 18px; padding: 18px var(--spazio, 16px) 28px;
+  border-top: 1px solid var(--linea); font-size: 13px; color: var(--testo-2); max-width: 1200px; margin: 30px auto 0;
+}
+.pie-pagina nav { display: flex; gap: 14px; }
+.pie-pagina a, .home-legali a { color: var(--testo-2); }
+
+/* 071 — agenda del giorno compatta */
+.ag-elenco { list-style: none; margin: 10px 0 0; padding: 0; display: grid; gap: 6px; }
+@media (min-width: 1300px) { .ag-elenco { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px 12px; } }
+.ag-riga {
+  display: grid; grid-template-columns: 6px 62px minmax(0, 1fr) 150px; align-items: center; gap: 12px;
+  padding: 8px 12px 8px 0; border: 1px solid var(--linea); border-radius: 12px; background: var(--bianco);
+  text-decoration: none; color: var(--testo); overflow: hidden;
+}
+.ag-riga:hover { border-color: var(--nero); }
+.ag-riga.annullata { opacity: .55; }
+.ag-banda { align-self: stretch; margin: -8px 0; }
+.ag-ora { display: grid; line-height: 1.1; }
+.ag-ora strong { font-size: 19px; font-weight: 850; color: var(--nero); font-variant-numeric: tabular-nums; }
+.ag-ora span { font-size: 12px; color: var(--testo-2); }
+.ag-cosa { display: grid; min-width: 0; line-height: 1.25; }
+.ag-cosa strong { font-size: 16px; color: var(--nero); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ag-cosa span { font-size: 13px; color: var(--testo-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ag-numeri { display: grid; gap: 4px; justify-items: end; }
+.ag-conto { display: flex; align-items: baseline; gap: 2px; flex-wrap: wrap; justify-content: flex-end; }
+.ag-conto strong { font-size: 22px; font-weight: 850; color: var(--nero); line-height: 1; font-variant-numeric: tabular-nums; }
+.ag-conto > span { font-size: 15px; font-weight: 700; color: var(--testo-2); }
+.ag-conto em { font-style: normal; font-size: 11px; font-weight: 700; color: var(--rosso-scuro); margin-left: 6px; }
+.ag-barra { display: block; width: 100%; height: 7px; border-radius: 4px; background: var(--linea); overflow: hidden; }
+.ag-barra span { display: block; height: 100%; border-radius: 4px; }
+@media (max-width: 899px) {
+  .ag-riga { grid-template-columns: 5px 52px minmax(0, 1fr) 84px; gap: 8px; }
+  .ag-ora strong { font-size: 16px; }
+  .ag-conto strong { font-size: 18px; }
+}
+
+/* 072 — certificati: righe compatte, ricerca, pagine */
+.scheda-link { display: inline-flex; align-items: center; gap: 6px; padding: 10px 12px; margin-bottom: -1px; border-bottom: 2.5px solid transparent;
+  font-size: 14px; font-weight: 650; color: var(--testo-2); text-decoration: none; white-space: nowrap; }
+.scheda-link[aria-selected='true'] { color: var(--nero); border-bottom-color: var(--rosso); }
+.filtri-cert { align-items: center; }
+.filtri-cert input[type='search'] { flex: 1 1 260px; max-width: 420px; }
+.cert-elenco { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 6px; }
+.cert-riga {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; gap: 8px 12px;
+  padding: 9px 12px; border: 1px solid var(--linea); border-radius: 12px; background: var(--bianco);
+}
+.cert-riga.fatta { opacity: .6; }
+.cert-chi { display: grid; min-width: 0; line-height: 1.3; }
+.cert-chi a { color: var(--nero); text-decoration: none; }
+.cert-chi strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: block; }
+.cert-azioni { display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+.cert-azioni input[type='date'] { min-height: 36px; padding: 4px 8px; border: 1px solid var(--linea); border-radius: 8px; font: inherit; font-size: 14px; }
+.cert-fatto { grid-column: 3; justify-self: end; }
+.cert-errore { grid-column: 1 / -1; color: var(--rosso-scuro); }
+.paginazione { display: flex; align-items: center; justify-content: center; gap: 12px; margin: 14px 0; }
+@media (max-width: 899px) {
+  .cert-riga { grid-template-columns: minmax(0, 1fr) auto; }
+  .cert-azioni { grid-column: 1 / -1; justify-content: flex-start; }
+}
+
+/* 073 — tesseramento compatto */
+.tesseramento .intestazione { margin-bottom: 8px; }
+.tesseramento .intestazione h1 { font-size: clamp(26px, 3vw, 38px); }
+.tesseramento .pannello-testa { margin-bottom: 8px; }
+.ts-filtri { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-bottom: 8px; }
+.ts-filtri input[type='search'] { flex: 1 1 220px; max-width: 300px; min-height: 38px; padding: 6px 12px; border: 1px solid var(--linea); border-radius: 999px; font: inherit; font-size: 14px; }
+.ts-filtri .stato-pillola { padding: 6px 12px; font-size: 13px; }
+.tesseramento .tabella-persone th { padding: 8px 10px; font-size: 13px; }
+.tesseramento .tabella-persone td { padding: 6px 10px; vertical-align: middle; }
+.tesseramento .tabella-persone .persona-nome { font-size: 15px; }
+.tesseramento .ts-corsi { display: block; font-size: 12.5px; color: var(--testo-2); line-height: 1.25; }
+.tesseramento .tabella-persone .tag { padding: 3px 8px; font-size: 11.5px; }
+.tesseramento .tabella-persone .link-btn { padding: 4px 9px; font-size: 12.5px; }
+.tesseramento .tabella-persone td.col-desktop { text-align: right; }
+@media (max-width: 899px) { .ts-filtri input[type='search'] { max-width: none; flex-basis: 100%; } }
+@media (max-width: 899px) {
+  .tesseramento .tabella-persone tr { padding: 8px 10px; gap: 4px 8px; margin-bottom: 6px; }
+  .tesseramento .tabella-persone td { padding: 0; }
+  .tesseramento .tabella-persone td:last-child { flex-basis: 100%; text-align: left; margin-left: 32px; font-size: 12px; white-space: normal; }
+  .tesseramento .tabella-persone td:nth-child(3) { flex-basis: 100%; margin-left: 32px; }
+}
+
+/* 074 — contatti e prove: le 5 colonne stanno sempre nello schermo */
+@media (min-width: 900px) {
+  .pipeline { grid-auto-flow: row; grid-template-columns: repeat(5, minmax(0, 1fr)); grid-auto-columns: unset; overflow-x: visible; gap: 8px; }
+}
+.pipe-colonna { min-width: 0; padding: 8px; gap: 6px; }
+.pipe-colonna header { padding: 2px 2px 4px; }
+.pipe-colonna header strong { font-size: 15px; }
+.pipe-carta { min-width: 0; padding: 8px 10px; gap: 2px; }
+.pipe-carta .persona-nome { font-size: 14.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: block; }
+.pipe-carta > .piccolo { overflow-wrap: anywhere; font-size: 12.5px; line-height: 1.35; }
+.pipe-azioni { flex-wrap: wrap; gap: 6px; }
+.pipe-azioni .link-btn { padding: 4px 9px; font-size: 12px; }
+.pipe-azioni .select-piccola { flex: 1 1 110px; max-width: 100%; min-width: 0; font-size: 13px; }
+.pipe-vuota { padding: 10px 0; }
+
+/* 075 — da ricontattare compatto */
+.ricontattare .intestazione { margin-bottom: 8px; }
+.ricontattare .intestazione h1 { font-size: clamp(26px, 3vw, 38px); }
+.ricontattare .pastiglie { margin-bottom: 4px; }
+.ricontattare .stato-pillola { padding: 6px 12px; font-size: 13px; }
+.ric-spiega { margin: 4px 0 8px; }
+.ric-messaggio {
+  display: flex; align-items: center; gap: 10px; padding: 8px 12px; margin-bottom: 8px;
+  border: 1px solid var(--linea); border-radius: 12px; background: var(--carta); font-size: 14px;
+}
+.ric-etichetta { font-size: 11px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--testo-2); flex: none; }
+.ric-testo { flex: 1; min-width: 0; white-space: pre-line; }
+.ric-cerca { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+.ric-cerca input { flex: 1 1 240px; max-width: 340px; min-height: 38px; padding: 6px 12px; border: 1px solid var(--linea); border-radius: 999px; font: inherit; font-size: 14px; }
+.ricontattare .tabella-persone th { padding: 7px 10px; font-size: 13px; }
+.ricontattare .tabella-persone td { padding: 5px 10px; vertical-align: middle; }
+.ricontattare .tabella-persone .persona-nome { font-size: 14.5px; }
+.ricontattare .tabella-persone .btn { padding: 5px 12px; font-size: 13px; min-height: 0; }
+.ricontattare .tabella-persone .link-btn { padding: 4px 9px; font-size: 12.5px; }
+@media (max-width: 899px) {
+  .ric-messaggio { flex-wrap: wrap; }
+  .ricontattare .tabella-persone tr { padding: 8px 10px; gap: 4px 8px; margin-bottom: 6px; }
+  .ricontattare .tabella-persone td { padding: 0; }
+}
+.ricontattare tr.ric-modulo td { background: var(--carta); padding: 8px 10px; }
+.ricontattare .contatto-veloce { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.ricontattare .contatto-veloce > * { width: auto; }
+.ricontattare .contatto-veloce input[type='text'], .ricontattare .contatto-veloce input:not([type]) { flex: 1 1 240px; }

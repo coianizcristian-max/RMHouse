@@ -215,8 +215,8 @@ export default function Settimana({ inizio, lezioni, corsi = [], palestraId, ges
             </ul>
 
             <div className="azioni" style={{ marginBottom: 14 }}>
-              <Link className="btn btn-primario" href={`/gestione/appello/${scelta.lezione_id}`}>Fai l'appello</Link>
-              <Link className="btn" href={`/gestione/corsi/${scelta.corso_id}`}>Vedi il corso</Link>
+              <Link prefetch={false} className="btn btn-primario" href={`/gestione/appello/${scelta.lezione_id}`}>Fai l'appello</Link>
+              <Link prefetch={false} className="btn" href={`/gestione/corsi/${scelta.corso_id}`}>Vedi il corso</Link>
             </div>
 
             {gestione && (

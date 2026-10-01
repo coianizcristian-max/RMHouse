@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { supabaseServer } from '@/lib/supabase/server';
+import { utenteCorrente } from '@/lib/utente';
 import Riepilogo from './Riepilogo';
 import { aspettoAreaCliente } from '@/lib/palestra';
 
@@ -8,7 +9,7 @@ export const dynamic = 'force-dynamic';
 
 export default async function Area() {
   const supabase = await supabaseServer();
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await utenteCorrente();
   if (!user) redirect('/area/accedi');
 
   // al primo ingresso si collega l'utente all'anagrafica della segreteria

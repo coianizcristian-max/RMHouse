@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation';
 import { supabaseServer } from '@/lib/supabase/server';
+import { utenteCorrente } from '@/lib/utente';
 import Recuperi from './Recuperi';
 
 export const dynamic = 'force-dynamic';
@@ -9,7 +10,7 @@ export const dynamic = 'force-dynamic';
 //  - con i recuperi delle lezioni che ha cancellato
 export default async function PaginaPrenota() {
   const supabase = await supabaseServer();
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await utenteCorrente();
   if (!user) redirect('/area/accedi');
 
   const [{ data }, { data: regole }] = await Promise.all([supabase.rpc('area_riepilogo'), supabase.rpc('disdette_area')]);

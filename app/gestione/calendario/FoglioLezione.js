@@ -86,13 +86,13 @@ export default function FoglioLezione({ lezione, colore, gestione, onClose, aggi
         </ul>
 
         <div className="azioni" style={{ marginBottom: 14 }}>
-          <Link className="btn btn-primario" href={`/gestione/appello/${lezione.lezione_id}`}>Appello e prenotati</Link>
+          <Link prefetch={false} className="btn btn-primario" href={`/gestione/appello/${lezione.lezione_id}`}>Appello e prenotati</Link>
           {gestione && (
             <button className="btn" onClick={() => { setAggiungi(!aggiungi); if (!aggiungi) cerca(''); }}>
               Aggiungi qualcuno
             </button>
           )}
-          <Link className="btn" href={`/gestione/corsi/${lezione.corso_id}`}>Scheda del corso</Link>
+          <Link prefetch={false} className="btn" href={`/gestione/corsi/${lezione.corso_id}`}>Scheda del corso</Link>
         </div>
 
         {aggiungi && (

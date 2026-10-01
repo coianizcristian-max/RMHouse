@@ -27,10 +27,15 @@ export default function Ricontattare({ righe, lista, palestra }) {
   const [f, setF] = useState({ esito: 'sentito', testo: '', prossimo: '' });
   const [errore, setErrore] = useState('');
   const [invio, setInvio] = useState(false);
+  const [cerca, setCerca] = useState('');
+  const [quanti, setQuanti] = useState(50);
 
   const voce = LISTE.find(([k]) => k === lista) || LISTE[0];
   const testo = testi[voce[0]] ?? voce[3];
-  const elenco = righe.filter((r) => r.lista === voce[0]);
+  const testoCerca = cerca.trim().toLowerCase();
+  const tutta = righe.filter((r) => r.lista === voce[0]);
+  const filtrati = tutta.filter((r) => !testoCerca || `${r.nome} ${r.cognome} ${r.titolare || ''} ${r.dettaglio || ''}`.toLowerCase().includes(testoCerca));
+  const elenco = filtrati.slice(0, quanti);
   const conta = (k) => righe.filter((r) => r.lista === k).length;
   const messaggio = (r) => testo.replaceAll('{nome}', r.nome).replaceAll('{scuola}', palestra.nome || '');
 
@@ -51,7 +56,7 @@ export default function Ricontattare({ righe, lista, palestra }) {
   }
 
   return (
-    <>
+    <div className="ricontattare">
       <div className="intestazione">
         <div className="occhiello">Persone</div>
         <h1>Da ricontattare</h1>
@@ -61,48 +66,42 @@ export default function Ricontattare({ righe, lista, palestra }) {
 
       <div className="pastiglie">
         {LISTE.map(([k, t]) => (
-          <Link key={k} className="stato-pillola" aria-current={voce[0] === k ? 'true' : undefined} href={`/gestione/crm/ricontattare?lista=${k}`}>
+          <Link prefetch={false} key={k} className="stato-pillola" aria-current={voce[0] === k ? 'true' : undefined} href={`/gestione/crm/ricontattare?lista=${k}`}>
             {t} <span className="conta">{conta(k)}</span>
           </Link>
         ))}
       </div>
-      <p className="piccolo muto">{voce[2]}</p>
+      <p className="piccolo muto ric-spiega">{voce[2]}</p>
 
-      <section className="pannello" style={{ marginBottom: 14 }}>
-        <div className="pannello-testa">
-          <h2>Il messaggio</h2>
-          <button className="link-btn piccolo" onClick={chiudiModifica}>{modifica ? 'salva' : 'modifica'}</button>
-        </div>
+      <section className="ric-messaggio">
+        <span className="ric-etichetta">Messaggio</span>
         {modifica ? (
-          <div className="campo">
-            <textarea rows={3} value={testo} onChange={(e) => setTesti({ ...testi, [voce[0]]: e.target.value })} aria-label="Testo del messaggio" />
+          <div className="campo" style={{ flex: 1, margin: 0 }}>
+            <textarea rows={2} value={testo} onChange={(e) => setTesti({ ...testi, [voce[0]]: e.target.value })} aria-label="Testo del messaggio" />
             <span className="piccolo muto">{'{nome}'} diventa il nome della persona, {'{scuola}'} il nome della scuola.</span>
           </div>
-        ) : <p style={{ margin: 0, whiteSpace: 'pre-line' }}>{testo}</p>}
+        ) : <span className="ric-testo">{testo}</span>}
+        <button className="link-btn piccolo" onClick={chiudiModifica}>{modifica ? 'salva' : 'modifica'}</button>
       </section>
 
-      {elenco.length === 0 && <div className="vuoto">Nessuno in questa lista. 👏</div>}
+      {tutta.length > 8 && (
+        <div className="ric-cerca">
+          <input type="search" placeholder="Cerca nome o motivo" value={cerca} onChange={(e) => { setCerca(e.target.value); setQuanti(50); }} aria-label="Cerca" />
+          <span className="piccolo muto">{filtrati.length} di {tutta.length}</span>
+        </div>
+      )}
+
+      {elenco.length === 0 && <div className="vuoto">{testoCerca ? 'Nessuno con questo nome.' : 'Nessuno in questa lista. 👏'}</div>}
       {elenco.length > 0 && (
         <div className="tabella-scorre">
           <table className="tabella-persone">
             <thead><tr><th>Persona</th><th>Perché</th><th className="col-desktop">Ultimo contatto</th><th aria-label="Azioni" /></tr></thead>
             <tbody>
-              {elenco.map((r) => (
+              {elenco.map((r) => [
                 <tr key={r.allievo_id + r.lista}>
                   <td>
-                    <Link className="persona-nome" href={`/gestione/persone/${r.allievo_id}`}>{r.nome} {r.cognome}</Link>
+                    <Link prefetch={false} className="persona-nome" href={`/gestione/persone/${r.allievo_id}`}>{r.nome} {r.cognome}</Link>
                     {r.titolare && r.titolare.trim() !== `${r.nome} ${r.cognome}` && <div className="piccolo muto">per {r.titolare}</div>}
-                    {apri === r.allievo_id && (
-                      <form className="contatto-veloce" onSubmit={(e) => segna(e, r)}>
-                        <select value={f.esito} onChange={(e) => setF({ ...f, esito: e.target.value })} aria-label="Esito">
-                          {ESITI.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
-                        </select>
-                        <input value={f.testo} onChange={(e) => setF({ ...f, testo: e.target.value })} placeholder="Nota (facoltativa)" />
-                        <input type="date" value={f.prossimo} onChange={(e) => setF({ ...f, prossimo: e.target.value })} aria-label="Richiamare il" />
-                        <button className="btn btn-piccolo btn-primario" disabled={invio}>Salva</button>
-                        <button type="button" className="link-btn piccolo" onClick={() => setApri(null)}>annulla</button>
-                      </form>
-                    )}
                   </td>
                   <td className="piccolo">{r.dettaglio}</td>
                   <td className="col-desktop piccolo muto">
@@ -112,12 +111,31 @@ export default function Ricontattare({ righe, lista, palestra }) {
                     {r.telefono && <a className="btn btn-piccolo" href={wa(r.telefono, messaggio(r))} target="_blank" rel="noreferrer">WhatsApp</a>}{' '}
                     <button className="link-btn piccolo" onClick={() => { setApri(r.allievo_id); setF({ esito: 'sentito', testo: '', prossimo: '' }); }}>segna</button>
                   </td>
-                </tr>
-              ))}
+                </tr>,
+                apri === r.allievo_id && (
+                  <tr key={`m${r.allievo_id}`} className="ric-modulo">
+                    <td colSpan={4}>                    
+                      <form className="contatto-veloce" onSubmit={(e) => segna(e, r)}>
+                        <select value={f.esito} onChange={(e) => setF({ ...f, esito: e.target.value })} aria-label="Esito">
+                          {ESITI.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+                        </select>
+                        <input value={f.testo} onChange={(e) => setF({ ...f, testo: e.target.value })} placeholder="Nota (facoltativa)" />
+                        <input type="date" value={f.prossimo} onChange={(e) => setF({ ...f, prossimo: e.target.value })} aria-label="Richiamare il" />
+                        <button className="btn btn-piccolo btn-primario" disabled={invio}>Salva</button>
+                        <button type="button" className="link-btn piccolo" onClick={() => setApri(null)}>annulla</button>
+                      </form>
+                    
+                    </td>
+                  </tr>
+                ),
+              ])}
             </tbody>
           </table>
         </div>
       )}
-    </>
+      {filtrati.length > quanti && (
+        <button className="link-btn piccolo" style={{ marginTop: 10 }} onClick={() => setQuanti(quanti + 50)}>Mostra altri ({filtrati.length - quanti})</button>
+      )}
+    </div>
   );
 }

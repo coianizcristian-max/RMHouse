@@ -116,7 +116,7 @@ export default async function Indice() {
           <h2 className="sezione">{s.area}</h2>
           <div className="da-fare">
             {s.voci.map(([testo, href, spiega]) => (
-              <Link key={testo + href} href={href}>
+              <Link prefetch={false} key={testo + href} href={href}>
                 <span>
                   <strong style={{ color: 'var(--nero)' }}>{testo}</strong>
                   <span className="piccolo muto" style={{ display: 'block' }}>{spiega}</span>
@@ -136,7 +136,7 @@ export default async function Indice() {
           </p>
           <div className="da-fare">
             {PUBBLICHE.map(([testo, href, spiega]) => (
-              <Link key={href} href={href} target="_blank">
+              <Link prefetch={false} key={href} href={href} target="_blank">
                 <span>
                   <strong style={{ color: 'var(--nero)' }}>{testo}</strong>
                   <span className="piccolo muto" style={{ display: 'block' }}>{spiega}</span>

@@ -84,7 +84,7 @@ export default function Incassi({ palestraId, righe, totali, dal, al, stato, onl
           <div className="cifra">{euro(totali.incassato_cent || 0)}</div>
           <div className="sotto">{dataBreve(dal)} – {dataBreve(al)}</div>
         </div>
-        <Link className="tessera" href="/gestione/incassi?stato=attesa">
+        <Link prefetch={false} className="tessera" href="/gestione/incassi?stato=attesa">
           <div className="etichetta">Da incassare</div>
           <div className="cifra">{euro(totali.da_incassare_cent || 0)}</div>
           <div className="sotto">vedi l'elenco</div>
@@ -98,8 +98,8 @@ export default function Incassi({ palestraId, righe, totali, dal, al, stato, onl
       </div>
 
       <div className="filtri" style={{ marginTop: 14 }}>
-        <Link href="/gestione/incassi" aria-current={stato !== 'attesa' ? 'true' : undefined}>Ultimi 30 giorni</Link>
-        <Link href="/gestione/incassi?stato=attesa" aria-current={stato === 'attesa' ? 'true' : undefined}>Da incassare</Link>
+        <Link prefetch={false} href="/gestione/incassi" aria-current={stato !== 'attesa' ? 'true' : undefined}>Ultimi 30 giorni</Link>
+        <Link prefetch={false} href="/gestione/incassi?stato=attesa" aria-current={stato === 'attesa' ? 'true' : undefined}>Da incassare</Link>
       </div>
 
       <div className="scheda" style={{ marginTop: 14 }}>

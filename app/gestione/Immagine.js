@@ -1,5 +1,6 @@
 'use client';
 import { useRef, useState } from 'react';
+import { comprimiImmagine } from '@/lib/comprimiImmagine';
 
 // Selettore di immagine con anteprima: niente bottone di sistema,
 // si trascina o si tocca l'area e parte il caricamento.
@@ -12,8 +13,10 @@ export default function Immagine({ url, onChange, cartella = 'varie', etichetta 
   async function carica(file) {
     if (!file) return;
     setInvio(true); setErrore('');
+    // foto tonde (persone, staff) più piccole; locandine e foto di sale/corsi più grandi
+    const leggero = await comprimiImmagine(file, { lato: tondo ? 800 : 1600 });
     const form = new FormData();
-    form.append('file', file);
+    form.append('file', leggero);
     form.append('cartella', cartella);
     const r = await fetch('/api/media', { method: 'POST', body: form });
     const d = await r.json().catch(() => ({}));
@@ -46,7 +49,7 @@ export default function Immagine({ url, onChange, cartella = 'varie', etichetta 
 
         <span className="zona-testo">
           <strong>{invio ? 'Carico…' : url ? 'Cambia immagine' : 'Aggiungi un\'immagine'}</strong>
-          <span className="piccolo muto">Tocca oppure trascina qui il file · JPG, PNG o PDF, fino a 6 MB</span>
+          <span className="piccolo muto">Tocca oppure trascina qui la foto · si rimpicciolisce da sola</span>
         </span>
 
         {url && (
