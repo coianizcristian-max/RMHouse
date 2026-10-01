@@ -8,6 +8,7 @@ import CaricaCertificato from '../../CaricaCertificato';
 import InstallaApp from '../InstallaApp';
 import ModificaDati from './ModificaDati';
 import AggiungiFiglio from './AggiungiFiglio';
+import Notifiche from '../Notifiche';
 
 const oggi = () => new Date().toISOString().slice(0, 10);
 const tra = (giorni) => new Date(Date.now() + giorni * 86400000).toISOString().slice(0, 10);
@@ -18,7 +19,7 @@ const anni = (nascita) => {
 };
 
 // "Io": tutto di me (e dei figli) in una pagina: scadenze, abbonamenti, stagione, documenti
-export default function Io({ titolare, persone, anagrafica = [], richieste = [], moduliDaFirmare = 0 }) {
+export default function Io({ titolare, persone, anagrafica = [], richieste = [], notifiche = {}, moduliDaFirmare = 0 }) {
   const router = useRouter();
   const [scelta, setScelta] = useState(persone[0]?.id || null);
   const [carica, setCarica] = useState(false);
@@ -168,6 +169,8 @@ export default function Io({ titolare, persone, anagrafica = [], richieste = [],
       </section>
 
       <AggiungiFiglio cognome={titolare?.cognome || ''} />
+
+      <Notifiche preferenze={notifiche} />
 
       <InstallaApp />
 

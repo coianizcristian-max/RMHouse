@@ -2537,3 +2537,12 @@ a.titolo-sala:hover { text-decoration: underline; text-underline-offset: 3px; }
 .or-calendario input { position: absolute; inset: 0; opacity: 0; width: 100%; height: 100%; border: 0; padding: 0; pointer-events: none; }
 .or-giorni .or-oggi { background: var(--carta); }
 .or-giorni .or-oggi span { text-transform: none; }
+
+/* 082 — accesso con password, codice della segreteria */
+.acc-password { display: flex; gap: 8px; align-items: center; }
+.acc-password input { flex: 1; }
+.acc-email { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.acc-scelte { display: grid; gap: 8px; }
+.accesso-app { display: inline-flex; flex-wrap: wrap; gap: 4px 6px; align-items: center; }
+.accesso-codice { display: inline-flex; flex-wrap: wrap; gap: 4px 8px; align-items: center; padding: 6px 10px; border-radius: 10px; background: var(--carta); }
+.accesso-codice strong { font-size: 18px; letter-spacing: .15em; color: var(--nero); font-variant-numeric: tabular-nums; }

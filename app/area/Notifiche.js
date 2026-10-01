@@ -11,9 +11,20 @@ const base64ToUint8 = (base64) => {
   return Uint8Array.from([...raw].map((c) => c.charCodeAt(0)));
 };
 
-export default function Notifiche() {
+const TIPI = [
+  ['lezioni', 'Lezioni', 'la sera prima: "Domani hai…", e se una lezione viene annullata'],
+  ['scadenze', 'Scadenze', 'abbonamento, certificato medico, recuperi da usare'],
+  ['scuola', 'Novità della scuola', 'avvisi, eventi, corsi che partono'],
+];
+
+export default function Notifiche({ preferenze = null }) {
   const [stato, setStato] = useState('controllo');   // controllo | spente | attive | non_supportate | ios_da_installare
   const [errore, setErrore] = useState('');
+  const [pref, setPref] = useState(preferenze || {});
+  async function cambia(k, v) {
+    const nuove = { ...pref, [k]: v }; setPref(nuove);
+    await supabaseBrowser().rpc('imposta_notifiche_cliente', { p: nuove });
+  }
 
   useEffect(() => {
     const chiave = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
@@ -26,7 +37,7 @@ export default function Notifiche() {
     if (iosSenzaInstallazione && !supportate) { setStato('ios_da_installare'); return; }
     if (!supportate) { setStato('non_supportate'); return; }
 
-    navigator.serviceWorker.register('/sw.js')
+    navigator.serviceWorker.register('/sw.js', { scope: '/area/' })
       .then((reg) => reg.pushManager.getSubscription())
       .then((sub) => setStato(sub ? 'attive' : 'spente'))
       .catch(() => setStato('non_supportate'));
@@ -38,7 +49,7 @@ export default function Notifiche() {
     if (permesso !== 'granted') { setErrore('Le notifiche sono state bloccate dal telefono.'); return; }
 
     try {
-      const reg = await navigator.serviceWorker.ready;
+      const reg = (await navigator.serviceWorker.getRegistration('/area/')) || (await navigator.serviceWorker.ready);
       const sub = await reg.pushManager.subscribe({
         userVisibleOnly: true,
         applicationServerKey: base64ToUint8(process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY),
@@ -57,7 +68,7 @@ export default function Notifiche() {
 
   async function spegni() {
     try {
-      const reg = await navigator.serviceWorker.ready;
+      const reg = (await navigator.serviceWorker.getRegistration('/area/')) || (await navigator.serviceWorker.ready);
       const sub = await reg.pushManager.getSubscription();
       if (sub) {
         await supabaseBrowser().rpc('cancella_push', { p_endpoint: sub.endpoint });
@@ -83,8 +94,8 @@ export default function Notifiche() {
       {stato === 'spente' && (
         <>
           <p className="piccolo muto" style={{ marginTop: 4 }}>
-            Ti avvisiamo quando una lezione viene spostata o annullata, quando si libera un posto e quando
-            l'abbonamento sta per scadere.
+            La sera prima ti ricordiamo la lezione, ti avvisiamo se viene annullata, quando l'abbonamento o il
+            certificato stanno per scadere e quando la segreteria risponde a una tua richiesta.
           </p>
           <button className="btn btn-primario" onClick={attiva}>Attiva le notifiche</button>
         </>
@@ -93,9 +104,13 @@ export default function Notifiche() {
       {stato === 'attive' && (
         <>
           <p className="piccolo muto" style={{ marginTop: 4 }}>
-            Attive su questo dispositivo.
+            Attive su questo telefono. Scegli quali ricevere:
           </p>
-          <button className="link-btn" onClick={spegni}>Spegni le notifiche</button>
+          {preferenze !== null && TIPI.map(([k, t, d]) => (
+            <label key={k} className="spunta"><input type="checkbox" checked={pref[k] !== false} onChange={(e) => cambia(k, e.target.checked)} />
+              <span><strong>{t}</strong> <span className="piccolo muto">· {d}</span></span></label>
+          ))}
+          <button className="link-btn" onClick={spegni}>Spegni le notifiche su questo telefono</button>
         </>
       )}
 

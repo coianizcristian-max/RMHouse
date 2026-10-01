@@ -2,7 +2,13 @@ import Guscio from './Guscio';
 import { staffCorrente } from '@/lib/staff';
 import Testata from '../Testata';
 
-export const metadata = { title: 'Gestione · Ritmo Metropolitano' };
+// L'app dello staff ha la sua installazione: nome, icona e pagina di partenza diversi dall'app dei clienti
+export const metadata = {
+  title: 'Gestione · Ritmo Metropolitano',
+  manifest: '/gestione.webmanifest',
+  appleWebApp: { capable: true, title: 'RM Gestione', statusBarStyle: 'black' },
+  icons: { icon: '/icona-gestione-192.png', apple: '/apple-icon-gestione.png' },
+};
 
 export default async function LayoutGestione({ children }) {
   const { supabase, user, staff } = await staffCorrente();

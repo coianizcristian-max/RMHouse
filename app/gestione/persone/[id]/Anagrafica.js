@@ -5,6 +5,7 @@ import { supabaseBrowser } from '@/lib/supabase/browser';
 import { dataBreve } from '@/lib/formato';
 import Immagine from '../../Immagine';
 import CaricaCertificato from '../../../CaricaCertificato';
+import AccessoApp from './AccessoApp';
 
 export default function Anagrafica({ allievo, linkCertificato, ente}) {
   const router = useRouter();
@@ -69,6 +70,8 @@ export default function Anagrafica({ allievo, linkCertificato, ente}) {
           <dd>{a.telefono ? <a href={`tel:${a.telefono}`}>{a.telefono}</a> : <span className="muto">—</span>}</dd>
           <dt>Email</dt>
           <dd>{a.email ? <a href={`mailto:${a.email}`}>{a.email}</a> : <span style={{ color: 'var(--rosso-scuro)' }}>nessuna: non riceve messaggi</span>}</dd>
+          <dt>App</dt>
+          <dd>{a.email ? <AccessoApp allievoId={allievo.id} sito={linkCertificato?.split('/certificato')[0]} /> : <span className="muto">serve l'email</span>}</dd>
           {allievo.codice_fiscale && <><dt>Codice fiscale</dt><dd>{allievo.codice_fiscale}</dd></>}
           {a.codice_fiscale && a.codice_fiscale !== allievo.codice_fiscale && <><dt>CF di chi paga</dt><dd>{a.codice_fiscale}</dd></>}
           <dt>Tessera {ente || ''}</dt><dd>{allievo.tessera || <span className="muto">da inserire (Modifica)</span>}</dd>

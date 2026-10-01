@@ -21,7 +21,7 @@ const DENTRO_IO = ['/area/io', '/area/pagamenti', '/area/eventi', '/area/moduli'
 
 export default function MenuArea() {
   const path = usePathname() || '';
-  if (path.startsWith('/area/accedi')) return null;
+  if (path.startsWith('/area/accedi') || path.startsWith('/area/nuova-password')) return null;
   const attiva = (href) => (href === '/area/io' ? DENTRO_IO.includes(path)
     : href === '/area/recuperi' ? ['/area/recuperi', '/area/acquista', '/area/personal'].includes(path) : path === href);
 

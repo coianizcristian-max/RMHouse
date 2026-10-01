@@ -3,7 +3,8 @@ import { useEffect, useState } from 'react';
 
 // "Metti l'app sul telefono" senza passare dagli store:
 // Android/Chrome mostra il suo pulsante di installazione; su iPhone spieghiamo i due tocchi in Safari.
-export default function InstallaApp({ compatto = false }) {
+export default function InstallaApp({ compatto = false, scope = '/area/', nome = "Metti l'app sul telefono", icona = '/icona-192.png',
+  sotto = 'Si apre con un tocco, come le altre app. Gratis, senza store.' }) {
   const [evento, setEvento] = useState(null);
   const [ios, setIos] = useState(false);
   const [installata, setInstallata] = useState(true);
@@ -11,7 +12,7 @@ export default function InstallaApp({ compatto = false }) {
 
   useEffect(() => {
     // il service worker rende l'app installabile (e serve già per le notifiche)
-    if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(() => null);
+    if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js', { scope }).catch(() => null);
     const standalone = window.matchMedia?.('(display-mode: standalone)').matches || window.navigator.standalone;
     setInstallata(!!standalone);
     setIos(/iphone|ipad|ipod/i.test(navigator.userAgent));
@@ -31,16 +32,16 @@ export default function InstallaApp({ compatto = false }) {
 
   return (
     <div className={`installa-app${compatto ? ' compatto' : ''}`}>
-      <img src="/icona-192.png" alt="" width="40" height="40" />
+      <img src={icona} alt="" width="40" height="40" />
       <span className="ia-testo">
-        <strong>Metti l'app sul telefono</strong>
-        <span>Si apre con un tocco, come le altre app. Gratis, senza store.</span>
+        <strong>{nome}</strong>
+        <span>{sotto}</span>
       </span>
       <button type="button" className="btn btn-piccolo btn-primario" onClick={installa}>{evento ? 'Installa' : 'Come si fa'}</button>
       {aperto && !evento && (
         <span className="ia-passi">
           {ios ? (
-            <>In <strong>Safari</strong> tocca <strong>Condividi</strong> (il quadrato con la freccia in su), poi <strong>Aggiungi alla schermata Home</strong> e <strong>Aggiungi</strong>.</>
+            <>Da questa pagina, in <strong>Safari</strong> tocca <strong>Condividi</strong> (il quadrato con la freccia in su), poi <strong>Aggiungi alla schermata Home</strong> e <strong>Aggiungi</strong>.</>
           ) : (
             <>Nel menù del browser (i tre puntini in alto a destra) tocca <strong>Installa app</strong> oppure <strong>Aggiungi a schermata Home</strong>.</>
           )}

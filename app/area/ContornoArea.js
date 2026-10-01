@@ -14,7 +14,7 @@ export default function ContornoArea({ children }) {
     router.replace('/area/accedi');
     router.refresh();
   }
-  if (path.startsWith('/area/accedi')) return children;
+  if (path.startsWith('/area/accedi') || path.startsWith('/area/nuova-password')) return children;
   return (
     <>
       <Testata destra={

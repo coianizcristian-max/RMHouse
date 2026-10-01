@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { supabaseBrowser } from '@/lib/supabase/browser';
+import InstallaApp from '../../area/InstallaApp';
 
 const base64ToUint8 = (base64) => {
   const pad = '='.repeat((4 - (base64.length % 4)) % 4);
@@ -31,7 +32,7 @@ export default function MieNotifiche({ ruolo, preferenze }) {
     if (!chiave) { setStato('non_supportate'); return; }
     if (ios && !supportate) { setStato('ios_da_installare'); return; }
     if (!supportate) { setStato('non_supportate'); return; }
-    navigator.serviceWorker.register('/sw.js')
+    navigator.serviceWorker.register('/sw.js', { scope: '/gestione/' })
       .then((reg) => reg.pushManager.getSubscription())
       .then((sub) => setStato(sub ? 'attive' : 'spente'))
       .catch(() => setStato('non_supportate'));
@@ -42,7 +43,7 @@ export default function MieNotifiche({ ruolo, preferenze }) {
     const permesso = await Notification.requestPermission();
     if (permesso !== 'granted') { setErrore('Le notifiche sono bloccate: sbloccale dalle impostazioni del browser per questo sito.'); return; }
     try {
-      const reg = await navigator.serviceWorker.ready;
+      const reg = (await navigator.serviceWorker.getRegistration('/gestione/')) || (await navigator.serviceWorker.ready);
       const sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: base64ToUint8(process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY) });
       const j = sub.toJSON();
       const { error } = await supabaseBrowser().rpc('registra_push_staff', {
@@ -57,7 +58,7 @@ export default function MieNotifiche({ ruolo, preferenze }) {
 
   async function spegni() {
     try {
-      const reg = await navigator.serviceWorker.ready;
+      const reg = (await navigator.serviceWorker.getRegistration('/gestione/')) || (await navigator.serviceWorker.ready);
       const sub = await reg.pushManager.getSubscription();
       if (sub) { await supabaseBrowser().rpc('cancella_push', { p_endpoint: sub.endpoint }); await sub.unsubscribe(); }
       setStato('spente'); setAvviso('Notifiche spente su questo dispositivo.');
@@ -85,6 +86,10 @@ export default function MieNotifiche({ ruolo, preferenze }) {
         <div className="occhiello">Oggi</div>
         <h1>Le mie notifiche</h1>
         <p>Avvisi sul telefono (o sul computer) quando succede qualcosa che ti riguarda. Si attivano su ogni dispositivo che usi.</p>
+      </div>
+      <div style={{ marginBottom: 14 }}>
+        <InstallaApp scope="/gestione/" nome="Installa RM Gestione sul telefono" icona="/icona-gestione-192.png"
+                     sotto="Un'app a parte, con l'icona nera: si apre nel gestionale. Quella dei clienti resta separata." />
       </div>
       {errore && <div className="errore" role="alert">{errore}</div>}
       {avviso && <div className="errore" role="status" style={{ background: 'var(--ok-tenue)', color: 'var(--ok)' }}>{avviso}</div>}
