@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabaseBrowser } from '@/lib/supabase/browser';
 
@@ -15,6 +15,7 @@ export default function Gestore({ tabella, campi, righe, fissi = {}, riassunto, 
   const [bozza, setBozza] = useState({});
   const [errore, setErrore] = useState('');
   const [invio, setInvio] = useState(false);
+  const [salvato, setSalvato] = useState(null);  // riga appena salvata, per mostrarlo
 
   // valori di partenza delle righe nuove: le caselle spuntate, salvo "predefinito" diverso
   const vuota = Object.fromEntries(campi.map((c) => [c.k, c.predefinito ?? (c.tipo === 'check' ? true : '')]));
@@ -24,6 +25,7 @@ export default function Gestore({ tabella, campi, righe, fissi = {}, riassunto, 
     setErrore(''); setApri('nuovo');
   }
   function apriModifica(r) {
+    setSalvato(null);
     const b = {};
     campi.forEach((c) => {
       const v = r[c.k];
@@ -36,23 +38,50 @@ export default function Gestore({ tabella, campi, righe, fissi = {}, riassunto, 
     const v = bozza[c.k];
     if (c.tipo === 'check') return !!v;
     if (v === '' || v == null) return null;
-    if (c.tipo === 'numero') return Number.isFinite(+v) ? parseInt(v, 10) : null;
-    if (c.tipo === 'euro') return Math.round(parseFloat(String(v).replace(',', '.')) * 100);
+    if (c.tipo === 'numero') return parseInt(String(v).trim(), 10);
+    if (c.tipo === 'euro') return Math.round(numeroEuro(v) * 100);
     return v;
+  }
+
+  // controlla i campi prima di salvare: il messaggio dice quale e perché
+  function controlla() {
+    const mancante = campi.find((c) => c.obbligatorio && (bozza[c.k] === '' || bozza[c.k] == null));
+    if (mancante) return `Compila "${mancante.etichetta}".`;
+    for (const c of campi) {
+      const v = bozza[c.k];
+      if (v === '' || v == null) continue;
+      if (c.tipo === 'numero' && !/^-?\d+$/.test(String(v).trim())) return `"${c.etichetta}": scrivi un numero intero, senza virgola.`;
+      if (c.tipo === 'euro' && !Number.isFinite(numeroEuro(v))) return `"${c.etichetta}": scrivi un importo, per esempio 75 oppure 75,50.`;
+    }
+    return '';
   }
 
   async function salva(e) {
     e.preventDefault();
-    const mancante = campi.find((c) => c.obbligatorio && (bozza[c.k] === '' || bozza[c.k] == null));
-    if (mancante) { setErrore(`Compila "${mancante.etichetta}".`); return; }
+    const problema = controlla();
+    if (problema) { setErrore(problema); return; }
     setInvio(true); setErrore('');
     const dati = Object.fromEntries(campi.map((c) => [c.k, valore(c)]));
     const db = supabaseBrowser();
-    const { error } = apri === 'nuovo'
-      ? await db.from(tabella).insert({ ...fissi, ...dati })
-      : await db.from(tabella).update(dati).eq('id', apri);
+    // la modifica chiede indietro la riga: se non torna niente, non è stata salvata
+    // (succede quando l'accesso è scaduto: il database non dà errore ma non cambia nulla)
+    const scrivi = () => (apri === 'nuovo'
+      ? db.from(tabella).insert({ ...fissi, ...dati })
+      : db.from(tabella).update(dati).eq('id', apri).select('id'));
+    let { data, error } = await scrivi();
+    if (!error && apri !== 'nuovo' && !data?.length) {
+      await db.auth.refreshSession().catch(() => null);   // si riprova una volta con l'accesso rinnovato
+      ({ data, error } = await scrivi());
+      if (!error && !data?.length) {
+        setInvio(false);
+        setErrore('Non salvato: l\'accesso è scaduto. Ricarica la pagina (o esci e rientra) e riprova.');
+        return;
+      }
+    }
     setInvio(false);
     if (error) { setErrore(messaggio(error, campi)); return; }
+    setSalvato(apri === 'nuovo' ? 'nuovo' : apri);
+    setTimeout(() => setSalvato(null), 4000);
     setApri(null); router.refresh();
   }
 
@@ -67,7 +96,8 @@ export default function Gestore({ tabella, campi, righe, fissi = {}, riassunto, 
 
   return (
     <div>
-      {errore && <div className="errore" role="alert">{errore}</div>}
+      {errore && !apri && <div className="errore" role="alert">{errore}</div>}
+      {salvato === 'nuovo' && <div className="avviso-ok" role="status">Aggiunto ✓</div>}
 
       {righe.length === 0 && apri !== 'nuovo' && <div className="vuoto">{vuoto}</div>}
 
@@ -83,7 +113,7 @@ export default function Gestore({ tabella, campi, righe, fissi = {}, riassunto, 
           ),
           <li key={r.id}>
             {apri === r.id ? (
-              <Modulo campi={campi} bozza={bozza} setBozza={setBozza} salva={salva} annulla={() => setApri(null)} invio={invio} />
+              <Modulo campi={campi} bozza={bozza} setBozza={setBozza} salva={salva} annulla={() => { setApri(null); setErrore(''); }} invio={invio} errore={errore} />
             ) : (
               <div className="persona" style={{ alignItems: 'start' }}>
                 <div>
@@ -94,6 +124,7 @@ export default function Gestore({ tabella, campi, righe, fissi = {}, riassunto, 
                     }} />
                   )}
                   <span className="persona-nome">{riassunto(r).titolo}</span>
+                  {salvato === r.id && <> <span className="tag tag-ok">salvato ✓</span></>}
                   {riassunto(r).tag && <> <span className="tag tag-neutro">{riassunto(r).tag}</span></>}
                   {riassunto(r).dettaglio && <div className="piccolo muto">{riassunto(r).dettaglio}</div>}
                 </div>
@@ -110,7 +141,7 @@ export default function Gestore({ tabella, campi, righe, fissi = {}, riassunto, 
 
       {apri === 'nuovo' ? (
         <div style={{ marginTop: 16 }}>
-          <Modulo campi={campi} bozza={bozza} setBozza={setBozza} salva={salva} annulla={() => setApri(null)} invio={invio} />
+          <Modulo campi={campi} bozza={bozza} setBozza={setBozza} salva={salva} annulla={() => { setApri(null); setErrore(''); }} invio={invio} errore={errore} />
         </div>
       ) : (
         <button className="btn" style={{ marginTop: 16 }} onClick={apriNuovo}>{etichettaNuovo}</button>
@@ -119,8 +150,11 @@ export default function Gestore({ tabella, campi, righe, fissi = {}, riassunto, 
   );
 }
 
-function Modulo({ campi, bozza, setBozza, salva, annulla, invio }) {
+function Modulo({ campi, bozza, setBozza, salva, annulla, invio, errore }) {
   const set = (k, v) => setBozza((b) => ({ ...b, [k]: v }));
+  const rifErrore = useRef(null);
+  // l'errore compare accanto a "Salva" e lo si porta in vista
+  useEffect(() => { if (errore) rifErrore.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }); }, [errore]);
   return (
     <form onSubmit={salva} style={{ padding: '14px 0' }}>
       {campi.map((c) => {
@@ -152,20 +186,28 @@ function Modulo({ campi, bozza, setBozza, salva, annulla, invio }) {
               <textarea id={id} value={bozza[c.k] ?? ''} onChange={(e) => set(c.k, e.target.value)} />
             ) : (
               <input id={id} value={bozza[c.k] ?? ''} onChange={(e) => set(c.k, e.target.value)}
-                     type={c.tipo === 'ora' ? 'time' : c.tipo === 'data' ? 'date' : c.tipo === 'numero' ? 'number' : 'text'}
-                     inputMode={c.tipo === 'euro' ? 'decimal' : undefined}
+                     type={c.tipo === 'ora' ? 'time' : c.tipo === 'data' ? 'date' : 'text'}
+                     inputMode={c.tipo === 'euro' ? 'decimal' : c.tipo === 'numero' ? 'numeric' : undefined}
                      placeholder={c.tipo === 'euro' ? '0 = gratis' : undefined} />
             )}
             {c.aiuto && <span className="piccolo muto">{c.aiuto}</span>}
           </div>
         );
       })}
+      {errore && <div className="errore" role="alert" ref={rifErrore}>{errore}</div>}
       <div style={{ display: 'flex', gap: 10 }}>
         <button className="btn btn-primario" disabled={invio}>{invio ? 'Salvo…' : 'Salva'}</button>
         <button type="button" className="btn" onClick={annulla}>Annulla</button>
       </div>
     </form>
   );
+}
+
+// "75", "75,50", "1.200,50", "€ 75" → numero; altrimenti NaN
+function numeroEuro(v) {
+  let t = String(v).replace(/[€\s]/g, '');
+  if (t.includes(',')) t = t.replace(/\./g, '').replace(',', '.');
+  return /^-?\d+(\.\d+)?$/.test(t) ? parseFloat(t) : NaN;
 }
 
 function messaggio(error, campi = []) {
@@ -178,5 +220,6 @@ function messaggio(error, campi = []) {
   if (m.includes('duplicate key')) return 'Esiste già una riga con questo nome.';
   if (m.includes('violates foreign key') || m.includes('still referenced')) return 'Non si può eliminare: è collegata ad altri dati.';
   if (m.includes('row-level security')) return 'Non hai i permessi per questa operazione.';
+  if (m.includes('JWT') || error.code === 'PGRST301' || error.status === 401) return 'Non salvato: l\'accesso è scaduto. Ricarica la pagina (o esci e rientra) e riprova.';
   return 'Salvataggio non riuscito. Controlla i dati e riprova.';
 }
