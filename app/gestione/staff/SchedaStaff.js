@@ -4,8 +4,8 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { supabaseBrowser } from '@/lib/supabase/browser';
 import Immagine from '../Immagine';
+import SceltaColore from '../SceltaColore';
 
-export const COLORI = ['#f40000', '#000000', '#b3001b', '#8a0303', '#d64545', '#5c5c5c', '#2b2b2b', '#7a7a7a'];
 export const RUOLI = { insegnante: 'Insegnante', segreteria: 'Segreteria', admin: 'Amministratore' };
 
 // Pagina dedicata: scheda di una persona dello staff (nuova o da modificare)
@@ -78,12 +78,7 @@ export default function SchedaStaff({ palestraId, persona = null, corsi = [] }) 
             <Immagine url={f.foto_url} cartella="staff" etichetta="Foto" tondo onChange={(url) => setF({ ...f, foto_url: url })} />
             <div className="campo">
               <label>Colore in calendario</label>
-              <div className="ss-colori">
-                {COLORI.map((c) => (
-                  <button type="button" key={c} onClick={() => setF({ ...f, colore: c })} aria-label={`Colore ${c}`} aria-pressed={f.colore === c}
-                          style={{ background: c }} />
-                ))}
-              </div>
+              <SceltaColore valore={f.colore} onChange={(c) => setF((x) => ({ ...x, colore: c }))} />
             </div>
             <label className="spunta"><input type="checkbox" checked={f.attivo} onChange={set('attivo')} /><span>Attivo</span></label>
             <label className="spunta"><input type="checkbox" checked={f.collaboratore} onChange={set('collaboratore')} /><span>Collaboratore esterno</span></label>

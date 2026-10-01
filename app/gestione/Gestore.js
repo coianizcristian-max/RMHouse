@@ -2,6 +2,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabaseBrowser } from '@/lib/supabase/browser';
+import SceltaColore from './SceltaColore';
 
 // Editor generico: elenco di righe con aggiunta, modifica ed eliminazione.
 // campi: [{ k, etichetta, tipo: 'testo'|'numero'|'euro'|'select'|'check'|'ora'|'data'|'testolungo',
@@ -176,12 +177,7 @@ function Modulo({ campi, bozza, setBozza, salva, annulla, invio, errore }) {
                 {c.opzioni.map((o) => <option key={o.v} value={o.v}>{o.l}</option>)}
               </select>
             ) : c.tipo === 'colore' ? (
-              <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-                <input id={c.k} type="color" value={/^#[0-9a-f]{6}$/i.test(bozza[c.k] || '') ? bozza[c.k] : '#f40000'}
-                       onChange={(e) => setBozza({ ...bozza, [c.k]: e.target.value })}
-                       style={{ width: 52, height: 36, padding: 0, border: '1px solid var(--linea)', borderRadius: 8 }} />
-                <span className="piccolo muto">{bozza[c.k] || 'nessun colore'}</span>
-              </div>
+              <SceltaColore valore={bozza[c.k] || ''} onChange={(v) => setBozza((b) => ({ ...b, [c.k]: v }))} />
             ) : c.tipo === 'testolungo' ? (
               <textarea id={id} value={bozza[c.k] ?? ''} onChange={(e) => set(c.k, e.target.value)} />
             ) : (

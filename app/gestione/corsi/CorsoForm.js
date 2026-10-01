@@ -3,12 +3,8 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabaseBrowser } from '@/lib/supabase/browser';
 import Immagine from '../Immagine';
-import { gradazioni, testoSu } from '@/lib/colori';
+import { gradazioni, testoSu, TAVOLOZZA_BASE } from '@/lib/colori';
 
-// Tavolozza di riserva, se la scuola non ne ha salvata una
-const TAVOLOZZA_BASE = ['#ff0000', '#ff4500', '#ff8c00', '#ffc800', '#ffff00', '#9acd32', '#008000', '#008080',
-  '#00f5c8', '#00ffff', '#00bfff', '#2200ff', '#8a2be2', '#ff00ff', '#ff99cc', '#000000']
-  .map((colore) => ({ nome: colore, colore }));
 
 export default function CorsoForm({ palestraId, corso, discipline, fasce, livelli, sedi = [], tavolozza = [] }) {
   const router = useRouter();
@@ -73,141 +69,121 @@ export default function CorsoForm({ palestraId, corso, discipline, fasce, livell
     router.refresh();
   }
 
+  const coloreVisto = f.colore || baseColore || '#f40000';
+  const tinta = (c, etichetta) => (
+    <button type="button" key={c} title={etichetta || c} aria-label={etichetta || `Tinta ${c}`}
+            aria-pressed={f.colore?.toLowerCase() === c.toLowerCase()}
+            onClick={() => setF({ ...f, colore: c, colore_automatico: false })}
+            style={{ background: c, color: testoSu(c) }}>
+      {f.colore?.toLowerCase() === c.toLowerCase() ? '✓' : ''}
+    </button>
+  );
+
+  // Pagina compatta: a sinistra i dati del corso, a destra foto e colore
   return (
-    <form onSubmit={salva}>
-      <h3>Il corso</h3>
-      {errore && <div className="errore" role="alert">{errore}</div>}
-      <div className="campo">
-        <label htmlFor="nome">Nome del corso</label>
-        <input id="nome" value={f.nome} onChange={set('nome')} placeholder="Es. Pole Dance Base" />
-      </div>
-      <div className="riga-2">
-        <div className="campo">
-          <label htmlFor="disc">Disciplina</label>
-          <select id="disc" value={f.disciplina_id} onChange={set('disciplina_id')}>
-            <option value="">— scegli —</option>
-            {discipline.map((d) => <option key={d.id} value={d.id}>{d.nome}</option>)}
-          </select>
-        </div>
-        <div className="campo">
-          <label htmlFor="fascia">Fascia d'età</label>
-          <select id="fascia" value={f.fascia_eta_id} onChange={set('fascia_eta_id')}>
-            <option value="">— scegli —</option>
-            {fasce.map((x) => <option key={x.id} value={x.id}>{x.nome}</option>)}
-          </select>
-        </div>
-      </div>
-      <div className="campo">
-        <label htmlFor="liv">Livello</label>
-        <select id="liv" value={f.livello_id} onChange={set('livello_id')}>
-          <option value="">Aperto a tutti i livelli</option>
-          {livelli.map((l) => <option key={l.id} value={l.id}>{l.nome}</option>)}
-        </select>
-      </div>
-      <h3>Aspetto</h3>
-      <Immagine url={f.foto_url} cartella="corsi" etichetta="Foto del corso"
-                onChange={(url) => setF({ ...f, foto_url: url })} />
-      <div className="campo">
-        <label>Colore</label>
-        <div className="tinte-anteprima" style={{ background: f.colore || baseColore || 'var(--rosso)', color: testoSu(f.colore || baseColore || '#f40000') }}>
-          {f.nome || 'Nome del corso'}
-          <span>{f.colore || baseColore || ''}</span>
-        </div>
-
-        <span className="tinte-titolo">Colori della scuola</span>
-        <div className="tinte">
-          {(tavolozza.length ? tavolozza : TAVOLOZZA_BASE).map((t) => (
-            <button type="button" key={t.colore} title={t.nome} aria-label={t.nome}
-                    aria-pressed={f.colore?.toLowerCase() === t.colore.toLowerCase()}
-                    onClick={() => setF({ ...f, colore: t.colore, colore_automatico: false })}
-                    style={{ background: t.colore, color: testoSu(t.colore) }}>
-              {f.colore?.toLowerCase() === t.colore.toLowerCase() ? '✓' : ''}
-            </button>
-          ))}
-        </div>
-
-        {baseColore && (
-          <>
-            <span className="tinte-titolo">Gradazioni di {nomeDisciplina || 'questa disciplina'}</span>
-            <div className="tinte">
-              {gradazioni(baseColore, 10).map((c) => (
-                <button type="button" key={c} aria-label={`Tinta ${c}`} aria-pressed={f.colore === c}
-                        onClick={() => setF({ ...f, colore: c, colore_automatico: false })}
-                        style={{ background: c, color: testoSu(c) }}>{f.colore === c ? '✓' : ''}</button>
-              ))}
+    <form onSubmit={salva} className="corso-form">
+      <div className="cf-griglia">
+        <div className="cf-principale">
+          <section className="cf-sezione">
+            <h3>Il corso</h3>
+            <div className="cf-campi">
+              <div className="campo cf-3"><label htmlFor="nome">Nome del corso</label>
+                <input id="nome" value={f.nome} onChange={set('nome')} placeholder="Es. Pole Dance Base" /></div>
+              <div className="campo cf-3"><label htmlFor="disc">Disciplina</label>
+                <select id="disc" value={f.disciplina_id} onChange={set('disciplina_id')}>
+                  <option value="">— scegli —</option>
+                  {discipline.map((d) => <option key={d.id} value={d.id}>{d.nome}</option>)}
+                </select></div>
+              <div className="campo cf-2"><label htmlFor="fascia">Fascia d'età</label>
+                <select id="fascia" value={f.fascia_eta_id} onChange={set('fascia_eta_id')}>
+                  <option value="">— scegli —</option>
+                  {fasce.map((x) => <option key={x.id} value={x.id}>{x.nome}</option>)}
+                </select></div>
+              <div className="campo cf-2"><label htmlFor="liv">Livello</label>
+                <select id="liv" value={f.livello_id} onChange={set('livello_id')}>
+                  <option value="">Tutti i livelli</option>
+                  {livelli.map((l) => <option key={l.id} value={l.id}>{l.nome}</option>)}
+                </select></div>
+              <div className="campo cf-2"><label htmlFor="cap">Posti</label>
+                <input id="cap" type="number" min="1" value={f.capienza} onChange={set('capienza')} placeholder="come la sala" /></div>
+              <div className={`campo ${sedi.length > 1 ? 'cf-3' : 'cf-6'}`}><label htmlFor="vis">Visibilità</label>
+                <select id="vis" value={f.visibilita} onChange={set('visibilita')}>
+                  <option value="pubblico">Pubblico: visibile sul sito</option>
+                  <option value="privato">Privato: solo per chi è già iscritto</option>
+                  <option value="nascosto">Nascosto: lo vede solo lo staff</option>
+                </select></div>
+              {sedi.length > 1 && (
+                <div className="campo cf-3"><label htmlFor="sede">Sede</label>
+                  <select id="sede" value={f.sede_id} onChange={set('sede_id')}>
+                    {sedi.map((x) => <option key={x.id} value={x.id}>{x.nome}</option>)}
+                  </select></div>
+              )}
             </div>
-          </>
-        )}
+          </section>
 
-        <span className="tinte-titolo">Qualunque altro colore</span>
-        <div className="tinte-libero">
-          <input type="color" aria-label="Scegli un colore" value={/^#[0-9a-f]{6}$/i.test(f.colore) ? f.colore : (baseColore || '#f40000')}
-                 onChange={(e) => setF({ ...f, colore: e.target.value, colore_automatico: false })} />
-          <input type="text" aria-label="Codice colore" placeholder="#ff00ff" maxLength={7} value={f.colore}
-                 onChange={(e) => setF({ ...f, colore: e.target.value.trim(), colore_automatico: false })} />
+          <section className="cf-sezione">
+            <h3>Testi per il cliente</h3>
+            <div className="cf-campi">
+              <div className="campo cf-3"><label htmlFor="descr">Descrizione</label>
+                <textarea id="descr" rows={3} value={f.descrizione} onChange={set('descrizione')} /></div>
+              <div className="campo cf-3"><label htmlFor="info">Cosa sapere prima della prova</label>
+                <textarea id="info" rows={3} value={f.info_prova} onChange={set('info_prova')}
+                          placeholder="Abbigliamento, cosa portare, quanto arrivare prima…" />
+                <span className="piccolo muto">Finisce nell'email di conferma della prova.</span></div>
+            </div>
+          </section>
+
+          <section className="cf-sezione">
+            <h3>Prova e prenotazioni</h3>
+            <div className="cf-campi">
+              <div className="campo cf-2"><label htmlFor="prezzo">Prezzo della prova (€)</label>
+                <input id="prezzo" inputMode="decimal" value={f.prezzo_prova} onChange={set('prezzo_prova')} />
+                <span className="piccolo muto">0 = gratuita</span></div>
+              <div className="campo cf-2"><label htmlFor="maxp">Prove per lezione</label>
+                <input id="maxp" type="number" min="0" value={f.max_prove_per_lezione} onChange={set('max_prove_per_lezione')} /></div>
+              <div className="cf-2 cf-spunte">
+                <label className="spunta"><input type="checkbox" checked={f.attivo} onChange={set('attivo')} /><span>Corso attivo</span></label>
+                <label className="spunta"><input type="checkbox" checked={f.prova_abilitata} onChange={set('prova_abilitata')} /><span>Prova prenotabile dal sito</span></label>
+                <label className="spunta" title="Togli la spunta per i corsi a numero chiuso"><input type="checkbox" checked={f.prenotabile} onChange={set('prenotabile')} /><span>Prenotabile dai clienti</span></label>
+              </div>
+            </div>
+          </section>
         </div>
 
-        <label className="spunta" style={{ marginTop: 10 }}>
-          <input type="checkbox" checked={f.colore_automatico}
-                 onChange={(e) => setF({ ...f, colore_automatico: e.target.checked })} />
-          <span>Colore automatico: segue la disciplina e cambia se cambio disciplina</span>
-        </label>
+        <aside className="cf-lato">
+          <section className="cf-sezione">
+            <h3>Aspetto</h3>
+            <Immagine url={f.foto_url} cartella="corsi" etichetta="Foto del corso" onChange={(url) => setF({ ...f, foto_url: url })} />
+            <div className="campo">
+              <label>Colore</label>
+              <div className="tinte-anteprima" style={{ background: coloreVisto, color: testoSu(coloreVisto) }}>
+                {f.nome || 'Nome del corso'}<span>{f.colore || baseColore || ''}</span>
+              </div>
+              <span className="tinte-titolo">Colori della scuola</span>
+              <div className="tinte">{(tavolozza.length ? tavolozza : TAVOLOZZA_BASE).map((t) => tinta(t.colore, t.nome))}</div>
+              {baseColore && (
+                <>
+                  <span className="tinte-titolo">Gradazioni di {nomeDisciplina || 'questa disciplina'}</span>
+                  <div className="tinte">{gradazioni(baseColore, 10).map((c) => tinta(c))}</div>
+                </>
+              )}
+              <span className="tinte-titolo">Qualunque altro colore</span>
+              <div className="tinte-libero">
+                <input type="color" aria-label="Scegli un colore" value={/^#[0-9a-f]{6}$/i.test(f.colore) ? f.colore : (baseColore || '#f40000')}
+                       onChange={(e) => setF({ ...f, colore: e.target.value, colore_automatico: false })} />
+                <input type="text" aria-label="Codice colore" placeholder="#ff00ff" maxLength={7} value={f.colore}
+                       onChange={(e) => setF({ ...f, colore: e.target.value.trim(), colore_automatico: false })} />
+              </div>
+              <label className="spunta" style={{ marginTop: 8 }}>
+                <input type="checkbox" checked={f.colore_automatico} onChange={(e) => setF({ ...f, colore_automatico: e.target.checked })} />
+                <span>Colore automatico: segue la disciplina</span>
+              </label>
+            </div>
+          </section>
+        </aside>
       </div>
-      {sedi.length > 1 && (
-        <div className="campo">
-          <label htmlFor="sede">Sede</label>
-          <select id="sede" value={f.sede_id} onChange={set('sede_id')}>
-            {sedi.map((s) => <option key={s.id} value={s.id}>{s.nome}</option>)}
-          </select>
-        </div>
-      )}
-      <div className="campo">
-        <label htmlFor="vis">Visibilità</label>
-        <select id="vis" value={f.visibilita} onChange={set('visibilita')}>
-          <option value="pubblico">Pubblico: visibile sul sito</option>
-          <option value="privato">Privato: solo per chi è già iscritto</option>
-          <option value="nascosto">Nascosto: lo vede solo lo staff</option>
-        </select>
-      </div>
-      <h3>Testi per il cliente</h3>
-      <div className="campo">
-        <label htmlFor="descr">Descrizione</label>
-        <textarea id="descr" value={f.descrizione} onChange={set('descrizione')} />
-      </div>
-      <div className="campo">
-        <label htmlFor="info">Cosa sapere prima della prova</label>
-        <textarea id="info" value={f.info_prova} onChange={set('info_prova')}
-                  placeholder="Abbigliamento, cosa portare, quanto arrivare prima…" />
-        <span className="piccolo muto">Finisce nell'email di conferma della prova.</span>
-      </div>
-      <div className="riga-2">
-        <div className="campo">
-          <label htmlFor="prezzo">Prezzo della prova (€)</label>
-          <input id="prezzo" inputMode="decimal" value={f.prezzo_prova} onChange={set('prezzo_prova')} />
-          <span className="piccolo muto">0 = prova gratuita</span>
-        </div>
-        <div className="campo">
-          <label htmlFor="maxp">Prove per lezione</label>
-          <input id="maxp" type="number" min="0" value={f.max_prove_per_lezione} onChange={set('max_prove_per_lezione')} />
-        </div>
-      </div>
-      <div className="campo">
-        <label htmlFor="cap">Capienza del corso</label>
-        <input id="cap" type="number" min="1" value={f.capienza} onChange={set('capienza')} placeholder="Vuoto = usa la capienza della sala" />
-      </div>
-      <h3>Prenotazioni</h3>
-      <label className="spunta">
-        <input type="checkbox" checked={f.prova_abilitata} onChange={set('prova_abilitata')} />
-        <span>Prenotabile come lezione di prova dal sito</span>
-      </label>
-      <label className="spunta">
-        <input type="checkbox" checked={f.prenotabile} onChange={set('prenotabile')} />
-        <span>Prenotabile dai clienti (togli la spunta per i corsi a numero chiuso)</span>
-      </label>
-      <label className="spunta">
-        <input type="checkbox" checked={f.attivo} onChange={set('attivo')} />
-        <span>Corso attivo</span>
-      </label>
+
+      {errore && <div className="errore" role="alert">{errore}</div>}
       <div className="azioni">
         <button className="btn btn-primario" disabled={invio}>{invio ? 'Salvo…' : 'Salva il corso'}</button>
       </div>

@@ -1,11 +1,11 @@
 'use client';
 import { useState } from 'react';
+import SceltaColore from '../SceltaColore';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { supabaseBrowser } from '@/lib/supabase/browser';
 import { ora, giornoLungo } from '@/lib/formato';
 
-const COLORI = ['#f40000', '#000000', '#b3001b', '#8a0303', '#d64545', '#5c5c5c', '#2b2b2b', '#7a7a7a'];
 
 // Pannello che si apre dal basso toccando una lezione
 export default function FoglioLezione({ lezione, colore, gestione, onClose, aggiungiSubito = false }) {
@@ -132,11 +132,8 @@ export default function FoglioLezione({ lezione, colore, gestione, onClose, aggi
                 <span>Cambia colore del corso</span><span className="conta">›</span>
               </a>
               {tavolozza && (
-                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', padding: '4px 2px 8px' }}>
-                  {COLORI.map((c) => (
-                    <button key={c} type="button" disabled={invio} onClick={() => cambiaColore(c)} aria-label={`Colore ${c}`}
-                            style={{ width: 36, height: 36, borderRadius: 8, background: c, cursor: 'pointer', border: '1px solid var(--linea)' }} />
-                  ))}
+                <div style={{ padding: '4px 2px 10px' }}>
+                  <SceltaColore valore={colore} onChange={cambiaColore} applica="Usa questo colore" disabilitato={invio} />
                 </div>
               )}
               <a href="#" onClick={(e) => {

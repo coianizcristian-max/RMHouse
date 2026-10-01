@@ -1961,3 +1961,38 @@ a.persona-nome:hover { text-decoration: underline; text-underline-offset: 3px; }
   .elenco-staff .es-segni { grid-column: 2 / 3; }
   .elenco-staff .es-nome { grid-column: 2; }
 }
+
+/* 059 — scelta del colore: tavolozza + qualunque colore */
+.scelta-colore { display: grid; gap: 8px; }
+.scelta-colore .tinte-libero { flex-wrap: wrap; }
+.ss-lato .scelta-colore .tinte button { width: 30px; height: 30px; border-radius: 8px; font-size: 12px; }
+.ss-lato .scelta-colore .tinte-libero input[type='text'] { width: 96px; }
+.ss-lato .scelta-colore .tinte-libero .muto { display: none; }
+
+/* 060 — modulo del corso compatto */
+.corso-form .cf-griglia { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 0 28px; align-items: start; }
+.cf-sezione + .cf-sezione { border-top: 1px solid var(--linea); margin-top: 6px; padding-top: 12px; }
+.cf-sezione > h3 { margin: 0 0 8px; font-size: 13px; letter-spacing: .06em; text-transform: uppercase; color: var(--testo-2); }
+.cf-campi { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 0 14px; align-items: start; }
+.cf-campi .campo { margin-bottom: 10px; }
+.cf-2 { grid-column: span 2; } .cf-3 { grid-column: span 3; } .cf-6 { grid-column: span 6; }
+.cf-campi textarea { min-height: 0; resize: vertical; }
+.cf-spunte { padding-top: 26px; }
+.cf-in-riga { display: flex; flex-wrap: wrap; gap: 4px 24px; padding-top: 0; }
+.cf-in-riga .spunta { margin-bottom: 6px; }
+.cf-lato { position: sticky; top: 12px; }
+.cf-lato .zona-foto { padding: 10px; }
+.cf-lato .tinte button { width: 28px; height: 28px; border-radius: 7px; font-size: 12px; }
+.cf-lato .tinte-anteprima { padding: 8px 12px; margin-bottom: 6px; }
+@media (max-width: 1099px) {
+  .corso-form .cf-griglia { grid-template-columns: 1fr; }
+  .cf-lato { position: static; border-top: 1px solid var(--linea); margin-top: 6px; padding-top: 12px; }
+}
+@media (max-width: 899px) {
+  .cf-campi { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .cf-2 { grid-column: span 1; } .cf-3, .cf-6 { grid-column: span 2; }
+  .cf-spunte { padding-top: 0; }
+}
+.cf-spunte { padding-top: 20px; display: grid; gap: 0; }
+.cf-spunte .spunta { margin-bottom: 4px; }
+@media (max-width: 899px) { .cf-spunte { grid-column: span 2; padding-top: 0; } }
