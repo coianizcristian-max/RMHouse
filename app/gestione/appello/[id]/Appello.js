@@ -16,7 +16,7 @@ const ERRORI_AVVISO = {
 };
 const erroreAvviso = (e) => ERRORI_AVVISO[Object.keys(ERRORI_AVVISO).find((k) => e?.message?.includes(k))] || 'Operazione non riuscita.';
 
-export default function Appello({ lezioneId, palestraId, persone, corsoNome = '', gestione = true, postazioni = [], avvisati = [], nuove = [], finita = false }) {
+export default function Appello({ lezioneId, palestraId, persone, corsoNome = '', gestione = true, postazioni = [], avvisati = [], nuove = [], finita = false, recuperoDaSegreteria = true }) {
   const router = useRouter();
   const [presenze, setPresenze] = useState(Object.fromEntries(persone.map((p) => [p.allievo_id, p.presente])));
   // chi arriva dopo (aggiunto in appello) porta con sé la sua presenza
@@ -107,13 +107,17 @@ export default function Appello({ lezioneId, palestraId, persone, corsoNome = ''
 
   // "Ha avvisato": esce dall'appello, il posto si libera, nasce il recupero se l'abbonamento lo prevede
   async function haAvvisato(p) {
-    if (!confirm(`${p.nome} ${p.cognome} ha avvisato che non viene?\nEsce da questo appello, il posto si libera e riceve il recupero (se l'abbonamento lo prevede).`)) return;
+    if (!confirm(recuperoDaSegreteria
+      ? `${p.nome} ${p.cognome} ha avvisato che non viene?\nEsce da questo appello, il posto si libera e riceve il recupero (se l'abbonamento lo prevede).`
+      : `${p.nome} ${p.cognome} ha avvisato che non viene?\nEsce da questo appello e il posto si libera, ma SENZA recupero: il recupero spetta solo a chi disdice da solo dall'app.`)) return;
     setErrore(''); setAvviso('');
     const { data, error } = await supabaseBrowser().rpc('disdici_lezione', { p_lezione: lezioneId, p_allievo: p.allievo_id });
     if (error) { setErrore(erroreAvviso(error)); return; }
     setAvviso(data?.credito
       ? `${p.nome} ${p.cognome}: segnato, recupero da usare entro il ${dataBreve(data.scadenza)}.`
-      : `${p.nome} ${p.cognome}: segnato. Il suo abbonamento non prevede recuperi.`);
+      : recuperoDaSegreteria
+        ? `${p.nome} ${p.cognome}: segnato. Il suo abbonamento non prevede recuperi.`
+        : `${p.nome} ${p.cognome}: segnato, il posto è libero. Nessun recupero (solo da app).`);
     router.refresh();
   }
 

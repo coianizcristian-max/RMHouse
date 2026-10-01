@@ -1871,3 +1871,36 @@ a.persona-nome:hover { text-decoration: underline; text-underline-offset: 3px; }
   .elenco-abbonamenti { max-height: 300px; }
   .barra-salva-recuperi { bottom: calc(72px + env(safe-area-inset-bottom, 0px)); }
 }
+
+/* 055 — cronologia delle modifiche (solo amministratori) */
+.barra-destra { display: flex; align-items: center; gap: 12px; margin-left: auto; min-width: 0; }
+.cronologia-pulsante {
+  display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 999px; cursor: pointer;
+  border: 1px solid var(--linea); background: var(--bianco); color: var(--nero); font: inherit; font-size: 13px; font-weight: 700;
+}
+.cronologia-pulsante:hover { border-color: var(--nero); }
+.cronologia-sfondo { position: fixed; inset: 0; z-index: 200; background: rgba(0, 0, 0, .35); display: flex; justify-content: flex-end; }
+.cronologia {
+  width: min(480px, 100%); height: 100%; background: var(--bianco); display: flex; flex-direction: column;
+  box-shadow: -8px 0 30px rgba(0, 0, 0, .18); padding-top: env(safe-area-inset-top, 0px);
+}
+.cronologia-testa { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 16px 18px 10px; border-bottom: 1px solid var(--linea); }
+.cronologia-testa > div { display: grid; }
+.cronologia-testa strong { font-size: 18px; color: var(--nero); }
+.cronologia-chi { margin: 10px 18px 0; min-height: 40px; border: 1px solid var(--linea); border-radius: 10px; padding: 6px 10px; font: inherit; }
+.cronologia-corpo { flex: 1; overflow-y: auto; padding: 8px 18px calc(24px + env(safe-area-inset-bottom, 0px)); }
+.cronologia-elenco { list-style: none; margin: 0; padding: 0; }
+.cronologia-elenco > li { padding: 12px 0 12px 12px; border-bottom: 1px solid var(--linea); border-left: 3px solid var(--linea); margin-bottom: 2px; }
+.cronologia-elenco > li.cron-cancellazione { border-left-color: var(--rosso); }
+.cronologia-elenco > li.cron-inserimento { border-left-color: var(--ok); }
+.cron-riga1 { display: flex; justify-content: space-between; gap: 10px; font-size: 12px; color: var(--testo-2); }
+.cron-chi { font-weight: 700; color: var(--nero); text-align: right; }
+.cron-cosa { font-size: 14px; margin-top: 4px; color: var(--testo); overflow-wrap: anywhere; }
+.cron-modifiche { list-style: none; margin: 6px 0 0; padding: 0; font-size: 13px; display: grid; gap: 3px; }
+.cron-modifiche li { overflow-wrap: anywhere; }
+.cron-modifiche del { color: var(--testo-2); }
+@media (max-width: 899px) {
+  .cronologia-pulsante { padding: 7px 9px; }
+  .cronologia-pulsante span { display: none; }
+  .cronologia { width: 100%; }
+}

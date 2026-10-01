@@ -1,6 +1,7 @@
 'use client';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
+import Cronologia from './Cronologia';
 import { useEffect, useState } from 'react';
 import { supabaseBrowser } from '@/lib/supabase/browser';
 import { AREE, areaDi } from '@/lib/menu';
@@ -28,7 +29,8 @@ export default function Guscio({ gestione, nome, ruolo, palestraId, funzioni = {
   const router = useRouter();
   const attiva = areaDi(path);
   // una voce è visibile se il ruolo base la permette, la funzione è accesa e il ruolo su misura non la nasconde
-  const visibile = (v) => (gestione || !v.soloGestione) && (!v.funzione || funzioni[v.funzione] !== false) && !nascoste.includes(v.href);
+  const admin = ruolo === 'admin';
+  const visibile = (v) => (gestione || !v.soloGestione) && (admin || !v.soloAdmin) && (!v.funzione || funzioni[v.funzione] !== false) && !nascoste.includes(v.href);
   const aree = AREE.filter((a) => (gestione || !a.soloGestione) && a.voci.some(visibile));
   const area = aree.find((a) => a.k === attiva) || aree[0];
   const voci = (area?.voci || []).filter(visibile);
@@ -164,7 +166,10 @@ export default function Guscio({ gestione, nome, ruolo, palestraId, funzioni = {
             <span className="b-area">{area?.titolo}</span>
             {titoloBarra && <><span className="b-sep" aria-hidden="true">›</span><span className="corrente">{titoloBarra}</span></>}
           </div>
-          <div className="piccolo muto solo-desktop">{nome} · {ruolo}</div>
+          <div className="barra-destra">
+            {admin && path !== '/gestione/impostazioni/registro' && <Cronologia />}
+            <div className="piccolo muto solo-desktop">{nome} · {ruolo}</div>
+          </div>
         </header>
 
         {voci.length > 0 && (

@@ -18,7 +18,7 @@ function RegoleDisdetta({ palestra, onSalvato }) {
   const [f, setF] = useState({
     ore: String(palestra.ore_disdetta ?? 4),
     max: palestra.recuperi_max_mese == null ? '' : String(palestra.recuperi_max_mese),
-    solo: palestra.recupero_solo_disdetta ?? true,
+    da: palestra.recupero_da || (palestra.recupero_solo_disdetta === false ? 'sempre' : 'avviso'),
     vale: palestra.scadenza_recupero || 'giorni',
   });
   const [stato, setStato] = useState('');
@@ -47,7 +47,7 @@ function RegoleDisdetta({ palestra, onSalvato }) {
     <section className="pannello">
       <h2>Disdette e recuperi</h2>
       <p className="piccolo muto" style={{ marginTop: 0 }}>
-        Dall'area clienti, con "Non vengo", la persona libera il posto e riceve il recupero. La segreteria può disdire sempre.
+        Dall'area clienti, con "Non vengo", la persona libera il posto e riceve il recupero, poi si riprenota da sola.
       </p>
       <div className="regole-recupero">
         <div className="campo">
@@ -85,17 +85,21 @@ function RegoleDisdetta({ palestra, onSalvato }) {
         </span>
       </div>
 
-      <label className="spunta" style={{ marginBottom: 8 }}>
-        <input type="checkbox" checked={f.solo} onChange={(e) => cambia('recupero_solo_disdetta', 'solo', e.target.checked)} />
-        <span>
-          Il recupero spetta solo a chi disdice o avvisa
-          <span className="piccolo muto" style={{ display: 'block' }}>
-            {f.solo
-              ? 'Chi manca senza avvisare perde la lezione: ha tenuto il posto occupato.'
+      <div className="campo" style={{ maxWidth: 560 }}>
+        <label htmlFor="chi-recupera">Chi riceve il recupero</label>
+        <select id="chi-recupera" value={f.da} onChange={(e) => cambia('recupero_da', 'da', e.target.value)}>
+          <option value="app">Solo chi disdice da solo dall'app, entro {f.ore || 4} ore prima</option>
+          <option value="avviso">Anche chi avvisa la segreteria</option>
+          <option value="sempre">Anche chi manca senza avvisare</option>
+        </select>
+        <span className="piccolo muto">
+          {f.da === 'app'
+            ? 'Fa tutto la persona dall\'app: disdice con "Non vengo" e si riprenota in un altro corso entro la scadenza. Se avvisa la segreteria, in appello si può segnare "ha avvisato" per liberare il posto, ma il recupero non c\'è.'
+            : f.da === 'avviso'
+              ? 'Il recupero c\'è con "Non vengo" dall\'app e anche quando la segreteria segna "ha avvisato". Chi manca senza avvisare perde la lezione.'
               : 'Anche chi viene segnato assente in appello riceve il recupero.'}
-          </span>
         </span>
-      </label>
+      </div>
       <p className="piccolo muto" style={{ marginBottom: 0 }}>
         Il limite al mese conta i recuperi prenotati nel mese della lezione di recupero.
         Quanti recuperi dà ogni abbonamento in tutto si decide nel singolo abbonamento.

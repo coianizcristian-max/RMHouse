@@ -35,6 +35,9 @@ const valore = (k, v) => {
 export default async function Registro({ searchParams }) {
   const { gruppo = '', chi = '', giorni = '30', pagina = '1' } = await searchParams;
   const { supabase, staff } = await impostazioni('id');
+  if (staff.ruolo !== 'admin') {
+    return <div className="vuoto" style={{ marginTop: 30 }}><strong>Il registro delle azioni lo vedono solo gli amministratori.</strong></div>;
+  }
   const n = Math.max(1, parseInt(pagina, 10) || 1);
   const g = ['1', '7', '30', '365'].includes(giorni) ? parseInt(giorni, 10) : 30;
 
@@ -58,7 +61,7 @@ export default async function Registro({ searchParams }) {
       <div className="intestazione">
         <div className="occhiello">Impostazioni</div>
         <h1>Registro delle azioni</h1>
-        <p>Chi ha incassato, emesso, annullato, iscritto, modificato o cancellato cosa. Non si modifica e non si cancella.</p>
+        <p>Chi ha incassato, emesso, annullato, iscritto, modificato o cancellato cosa. Non si modifica e non si cancella. Lo vedono solo gli amministratori; in ogni pagina c'è anche il pulsante "Cronologia".</p>
       </div>
 
       <div className="pastiglie">
