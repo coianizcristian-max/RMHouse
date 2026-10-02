@@ -199,7 +199,7 @@ export default function Iscrizioni({ allievoId, iscrizioni, corsi, tipi, orari, 
           </div>
         </form>
       ) : (
-        <button className="btn btn-piccolo btn-primario" style={{ marginTop: 10 }} onClick={() => setApri(true)}>+ Nuova iscrizione</button>
+        <button className="btn btn-piccolo" style={{ marginTop: 10 }} onClick={() => setApri(true)}>+ Nuova iscrizione</button>
       )}
     </div>
   );

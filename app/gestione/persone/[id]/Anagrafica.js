@@ -93,6 +93,14 @@ export default function Anagrafica({ allievo, linkCertificato, ente}) {
               </div>
             )}
           </dd>
+          <dt>Consensi</dt>
+          <dd className="consensi">
+            {[['Promozioni', a.consenso_marketing], ['Gruppo WhatsApp', allievo.consenso_whatsapp], ['Foto e video', allievo.consenso_immagini]].map(([t, v]) => (
+              <span key={t} className={`tag ${v === true ? 'tag-ok' : v === false ? 'tag-neutro' : 'tag-tenue'}`} title={v == null ? 'non ancora chiesto: si sceglie firmando il modulo privacy' : undefined}>
+                {t}: {v === true ? 'sì' : v === false ? 'no' : '—'}
+              </span>
+            ))}
+          </dd>
           {allievo.note && <><dt>Note</dt><dd style={{ whiteSpace: 'pre-line' }}>{allievo.note}</dd></>}
         </dl>
       </div>

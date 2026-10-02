@@ -90,60 +90,75 @@ export default async function Persona({ params, searchParams }) {
     <div className="scheda-persona">
       <Link prefetch={false} className="torna" href="/gestione/persone">Tutte le persone</Link>
 
-      <div className="scheda-testa">
-        {allievo.foto_url
-          ? <img src={allievo.foto_url} alt="" className="miniatura-grande" />
-          : <span className="miniatura-grande segnaposto">{(allievo.nome?.[0] || '') + (allievo.cognome?.[0] || '')}</span>}
-        <div style={{ minWidth: 0, flex: 1 }}>
-          <h1>{allievo.cognome} {allievo.nome}</h1>
-          <div className="scheda-sotto">
-            {allievo.data_nascita
-              ? <span>{etaAl(allievo.data_nascita)} anni · {nato} il {dataBreve(allievo.data_nascita)}</span>
-              : <span className="muto">data di nascita da inserire</span>}
-            {st && <span className={`tag tag-${st.tono}`}>{statoTesto(stato.stato, g)}</span>}
-            {stato?.certificato_scaduto && <span className="tag tag-rosso">certificato</span>}
-            {stato?.quota_mancante && <span className="tag tag-attenzione">quota da pagare</span>}
-            {stato?.senza_orari && <span className="tag tag-attenzione">giorni da assegnare</span>}
-            {stato?.giorni_al_compleanno != null && stato.giorni_al_compleanno <= 6 && (
-              <span className="tag tag-tenue">compleanno {stato.giorni_al_compleanno === 0 ? 'oggi' : `tra ${stato.giorni_al_compleanno}g`}</span>
-            )}
-          </div>
-          {(() => {
-            // i corsi a colpo d'occhio: quelli in corso con i giorni, oppure l'ultimo abbonamento
-            const GG = ['', 'lun', 'mar', 'mer', 'gio', 'ven', 'sab', 'dom'];
-            const oggiS = new Date().toISOString().slice(0, 10);
-            const correnti = attive.filter((i) => !i.data_fine || i.data_fine >= oggiS);
-            if (correnti.length) return (
-              <div className="scheda-corsi"><span className="muto">Corsi:</span>
-                {correnti.map((i) => {
-                  const giorni = (i.iscrizioni_orari || []).map((x) => (orari || []).find((o) => o.id === x.orario_id)).filter(Boolean)
-                    .sort((a, b) => a.giorno_settimana - b.giorno_settimana).map((o) => `${GG[o.giorno_settimana]} ${String(o.ora_inizio).slice(0, 5)}`);
-                  return <span key={i.id} className="scheda-corso"><strong>{i.corsi?.nome}</strong>{giorni.length ? ` · ${giorni.join(', ')}` : ''}<span className="muto"> · fino al {dataBreve(i.data_fine)}</span></span>;
-                })}
-              </div>
-            );
-            const ultima = (iscrizioni || [])[0];
-            const ultimo = ultima ? { nome: `${ultima.corsi?.nome || ''} (${ultima.tipi_abbonamento?.nome || ''})`, al: ultima.data_fine }
-              : storico?.[0] ? { nome: storico[0].abbonamento, al: storico[0].al } : null;
-            return ultimo ? (
-              <div className="scheda-corsi"><span className="muto">Ultimo:</span><span className="scheda-corso"><strong>{ultimo.nome}</strong>{ultimo.al ? <span className="muto"> · fino al {dataBreve(ultimo.al)}</span> : null}</span></div>
-            ) : null;
-          })()}
-          {famiglia?.length > 0 && (
-            <div className="piccolo muto" style={{ marginTop: 4 }}>
-              In famiglia anche: {famiglia.map((f, i) => (
-                <span key={f.id}>{i > 0 && ', '}<Link prefetch={false} href={`/gestione/persone/${f.id}`}>{f.nome} {f.cognome}</Link></span>
-              ))}
+      {/* la testa della scheda: chi è e cosa fa, poi le azioni; sotto, i corsi e la famiglia in righe ordinate */}
+      <header className="sp-testa">
+        <div className="sp-chi">
+          {allievo.foto_url
+            ? <img src={allievo.foto_url} alt="" className="sp-foto" />
+            : <span className="sp-foto sp-iniziali">{(allievo.nome?.[0] || '') + (allievo.cognome?.[0] || '')}</span>}
+          <div className="sp-nome">
+            <h1>{allievo.cognome} {allievo.nome}</h1>
+            <div className="sp-sotto">
+              {allievo.data_nascita
+                ? <span>{etaAl(allievo.data_nascita)} anni · {nato} il {dataBreve(allievo.data_nascita)}</span>
+                : <span className="muto">data di nascita da inserire</span>}
+              {st && <span className={`tag tag-${st.tono}`}>{statoTesto(stato.stato, g)}</span>}
+              {stato?.certificato_scaduto && <span className="tag tag-rosso">certificato</span>}
+              {stato?.quota_mancante && <span className="tag tag-attenzione">quota da pagare</span>}
+              {stato?.senza_orari && <span className="tag tag-attenzione">giorni da assegnare</span>}
+              {stato?.giorni_al_compleanno != null && stato.giorni_al_compleanno <= 6 && (
+                <span className="tag tag-tenue">compleanno {stato.giorni_al_compleanno === 0 ? 'oggi' : `tra ${stato.giorni_al_compleanno}g`}</span>
+              )}
             </div>
-          )}
+          </div>
         </div>
-        <div className="azioni scheda-azioni">
-          <a className="btn btn-piccolo btn-primario" href="#nuova-iscrizione">Nuova iscrizione</a>
-          <Link prefetch={false} className="btn btn-piccolo" href={`/gestione/persone/${id}?incassa=1#pagamenti`}>Incassa</Link>
-          {wa && <a className="btn btn-piccolo" href={wa} target="_blank" rel="noreferrer">WhatsApp</a>}
-          {allievo.account?.email && <a className="btn btn-piccolo" href={`mailto:${allievo.account.email}`}>Email</a>}
+        <div className="sp-azioni">
+          <a className="btn btn-primario" href="#nuova-iscrizione">Nuova iscrizione</a>
+          <Link prefetch={false} className="btn" href={`/gestione/persone/${id}?incassa=1#pagamenti`}>Incassa</Link>
+          {wa && <a className="btn" href={wa} target="_blank" rel="noreferrer">WhatsApp</a>}
+          {allievo.account?.email && <a className="btn" href={`mailto:${allievo.account.email}`}>Email</a>}
         </div>
-      </div>
+        {(() => {
+          // i corsi a colpo d'occhio: quelli in corso con i giorni, oppure l'ultimo abbonamento
+          const GG = ['', 'lun', 'mar', 'mer', 'gio', 'ven', 'sab', 'dom'];
+          const oggiS = new Date().toISOString().slice(0, 10);
+          const correnti = attive.filter((i) => !i.data_fine || i.data_fine >= oggiS);
+          const ultima = (iscrizioni || [])[0];
+          const ultimo = correnti.length ? null : ultima ? { nome: `${ultima.corsi?.nome || ''} (${ultima.tipi_abbonamento?.nome || ''})`, al: ultima.data_fine }
+            : storico?.[0] ? { nome: storico[0].abbonamento, al: storico[0].al } : null;
+          if (!correnti.length && !ultimo && !famiglia?.length) return null;
+          return (
+            <dl className="sp-righe">
+              {correnti.length > 0 && <>
+                <dt>{correnti.length === 1 ? 'Corso' : 'Corsi'}</dt>
+                <dd>
+                  {correnti.map((i) => {
+                    const giorni = (i.iscrizioni_orari || []).map((x) => (orari || []).find((o) => o.id === x.orario_id)).filter(Boolean)
+                      .sort((a, b) => a.giorno_settimana - b.giorno_settimana).map((o) => `${GG[o.giorno_settimana]} ${String(o.ora_inizio).slice(0, 5)}`);
+                    return (
+                      <span key={i.id} className="sp-corso">
+                        <strong>{i.corsi?.nome}</strong>
+                        {giorni.length > 0 && <span>{giorni.join(' · ')}</span>}
+                        <span className="muto">fino al {dataBreve(i.data_fine)}</span>
+                      </span>
+                    );
+                  })}
+                </dd>
+              </>}
+              {ultimo && <>
+                <dt>Ultimo</dt>
+                <dd><span className="sp-corso"><strong>{ultimo.nome}</strong>{ultimo.al && <span className="muto">fino al {dataBreve(ultimo.al)}</span>}</span></dd>
+              </>}
+              {famiglia?.length > 0 && <>
+                <dt>Famiglia</dt>
+                <dd>{famiglia.map((f, i) => (
+                  <span key={f.id}>{i > 0 && ' · '}<Link prefetch={false} href={`/gestione/persone/${f.id}`}>{f.nome} {f.cognome}</Link></span>
+                ))}</dd>
+              </>}
+            </dl>
+          );
+        })()}
+      </header>
 
       <div className="riquadri">
         <div className={`riquadro${stato?.attivo ? '' : ' spento'}`}>
@@ -224,7 +239,6 @@ export default async function Persona({ params, searchParams }) {
 
         <aside>
           <Anagrafica allievo={allievo} linkCertificato={linkCertificato} ente={palestra?.ente?.nome} />
-          <div style={{ margin: '-6px 0 14px' }}><UnisciPersona palestraId={p} allievo={allievo} /></div>
 
           <section className="pannello">
             <h2>Etichette</h2>
@@ -274,6 +288,8 @@ export default async function Persona({ params, searchParams }) {
               </ul>
             </section>
           )}
+
+          <div className="sp-fondo"><UnisciPersona palestraId={p} allievo={allievo} /></div>
         </aside>
       </div>
     </div>

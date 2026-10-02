@@ -54,7 +54,7 @@ export default function Moduli({ palestraId, situazione, moduli, scelto, mancano
       <section className="pannello">
         <h2>I moduli</h2>
         <p className="piccolo muto" style={{ marginTop: -4 }}>
-          I tre testi di partenza sono una base: falli rivedere a chi vi segue per la parte legale prima di usarli.
+          I moduli «Iscrizione e tesseramento» e «Privacy, comunicazioni e immagini» riprendono il modulo d'iscrizione 2026/2027. Le scelte Acconsento / Non acconsento finiscono anche nella scheda di ogni persona.
         </p>
         <Gestore
           tabella="moduli" fissi={{ palestra_id: palestraId }} righe={moduli} etichettaNuovo="Aggiungi un modulo"
@@ -63,12 +63,15 @@ export default function Moduli({ palestraId, situazione, moduli, scelto, mancano
             { k: 'testo', etichetta: 'Testo da firmare', tipo: 'testolungo', obbligatorio: true },
             { k: 'per_chi', etichetta: 'Chi lo firma', tipo: 'select', opzioni: PER_CHI, obbligatorio: true },
             { k: 'obbligatorio', etichetta: 'Obbligatorio (se manca, alla reception compare un avviso)', tipo: 'check' },
+            { k: 'con_dati', etichetta: 'Mostra i dati dell\'iscritto sopra il testo (restano nella firma)', tipo: 'check', predefinito: false },
+            { k: 'secondo_genitore', etichetta: 'Per i minorenni firmano tutti e due i genitori', tipo: 'check', predefinito: false },
             { k: 'ordine', etichetta: 'Ordine', tipo: 'numero' },
             { k: 'attivo', etichetta: 'Attivo', tipo: 'check' },
           ]}
           riassunto={(x) => ({
             titolo: x.titolo,
-            dettaglio: [PER_CHI.find((p) => p.v === x.per_chi)?.l, `versione ${x.versione}`, x.obbligatorio ? 'obbligatorio' : 'facoltativo'].join(' · '),
+            dettaglio: [PER_CHI.find((p) => p.v === x.per_chi)?.l, `versione ${x.versione}`, x.obbligatorio ? 'obbligatorio' : 'facoltativo',
+              x.scelte?.length ? `scelte: ${x.scelte.map((s) => s.titolo).join(', ')}` : null, x.secondo_genitore ? 'due genitori' : null].filter(Boolean).join(' · '),
             tag: x.attivo ? null : 'non attivo',
           })}
         />

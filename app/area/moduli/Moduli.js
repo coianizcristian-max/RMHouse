@@ -35,8 +35,9 @@ export default function Moduli({ elenco }) {
                     : apri !== chiave && <button className="btn btn-piccolo btn-primario" onClick={() => setApri(chiave)}>Leggi e firma</button>}
                 </div>
                 {apri === chiave && (
-                  <FirmaModulo modulo={{ id: m.modulo_id, titolo: m.titolo, testo: m.testo }} allievo={a} minore={minore(a.data_nascita)}
-                               nomeSuggerito={`${a.nome} ${a.cognome}`} titolo={false} onFatto={() => { setApri(null); router.refresh(); }} />
+                  <FirmaModulo modulo={{ id: m.modulo_id, titolo: m.titolo, testo: m.testo, scelte: m.scelte, secondo_genitore: m.secondo_genitore, con_dati: m.con_dati }}
+                               allievo={a} minore={minore(a.data_nascita)}
+                               nomeSuggerito={minore(a.data_nascita) ? `${a.account?.nome || ''} ${a.account?.cognome || ''}`.trim() : `${a.nome} ${a.cognome}`} titolo={false} onFatto={() => { setApri(null); router.refresh(); }} />
                 )}
               </div>
             );

@@ -12,7 +12,7 @@ export default async function FirmaReception({ params, searchParams }) {
   const { supabase } = await staffCorrente();
   const [{ data: a }, { data: modulo }] = await Promise.all([
     supabase.from('allievi').select('id, nome, cognome, data_nascita, is_titolare, account ( nome, cognome )').eq('id', id).maybeSingle(),
-    supabase.from('moduli').select('id, titolo, testo').eq('id', m || '00000000-0000-0000-0000-000000000000').maybeSingle(),
+    supabase.from('moduli').select('id, titolo, testo, scelte, secondo_genitore, con_dati').eq('id', m || '00000000-0000-0000-0000-000000000000').maybeSingle(),
   ]);
   if (!a || !modulo) notFound();
   const minore = a.data_nascita && new Date(a.data_nascita) > new Date(new Date().setFullYear(new Date().getFullYear() - 18));

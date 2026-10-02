@@ -31,7 +31,7 @@ export default function Pagamenti({ pagamenti, ricevute, totaleStorico, incassa 
     <section className="pannello" id="pagamenti">
       <div className="pannello-testa">
         <h2>Pagamenti</h2>
-        {incassa && !aperto && <button type="button" className="btn btn-piccolo btn-primario" onClick={() => setAperto(true)}>Incassa</button>}
+        {incassa && !aperto && <button type="button" className="btn btn-piccolo" onClick={() => setAperto(true)}>Incassa</button>}
       </div>
       {incassa && aperto && (
         <IncassaPersona {...incassa} daIncassare={pagamenti.filter((p) => p.stato === 'in_attesa')} onChiudi={() => setAperto(false)} />
