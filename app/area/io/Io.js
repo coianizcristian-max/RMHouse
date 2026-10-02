@@ -162,7 +162,11 @@ export default function Io({ titolare, persone, anagrafica = [], richieste = [],
           <li><Link prefetch={false} href="/area/scuola">La scuola: contatti, orari, staff, corsi<span aria-hidden="true">›</span></Link></li>
           <li><button type="button" onClick={() => setFirme(!firme)}>Documenti firmati <span className="muto">({p.firme.length})</span><span aria-hidden="true">{firme ? '▴' : '›'}</span></button></li>
           {firme && p.firme.map((f, i) => (
-            <li key={`f${i}`} className="io-firma"><span>{f.titolo}</span><span className="muto">{dataBreve(f.quando)}</span></li>
+            <li key={`f${i}`} className="io-firma">
+              {f.id
+                ? <Link prefetch={false} href={`/area/firme/${f.id}`}><span>{f.titolo}</span><span className="muto">{dataBreve(f.quando)} ›</span></Link>
+                : <><span>{f.titolo}</span><span className="muto">{dataBreve(f.quando)}</span></>}
+            </li>
           ))}
           <li><Link prefetch={false} href="/area/pagamenti">Pagamenti e ricevute<span aria-hidden="true">›</span></Link></li>
           <li><Link prefetch={false} href="/area/eventi">Eventi e stage<span aria-hidden="true">›</span></Link></li>

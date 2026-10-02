@@ -64,7 +64,7 @@ export default async function Persona({ params, searchParams }) {
     supabase.from('iscrizioni').select('allievo_id, allievi!inner ( account_id )').eq('allievi.account_id', allievo.account_id)
       .eq('stato', 'attiva').neq('allievo_id', id),
     supabase.rpc('moduli_da_firmare', { p_allievo: id }),
-    supabase.from('firme').select('id, modulo_id, versione').eq('allievo_id', id),
+    supabase.from('firme').select('id, modulo_id, versione, titolo, firmato_at').eq('allievo_id', id).order('firmato_at', { ascending: false }),
     // i suoi pagamenti, più quelli della famiglia che non dicono per chi sono
     supabase.from('pagamenti').select('id, pagato_at, created_at, descrizione, importo_cent, metodo, stato, allievo_id')
       .eq('palestra_id', p).or(`allievo_id.eq.${id},and(account_id.eq.${allievo.account_id},allievo_id.is.null)`)
