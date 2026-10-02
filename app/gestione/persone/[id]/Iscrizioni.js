@@ -5,6 +5,7 @@ import { supabaseBrowser } from '@/lib/supabase/browser';
 import { dataBreve, euro } from '@/lib/formato';
 import AssegnaGiorni from '../../AssegnaGiorni';
 import AzioniIscrizione from './AzioniIscrizione';
+import CampoCerca from '../../CampoCerca';
 
 const GIORNI = ['', 'lun', 'mar', 'mer', 'gio', 'ven', 'sab', 'dom'];
 const ERRORI = {
@@ -135,33 +136,25 @@ export default function Iscrizioni({ allievoId, iscrizioni, corsi, tipi, orari, 
         <form onSubmit={crea} style={{ marginTop: 16, scrollMarginTop: 80 }} id="modulo-iscrizione">
           <div className="campo">
             <label htmlFor="corso">Corso</label>
-            <select id="corso" value={f.corso_id} onChange={(e) => setF({ ...f, corso_id: e.target.value, orari: [] })}>
-              <option value="">— scegli —</option>
-              {corsi.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}
-            </select>
+            <CampoCerca id="corso" valore={f.corso_id} onChange={(v) => setF({ ...f, corso_id: v, orari: [] })}
+                        placeholder="Scrivi il corso… (es. pole 1)"
+                        opzioni={corsi.map((c) => ({ value: c.id, label: c.nome }))} />
           </div>
           <div className="campo">
             <label htmlFor="tipo">Abbonamento</label>
-            <select id="tipo" value={f.tipo_abbonamento_id} onChange={set('tipo_abbonamento_id')}>
-              <option value="">— scegli —</option>
-              {(() => {
-                const adatti = f.corso_id
-                  ? tipi.filter((t) => t.tipi_abbonamento_corsi?.some((x) => x.corso_id === f.corso_id)) : [];
-                const altri = tipi.filter((t) => !adatti.includes(t));
-                const voce = (t) => <option key={t.id} value={t.id}>{t.nome} — {euro(t.prezzo_cent)}</option>;
-                const famiglie = [...new Set(altri.map((t) => t.famiglia || 'Altri'))];
-                return (
-                  <>
-                    {adatti.length > 0 && <optgroup label="Valgono per questo corso">{adatti.map(voce)}</optgroup>}
-                    {famiglie.map((fam) => (
-                      <optgroup key={fam} label={adatti.length ? `Altri · ${fam}` : fam}>
-                        {altri.filter((t) => (t.famiglia || 'Altri') === fam).map(voce)}
-                      </optgroup>
-                    ))}
-                  </>
-                );
-              })()}
-            </select>
+            {(() => {
+              // prima quelli che valgono per il corso scelto, poi gli altri per famiglia
+              const adatti = f.corso_id ? tipi.filter((t) => t.tipi_abbonamento_corsi?.some((x) => x.corso_id === f.corso_id)) : [];
+              const altri = tipi.filter((t) => !adatti.includes(t));
+              const voce = (t, gruppo) => ({ value: t.id, label: t.nome, extra: euro(t.prezzo_cent), gruppo });
+              const famiglie = [...new Set(altri.map((t) => t.famiglia || 'Altri'))];
+              const opzioni = [
+                ...adatti.map((t) => voce(t, 'Valgono per questo corso')),
+                ...famiglie.flatMap((fam) => altri.filter((t) => (t.famiglia || 'Altri') === fam).map((t) => voce(t, adatti.length ? `Altri · ${fam}` : fam))),
+              ];
+              return <CampoCerca id="tipo" valore={f.tipo_abbonamento_id} onChange={(v) => setF({ ...f, tipo_abbonamento_id: v })}
+                                 placeholder="Scrivi l'abbonamento… (es. pole 2 trim)" opzioni={opzioni} />;
+            })()}
           </div>
           {f.corso_id && tipo?.modalita === 'orari_fissi' && (
             <fieldset style={{ border: 0, padding: 0, margin: '0 0 16px' }}>

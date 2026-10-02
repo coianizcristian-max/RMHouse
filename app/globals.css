@@ -2546,3 +2546,22 @@ a.titolo-sala:hover { text-decoration: underline; text-underline-offset: 3px; }
 .accesso-app { display: inline-flex; flex-wrap: wrap; gap: 4px 6px; align-items: center; }
 .accesso-codice { display: inline-flex; flex-wrap: wrap; gap: 4px 8px; align-items: center; padding: 6px 10px; border-radius: 10px; background: var(--carta); }
 .accesso-codice strong { font-size: 18px; letter-spacing: .15em; color: var(--nero); font-variant-numeric: tabular-nums; }
+
+/* 084 — tendina con ricerca */
+.campo-cerca { position: relative; }
+.cc-riga { display: flex; align-items: center; border: 1px solid var(--linea); border-radius: 12px; background: var(--bianco); }
+.cc-riga.aperta, .cc-riga:focus-within { border-color: var(--nero); box-shadow: 0 0 0 1px var(--nero); }
+.cc-riga input { flex: 1; min-width: 0; border: 0 !important; box-shadow: none !important; background: transparent; outline: none; }
+.cc-apri, .cc-x { flex: none; width: 40px; align-self: stretch; border: 0; background: none; cursor: pointer; font-size: 16px; color: var(--testo-2); }
+.cc-x { width: 30px; font-size: 20px; }
+.cc-lista {
+  position: absolute; z-index: 30; left: 0; right: 0; top: calc(100% + 4px); margin: 0; padding: 4px; list-style: none;
+  max-height: min(360px, 55vh); overflow-y: auto; background: var(--bianco); border: 1px solid var(--linea);
+  border-radius: 12px; box-shadow: 0 12px 30px rgba(0, 0, 0, .14);
+}
+.cc-gruppo { padding: 8px 10px 4px; font-size: 11.5px; font-weight: 800; text-transform: uppercase; letter-spacing: .04em; color: var(--testo-2); }
+.cc-voce { display: flex; justify-content: space-between; gap: 10px; padding: 8px 10px; border-radius: 8px; cursor: pointer; font-size: 14.5px; }
+.cc-voce.attiva { background: var(--carta); }
+.cc-voce.scelta { font-weight: 750; color: var(--nero); }
+.cc-extra { flex: none; color: var(--testo-2); font-variant-numeric: tabular-nums; }
+.cc-vuoto { padding: 10px; color: var(--testo-2); font-size: 14px; }

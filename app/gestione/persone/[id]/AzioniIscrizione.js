@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabaseBrowser } from '@/lib/supabase/browser';
 import { dataBreve, euro, oggiISO } from '@/lib/formato';
+import CampoCerca from '../../CampoCerca';
 
 const ERRORI = {
   ha_presenze: 'Ha già delle presenze registrate: non si può eliminare. Puoi annullarla.',
@@ -69,9 +70,8 @@ function Modifica({ iscrizione, tipi, chiudi }) {
       {errore && <div className="errore" role="alert">{errore}</div>}
       <div className="campo">
         <label htmlFor={`t-${iscrizione.id}`}>Abbonamento</label>
-        <select id={`t-${iscrizione.id}`} value={f.tipo} onChange={(e) => cambia('tipo', e.target.value)}>
-          {elenco.map((t) => <option key={t.id} value={t.id}>{t.nome} — {euro(t.prezzo_cent)}</option>)}
-        </select>
+        <CampoCerca id={`t-${iscrizione.id}`} valore={f.tipo} onChange={(v) => v && cambia('tipo', v)}
+                    opzioni={elenco.map((t) => ({ value: t.id, label: t.nome, extra: euro(t.prezzo_cent) }))} />
       </div>
       <div className="ai-griglia">
         <div className="campo">
