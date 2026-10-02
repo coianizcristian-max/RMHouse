@@ -33,7 +33,7 @@ export default function FoglioLezione({ lezione, colore, gestione, onClose, aggi
     if (error) {
       setErrore(error.message?.includes('lezione_al_completo')
         ? 'Lezione al completo: alza i posti qui sotto, oppure forza.'
-        : 'Non aggiunto: controlla abbonamento e certificato.');
+        : 'Aggiunta non riuscita: controlla abbonamento e certificato.');
       return;
     }
     onClose(); router.refresh();

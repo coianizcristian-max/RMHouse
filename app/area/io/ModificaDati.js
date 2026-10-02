@@ -28,8 +28,8 @@ export default function ModificaDati({ d, onChiudi }) {
     <form className="io-dati" onSubmit={salva}>
       {d.titolare && <label><span>Telefono</span><input type="tel" inputMode="tel" value={f.telefono} onChange={set('telefono')} /></label>}
       <label><span>Codice fiscale</span><input value={f.codice_fiscale} onChange={set('codice_fiscale')} autoCapitalize="characters" maxLength={16} /></label>
-      <label className="io-metà"><span>Nato il</span><input type="date" value={f.data_nascita} onChange={set('data_nascita')} /></label>
-      <label className="io-metà"><span>a</span><input value={f.luogo_nascita} onChange={set('luogo_nascita')} placeholder="Comune" /></label>
+      <label className="io-metà"><span>Data di nascita</span><input type="date" value={f.data_nascita} onChange={set('data_nascita')} /></label>
+      <label className="io-metà"><span>Luogo di nascita</span><input value={f.luogo_nascita} onChange={set('luogo_nascita')} placeholder="Comune" /></label>
       <label className="io-metà"><span>Sesso</span>
         <select value={f.sesso} onChange={set('sesso')}><option value="">—</option><option value="F">Femmina</option><option value="M">Maschio</option></select>
       </label>

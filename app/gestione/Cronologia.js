@@ -59,7 +59,7 @@ const CAMPI = {
   ore_disdetta: 'ore per disdire', recuperi_max_mese: 'recuperi al mese', recupero_da: 'chi riceve il recupero',
   scadenza_recupero: 'validità del recupero', recupero_solo_disdetta: 'recupero solo a chi disdice', percentuale: 'percentuale',
   natura: 'natura IVA', predefinita: 'predefinita', usato_in: 'usato', descrizione: 'descrizione', pagato_at: 'pagato il',
-  codice_fiscale: 'codice fiscale', data_nascita: 'nato il', motivo: 'motivo', tipo: 'tipo', recupero_per_tutti: 'aperto a tutti',
+  codice_fiscale: 'codice fiscale', data_nascita: 'data di nascita', motivo: 'motivo', tipo: 'tipo', recupero_per_tutti: 'aperto a tutti',
 };
 // campi che puntano ad altre tabelle: si mostra il nome, non il codice
 const RIFERIMENTI = {

@@ -16,7 +16,7 @@ const LISTE = [
     'Ciao {nome}, com\'è andata la prova? Se vuoi continuare ti tengo il posto nel corso: scrivimi quando vuoi.'],
   ['richiamare', 'Da richiamare oggi', 'Chi hai deciso di risentire entro oggi.', 'Ciao {nome}, come promesso ti ricontatto…'],
 ];
-const ESITI = [['sentito', 'Sentito'], ['non_risponde', 'Non risponde'], ['richiamare', 'Da richiamare'], ['non_interessato', 'Non interessato']];
+const ESITI = [['sentito', 'Sentito'], ['non_risponde', 'Non risponde'], ['richiamare', 'Da richiamare'], ['non_interessato', 'Non interessato/a']];
 const wa = (t, testo) => `https://wa.me/39${(t || '').replace(/\D/g, '').replace(/^39/, '')}?text=${encodeURIComponent(testo)}`;
 
 export default function Ricontattare({ righe, lista, palestra }) {

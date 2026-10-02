@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { staffCorrente } from '@/lib/staff';
 import { STATI_CLIENTE } from '@/lib/stati';
+import { genere } from '@/lib/genere';
 import { CAMPANELLI, applicaFiltri } from '@/lib/filtriPersone';
 import ElencoPersone from './ElencoPersone';
 import FiltriPersone from './FiltriPersone';
@@ -31,6 +32,14 @@ export default async function Persone({ searchParams }) {
     supabase.rpc('conteggi_persone', { p_palestra: p }),
     supabase.from('etichette').select('id, nome, colore').eq('palestra_id', p).order('nome'),
   ]);
+
+  // maschile o femminile per lo stato di ogni riga ("Persa", "Iscritta"…): sesso o codice fiscale
+  const ids = (persone || []).map((x) => x.id);
+  const { data: generi } = ids.length
+    ? await supabase.from('allievi').select('id, sesso, codice_fiscale').in('id', ids)
+    : { data: [] };
+  const gDi = Object.fromEntries((generi || []).map((x) => [x.id, genere(x)]));
+  const personeG = (persone || []).map((x) => ({ ...x, genere: gDi[x.id] || null }));
 
   const link = (cambi) => {
     const u = new URLSearchParams(Object.entries({ q, stato, campanello, etichetta, ...cambi }).filter(([, v]) => v));
@@ -66,7 +75,7 @@ export default async function Persone({ searchParams }) {
           ))}
       </div>
 
-      <ElencoPersone palestraId={p} persone={persone || []} etichette={etichette || []} totale={count || 0} esporta={esporta} />
+      <ElencoPersone palestraId={p} persone={personeG} etichette={etichette || []} totale={count || 0} esporta={esporta} />
 
       {count > PER_PAGINA && (
         <div className="azioni" style={{ marginTop: 16, alignItems: 'center' }}>

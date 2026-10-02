@@ -73,7 +73,7 @@ export default function Scuola({ s }) {
         <span aria-hidden="true">›</span>
       </Link>
       <Link prefetch={false} href="/spazi" className="ac-recupero" style={{ background: 'var(--carta)' }}>
-        <span><strong>Prenota una sala</strong><span className="piccolo">per allenarti da solo o con il tuo gruppo</span></span>
+        <span><strong>Prenota una sala</strong><span className="piccolo">per allenarti per conto tuo o con il tuo gruppo</span></span>
         <span aria-hidden="true">›</span>
       </Link>
 

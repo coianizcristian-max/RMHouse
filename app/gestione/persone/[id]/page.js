@@ -2,7 +2,8 @@ import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import { staffCorrente } from '@/lib/staff';
 import { dataBreve, ora, etaAl, euro } from '@/lib/formato';
-import { STATI_CLIENTE } from '@/lib/stati';
+import { STATI_CLIENTE, statoTesto } from '@/lib/stati';
+import { genere } from '@/lib/genere';
 import Anagrafica from './Anagrafica';
 import Iscrizioni from './Iscrizioni';
 import Recuperi from './Recuperi';
@@ -80,7 +81,8 @@ export default async function Persona({ params, searchParams }) {
   const speso = spesoStorico + (pagamenti || []).filter((x) => x.stato === 'pagato').reduce((s, x) => s + x.importo_cent, 0);
   const tel = allievo.account?.telefono;
   const wa = whatsapp(tel);
-  const nato = allievo.sesso === 'F' ? 'nata' : 'nato';
+  const g = genere(allievo);
+  const nato = g === 'F' ? 'nata' : g === 'M' ? 'nato' : 'nato/a';
 
   const quotaValida = !!stato?.quota_valida_fino && stato.quota_valida_fino > new Date().toISOString().slice(0, 10);
 
@@ -98,7 +100,7 @@ export default async function Persona({ params, searchParams }) {
             {allievo.data_nascita
               ? <span>{etaAl(allievo.data_nascita)} anni · {nato} il {dataBreve(allievo.data_nascita)}</span>
               : <span className="muto">data di nascita da inserire</span>}
-            {st && <span className={`tag tag-${st.tono}`}>{st.testo}</span>}
+            {st && <span className={`tag tag-${st.tono}`}>{statoTesto(stato.stato, g)}</span>}
             {stato?.certificato_scaduto && <span className="tag tag-rosso">certificato</span>}
             {stato?.quota_mancante && <span className="tag tag-attenzione">quota da pagare</span>}
             {stato?.senza_orari && <span className="tag tag-attenzione">giorni da assegnare</span>}

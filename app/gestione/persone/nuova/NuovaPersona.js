@@ -160,7 +160,7 @@ export default function NuovaPersona({ palestraId }) {
 
       <div className="reg-modo" role="tablist">
         <button type="button" role="tab" aria-selected={!figlio} onClick={() => setF({ ...f, modo: 'adulto' })}>Si iscrive lui / lei</button>
-        <button type="button" role="tab" aria-selected={figlio} onClick={() => setF({ ...f, modo: 'figlio' })}>Un genitore iscrive un figlio</button>
+        <button type="button" role="tab" aria-selected={figlio} onClick={() => setF({ ...f, modo: 'figlio' })}>Un genitore iscrive un figlio o una figlia</button>
       </div>
 
       {errore && <div className="errore" role="alert">{errore}</div>}
@@ -233,8 +233,8 @@ export default function NuovaPersona({ palestraId }) {
 
           <div className="reg-azioni">
             <button className="btn btn-primario btn-grande" disabled={!!invio}>{invio === 'iscrivi' ? 'Salvo…' : 'Crea e iscrivi a un corso ↵'}</button>
-            <button type="button" className="btn" disabled={!!invio} onClick={() => salva('altro')}>Crea e registra un altro</button>
-            {figlio && <button type="button" className="btn" disabled={!!invio} onClick={() => salva('fratello')}>Crea e aggiungi un fratello</button>}
+            <button type="button" className="btn" disabled={!!invio} onClick={() => salva('altro')}>Crea e registra un'altra persona</button>
+            {figlio && <button type="button" className="btn" disabled={!!invio} onClick={() => salva('fratello')}>Crea e aggiungi un fratello o una sorella</button>}
             <button type="button" className="link-btn" disabled={!!invio} onClick={() => salva('scheda')}>Crea e apri la scheda</button>
           </div>
         </div>

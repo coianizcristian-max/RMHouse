@@ -9,12 +9,12 @@ const SOGLIE = [
   ['perso_giorni', 'Perso', 'giorni dopo la scadenza senza rinnovo', 30],
   ['inattivo_giorni', 'Inattivo', 'giorni senza presenze', 14],
   ['rientro_giorni', 'Rientrato', 'giorni di pausa prima di tornare', 60],
-  ['fedele_mesi', 'Iscritto da mesi', 'mesi dalla prima iscrizione', 3],
+  ['fedele_mesi', 'Iscritto/a da mesi', 'mesi dalla prima iscrizione', 3],
 ];
 const SCONTI = [
   ['piu_corsi_2', 'Secondo corso', 'stessa persona'],
   ['piu_corsi_3', 'Dal terzo corso', 'stessa persona'],
-  ['famiglia_2', 'Secondo della famiglia', 'fratelli, genitore e figlio…'],
+  ['famiglia_2', 'Secondo della famiglia', 'fratelli e sorelle, genitore e figlio o figlia…'],
   ['famiglia_3', 'Dal terzo della famiglia', ''],
 ];
 

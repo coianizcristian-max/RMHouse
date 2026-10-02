@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { supabaseBrowser } from '@/lib/supabase/browser';
 import SchermataAccesso from '../../SchermataAccesso';
 import Benvenuto from './Benvenuto';
+import { gx } from '@/lib/genere';
 
 // Accesso dei clienti:
 //  1. scrive l'email che ha lasciato in segreteria
@@ -12,7 +13,7 @@ import Benvenuto from './Benvenuto';
 //  password dimenticata → codice dalla segreteria ("in diretta") oppure link via email
 const VERIFICA = {
   telefono: ['Ultime 4 cifre del tuo cellulare', 'Quelle del numero che hai dato in segreteria', 'numeric', 4],
-  nascita: ['Data di nascita (tua o di tuo figlio)', 'Quella registrata in segreteria', 'date', null],
+  nascita: ['Data di nascita (tua, o di tuo figlio o tua figlia)', 'Quella registrata in segreteria', 'date', null],
   segreteria: ['Codice dalla segreteria', 'Chiedilo in segreteria: sono 6 cifre', 'numeric', 6],
 };
 
@@ -21,6 +22,7 @@ export default function Accedi({ errore: erroreIniziale, dove = '/area', emailIn
   const [email, setEmail] = useState(emailIniziale);
   const [verifica, setVerifica] = useState('telefono');
   const [nome, setNome] = useState('');
+  const [genere, setGenere] = useState(null);   // F | M | null: per dire "Benvenuta" o "Benvenuto"
   const [f, setF] = useState({ password: '', conferma: '', risposta: '', codice: '' });
   const [vedi, setVedi] = useState(false);
   const [errore, setErrore] = useState(erroreIniziale ? 'Il link non è più valido: riprova.' : '');
@@ -37,7 +39,7 @@ export default function Accedi({ errore: erroreIniziale, dove = '/area', emailIn
     const d = await r.json().catch(() => ({}));
     setInvio(false);
     if (!r.ok) { setErrore(d.errore || 'Riprova tra poco.'); return; }
-    setNome(d.nome || '');
+    setNome(d.nome || ''); setGenere(d.genere || null);
     if (d.stato === 'attiva') setPasso('password');
     else if (d.stato === 'da_attivare') { setVerifica(d.verifica || 'segreteria'); setPasso(d.verifica === 'segreteria' ? 'codice' : 'crea'); }
     else setPasso('sconosciuta');
@@ -94,7 +96,7 @@ export default function Accedi({ errore: erroreIniziale, dove = '/area', emailIn
   );
 
   if (passo === 'password') return (
-    <SchermataAccesso tipo="iscritti" titolo={nome ? `Ciao ${nome}!` : 'Bentornato!'} altra={altra}>
+    <SchermataAccesso tipo="iscritti" titolo={nome ? `Ciao ${nome}!` : 'Rieccoti!'} altra={altra}>
       {emailFissa}
       {errore && <div className="errore" role="alert">{errore}</div>}
       <form onSubmit={conPassword}>
@@ -111,7 +113,7 @@ export default function Accedi({ errore: erroreIniziale, dove = '/area', emailIn
     const [etichetta, aiuto, modo, max] = VERIFICA[passo === 'codice' ? 'segreteria' : verifica];
     const k = passo === 'codice' ? 'codice' : 'risposta';
     return (
-      <SchermataAccesso tipo="iscritti" titolo={passo === 'codice' ? 'Nuova password' : `Benvenuto${nome ? `, ${nome}` : ''}!`} altra={altra}
+      <SchermataAccesso tipo="iscritti" titolo={passo === 'codice' ? 'Nuova password' : `${gx(genere, 'Benvenuto', 'Benvenuta', 'Ti diamo il benvenuto')}${nome ? `, ${nome}` : ''}!`} altra={altra}
                         testo={passo === 'codice' ? 'Scrivi il codice che ti ha dato la segreteria e scegli la password.' : 'È il tuo primo accesso: conferma chi sei e scegli la password. Poi entri sempre con email e password.'}>
         {emailFissa}
         {errore && <div className="errore" role="alert">{errore}</div>}
@@ -159,7 +161,7 @@ export default function Accedi({ errore: erroreIniziale, dove = '/area', emailIn
     <SchermataAccesso tipo="iscritti" titolo="Non ti troviamo" altra={altra}>
       {emailFissa}
       <p className="accesso-testo">Questa email non è fra quelle registrate in segreteria. Forse ne hai lasciata un'altra: scrivici e la sistemiamo.</p>
-      <p className="accesso-testo">Non sei ancora iscritto? <Link href="/prova">Prenota una lezione di prova</Link>.</p>
+      <p className="accesso-testo">Non frequenti ancora? <Link href="/prova">Prenota una lezione di prova</Link>.</p>
     </SchermataAccesso>
   );
 

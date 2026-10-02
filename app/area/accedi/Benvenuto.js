@@ -32,7 +32,7 @@ export default function Benvenuto() {
          onTouchEnd={() => { if (spinta > 60) chiudi(); else setSpinta(0); inizio.current = null; }}
          onWheel={(e) => { if (e.deltaY > 10) chiudi(); }}
          onClick={chiudi}>
-      <h1>Benvenuto</h1>
+      <h1>Ciao!</h1>
       <img src="/logo.png" alt="Ritmo Metropolitano" className="bv-logo" />
       <button type="button" className="bv-scorri" onClick={chiudi}>
         <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M6 15l6-6 6 6" /></svg>

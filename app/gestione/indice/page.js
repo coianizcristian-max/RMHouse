@@ -78,7 +78,7 @@ const SEZIONI = [
       ['Rendiconto staff', '/gestione/rendiconto', 'Lezioni, ore, presenze e compenso stimato di ogni insegnante su un periodo libero.'],
       ['Per il commercialista', '/gestione/commercialista', 'Registro documenti, corrispettivi per giorno e aliquota, acquisti, incassi e compensi in un ZIP; aliquote IVA, numerazioni, attestati per la detrazione sportiva dei ragazzi.'],
       ['Statistiche e margini', '/gestione/statistiche', 'Iscritti, abbandono, riempimento, conversione delle prove, ricavi, costi e margine per corso, insegnante e sala.'],
-      ['Motivi di chi non si iscrive', '/gestione/statistiche', 'In fondo alle statistiche: le risposte del sondaggio mandato a chi ha provato e non si è iscritto.'],
+      ['Motivi di chi non si iscrive', '/gestione/statistiche', 'In fondo alle statistiche: le risposte del sondaggio mandato a chi ha provato senza poi iscriversi.'],
       ['Incassi', '/gestione/incassi', 'Quote, abbonamenti, prove e affitti incassati, totali per metodo e quello che resta da incassare.'],
       ['Ricevute', '/gestione/ricevute', 'Ricevute non fiscali con IVA a zero per quote e abbonamenti, numerate e stampabili.'],
       ['Fatture', '/gestione/fatture', 'Carichi gli XML dello SDI: le fatture dei fornitori diventano spese e si abbinano ai movimenti.'],
@@ -95,8 +95,8 @@ const SEZIONI = [
 const PUBBLICHE = [
   ['Prenotazione della prova', '/prova', 'Il percorso per chi arriva dal sito: età, categoria, livello, orario, dati e conferma.'],
   ['Affitto sala e feste', '/spazi', 'Disponibilità in tempo reale e preventivo automatico dal listino.'],
-  ['Caricamento del certificato', '/certificato', 'Ogni allievo ha il suo link personale: lo trovi nella sua scheda.'],
-  ['Sondaggio post-prova', '/feedback', 'Arriva per email a chi ha provato e non si è iscritto.'],
+  ['Caricamento del certificato', '/certificato', 'Ogni persona ha il suo link personale: lo trovi nella sua scheda.'],
+  ['Sondaggio post-prova', '/feedback', 'Arriva per email a chi ha provato senza poi iscriversi.'],
 ];
 
 export default async function Indice() {

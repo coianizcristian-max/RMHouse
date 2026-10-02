@@ -15,5 +15,5 @@ export async function POST(request) {
   if ((tentativi || 0) > 30) return NextResponse.json({ errore: 'Troppi tentativi: riprova tra un\'ora.' }, { status: 429 });
   const { data, error } = await db.rpc('stato_accesso', { p_email: email });
   if (error) return NextResponse.json({ errore: 'Riprova tra poco.' }, { status: 500 });
-  return NextResponse.json({ stato: data?.stato || 'sconosciuta', verifica: data?.verifica || null, nome: data?.nome || null });
+  return NextResponse.json({ stato: data?.stato || 'sconosciuta', verifica: data?.verifica || null, nome: data?.nome || null, genere: data?.genere || null });
 }

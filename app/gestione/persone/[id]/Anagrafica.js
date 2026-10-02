@@ -6,6 +6,7 @@ import { dataBreve } from '@/lib/formato';
 import Immagine from '../../Immagine';
 import CaricaCertificato from '../../../CaricaCertificato';
 import AccessoApp from './AccessoApp';
+import { genere } from '@/lib/genere';
 
 export default function Anagrafica({ allievo, linkCertificato, ente}) {
   const router = useRouter();
@@ -75,7 +76,7 @@ export default function Anagrafica({ allievo, linkCertificato, ente}) {
           {allievo.codice_fiscale && <><dt>Codice fiscale</dt><dd>{allievo.codice_fiscale}</dd></>}
           {a.codice_fiscale && a.codice_fiscale !== allievo.codice_fiscale && <><dt>CF di chi paga</dt><dd>{a.codice_fiscale}</dd></>}
           <dt>Tessera {ente || ''}</dt><dd>{allievo.tessera || <span className="muto">da inserire (Modifica)</span>}</dd>
-          {allievo.luogo_nascita && <><dt>Nato a</dt><dd>{allievo.luogo_nascita}</dd></>}
+          {allievo.luogo_nascita && <><dt>{{ F: 'Nata a', M: 'Nato a' }[genere(allievo)] || 'Luogo di nascita'}</dt><dd>{allievo.luogo_nascita}</dd></>}
           <dt>Certificato</dt>
           <dd>
             {allievo.certificato_scadenza

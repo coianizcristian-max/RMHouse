@@ -8,7 +8,7 @@ import { dataBreve, euro } from '@/lib/formato';
 const GIORNI = ['', 'Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab', 'Dom'];
 const ERRORI = {
   iscrizione_gia_attiva: 'Ha già un abbonamento attivo per questo corso: controlla la scheda.',
-  richiesta_non_trovata: 'Qualcun altro l\'ha già gestita.',
+  richiesta_non_trovata: 'Un\'altra persona dello staff l\'ha già gestita.',
 };
 
 export default function Richieste({ richieste, vista, orari }) {

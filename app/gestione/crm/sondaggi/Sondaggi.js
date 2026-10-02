@@ -48,7 +48,7 @@ export default function Sondaggi({ palestraId, sondaggi }) {
       <div className="intestazione">
         <div className="occhiello">Persone</div>
         <h1>Sondaggi</h1>
-        <p>Prepari le domande qui, poi li mandi con una Campagna: ognuno riceve il suo link e può rispondere una volta sola.</p>
+        <p>Prepari le domande qui, poi li mandi con una Campagna: ogni persona riceve il suo link e può rispondere una volta sola.</p>
       </div>
       {errore && <div className="errore" role="alert">{errore}</div>}
 

@@ -18,7 +18,7 @@ export default async function LayoutGestione({ children }) {
         <Testata />
         <main className="pagina">
           <h1>Accesso non abilitato</h1>
-          <p>L'utente {user.email} non è ancora registrato come staff. Chiedi all'amministratore di abilitarti.</p>
+          <p>L'account {user.email} non è ancora abilitato fra lo staff. Chiedi a chi amministra il gestionale di abilitarlo.</p>
         </main>
       </>
     );

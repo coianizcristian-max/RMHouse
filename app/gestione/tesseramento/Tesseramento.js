@@ -6,7 +6,7 @@ import { supabaseBrowser } from '@/lib/supabase/browser';
 import { scaricaCsv } from '@/lib/stati';
 import { dataBreve } from '@/lib/formato';
 
-const STATI = { da_inviare: ['da mandare all\'ente', 'tag-attenzione'], inviato: ['mandato, attende il numero', 'tag-neutro'], tesserato: ['tesserato', 'tag-ok'] };
+const STATI = { da_inviare: ['da mandare all\'ente', 'tag-attenzione'], inviato: ['mandato, attende il numero', 'tag-neutro'], tesserato: ['tessera fatta', 'tag-ok'] };
 const FILTRI = [['tutti', 'Tutti'], ['senza', 'Senza tessera'], ['da_inviare', 'Da mandare'], ['inviato', 'Mandati'], ['tesserato', 'Tesserati'], ['dati', 'Dati mancanti']];
 
 export default function Tesseramento({ palestra, stagione, corrente, righe }) {
@@ -100,7 +100,7 @@ export default function Tesseramento({ palestra, stagione, corrente, righe }) {
               <input id="af" value={ente.affiliazione} onChange={(e) => setEnte({ ...ente, affiliazione: e.target.value })} /></div>
           </div>
           <label className="spunta"><input type="checkbox" checked={!!ente.quota_comprende_tessera} onChange={(e) => setEnte({ ...ente, quota_comprende_tessera: e.target.checked })} />
-            <span>La quota annuale comprende la tessera: chi paga la quota finisce da solo fra i "da mandare"</span></label>
+            <span>La quota annuale comprende la tessera: chi paga la quota finisce in automatico fra i "da mandare"</span></label>
           <button className="btn btn-primario">Salva</button>
         </form>
       )}

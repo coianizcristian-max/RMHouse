@@ -88,7 +88,7 @@ export default function Compensi({ palestraId, righe, anno, mese }) {
       <div className="intestazione">
         <div className="occhiello">Conti</div>
         <h1>Compensi insegnanti</h1>
-        <p>Le ore davvero svolte, il compenso di ciascuno, e cosa resta da pagare a fine mese.</p>
+        <p>Le ore davvero svolte, il compenso di ogni persona, e cosa resta da pagare a fine mese.</p>
       </div>
 
       {errore && <div className="errore" role="alert">{errore}</div>}

@@ -7,7 +7,7 @@ import { dataBreve, ora, euro } from '@/lib/formato';
 
 const MOTIVI = {
   posti_esauriti: 'I posti sono finiti.',
-  gia_iscritto: 'Risulta già iscritto.',
+  gia_iscritto: 'L\'iscrizione a questo evento c\'è già.',
   evento_non_prenotabile: 'Per questo evento le iscrizioni non sono aperte.',
   evento_gia_passato: 'Questo evento è già passato.',
 };

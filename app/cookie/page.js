@@ -28,7 +28,7 @@ export default async function Cookie() {
           <table className="tabella">
             <thead><tr><th>Nome</th><th>A cosa serve</th><th>Durata</th></tr></thead>
             <tbody>
-              <tr><td>sb-…-auth-token</td><td>Tiene aperto l'accesso all'area clienti o al gestionale dopo che sei entrato.</td><td>Fino all'uscita o alla scadenza della sessione</td></tr>
+              <tr><td>sb-…-auth-token</td><td>Tiene aperto l'accesso all'area clienti o al gestionale dopo l'accesso.</td><td>Fino all'uscita o alla scadenza della sessione</td></tr>
               <tr><td>Memoria del browser (localStorage)</td><td>Ricorda piccole scelte di visualizzazione, per esempio la vista dell'elenco.</td><td>Finché non la cancelli</td></tr>
               <tr><td>Service worker / cache dell'app</td><td>Fa aprire l'app più in fretta e permette le notifiche, solo se le hai attivate tu.</td><td>Finché non la cancelli</td></tr>
             </tbody>

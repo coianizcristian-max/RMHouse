@@ -38,7 +38,7 @@ export default function Personal({ insegnanti, allievi }) {
 
   async function invia() {
     if (!aMano && scelti.length === 0) { setErrore('Tocca almeno un orario.'); return; }
-    if (aMano && giorni.length === 0 && !nota.trim()) { setErrore('Dicci almeno in che giorni sei libero.'); return; }
+    if (aMano && giorni.length === 0 && !nota.trim()) { setErrore('Dicci almeno in che giorni hai tempo.'); return; }
     const quando = aMano
       ? [giorni.length ? giorni.join(', ') : null, fasce.length ? fasce.join(' o ') : null].filter(Boolean).join(' · ') || nota
       : scelti.slice().sort().map((s) => `${giornoLungo(s)} ${oraDi(s)}`).join(' · ');
@@ -64,7 +64,7 @@ export default function Personal({ insegnanti, allievi }) {
   return (
     <div className="area-casa area-personal">
       <div className="ac-testa"><h1>Lezione privata</h1>
-        <p className="ac-nota" style={{ margin: '2px 0 0' }}>Tocca l'insegnante: vedi quando è libero e scegli uno o più orari. La segreteria ti conferma.</p>
+        <p className="ac-nota" style={{ margin: '2px 0 0' }}>Tocca l'insegnante: vedi i suoi orari liberi e scegline uno o più. La segreteria ti conferma.</p>
       </div>
       {allievi.length > 1 && (
         <div className="ac-giorni" role="group" aria-label="Per chi">
@@ -107,13 +107,13 @@ export default function Personal({ insegnanti, allievi }) {
                   </div>
                 ))}
               </div>
-              <button type="button" className="link-btn piccolo" onClick={() => setAMano(true)}>Nessun orario va bene? Dicci tu quando sei libero</button>
+              <button type="button" className="link-btn piccolo" onClick={() => setAMano(true)}>Nessun orario va bene? Dicci tu quando puoi</button>
             </>
           )}
 
           {aMano && (
             <>
-              <span className="aq-etichetta">{p.disponibile && slot?.length === 0 ? `${p.nome.split(' ')[0]} non ha orari liberi nelle prossime settimane: dicci` : 'Dicci'} quando sei libero</span>
+              <span className="aq-etichetta">{p.disponibile && slot?.length === 0 ? `${p.nome.split(' ')[0]} non ha orari liberi nelle prossime settimane: dicci` : 'Dicci'} quando puoi</span>
               <div className="aq-chips">{GIORNI.map((g) => <button key={g} type="button" aria-pressed={giorni.includes(g)} onClick={() => alterna(giorni, setGiorni, g)}>{g}</button>)}</div>
               <div className="aq-chips">{FASCE.map((g) => <button key={g} type="button" aria-pressed={fasce.includes(g)} onClick={() => alterna(fasce, setFasce, g)}>{g}</button>)}</div>
               {p.disponibile && slot?.length > 0 && <button type="button" className="link-btn piccolo" onClick={() => setAMano(false)}>Torna agli orari liberi</button>}

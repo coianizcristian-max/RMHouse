@@ -103,7 +103,7 @@ export default function Bacheca({ palestraId, righe }) {
             <label htmlFor="v">Visibilità</label>
             <select id="v" value={f.visibilita} onChange={set('visibilita')}>
               <option value="pubblico">Pubblico: lo vedono tutti</option>
-              <option value="privato">Privato: solo chi è iscritto</option>
+              <option value="privato">Privato: solo chi frequenta</option>
               <option value="nascosto">Nascosto: bozza</option>
             </select>
           </div>

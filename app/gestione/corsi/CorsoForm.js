@@ -113,7 +113,7 @@ export default function CorsoForm({ palestraId, corso, discipline, fasce, livell
               <div className={`campo ${sedi.length > 1 ? 'cf-3' : 'cf-6'}`}><label htmlFor="vis">Visibilità</label>
                 <select id="vis" value={f.visibilita} onChange={set('visibilita')}>
                   <option value="pubblico">Pubblico: visibile sul sito</option>
-                  <option value="privato">Privato: solo per chi è già iscritto</option>
+                  <option value="privato">Privato: solo per chi frequenta già</option>
                   <option value="nascosto">Nascosto: lo vede solo lo staff</option>
                 </select></div>
               {sedi.length > 1 && (

@@ -20,11 +20,11 @@ export default function Aggiungi({ corsi }) {
   }
 
   async function metti(p) {
-    if (p.gia_iscritto && !confirm(`${p.nome} ${p.cognome} è già iscritto a questo corso. Metterlo comunque in coda?`)) return;
+    if (p.gia_iscritto && !confirm(`${p.nome} ${p.cognome} ha già l'iscrizione a questo corso. Mettere comunque in coda?`)) return;
     const { error } = await supabaseBrowser().rpc('aggiungi_in_attesa', {
       p_allievo: p.allievo_id, p_corso: corso, p_lezione: null, p_tipo: 'iscrizione',
     });
-    if (error) { setErrore('Non è stato possibile metterlo in coda.'); return; }
+    if (error) { setErrore('Non è stato possibile mettere in coda.'); return; }
     setApri(false); setCerca(''); setTrovati([]); router.refresh();
   }
 
@@ -52,7 +52,7 @@ export default function Aggiungi({ corsi }) {
             <span>
               {p.cognome} {p.nome}
               <span className="piccolo muto" style={{ display: 'block' }}>
-                paga {p.titolare}{p.gia_iscritto ? ' · già iscritto a questo corso' : ''}
+                paga {p.titolare}{p.gia_iscritto ? ' · ha già l\'iscrizione a questo corso' : ''}
               </span>
             </span>
             <button className="link-btn piccolo" onClick={() => metti(p)}>metti in coda</button>

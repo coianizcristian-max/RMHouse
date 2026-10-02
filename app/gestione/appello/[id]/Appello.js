@@ -99,7 +99,7 @@ export default function Appello({ lezioneId, palestraId, persone, corsoNome = ''
     });
     if (error) { setErrore('Operazione non riuscita.'); return; }
     if (data === 'iscritto_al_corso') {
-      setErrore('È iscritto al corso: per toglierlo da tutte le lezioni vai sulla sua scheda.');
+      setErrore('Ha l\'iscrizione al corso: per toglierla da tutte le lezioni vai sulla sua scheda.');
       return;
     }
     router.refresh();

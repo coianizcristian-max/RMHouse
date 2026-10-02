@@ -11,7 +11,7 @@ const GIORNI = ['', 'lun', 'mar', 'mer', 'gio', 'ven', 'sab', 'dom'];
 const ERRORI = {
   iscrizione_gia_attiva: 'Questa persona è già iscritta a questo corso nel periodo indicato.',
   orario_non_del_corso: "Uno degli orari scelti non appartiene al corso.",
-  allievo_non_trovato: 'Allievo non trovato.',
+  allievo_non_trovato: 'Persona non trovata.',
 };
 
 export default function Iscrizioni({ allievoId, iscrizioni, corsi, tipi, orari, quotaCent, sconti = {}, famigliaIscritta = 0, apriSubito = false }) {

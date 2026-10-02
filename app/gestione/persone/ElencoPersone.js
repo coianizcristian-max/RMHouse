@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { supabaseBrowser } from '@/lib/supabase/browser';
 import { dataBreve, etaAl } from '@/lib/formato';
-import { STATI_CLIENTE, scaricaCsv } from '@/lib/stati';
+import { STATI_CLIENTE, statoTesto, scaricaCsv } from '@/lib/stati';
 
 // Elenco con spunte: chi selezioni finisce nella barra d'azioni in basso
 export default function ElencoPersone({ palestraId, persone, etichette, totale, esporta }) {
@@ -35,7 +35,7 @@ export default function ElencoPersone({ palestraId, persone, etichette, totale, 
     scaricaCsv('persone-selezionate.csv',
       ['Cognome', 'Nome', 'Nascita', 'Chi paga', 'Email', 'Telefono', 'Stato', 'Abbonamento fino al', 'Certificato fino al', 'Etichette'],
       selezionate.map((p) => [p.cognome, p.nome, p.data_nascita || '', p.is_titolare ? '' : `${p.titolare_nome} ${p.titolare_cognome}`.trim(),
-        p.email || '', p.telefono || '', STATI_CLIENTE[p.stato]?.testo || p.stato, p.fine_prossima || p.ultima_fine || '',
+        p.email || '', p.telefono || '', statoTesto(p.stato, p.genere), p.fine_prossima || p.ultima_fine || '',
         p.certificato_scadenza || '', (p.etichette || []).join(', ')]));
   }
 
@@ -107,7 +107,7 @@ export default function ElencoPersone({ palestraId, persone, etichette, totale, 
                         </div>
                       )}
                     </td>
-                    <td><span className={`tag tag-${st?.tono || 'neutro'}`}>{st?.testo || p.stato}</span></td>
+                    <td><span className={`tag tag-${st?.tono || 'neutro'}`}>{statoTesto(p.stato, p.genere)}</span></td>
                     <td className="col-desktop piccolo">
                       {p.fine_prossima ? <>fino al {dataBreve(p.fine_prossima)}</>
                         : p.ultima_fine ? <span className="muto">finito il {dataBreve(p.ultima_fine)}</span> : <span className="muto">—</span>}

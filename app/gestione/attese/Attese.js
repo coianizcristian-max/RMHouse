@@ -53,7 +53,7 @@ export default function Attese({ righe, conta, corsi, stato }) {
       <div className="intestazione">
         <div className="occhiello">Ogni giorno</div>
         <h1>Liste d'attesa</h1>
-        <p>Chi aspetta un posto. Quando qualcuno lascia il corso o disdice una lezione, il primo della coda viene avvisato da solo.</p>
+        <p>Chi aspetta un posto. Quando qualcuno lascia il corso o disdice una lezione, la prima persona in coda riceve l'avviso in automatico.</p>
       </div>
 
       {errore && <div className="errore" role="alert">{errore}</div>}
@@ -115,9 +115,9 @@ export default function Attese({ righe, conta, corsi, stato }) {
                 {r.cognome} {r.nome}
               </Link>
               {r.stato === 'in_attesa' && <span className="tag tag-neutro">{r.posizione}ª in coda</span>}
-              {r.stato === 'avvisato' && <span className="tag tag-attenzione">avvisato il {dataBreve(r.avvisato_at)}</span>}
+              {r.stato === 'avvisato' && <span className="tag tag-attenzione">avvisato/a il {dataBreve(r.avvisato_at)}</span>}
               {r.esito && <span className="tag tag-ok">{r.esito}</span>}
-              {r.gia_iscritto && <span className="tag tag-ok">già iscritto</span>}
+              {r.gia_iscritto && <span className="tag tag-ok">ha già l'iscrizione</span>}
             </span>
 
             <span className="riga">
@@ -135,8 +135,8 @@ export default function Attese({ righe, conta, corsi, stato }) {
                   {r.stato === 'avvisato' ? 'Riavvisa' : 'Avvisa: posto libero'}
                 </button>
                 {r.telefono && <a className="link-btn piccolo" href={wa(r.telefono)} target="_blank" rel="noreferrer">WhatsApp</a>}
-                <Link prefetch={false} className="link-btn piccolo" href={`/gestione/persone/${r.allievo_id}`}>Iscrivilo</Link>
-                <button className="link-btn piccolo" disabled={invio} onClick={() => chiudi(r, 'iscritto')}>Si è iscritto</button>
+                <Link prefetch={false} className="link-btn piccolo" href={`/gestione/persone/${r.allievo_id}`}>Iscrivi</Link>
+                <button className="link-btn piccolo" disabled={invio} onClick={() => chiudi(r, 'iscritto')}>Iscrizione fatta</button>
                 <button className="link-btn piccolo pericolo" disabled={invio} onClick={() => chiudi(r, 'rinunciato')}>Ha rinunciato</button>
               </span>
             )}

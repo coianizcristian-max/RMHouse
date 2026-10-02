@@ -17,7 +17,7 @@ const ESITI = [
   ['sentito', 'Sentito'],
   ['non_risponde', 'Non risponde'],
   ['richiamare', 'Da richiamare'],
-  ['non_interessato', 'Non interessato'],
+  ['non_interessato', 'Non interessato/a'],
 ];
 
 export default function Lead({ righe, conta, vista }) {
@@ -50,7 +50,7 @@ export default function Lead({ righe, conta, vista }) {
   async function stato(r, nuovo) {
     let motivo = null;
     if (nuovo === 'perso') {
-      motivo = prompt('Perché non si è iscritto? (resta nelle statistiche)');
+      motivo = prompt(`Perché ${r.nome} non si è iscritto/a? (resta nelle statistiche)`);
       if (motivo === null) return;
     } else if (!confirm(`Segnare ${r.nome} ${r.cognome} come ${STATI_LEAD[nuovo] || nuovo}?`)) return;
 
@@ -153,7 +153,7 @@ export default function Lead({ righe, conta, vista }) {
                 {r.email && <a className="link-btn piccolo" href={`mailto:${r.email}`}>Email</a>}
                 <button className="link-btn piccolo" onClick={() => apriContatto(r, 'whatsapp')}>Segna contatto</button>
                 {r.stato_lead !== 'iscritto' && (
-                  <button className="link-btn piccolo" onClick={() => stato(r, 'iscritto')}>Si è iscritto</button>
+                  <button className="link-btn piccolo" onClick={() => stato(r, 'iscritto')}>Iscrizione fatta</button>
                 )}
                 {r.stato_lead !== 'perso' && (
                   <button className="link-btn piccolo pericolo" onClick={() => stato(r, 'perso')}>Non convertito</button>
@@ -187,7 +187,7 @@ export default function Lead({ righe, conta, vista }) {
                   <div className="campo">
                     <label htmlFor={`p-${r.id}`}>Richiamare il</label>
                     <input id={`p-${r.id}`} type="date" value={f.prossimo} onChange={set('prossimo')} />
-                    <span className="piccolo muto">Lascia vuoto se non serve richiamarlo.</span>
+                    <span className="piccolo muto">Lascia vuoto se non serve richiamare.</span>
                   </div>
                   <div className="azioni">
                     <button className="btn btn-primario" disabled={invio}>Salva il contatto</button>

@@ -53,7 +53,7 @@ function Modulo() {
 export default function Login() {
   return (
     <SchermataAccesso tipo="staff" titolo="Bentornato" testo="Segreteria e insegnanti: entra con la tua email e la password."
-                      altra={{ href: '/area/accedi', titolo: 'Sei un allievo o un genitore?', testo: 'Entra nella tua area: basta l\'email' }}>
+                      altra={{ href: '/area/accedi', titolo: 'Frequenti i corsi o sei un genitore?', testo: 'Entra nella tua area: basta l\'email' }}>
       <Suspense><Modulo /></Suspense>
     </SchermataAccesso>
   );
