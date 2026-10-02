@@ -2971,3 +2971,20 @@ html[data-tema="scuro"]:has(.pagina-area) {
 .bv-dentro { display: grid; grid-template-rows: auto 1fr auto; justify-items: center; align-items: center; width: 100%; height: 100%; transition: transform .45s cubic-bezier(.6, 0, .2, 1), opacity .45s; }
 .benvenuto.parte .bv-dentro { transform: translateY(-40%); opacity: 0; }
 .benvenuto { grid-template-rows: 1fr; }
+
+/* ==================================================================
+   102 — invito ad attivare le notifiche al primo ingresso
+   ================================================================== */
+.cn-sfondo { position: fixed; inset: 0; z-index: 60; background: rgba(0, 0, 0, .4); display: flex; align-items: flex-end; justify-content: center; animation: cn-entra .25s ease both; }
+.cn-foglio {
+  width: 100%; max-width: 440px; background: var(--bianco); color: var(--testo); border-radius: 20px 20px 0 0;
+  display: grid; justify-items: center; gap: 10px; text-align: center;
+  padding: 22px 20px calc(20px + env(safe-area-inset-bottom, 0px)); animation: cn-sale .3s ease both;
+}
+.cn-foglio strong { font-size: 19px; color: var(--nero); }
+.cn-foglio p { margin: 0 0 6px; font-size: 14.5px; color: var(--testo-2); line-height: 1.45; }
+.cn-foglio .btn { width: 100%; }
+.cn-icona { width: 52px; height: 52px; border-radius: 50%; display: grid; place-items: center; background: var(--rosso); color: #fff; }
+@media (min-width: 900px) { .cn-sfondo { align-items: center; } .cn-foglio { border-radius: 20px; } }
+@keyframes cn-entra { from { opacity: 0; } to { opacity: 1; } }
+@keyframes cn-sale { from { transform: translateY(40px); } to { transform: none; } }

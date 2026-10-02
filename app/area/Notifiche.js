@@ -1,16 +1,10 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { supabaseBrowser } from '@/lib/supabase/browser';
+import { iscriviPush } from '@/lib/push';
 
 // Attivazione delle notifiche sul telefono.
 // Su iPhone funzionano solo se il sito è stato aggiunto alla schermata iniziale.
-const base64ToUint8 = (base64) => {
-  const pad = '='.repeat((4 - (base64.length % 4)) % 4);
-  const b = (base64 + pad).replace(/-/g, '+').replace(/_/g, '/');
-  const raw = atob(b);
-  return Uint8Array.from([...raw].map((c) => c.charCodeAt(0)));
-};
-
 const TIPI = [
   ['lezioni', 'Lezioni', 'la sera prima: "Domani hai…", e se una lezione viene annullata'],
   ['scadenze', 'Scadenze', 'abbonamento, certificato medico, recuperi da usare'],
@@ -41,6 +35,10 @@ export default function Notifiche({ preferenze = null }) {
       .then((reg) => reg.pushManager.getSubscription())
       .then((sub) => setStato(sub ? 'attive' : 'spente'))
       .catch(() => setStato('non_supportate'));
+    // attivate dall'invito al primo ingresso: il riquadro si aggiorna da solo
+    const attivate = () => setStato('attive');
+    window.addEventListener('rm-push-attive', attivate);
+    return () => window.removeEventListener('rm-push-attive', attivate);
   }, []);
 
   async function attiva() {
@@ -49,17 +47,7 @@ export default function Notifiche({ preferenze = null }) {
     if (permesso !== 'granted') { setErrore('Le notifiche sono state bloccate dal telefono.'); return; }
 
     try {
-      const reg = (await navigator.serviceWorker.getRegistration('/area/')) || (await navigator.serviceWorker.ready);
-      const sub = await reg.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: base64ToUint8(process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY),
-      });
-      const j = sub.toJSON();
-      const { error } = await supabaseBrowser().rpc('registra_push', {
-        p_endpoint: sub.endpoint, p_p256dh: j.keys.p256dh, p_auth: j.keys.auth,
-        p_dispositivo: navigator.userAgent.slice(0, 120),
-      });
-      if (error) throw error;
+      await iscriviPush();
       setStato('attive');
     } catch (e) {
       setErrore('Non è stato possibile attivarle. Riprova più tardi.');

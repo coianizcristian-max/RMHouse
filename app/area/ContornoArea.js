@@ -6,6 +6,7 @@ import Testata from '../Testata';
 import Benvenuto from './accedi/Benvenuto';
 import MenuArea from './MenuArea';
 import MenuLaterale from './MenuLaterale';
+import ChiediNotifiche from './ChiediNotifiche';
 import { useEffect, useState } from 'react';
 
 // Testata e menù dell'area clienti, tranne che nella pagina di accesso (che ha la sua impaginazione)
@@ -42,6 +43,7 @@ export default function ContornoArea({ children }) {
         </span>
       } />
       <Benvenuto />
+      <ChiediNotifiche />
       <MenuLaterale aperto={menu} chiudi={() => setMenu(false)} esci={esci} />
       <MenuArea />
       <main className="pagina pagina-area">{children}</main>
