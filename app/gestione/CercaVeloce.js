@@ -4,11 +4,11 @@ import { useRouter } from 'next/navigation';
 import { supabaseBrowser } from '@/lib/supabase/browser';
 
 // Cerca un cliente e apri la scheda, oppure scegli per chi fare una nuova iscrizione
-export default function CercaVeloce({ palestraId }) {
+export default function CercaVeloce({ palestraId, modoIniziale = 'scheda' }) {
   const router = useRouter();
   const [testo, setTesto] = useState('');
   const [trovati, setTrovati] = useState([]);
-  const [modo, setModo] = useState('scheda');   // scheda | iscrivi
+  const [modo, setModo] = useState(modoIniziale);   // scheda | iscrivi | incassa
   const [attivo, setAttivo] = useState(-1);
   const campo = useRef(null);
 
@@ -24,22 +24,23 @@ export default function CercaVeloce({ palestraId }) {
     return () => clearTimeout(timer);
   }, [testo, palestraId]);
 
-  const vai = (p) => router.push(`/gestione/persone/${p.id}${modo === 'iscrivi' ? '?iscrivi=1' : ''}`);
+  useEffect(() => { if (modoIniziale !== 'scheda') campo.current?.focus(); }, [modoIniziale]);
+  const vai = (p) => router.push(`/gestione/persone/${p.id}${modo === 'iscrivi' ? '?iscrivi=1' : modo === 'incassa' ? '?incassa=1#pagamenti' : ''}`);
 
   return (
     <div className="cerca-veloce">
       <div className="cv-riga">
         <input ref={campo} value={testo} onChange={(e) => setTesto(e.target.value)} type="search" autoComplete="off"
-               placeholder={modo === 'iscrivi' ? 'Chi iscrivi? Scrivi nome o cognome' : 'Cerca un cliente: nome, cognome, email, telefono'}
+               placeholder={modo === 'iscrivi' ? 'Chi iscrivi? Scrivi nome o cognome' : modo === 'incassa' ? 'Chi paga? Scrivi nome o cognome' : 'Cerca un cliente: nome, cognome, email, telefono'}
                aria-label="Cerca un cliente"
                onKeyDown={(e) => {
                  if (e.key === 'ArrowDown') { e.preventDefault(); setAttivo((a) => Math.min(a + 1, trovati.length - 1)); }
                  if (e.key === 'ArrowUp') { e.preventDefault(); setAttivo((a) => Math.max(a - 1, 0)); }
                  if (e.key === 'Enter' && trovati.length) { e.preventDefault(); vai(trovati[Math.max(attivo, 0)]); }
                }} />
-        <button type="button" className={`btn${modo === 'iscrivi' ? ' btn-primario' : ''}`}
-                onClick={() => { setModo(modo === 'iscrivi' ? 'scheda' : 'iscrivi'); campo.current?.focus(); }}>
-          {modo === 'iscrivi' ? 'Nuova iscrizione: scegli la persona' : 'Nuova iscrizione'}
+        <button type="button" className={`btn${modo !== 'scheda' ? ' btn-primario' : ''}`}
+                onClick={() => { setModo(modo === 'scheda' ? 'iscrivi' : 'scheda'); campo.current?.focus(); }}>
+          {modo === 'iscrivi' ? 'Nuova iscrizione: scegli la persona' : modo === 'incassa' ? 'Incassa: scegli chi paga ✕' : 'Nuova iscrizione'}
         </button>
       </div>
       {trovati.length > 0 && (
@@ -52,7 +53,7 @@ export default function CercaVeloce({ palestraId }) {
                   {[p.iscrizioni_attive ? `${p.iscrizioni_attive} iscrizioni in corso` : 'nessuna iscrizione in corso',
                     !p.is_titolare && p.titolare_nome ? `paga ${p.titolare_nome} ${p.titolare_cognome || ''}` : null, p.telefono].filter(Boolean).join(' · ')}
                 </span>
-                <span className="cv-vai">{modo === 'iscrivi' ? 'Iscrivi →' : 'Apri →'}</span>
+                <span className="cv-vai">{modo === 'iscrivi' ? 'Iscrivi →' : modo === 'incassa' ? 'Incassa →' : 'Apri →'}</span>
               </button>
             </li>
           ))}

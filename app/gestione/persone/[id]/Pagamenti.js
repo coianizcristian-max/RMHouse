@@ -4,15 +4,17 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { supabaseBrowser } from '@/lib/supabase/browser';
 import { euro, dataBreve } from '@/lib/formato';
+import IncassaPersona from './IncassaPersona';
 
 const METODI = { contanti: 'contanti', pos: 'POS', bonifico: 'bonifico', online: 'online', stripe: 'online', assegno: 'assegno', altro: 'altro' };
 const STATI = { pagato: null, in_attesa: ['da incassare', 'tag-attenzione'], annullato: ['annullato', 'tag-neutro'], rimborsato: ['rimborsato', 'tag-neutro'] };
 
 // Tutti i pagamenti della persona (o della famiglia, se senza persona indicata), con la ricevuta
-export default function Pagamenti({ pagamenti, ricevute, totaleStorico }) {
+export default function Pagamenti({ pagamenti, ricevute, totaleStorico, incassa = null, apriIncassa = false }) {
   const router = useRouter();
   const [invio, setInvio] = useState(null);
   const [errore, setErrore] = useState('');
+  const [aperto, setAperto] = useState(apriIncassa);
   const pagato = pagamenti.filter((p) => p.stato === 'pagato').reduce((s, p) => s + p.importo_cent, 0);
   const daIncassare = pagamenti.filter((p) => p.stato === 'in_attesa').reduce((s, p) => s + p.importo_cent, 0);
   const ricevutaDi = (id) => ricevute.find((r) => r.pagamento_id === id && r.tipo_documento === 'ricevuta' && !r.annullata);
@@ -29,8 +31,11 @@ export default function Pagamenti({ pagamenti, ricevute, totaleStorico }) {
     <section className="pannello" id="pagamenti">
       <div className="pannello-testa">
         <h2>Pagamenti</h2>
-        <Link prefetch={false} className="btn btn-piccolo" href="/gestione/incassi">Incassa</Link>
+        {incassa && !aperto && <button type="button" className="btn btn-piccolo btn-primario" onClick={() => setAperto(true)}>Incassa</button>}
       </div>
+      {incassa && aperto && (
+        <IncassaPersona {...incassa} daIncassare={pagamenti.filter((p) => p.stato === 'in_attesa')} onChiudi={() => setAperto(false)} />
+      )}
       <div className="pagamenti-totali">
         <span><strong>{euro(pagato)}</strong><span className="piccolo muto">pagati con RMHouse</span></span>
         {totaleStorico > 0 && <span><strong>{euro(totaleStorico)}</strong><span className="piccolo muto">in APP Palestre</span></span>}

@@ -23,7 +23,7 @@ const whatsapp = (tel) => {
 // quello che si fa (iscrizioni, giorni, recuperi), a destra i dati
 export default async function Persona({ params, searchParams }) {
   const { id } = await params;
-  const { iscrivi } = await searchParams;
+  const { iscrivi, incassa } = await searchParams;
   const { supabase, staff } = await staffCorrente();
   if (staff.ruolo === 'insegnante') redirect('/gestione');
   const p = staff.palestra_id;
@@ -106,6 +106,27 @@ export default async function Persona({ params, searchParams }) {
               <span className="tag tag-tenue">compleanno {stato.giorni_al_compleanno === 0 ? 'oggi' : `tra ${stato.giorni_al_compleanno}g`}</span>
             )}
           </div>
+          {(() => {
+            // i corsi a colpo d'occhio: quelli in corso con i giorni, oppure l'ultimo abbonamento
+            const GG = ['', 'lun', 'mar', 'mer', 'gio', 'ven', 'sab', 'dom'];
+            const oggiS = new Date().toISOString().slice(0, 10);
+            const correnti = attive.filter((i) => !i.data_fine || i.data_fine >= oggiS);
+            if (correnti.length) return (
+              <div className="scheda-corsi"><span className="muto">Corsi:</span>
+                {correnti.map((i) => {
+                  const giorni = (i.iscrizioni_orari || []).map((x) => (orari || []).find((o) => o.id === x.orario_id)).filter(Boolean)
+                    .sort((a, b) => a.giorno_settimana - b.giorno_settimana).map((o) => `${GG[o.giorno_settimana]} ${String(o.ora_inizio).slice(0, 5)}`);
+                  return <span key={i.id} className="scheda-corso"><strong>{i.corsi?.nome}</strong>{giorni.length ? ` · ${giorni.join(', ')}` : ''}<span className="muto"> · fino al {dataBreve(i.data_fine)}</span></span>;
+                })}
+              </div>
+            );
+            const ultima = (iscrizioni || [])[0];
+            const ultimo = ultima ? { nome: `${ultima.corsi?.nome || ''} (${ultima.tipi_abbonamento?.nome || ''})`, al: ultima.data_fine }
+              : storico?.[0] ? { nome: storico[0].abbonamento, al: storico[0].al } : null;
+            return ultimo ? (
+              <div className="scheda-corsi"><span className="muto">Ultimo:</span><span className="scheda-corso"><strong>{ultimo.nome}</strong>{ultimo.al ? <span className="muto"> · fino al {dataBreve(ultimo.al)}</span> : null}</span></div>
+            ) : null;
+          })()}
           {famiglia?.length > 0 && (
             <div className="piccolo muto" style={{ marginTop: 4 }}>
               In famiglia anche: {famiglia.map((f, i) => (
@@ -116,7 +137,7 @@ export default async function Persona({ params, searchParams }) {
         </div>
         <div className="azioni scheda-azioni">
           <a className="btn btn-piccolo btn-primario" href="#nuova-iscrizione">Nuova iscrizione</a>
-          <Link prefetch={false} className="btn btn-piccolo" href="/gestione/incassi">Incassa</Link>
+          <Link prefetch={false} className="btn btn-piccolo" href={`/gestione/persone/${id}?incassa=1#pagamenti`}>Incassa</Link>
           {wa && <a className="btn btn-piccolo" href={wa} target="_blank" rel="noreferrer">WhatsApp</a>}
           {allievo.account?.email && <a className="btn btn-piccolo" href={`mailto:${allievo.account.email}`}>Email</a>}
         </div>
@@ -172,7 +193,10 @@ export default async function Persona({ params, searchParams }) {
             </section>
           )}
 
-          <Pagamenti pagamenti={pagamenti || []} ricevute={ricevute || []} totaleStorico={spesoStorico} />
+          <Pagamenti pagamenti={pagamenti || []} ricevute={ricevute || []} totaleStorico={spesoStorico}
+                     key={incassa === '1' ? 'incassa' : 'normale'} apriIncassa={incassa === '1'}
+                     incassa={{ palestraId: p, allievoId: id, accountId: allievo.account_id, nome: allievo.nome,
+                                quotaCent: palestra?.quota_iscrizione_cent || 0, quotaMancante: !quotaValida }} />
 
           {storico?.length > 0 && (
             <section className="pannello">

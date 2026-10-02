@@ -2670,3 +2670,20 @@ html[data-tema="scuro"]:has(.pagina-area) {
 .disp-nuova { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
 .disp-nuova select, .disp-nuova input { min-height: 38px; padding: 4px 8px; border: 1px solid var(--linea); border-radius: 10px; font: inherit; font-size: 14px; }
 .rich-slot { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+
+/* 091 — incassa dalla scheda, corsi a colpo d'occhio */
+.scheda-corsi { display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: baseline; margin-top: 6px; font-size: 14px; }
+.scheda-corso strong { color: var(--nero); }
+.incassa-persona { display: grid; gap: 8px; padding: 12px; margin: 8px 0 12px; border: 2px solid var(--nero); border-radius: 14px; background: var(--bianco); }
+.ip-testa { display: flex; justify-content: space-between; align-items: center; }
+.ip-testa strong { font-size: 16px; color: var(--nero); }
+.ip-righe { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.ip-righe li { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 10px; align-items: center; padding: 8px 10px; border-radius: 10px; background: var(--attenzione-tenue); font-size: 14px; }
+.ip-libero { display: grid; gap: 8px; }
+.ip-campi { display: grid; grid-template-columns: 130px minmax(0, 1fr) auto; gap: 8px; }
+.ip-campi input { min-height: 42px; padding: 6px 10px; border: 1px solid var(--linea); border-radius: 10px; font: inherit; }
+@media (max-width: 600px) { .ip-campi { grid-template-columns: 1fr; } }
+.scheda-testa .scheda-corsi { display: block !important; line-height: 1.5; }
+.scheda-testa .scheda-corsi > span { display: inline !important; border: 0 !important; padding: 0 !important; margin: 0 8px 0 0 !important; background: none !important; box-shadow: none !important; border-radius: 0 !important; }
+.scheda-testa .scheda-corsi .scheda-corso + .scheda-corso::before { content: '·'; margin-right: 8px; color: var(--testo-2); }
+.scheda-testa .scheda-corsi strong, .scheda-testa .scheda-corsi .muto { display: inline !important; }

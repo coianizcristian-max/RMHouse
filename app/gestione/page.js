@@ -36,7 +36,8 @@ function Andamento({ punti }) {
 }
 
 // Pagina iniziale: numeri, problemi da sistemare, oggi e scadenze, tutto in una schermata
-export default async function Home() {
+export default async function Home({ searchParams }) {
+  const { scegli } = (await searchParams) || {};
   const { supabase, staff } = await staffCorrente();
   const p = staff.palestra_id;
   const gestione = staff.ruolo !== 'insegnante';
@@ -107,13 +108,13 @@ export default async function Home() {
         {gestione && (
           <div className="azioni">
             <Link prefetch={false} className="btn btn-primario" href="/gestione/persone/nuova">Nuovo cliente</Link>
-            <Link prefetch={false} className="btn" href="/gestione/incassi">Incassa</Link>
+            <Link prefetch={false} className="btn" href="/gestione?scegli=incassa">Incassa</Link>
             <Link prefetch={false} className="btn" href="/gestione/scadenze">Scadenze</Link>
           </div>
         )}
       </div>
 
-      {gestione && <CercaVeloce palestraId={p} />}
+      {gestione && <CercaVeloce palestraId={p} key={scegli || 'cerca'} modoIniziale={scegli === 'incassa' ? 'incassa' : 'scheda'} />}
 
       {gestione && k && (
         <div className="kpi">
