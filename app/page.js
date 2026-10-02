@@ -47,7 +47,7 @@ export default async function Home() {
     {/* TELEFONO: la home di sempre (logo, titolo, pulsanti, le due porte) */}
     <div className="home-telefono">
       {/* da telefono: prima la pagina bianca col logo; scorrendo verso l'alto si apre l'accesso */}
-      <Benvenuto dopo="/area" />
+      <Benvenuto dopo="/area" subito />
       <Testata destra={<a href="#entra" className="testata-link">Accedi</a>} />
       <main className="home">
         <section className="home-hero">

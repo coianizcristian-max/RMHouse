@@ -6,9 +6,11 @@ import { useRouter } from 'next/navigation';
 // pagina bianca con il logo, "Scorri verso l'alto per iniziare" che pulsa,
 // e con il dito verso l'alto (o un tocco) sale e lascia vedere l'accesso.
 // dopo: dove andare quando la pagina bianca sale (sul sito da telefono: l'area clienti, cioè l'accesso)
-export default function Benvenuto({ dopo = null }) {
+// subito: sul sito da telefono la pagina bianca c'è da subito, ogni volta che si apre la home
+// (tranne quando si torna dal "Torna al sito": indirizzo con ?sito=1)
+export default function Benvenuto({ dopo = null, subito = false }) {
   const router = useRouter();
-  const [mostra, setMostra] = useState(false);
+  const [mostra, setMostra] = useState(subito);
   const [via, setVia] = useState(false);
   const [spinta, setSpinta] = useState(0);
   const inizio = useRef(null);
@@ -16,7 +18,9 @@ export default function Benvenuto({ dopo = null }) {
   useEffect(() => {
     try {
       const telefono = window.matchMedia('(max-width: 899px)').matches;
-      if (telefono && !sessionStorage.getItem('rm-benvenuto')) setMostra(true);
+      if (subito) {
+        if (!telefono || new URLSearchParams(window.location.search).has('sito')) setMostra(false);
+      } else if (telefono && !sessionStorage.getItem('rm-benvenuto')) setMostra(true);
       if (telefono && dopo) router.prefetch?.(dopo);
     } catch { /* niente */ }
   }, []);
@@ -24,7 +28,8 @@ export default function Benvenuto({ dopo = null }) {
   function chiudi() {
     setVia(true);
     try { sessionStorage.setItem('rm-benvenuto', '1'); } catch { /* niente */ }
-    if (dopo) { setTimeout(() => router.push(dopo), 380); return; }
+    // replace: col tasto indietro non si torna alla pagina bianca
+    if (dopo) { setTimeout(() => router.replace(dopo), 380); return; }
     setTimeout(() => setMostra(false), 520);
   }
   if (!mostra) return null;

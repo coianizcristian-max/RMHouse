@@ -21,7 +21,7 @@ export default function SchermataAccesso({ tipo, titolo, testo, children, altra 
       </aside>
       <main className="accesso-corpo">
         <div className="accesso-scheda">
-          <Link href="/" className="accesso-logo" aria-label="Ritmo Metropolitano, torna alla home">
+          <Link href="/?sito=1" className="accesso-logo" aria-label="Ritmo Metropolitano, torna alla home">
             <img src="/logo-marchio.png" alt="" width="78" height="50" />
           </Link>
           <span className={`accesso-chip${staff ? ' staff' : ''}`}>{staff ? 'Area staff' : 'Area iscritti'}</span>
@@ -35,7 +35,7 @@ export default function SchermataAccesso({ tipo, titolo, testo, children, altra 
             <span aria-hidden="true">→</span>
           </Link>
         )}
-        <Link href="/" className="accesso-home">← Torna al sito</Link>
+        <Link href="/?sito=1" className="accesso-home">← Torna al sito</Link>
       </main>
     </div>
   );

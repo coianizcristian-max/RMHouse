@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { supabaseBrowser } from '@/lib/supabase/browser';
 import Testata from '../Testata';
+import Benvenuto from './accedi/Benvenuto';
 import MenuArea from './MenuArea';
 import MenuLaterale from './MenuLaterale';
 import { useEffect, useState } from 'react';
@@ -40,6 +41,7 @@ export default function ContornoArea({ children }) {
           <button type="button" className="testata-link solo-desktop" onClick={esci}>Esci</button>
         </span>
       } />
+      <Benvenuto />
       <MenuLaterale aperto={menu} chiudi={() => setMenu(false)} esci={esci} />
       <MenuArea />
       <main className="pagina pagina-area">{children}</main>
