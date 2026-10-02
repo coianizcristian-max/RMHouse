@@ -42,8 +42,64 @@ export default async function Home() {
   const facebook = social(info.facebook, 'https://facebook.com/');
 
   return (
-    <div className="home-pagina">
+    <>
+    {/* TELEFONO: la home di sempre (logo, titolo, pulsanti, le due porte) */}
+    <div className="home-telefono">
       <Testata destra={<a href="#entra" className="testata-link">Accedi</a>} />
+      <main className="home">
+        <section className="home-hero">
+          <img src="/logo.png" alt="Ritmo Metropolitano, acrobatic and dance center" className="home-logo" />
+          <div className="home-testo">
+            <h1>Prova una lezione da noi</h1>
+            <p>Aerea, pole, danza, acrobatica e molto altro: scegli la disciplina, trova l&apos;orario giusto per età e livello e prenota in un minuto.</p>
+            <div className="home-bottoni">
+              <Link href="/prova" className="btn btn-primario btn-grande">Prenota la lezione di prova</Link>
+              <Link href="/spazi" className="btn btn-grande">Affitta una sala o una festa</Link>
+            </div>
+          </div>
+        </section>
+        <section id="entra" className="home-porte" aria-label="Accedi">
+          <Link href="/area" prefetch={false} className="porta">
+            <span className="porta-icona"><Icona d={<><circle cx="12" cy="8" r="4" /><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7" /></>} /></span>
+            <span className="porta-testo">
+              <strong>La mia area</strong>
+              <span>Per chi frequenta e per i genitori: lezioni, recuperi, pagamenti e il pass per entrare.</span>
+            </span>
+            <span className="porta-freccia" aria-hidden="true">→</span>
+          </Link>
+          <Link href="/login" prefetch={false} className="porta porta-scura">
+            <span className="porta-icona"><Icona d={<><rect x="4" y="10" width="16" height="11" rx="2" /><path d="M8 10V7a4 4 0 0 1 8 0v3" /></>} /></span>
+            <span className="porta-testo">
+              <strong>Area staff</strong>
+              <span>Segreteria e insegnanti: palinsesto, appelli, iscrizioni.</span>
+            </span>
+            <span className="porta-freccia" aria-hidden="true">→</span>
+          </Link>
+        </section>
+        {pal && (indirizzo || pal.telefono || pal.email) && (
+          <footer className="home-piede">
+            <strong>{pal.nome}</strong>
+            {indirizzo && <span>{indirizzo}</span>}
+            <span className="home-contatti">
+              {pal.telefono && <a href={`tel:${pal.telefono.replace(/\s/g, '')}`}>{pal.telefono}</a>}
+              {pal.email && <a href={`mailto:${pal.email}`}>{pal.email}</a>}
+            </span>
+            <span className="piccolo home-legali">
+              <Link href="/privacy">Privacy</Link> · <Link href="/cookie">Cookie</Link> · <Link href="/area/privacy" prefetch={false}>I miei dati</Link>
+            </span>
+          </footer>
+        )}
+      </main>
+    </div>
+
+    {/* COMPUTER: la home nuova */}
+    <div className="home-pagina">
+      <Testata destra={
+        <span className="hp-testata-accessi">
+          <Link href="/area" prefetch={false} className="testata-link">La mia area</Link>
+          <Link href="/login" prefetch={false} className="testata-link hp-staff">Staff</Link>
+        </span>
+      } />
 
       <main>
         <section className="hp-hero">
@@ -68,6 +124,27 @@ export default async function Home() {
             <div className="hp-marchio" aria-hidden="true">
               <img src="/logo-bianco.png" alt="" width="900" height="573" />
             </div>
+          </div>
+        </section>
+
+        <section className="hp-sezione hp-entra" aria-label="Accedi">
+          <div className="hp-porte">
+            <Link href="/area" prefetch={false} className="porta">
+              <span className="porta-icona"><Icona d={<><circle cx="12" cy="8" r="4" /><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7" /></>} /></span>
+              <span className="porta-testo">
+                <strong>La mia area</strong>
+                <span>Per chi frequenta e per i genitori: lezioni, recuperi, pagamenti e il pass per entrare.</span>
+              </span>
+              <span className="porta-freccia" aria-hidden="true">→</span>
+            </Link>
+            <Link href="/login" prefetch={false} className="porta porta-scura">
+              <span className="porta-icona"><Icona d={<><rect x="4" y="10" width="16" height="11" rx="2" /><path d="M8 10V7a4 4 0 0 1 8 0v3" /></>} /></span>
+              <span className="porta-testo">
+                <strong>Area staff</strong>
+                <span>Segreteria e insegnanti: palinsesto, appelli, iscrizioni.</span>
+              </span>
+              <span className="porta-freccia" aria-hidden="true">→</span>
+            </Link>
           </div>
         </section>
 
@@ -101,27 +178,6 @@ export default async function Home() {
           </ol>
         </section>
 
-        <section id="entra" className="hp-sezione hp-entra" aria-labelledby="hp-entra">
-          <h2 id="hp-entra">Hai già un accesso?</h2>
-          <div className="hp-porte">
-            <Link href="/area" className="porta">
-              <span className="porta-icona"><Icona d={<><circle cx="12" cy="8" r="4" /><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7" /></>} /></span>
-              <span className="porta-testo">
-                <strong>La mia area</strong>
-                <span>Per chi frequenta e per i genitori: lezioni, recuperi, pagamenti e il pass per entrare.</span>
-              </span>
-              <span className="porta-freccia" aria-hidden="true">→</span>
-            </Link>
-            <Link href="/login" className="porta porta-scura">
-              <span className="porta-icona"><Icona d={<><rect x="4" y="10" width="16" height="11" rx="2" /><path d="M8 10V7a4 4 0 0 1 8 0v3" /></>} /></span>
-              <span className="porta-testo">
-                <strong>Area staff</strong>
-                <span>Segreteria e insegnanti: palinsesto, appelli, iscrizioni.</span>
-              </span>
-              <span className="porta-freccia" aria-hidden="true">→</span>
-            </Link>
-          </div>
-        </section>
       </main>
 
       <footer className="hp-piede">
@@ -148,10 +204,11 @@ export default async function Home() {
         <div className="hp-piede-legali">
           <span>© {new Date().getFullYear()} {pal?.nome || 'Ritmo Metropolitano'}</span>
           <nav aria-label="Informazioni legali">
-            <Link href="/privacy">Privacy</Link><Link href="/cookie">Cookie</Link><Link href="/area/privacy">I miei dati</Link>
+            <Link href="/privacy">Privacy</Link><Link href="/cookie">Cookie</Link><Link href="/area/privacy" prefetch={false}>I miei dati</Link>
           </nav>
         </div>
       </footer>
     </div>
+    </>
   );
 }

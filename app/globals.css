@@ -2937,3 +2937,31 @@ html[data-tema="scuro"]:has(.pagina-area) {
 .foglio-compenso td:last-child, .foglio-compenso th:last-child { text-align: right; }
 .foglio-compenso td:nth-child(5) { color: var(--testo-2); }
 @media (max-width: 560px) { .foglio-compenso table { font-size: 12px; } .foglio-compenso td:nth-child(5) { min-width: 110px; } }
+/* home: gli accessi subito sotto il titolo, e in testata */
+.hp-entra { padding-top: 18px !important; }
+.hp-entra .porta { padding: 16px 18px; }
+.hp-testata-accessi { display: flex; gap: 8px; align-items: center; }
+.hp-testata-accessi .hp-staff { border-color: var(--linea); color: var(--testo-2); }
+@media (max-width: 420px) { .hp-testata-accessi .hp-staff { display: none; } }
+@media (min-width: 960px) { .hp-entra { padding-top: 28px !important; } .hp-entra + .hp-sezione { padding-top: 48px; } }
+@media (min-width: 960px) {
+  .hp-hero-dentro { padding-top: 40px; padding-bottom: 40px; }
+  .hp-marchio { max-width: 360px; }
+}
+
+/* ===== home: sul telefono quella di sempre, sul computer quella nuova (098) ===== */
+.home-telefono { display: block; }
+.home-pagina { display: none; }
+@media (min-width: 860px) { .home-telefono { display: none; } .home-pagina { display: flex; } }
+.home { max-width: 1080px; margin: 0 auto; padding: 8px var(--spazio) 40px; }
+.home-hero { display: grid; gap: 18px; justify-items: center; text-align: center; padding: 10px 0 26px; }
+.home-logo { width: min(64vw, 260px); height: auto; display: block; }
+.home-testo h1 { font-size: clamp(30px, 8vw, 50px); margin: 0 0 10px; }
+.home-testo p { color: var(--testo-2); font-size: 16.5px; line-height: 1.5; margin: 0 auto 20px; max-width: 520px; }
+.home-bottoni { display: grid; gap: 10px; max-width: 440px; margin: 0 auto; }
+.home-bottoni .btn { width: 100%; justify-content: center; white-space: nowrap; }
+.home-porte { display: grid; gap: 12px; max-width: 880px; margin: 6px auto 0; scroll-margin-top: 20px; }
+.home-piede { display: grid; gap: 4px; justify-items: center; text-align: center; margin-top: 34px; padding-top: 20px; border-top: 1px solid var(--linea); font-size: 14px; color: var(--testo-2); }
+.home-piede strong { color: var(--nero); }
+.home-contatti { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px 14px; }
+.home-contatti a, .home-piede a { color: var(--nero); font-weight: 650; text-decoration: none; }
