@@ -17,8 +17,36 @@ export default function AccessoApp({ allievoId, sito = '' }) {
     setCodice(data);
   }
   if (!s) return null;
-  const link = `${sito || window.location.origin}/area/accedi?email=${encodeURIComponent(s.email || '')}`;
-  const testo = codice && `Ciao ${codice.nome || ''}! Per entrare nell'app di Ritmo Metropolitano apri ${link} , tocca Avanti e, se te lo chiede, usa il codice ${codice.codice} (vale 3 giorni). Poi scegli la tua password.`;
+  // link corto su una riga da sola (WhatsApp lo rende cliccabile una volta inviato) e passi numerati
+  const link = `${sito || window.location.origin}/app`;
+  const testo = codice && (s.attivo ? [
+    `Ciao ${codice.nome || ''}! Ecco il codice per rifare la password dell'app di Ritmo Metropolitano:`,
+    link,
+    '',
+    `1. Scrivi la tua email: ${s.email} e tocca Avanti`,
+    '2. Tocca "Password dimenticata?" e poi "Ho un codice dalla segreteria"',
+    `3. Scrivi il codice ${codice.codice} e scegli la nuova password`,
+    '',
+    'Il codice vale 3 giorni e si usa una volta sola.',
+  ] : (codice.telefono || '').replace(/\D/g, '').length < 6 ? [
+    `Ciao ${codice.nome || ''}! Ecco l'app di Ritmo Metropolitano:`,
+    link,
+    '',
+    `1. Scrivi la tua email: ${s.email} e tocca Avanti`,
+    `2. Ti chiede il codice della segreteria: scrivi ${codice.codice} (vale 3 giorni)`,
+    '3. Scegli la tua password ed entri',
+    '',
+    'Poi tocca "Metti l\'app sul telefono" per averla tra le tue app.',
+  ] : [
+    `Ciao ${codice.nome || ''}! Ecco l'app di Ritmo Metropolitano:`,
+    link,
+    '',
+    `1. Scrivi la tua email: ${s.email} e tocca Avanti`,
+    '2. Ti chiede le ultime 4 cifre del tuo cellulare: scrivile e scegli la tua password',
+    `3. Se le cifre non funzionano, tocca "Ho un codice dalla segreteria" e scrivi ${codice.codice} (vale 3 giorni)`,
+    '',
+    'Poi tocca "Metti l\'app sul telefono" per averla tra le tue app.',
+  ]).join('\n');
   const tel = (codice?.telefono || '').replace(/\D/g, '');
 
   return (
