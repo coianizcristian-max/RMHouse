@@ -2892,3 +2892,48 @@ html[data-tema="scuro"]:has(.pagina-area) {
 .md-testo { display: grid; gap: 4px; min-width: 0; justify-items: start; }
 .md-testo strong { color: var(--nero); font-size: 14.5px; line-height: 1.3; }
 .md-azioni { display: flex; gap: 6px; flex: none; }
+
+/* ===================== regole di compenso e cedolini (097) ===================== */
+.regole-compenso { margin-top: 14px; }
+.rc-elenco { list-style: none; margin: 0 0 8px; padding: 0; display: grid; gap: 6px; }
+.rc-elenco li { display: flex; justify-content: space-between; gap: 10px; align-items: center; padding: 10px 12px; border: 1px solid var(--linea); border-radius: 10px; }
+.rc-elenco li.spenta { opacity: .55; }
+.rc-testo { display: grid; gap: 2px; min-width: 0; font-size: 14px; }
+.rc-testo strong { color: var(--nero); }
+.rc-azioni { display: flex; gap: 10px; flex: none; flex-wrap: wrap; justify-content: flex-end; }
+.rc-modulo { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 12px; padding: 12px; border: 1.5px solid var(--nero); border-radius: 12px; margin-top: 8px; }
+.rc-modulo label { display: grid; gap: 3px; font-size: 12.5px; font-weight: 650; color: var(--testo-2); min-width: 0; }
+.rc-modulo input, .rc-modulo select { min-height: 40px; padding: 6px 10px; border: 1px solid var(--linea); border-radius: 8px; font: inherit; font-size: 15px; font-weight: 400; color: var(--testo); background: var(--bianco); width: 100%; }
+.rc-modulo small { font-weight: 400; }
+.rc-largo { grid-column: 1 / -1; }
+.rc-fasce { display: grid; gap: 6px; }
+.rc-fascia { display: grid; grid-template-columns: auto 70px auto 70px auto minmax(70px, 110px) auto; gap: 6px; align-items: center; font-size: 13px; }
+.rc-fascia input { min-height: 36px !important; }
+@media (max-width: 560px) { .rc-modulo { grid-template-columns: 1fr; } .rc-elenco li { flex-direction: column; align-items: flex-start; } .rc-fascia { grid-template-columns: auto 1fr auto 1fr; } .rc-fascia span:nth-of-type(3), .rc-fascia input:nth-of-type(3) { grid-column: span 1; } }
+.conferma-lezione { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px 14px; align-items: center; padding: 12px 14px; margin: 0 0 14px; border-radius: 14px; border: 1.5px solid var(--rosso); background: var(--rosso-tenue); }
+.conferma-lezione.fatta { border-color: var(--ok); background: var(--ok-tenue); }
+.cl-stato { display: grid; gap: 2px; min-width: 0; }
+.cl-stato strong { color: var(--nero); font-size: 16px; }
+.conferma-lezione.fatta .cl-stato strong { color: var(--ok); }
+.cl-azioni { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; justify-content: flex-end; }
+.cl-cambia { grid-column: 1 / -1; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.cl-cambia select { min-height: 40px; padding: 6px 10px; border: 1px solid var(--linea); border-radius: 8px; font: inherit; background: var(--bianco); color: var(--testo); }
+@media (max-width: 560px) { .conferma-lezione { grid-template-columns: 1fr; } .cl-azioni { justify-content: flex-start; } .cl-azioni .btn { width: 100%; } }
+.cr-da_verificare { opacity: .65; }
+.cr-sostituita, .cr-forfait { opacity: .75; }
+.cr-mensile { background: var(--carta); }
+.mc-mese { padding: 0 !important; overflow: hidden; margin-bottom: 10px; }
+.mc-testa { width: 100%; display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 14px 16px; background: none; border: 0; font: inherit; text-align: left; cursor: pointer; color: inherit; }
+.mc-testa > span:first-child { display: grid; gap: 2px; }
+.mc-testa strong { color: var(--nero); font-size: 16px; }
+.mc-destra { display: grid; justify-items: end; gap: 4px; }
+.mc-corpo { padding: 0 16px 14px; display: grid; gap: 10px; }
+.mc-avviso { margin: 0; padding: 8px 10px; border-radius: 8px; background: var(--attenzione-tenue); color: var(--attenzione); font-size: 13.5px; }
+.mc-segnala { display: grid; gap: 8px; }
+.mc-segnala textarea { width: 100%; padding: 8px 10px; border: 1px solid var(--linea); border-radius: 8px; font: inherit; background: var(--bianco); color: var(--testo); }
+.foglio-compenso table th, .foglio-compenso table td { padding: 6px 6px 6px 0; vertical-align: top; }
+.foglio-compenso table { font-size: 13.5px; }
+.foglio-compenso td, .foglio-compenso th { text-align: left; }
+.foglio-compenso td:last-child, .foglio-compenso th:last-child { text-align: right; }
+.foglio-compenso td:nth-child(5) { color: var(--testo-2); }
+@media (max-width: 560px) { .foglio-compenso table { font-size: 12px; } .foglio-compenso td:nth-child(5) { min-width: 110px; } }

@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import DisponibilitaPrivate from './DisponibilitaPrivate';
+import RegoleCompenso from './RegoleCompenso';
 import { useRouter } from 'next/navigation';
 import { supabaseBrowser } from '@/lib/supabase/browser';
 import Immagine from '../Immagine';
@@ -10,7 +11,7 @@ import SceltaColore from '../SceltaColore';
 export const RUOLI = { insegnante: 'Insegnante', segreteria: 'Segreteria', admin: 'Amministratore' };
 
 // Pagina dedicata: scheda di una persona dello staff (nuova o da modificare)
-export default function SchedaStaff({ palestraId, persona = null, corsi = [], usata = true, sonoIo = false }) {
+export default function SchedaStaff({ palestraId, persona = null, corsi = [], elencoCorsi = [], usata = true, sonoIo = false }) {
   const router = useRouter();
   const nuova = !persona;
   const [f, setF] = useState({
@@ -125,7 +126,7 @@ export default function SchedaStaff({ palestraId, persona = null, corsi = [], us
               <input id="sp" value={f.specialita} onChange={set('specialita')} placeholder="Es. Aerea e acrobatica, Segreteria" />
             </div>
             <div className="campo ss-2">
-              <label htmlFor="co">Compenso orario (€)</label>
+              <label htmlFor="co">Tariffa oraria standard (€)</label>
               <input id="co" inputMode="decimal" value={f.compenso} onChange={set('compenso')} placeholder="es. 22,50" />
             </div>
             <div className="campo ss-3"><label htmlFor="e">Email</label><input id="e" type="email" value={f.email} onChange={set('email')} /></div>
@@ -150,6 +151,10 @@ export default function SchedaStaff({ palestraId, persona = null, corsi = [], us
           <Link prefetch={false} href={indietro} className="btn">Annulla</Link>
         </div>
       </form>
+
+      {!nuova && (
+        <RegoleCompenso staffId={persona.id} palestraId={palestraId} corsi={elencoCorsi} />
+      )}
 
       {!nuova && (persona.ruolo === 'insegnante' || persona.collaboratore) && (
         <DisponibilitaPrivate staffId={persona.id} palestraId={palestraId} nome={persona.nome} />

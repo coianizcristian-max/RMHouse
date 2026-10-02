@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import { staffCorrente } from '@/lib/staff';
 import { ora, giornoLungo } from '@/lib/formato';
 import Appello from './Appello';
+import ConfermaLezione from './ConfermaLezione';
 
 export const dynamic = 'force-dynamic';
 
@@ -26,6 +27,12 @@ export default async function PaginaAppello({ params }) {
 
   const { data: postazioni } = await supabase.rpc('postazioni_lezione', { p_lezione: id });
   if (!lezione) notFound();
+  // chi ha tenuto la lezione (conferma per i compensi) e chi la poteva tenere
+  const [{ data: lz }, { data: insegnanti }] = await Promise.all([
+    supabase.from('lezioni').select('insegnante_id, svolta_da, svolta_at, svolta_come').eq('id', id).maybeSingle(),
+    supabase.from('staff').select('id, nome, cognome').eq('palestra_id', staff.palestra_id).eq('attivo', true).not('archiviato', 'is', true).order('nome'),
+  ]);
+  const nomeDi = (sid) => { const s = (insegnanti || []).find((x) => x.id === sid); return s ? `${s.nome} ${s.cognome || ''}`.trim() : ''; };
 
   // prima chi è in prova (da accogliere), poi gli altri in ordine alfabetico
   const ordine = { prova: 0, recupero: 1, ingresso: 2, iscritto: 3 };
@@ -42,6 +49,12 @@ export default async function PaginaAppello({ params }) {
         {lezione.sala_nome && ` · ${lezione.sala_nome}`}{lezione.insegnante_nome && ` · ${lezione.insegnante_nome}`}
       </p>
       {lezione.stato === 'annullata' && <div className="errore">Lezione annullata{lezione.note ? `: ${lezione.note}` : ''}.</div>}
+      {lezione.stato !== 'annullata' && (
+        <ConfermaLezione lezioneId={lezione.id} gestione={staff.ruolo !== 'insegnante'}
+          io={{ id: staff.id }} titolare={lz?.insegnante_id ? { id: lz.insegnante_id, nome: nomeDi(lz.insegnante_id) } : null}
+          svolta={lz?.svolta_da ? { id: lz.svolta_da, nome: nomeDi(lz.svolta_da), at: lz.svolta_at, come: lz.svolta_come } : null}
+          insegnanti={(insegnanti || []).map((s) => ({ id: s.id, nome: `${s.nome} ${s.cognome || ''}`.trim() }))} />
+      )}
       <Appello lezioneId={lezione.id} palestraId={staff.palestra_id} persone={elenco}
                corsoNome={lezione.corso_nome} gestione={staff.ruolo !== 'insegnante'}
                postazioni={postazioni || []} avvisati={avvisati || []} recuperoDaSegreteria={(regole?.recupero_da || 'avviso') !== 'app'} nuove={nuove || []}

@@ -5,10 +5,11 @@ import { useRouter } from 'next/navigation';
 import { supabaseBrowser } from '@/lib/supabase/browser';
 import { euro, dataBreve, ora } from '@/lib/formato';
 
+const STATO_RIGA = { da_verificare: 'NON CONFERMATA: non contata', forfait: 'nel forfait', sostituita: 'non contata', contata: null, mensile: null };
 const MESI = ['gennaio', 'febbraio', 'marzo', 'aprile', 'maggio', 'giugno',
               'luglio', 'agosto', 'settembre', 'ottobre', 'novembre', 'dicembre'];
 
-export default function Compensi({ palestraId, righe, anno, mese }) {
+export default function Compensi({ palestraId, righe, anno, mese, soloConfermate = true, senzaInsegnante = 0 }) {
   const router = useRouter();
   const [errore, setErrore] = useState('');
   const [avviso, setAvviso] = useState('');
@@ -31,7 +32,16 @@ export default function Compensi({ palestraId, righe, anno, mese }) {
     });
     setInvio(false);
     if (error) { setErrore('Calcolo non riuscito.'); return; }
-    setAvviso(`Aggiornati ${data} cedolini sulle lezioni effettivamente svolte.`);
+    setAvviso(`Calcolati ${data} cedolini di ${MESI[mese - 1]} ${anno}.`);
+    router.refresh();
+  }
+
+  async function cambiaSolo(v) {
+    setInvio(true); setErrore('');
+    const { error } = await supabaseBrowser().from('palestre').update({ compensi: { solo_confermate: v } }).eq('id', palestraId);
+    setInvio(false);
+    if (error) { setErrore('Impostazione non salvata.'); return; }
+    setAvviso(v ? 'Ora contano solo le lezioni confermate: premi "Ricalcola il mese".' : 'Ora contano tutte le lezioni in calendario: premi "Ricalcola il mese".');
     router.refresh();
   }
 
@@ -114,9 +124,17 @@ export default function Compensi({ palestraId, righe, anno, mese }) {
         <div className="tessera tessera-nera">
           <div className="etichetta">Ore svolte</div>
           <div className="cifra">{oreTotali.toFixed(1)}</div>
-          <div className="sotto">{righe.reduce((s, r) => s + (r.lezioni || 0), 0)} lezioni</div>
+          <div className="sotto">{righe.reduce((s, r) => s + (r.lezioni || 0), 0)} lezioni
+            {righe.some((r) => r.da_verificare) ? ` · ${righe.reduce((s, r) => s + (r.da_verificare || 0), 0)} da verificare` : ''}</div>
         </div>
       </div>
+
+      {senzaInsegnante > 0 && (
+        <div className="errore" style={{ background: 'var(--attenzione-tenue)', color: 'var(--attenzione)' }}>
+          {senzaInsegnante} lezioni del mese non hanno l&apos;insegnante e nessuno le ha confermate: non vanno a nessuno.
+          Assegna l&apos;insegnante nel palinsesto oppure fai confermare la lezione dall&apos;appello.
+        </div>
+      )}
 
       <div className="azioni-riga" style={{ marginBottom: 14 }}>
         <button className="btn btn-primario" disabled={invio} onClick={calcola}>
@@ -126,12 +144,16 @@ export default function Compensi({ palestraId, righe, anno, mese }) {
           <button className="btn" disabled={invio} onClick={approva}>Approva tutti</button>
         )}
         <Link prefetch={false} className="link-btn" href="/gestione/costi">Vedi i costi</Link>
+        <label className="spunta" style={{ margin: 0 }}>
+          <input type="checkbox" checked={soloConfermate} disabled={invio} onChange={(e) => cambiaSolo(e.target.checked)} />
+          <span className="piccolo">Conta solo le lezioni confermate con l&apos;appello</span>
+        </label>
       </div>
 
       {righe.length === 0 && (
         <div className="vuoto">
           Nessun cedolino per questo mese.
-          <div className="piccolo" style={{ marginTop: 8 }}>Premi "Calcola il mese": le ore vengono dalle lezioni in calendario.</div>
+          <div className="piccolo" style={{ marginTop: 8 }}>Premi "Calcola il mese": le ore vengono dalle lezioni confermate con l'appello e dalle regole di ogni insegnante.</div>
         </div>
       )}
 
@@ -150,20 +172,29 @@ export default function Compensi({ palestraId, righe, anno, mese }) {
             </span>
 
             <span className="riga">
-              {Number(r.ore).toFixed(1)} ore su {r.lezioni} lezioni × {euro(r.tariffa_cent)} all'ora
+              {Number(r.ore).toFixed(1)} ore · {r.lezioni} lezioni
+              {r.sostituzioni > 0 && ` · ${r.sostituzioni} sostituzioni`}
+              {r.forfait_cent > 0 && ` · forfait e fissi ${euro(r.forfait_cent)}`}
               {r.extra_cent > 0 && ` · extra ${euro(r.extra_cent)}${r.extra_nota ? ` (${r.extra_nota})` : ''}`}
             </span>
             <span style={{ fontSize: 22, fontWeight: 850, color: 'var(--nero)' }}>{euro(r.totale_cent)}</span>
-            {r.tariffa_cent === 0 && (
-              <span className="riga" style={{ color: 'var(--rosso)' }}>
-                Tariffa oraria mancante: impostala in Struttura → Staff.
+            {r.da_verificare > 0 && (
+              <span className="riga" style={{ color: 'var(--attenzione)' }}>
+                {r.da_verificare} lezioni senza conferma: non contate. Si confermano dall&apos;appello (anche dopo) e poi si ricalcola.
               </span>
             )}
+            {r.tariffa_cent === 0 && (
+              <span className="riga" style={{ color: 'var(--rosso)' }}>Tariffa oraria standard mancante: impostala nella scheda in Struttura → Staff.</span>
+            )}
+            {r.visto_at && <span className="riga" style={{ color: 'var(--ok)' }}>✓ Confermato dall&apos;insegnante il {dataBreve(r.visto_at)}</span>}
+            {r.segnalazione && <span className="riga" style={{ color: 'var(--rosso-scuro)' }}>Segnala: “{r.segnalazione}” ({dataBreve(r.segnalata_at)})</span>}
 
             <span className="azioni-riga">
               <button className="link-btn piccolo" onClick={() => apri(r)}>
                 {aperto === r.id ? 'Chiudi il dettaglio' : 'Vedi le lezioni'}
               </button>
+              <Link prefetch={false} className="link-btn piccolo" href={`/gestione/compensi/${r.id}`} target="_blank">PDF</Link>
+              <Link prefetch={false} className="link-btn piccolo" href={`/gestione/staff/${r.staff_id}`}>regole</Link>
               {r.stato !== 'pagato' && (
                 <>
                   <button className="link-btn piccolo" disabled={invio} onClick={() => extra(r)}>Extra</button>
@@ -176,14 +207,15 @@ export default function Compensi({ palestraId, righe, anno, mese }) {
               <ul className="elenco" style={{ marginTop: 8 }}>
                 {dettaglio.length === 0 && <li className="persona"><span className="muto piccolo">Nessuna lezione in questo mese.</span></li>}
                 {dettaglio.map((d, i) => (
-                  <li key={i} className="persona">
+                  <li key={i} className={`persona cr-${d.stato}`}>
                     <span>
-                      {dataBreve(d.data)} · {d.corso}
+                      {d.inizio ? `${dataBreve(d.data)} ${ora(d.inizio)} · ` : ''}{d.corso}
                       <span className="piccolo muto" style={{ display: 'block' }}>
-                        {ora(d.inizio)} · {d.sala || 'sala non indicata'} · {d.iscritti} iscritti
+                        {[d.ore > 0 && `${Number(d.ore).toFixed(2).replace('.', ',')} h`, d.presenti != null && d.stato !== 'mensile' && `${d.presenti} presenti / ${d.prenotati} prenotati`,
+                          d.sostituzione, d.regola, STATO_RIGA[d.stato]].filter(Boolean).join(' · ')}
                       </span>
                     </span>
-                    <span className="piccolo">{Number(d.ore).toFixed(2)} h</span>
+                    <span className="piccolo" style={{ fontWeight: 700 }}>{['contata', 'mensile'].includes(d.stato) ? euro(d.importo_cent) : '—'}</span>
                   </li>
                 ))}
               </ul>
@@ -193,7 +225,9 @@ export default function Compensi({ palestraId, righe, anno, mese }) {
       ))}
 
       <p className="piccolo muto" style={{ marginTop: 18 }}>
-        Il calcolo parte dalle lezioni in calendario non annullate, moltiplicate per la tariffa oraria della persona.
+        Il calcolo prende le lezioni finite del mese tenute da ogni insegnante (confermate con l'appello: se ha sostituito
+        un'altra, le ore vanno a chi l'ha tenuta) più le lezioni private confermate, e applica le sue regole (scheda staff →
+        Regole di compenso); senza regole vale la tariffa oraria standard. Forfait e fissi mensili si aggiungono una volta.
         Quando segni pagato, nasce una spesa di categoria "compensi": da lì finisce nei costi, nei margini dei corsi
         e nel flusso di cassa. Un cedolino già pagato non viene più toccato dal ricalcolo.
       </p>

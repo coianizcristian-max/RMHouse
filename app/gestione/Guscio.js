@@ -62,7 +62,8 @@ export default function Guscio({ gestione, nome, ruolo, palestraId, funzioni = {
     [/^\/gestione\/corsi\/nuovo/, 'Nuovo corso'], [/^\/gestione\/corsi\/[^/]+$/, 'Scheda corso'],
     [/^\/gestione\/ricevute\/[^/]+$/, 'Documento'], [/^\/gestione\/firme\//, 'Modulo firmato'],
     [/^\/gestione\/crm\/sondaggi\/[^/]+$/, 'Risultati'], [/^\/gestione\/commercialista\/attestati/, 'Attestati'],
-    [/^\/gestione\/giornata\/staff/, 'Giornata per insegnanti'],
+    [/^\/gestione\/giornata\/staff/, 'Giornata per insegnanti'], [/^\/gestione\/compensi\/[^/]+$/, 'Riepilogo compensi'],
+    [/^\/gestione\/persone\/[^/]+\/firmati/, 'Moduli firmati'],
   ];
   const titoloBarra = (DETTAGLI.find(([re]) => re.test(path)) || [])[1] || scelta?.testo;
 
