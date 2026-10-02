@@ -2967,3 +2967,7 @@ html[data-tema="scuro"]:has(.pagina-area) {
 .home-contatti a, .home-piede a { color: var(--nero); font-weight: 650; text-decoration: none; }
 .accesso-nuovi { display: flex; flex-wrap: wrap; gap: 6px 14px; justify-content: center; align-items: center; margin: 14px 0 4px; font-size: 14px; color: var(--testo-2); }
 .accesso-nuovi a { color: var(--rosso); font-weight: 700; }
+/* pagina bianca: il contenuto (Ciao, logo, scritta) sta in un blocco che sale; sul sito lo sfondo resta bianco */
+.bv-dentro { display: grid; grid-template-rows: auto 1fr auto; justify-items: center; align-items: center; width: 100%; height: 100%; transition: transform .45s cubic-bezier(.6, 0, .2, 1), opacity .45s; }
+.benvenuto.parte .bv-dentro { transform: translateY(-40%); opacity: 0; }
+.benvenuto { grid-template-rows: 1fr; }

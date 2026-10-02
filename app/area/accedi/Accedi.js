@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { supabaseBrowser } from '@/lib/supabase/browser';
 import SchermataAccesso from '../../SchermataAccesso';
@@ -23,6 +23,9 @@ export default function Accedi({ errore: erroreIniziale, dove = '/area', emailIn
   const [email, setEmail] = useState(emailIniziale);
   const [verifica, setVerifica] = useState('telefono');
   const [nome, setNome] = useState('');
+  // il cursore nel campo email solo da computer: sul telefono la tastiera non deve aprirsi da sola
+  const campoEmail = useRef(null);
+  useEffect(() => { if (window.matchMedia('(min-width: 900px)').matches) campoEmail.current?.focus(); }, []);
   const [genere, setGenere] = useState(null);   // F | M | null: per dire "Benvenuta" o "Benvenuto"
   const [f, setF] = useState({ password: '', conferma: '', risposta: '', codice: '' });
   const [vedi, setVedi] = useState(false);
@@ -176,7 +179,7 @@ export default function Accedi({ errore: erroreIniziale, dove = '/area', emailIn
         <div className="campo">
           <label htmlFor="em">Email</label>
           <input id="em" type="email" autoComplete="email" inputMode="email" value={email}
-                 onChange={(e) => setEmail(e.target.value)} placeholder="nome@esempio.it" autoFocus />
+                 onChange={(e) => setEmail(e.target.value)} placeholder="nome@esempio.it" ref={campoEmail} />
         </div>
         <button className="btn btn-primario btn-pieno btn-grande" disabled={invio}>{invio ? 'Un attimo…' : 'Avanti'}</button>
       </form>
