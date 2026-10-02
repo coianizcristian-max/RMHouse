@@ -8,25 +8,48 @@ import { supabaseBrowser } from '@/lib/supabase/browser';
 // La vedono solo gli amministratori (anche il database la fa leggere solo a loro).
 
 const UUID = '([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})';
+const LEZIONI = ['lezioni', 'presenze', 'prenotazioni', 'assenze_avvisate', 'crediti_recupero'];
+// Ogni pagina mostra solo le modifiche che la riguardano. La home le mostra tutte.
+// Pagine di una scheda precisa (persona, lezione, corso…): solo le modifiche di quella scheda.
+// Le pagine senza nulla di registrato (statistiche, messaggi…) non hanno il pulsante.
+// L'ordine conta: prima le pagine più precise.
 const PAGINE = [
+  [/^\/gestione$/, () => ({ titolo: 'più recenti' })],
   [new RegExp(`^/gestione/persone/${UUID}`), (m) => ({ persona: m[1], titolo: 'di questa persona' })],
   [new RegExp(`^/gestione/appello/${UUID}`), (m) => ({ lezione: m[1], titolo: 'di questa lezione' })],
-  ['/gestione/abbonamenti', { tabelle: ['tipi_abbonamento', 'voci_listino', 'gruppi_listino', 'recuperi_ammessi', 'palestre'], titolo: 'di abbonamenti e recuperi' }],
+  [new RegExp(`^/gestione/corsi/${UUID}`), (m) => ({ corso: m[1], titolo: 'di questo corso e dei suoi orari' })],
+  [new RegExp(`^/gestione/staff/${UUID}`), (m) => ({ record: m[1], tabelle: ['staff'], titolo: 'di questa scheda' })],
+  [new RegExp(`^/gestione/sale/${UUID}`), (m) => ({ record: m[1], tabelle: ['sale'], titolo: 'di questa sala' })],
+  [new RegExp(`^/gestione/ricevute/${UUID}`), (m) => ({ documento: m[1], titolo: 'di questo documento' })],
+  ['/gestione/persone', { tabelle: ['allievi', 'account'], titolo: 'delle anagrafiche' }],
+  ['/gestione/importa', { tabelle: ['allievi', 'account'], titolo: 'delle anagrafiche' }],
+  ['/gestione/appello', { tabelle: LEZIONI, titolo: 'di lezioni e presenze' }],
+  ['/gestione/oggi', { tabelle: LEZIONI, titolo: 'di lezioni e presenze' }],
+  ['/gestione/agenda', { tabelle: LEZIONI, titolo: 'di lezioni e presenze' }],
+  ['/gestione/giornata', { tabelle: LEZIONI, titolo: 'di lezioni e presenze' }],
+  ['/gestione/ingresso', { tabelle: ['presenze', 'prenotazioni'], titolo: 'degli ingressi' }],
+  ['/gestione/richieste', { tabelle: ['richieste_cliente'], titolo: "delle richieste dall'app" }],
+  ['/gestione/certificati', { tabelle: ['certificati'], titolo: 'dei certificati' }],
+  ['/gestione/tesseramento', { tabelle: ['quote_iscrizione'], titolo: 'delle quote annuali' }],
+  ['/gestione/scadenze', { tabelle: ['iscrizioni', 'rate', 'quote_iscrizione'], titolo: 'di iscrizioni e rate' }],
+  ['/gestione/rinnovi', { tabelle: ['iscrizioni'], titolo: 'delle iscrizioni' }],
+  ['/gestione/abbonamenti', { tabelle: ['tipi_abbonamento', 'voci_listino', 'gruppi_listino', 'recuperi_ammessi'], titolo: 'di abbonamenti e recuperi' }],
   ['/gestione/corsi', { tabelle: ['corsi', 'orari'], titolo: 'dei corsi' }],
-  ['/gestione/palinsesto', { tabelle: ['orari', 'lezioni', 'corsi'], titolo: 'del palinsesto' }],
+  ['/gestione/palinsesto', { tabelle: ['orari', 'corsi'], titolo: 'del palinsesto' }],
   ['/gestione/calendario', { tabelle: ['lezioni', 'chiusure'], titolo: 'del calendario' }],
-  ['/gestione/staff', { tabelle: ['staff'], titolo: 'dello staff' }],
+  ['/gestione/staff', { tabelle: ['staff', 'disponibilita_staff'], titolo: 'dello staff' }],
   ['/gestione/sale', { tabelle: ['sale'], titolo: 'delle sale' }],
   ['/gestione/sede', { tabelle: ['sale', 'discipline', 'livelli', 'fasce_eta', 'chiusure'], titolo: 'della sede' }],
+  ['/gestione/conti', { tabelle: ['pagamenti', 'ricevute', 'rate'], titolo: 'dei conti' }],
   ['/gestione/incassi', { tabelle: ['pagamenti'], titolo: 'degli incassi' }],
-  ['/gestione/ricevute', { tabelle: ['ricevute'], titolo: 'di ricevute e note di credito' }],
+  ['/gestione/ricevute', { tabelle: ['ricevute'], titolo: 'di ricevute e fatture' }],
   ['/gestione/rate', { tabelle: ['rate'], titolo: 'delle rate' }],
-  ['/gestione/certificati', { tabelle: ['certificati'], titolo: 'dei certificati' }],
   ['/gestione/commercialista', { tabelle: ['aliquote_iva', 'numerazioni', 'ricevute'], titolo: 'di IVA e documenti' }],
-  ['/gestione/rinnovi', { tabelle: ['iscrizioni'], titolo: 'delle iscrizioni' }],
-  ['/gestione/scadenze', { tabelle: ['iscrizioni'], titolo: 'delle iscrizioni' }],
+  ['/gestione/compensi', { tabelle: ['lezioni'], titolo: 'delle lezioni (chi le ha tenute)' }],
+  ['/gestione/rendiconto', { tabelle: ['lezioni'], titolo: 'delle lezioni (chi le ha tenute)' }],
   ['/gestione/impostazioni/ruoli', { tabelle: ['ruoli', 'staff'], titolo: 'di ruoli e accessi' }],
-  ['/gestione/impostazioni', { tabelle: ['palestre'], titolo: 'delle impostazioni' }],
+  ['/gestione/impostazioni/registro', null],
+  ['/gestione/impostazioni', { tabelle: ['palestre', 'numerazioni', 'aliquote_iva'], titolo: 'delle impostazioni' }],
 ];
 
 function filtroPer(path) {
@@ -34,7 +57,7 @@ function filtroPer(path) {
     if (chiave instanceof RegExp) { const m = path.match(chiave); if (m) return f(m); }
     else if (path === chiave || path.startsWith(chiave + '/')) return f;
   }
-  return { titolo: 'più recenti' };   // nessuna pagina precisa: tutto
+  return null;   // pagina senza modifiche registrate: niente pulsante
 }
 
 const TABELLE = {
@@ -44,6 +67,7 @@ const TABELLE = {
   aliquote_iva: 'Aliquota IVA', numerazioni: 'Numerazione', sale: 'Sala', discipline: 'Disciplina', livelli: 'Livello',
   fasce_eta: "Fascia d'età", chiusure: 'Chiusura', ruoli: 'Ruolo', assenze_avvisate: 'Disdetta', presenze: 'Presenza',
   prenotazioni: 'Prenotazione', quote_iscrizione: 'Quota annuale', crediti_recupero: 'Recupero', palestre: 'Impostazioni',
+  richieste_cliente: "Richiesta dall'app", disponibilita_staff: 'Disponibilità', lezioni_svolte: 'Lezione',
 };
 const CAMPI = {
   nome: 'nome', cognome: 'cognome', email: 'email', telefono: 'telefono', note: 'note', stato: 'stato', codice: 'codice',
@@ -110,9 +134,26 @@ export default function Cronologia() {
     setCarico(true); setErrore('');
     const db = supabaseBrowser();
     let q = db.from('registro_azioni').select('*').order('quando', { ascending: false }).range(da, da + PER_VOLTA - 1);
-    if (filtro.persona) q = q.eq('persona_id', filtro.persona);
+    if (filtro.persona) {
+      // la persona e i dati di chi paga per lei (email, telefono, indirizzo…)
+      const { data: a } = await db.from('allievi').select('account_id').eq('id', filtro.persona).maybeSingle();
+      q = a?.account_id
+        ? q.or(`persona_id.eq.${filtro.persona},and(tabella.eq.account,record_id.eq.${a.account_id})`)
+        : q.eq('persona_id', filtro.persona);
+    }
     if (filtro.lezione) q = q.eq('lezione_id', filtro.lezione);
     if (filtro.tabelle) q = q.in('tabella', filtro.tabelle);
+    if (filtro.record) q = q.eq('record_id', filtro.record);
+    // il documento e le sue note di credito
+    if (filtro.documento) {
+      const { data: note } = await db.from('ricevute').select('id').eq('riferimento_id', filtro.documento);
+      q = q.eq('tabella', 'ricevute').in('record_id', [filtro.documento, ...(note || []).map((n) => n.id)]);
+    }
+    // il corso e i suoi orari
+    if (filtro.corso) {
+      const { data: orari } = await db.from('orari').select('id').eq('corso_id', filtro.corso);
+      q = q.in('tabella', ['corsi', 'orari']).in('record_id', [filtro.corso, ...(orari || []).map((o) => o.id)]);
+    }
     const { data, error } = await q;
     setCarico(false);
     if (error) { setErrore('Cronologia non disponibile.'); return; }
@@ -135,6 +176,7 @@ export default function Cronologia() {
   function apri() { setAperta(true); setChi(''); carica(0); }
 
   const persone = [...new Set(righe.map((r) => r.chi || 'automatico'))].sort();
+  if (!filtro) return null;
   const visibili = chi ? righe.filter((r) => (r.chi || 'automatico') === chi) : righe;
 
   return (
