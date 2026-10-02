@@ -3012,3 +3012,14 @@ html[data-tema="scuro"]:has(.pagina-area) {
   .barra-appello { bottom: calc(63px + env(safe-area-inset-bottom, 0px)); }
   .ap-testa h1 { font-size: 20px; }
 }
+
+/* ==================================================================
+   105 — titoli più sobri nelle aree riservate (gestione e app clienti):
+   carattere a larghezza normale, meno pesante e più piccolo.
+   Il sito pubblico resta con il titolo largo.
+   ================================================================== */
+.guscio h1, .guscio h2, .guscio h3,
+.pagina-area h1, .pagina-area h2, .pagina-area h3 { font-stretch: 100%; letter-spacing: -0.015em; }
+.guscio h1, .pagina-area h1 { font-size: clamp(22px, 2.2vw, 28px); font-weight: 760; line-height: 1.15; }
+.guscio h2, .pagina-area h2 { font-weight: 720; }
+.guscio .cruscotto-testa h1, .pagina-area .ac-testa h1 { font-size: clamp(22px, 2.2vw, 28px); }
