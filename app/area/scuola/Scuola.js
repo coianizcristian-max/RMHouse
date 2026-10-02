@@ -72,7 +72,7 @@ export default function Scuola({ s }) {
         <span><strong>Lezione privata</strong><span className="piccolo">con l'insegnante che vuoi</span></span>
         <span aria-hidden="true">›</span>
       </Link>
-      <Link prefetch={false} href="/spazi" className="ac-recupero" style={{ background: 'var(--carta)' }}>
+      <Link prefetch={false} href="/area/sala" className="ac-recupero" style={{ background: 'var(--carta)' }}>
         <span><strong>Prenota una sala</strong><span className="piccolo">per allenarti per conto tuo o con il tuo gruppo</span></span>
         <span aria-hidden="true">›</span>
       </Link>
@@ -138,7 +138,7 @@ export default function Scuola({ s }) {
         </div>
       ))}
 
-      <p className="ac-nota" style={{ textAlign: 'center' }}><Link prefetch={false} href="/privacy">Privacy</Link> · <Link prefetch={false} href="/cookie">Cookie</Link></p>
+      <p className="ac-nota" style={{ textAlign: 'center' }}><Link prefetch={false} href="/privacy" target="_blank" rel="noreferrer">Privacy</Link> · <Link prefetch={false} href="/cookie" target="_blank" rel="noreferrer">Cookie</Link></p>
     </div>
   );
 }

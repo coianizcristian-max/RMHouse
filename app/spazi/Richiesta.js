@@ -8,7 +8,8 @@ const ORE = Array.from({ length: 31 }, (_, i) => {
 });
 const DURATE = [1, 1.5, 2, 3, 4, 6, 8];
 
-export default function Richiesta() {
+// contatto: chi è già entrato nell'app (nome, email, telefono già pronti, privacy già accettata)
+export default function Richiesta({ contatto = null, titolo = 'Affitta uno spazio da noi' }) {
   const [catalogo, setCatalogo] = useState(null);
   const [errore, setErrore] = useState('');
   const [passo, setPasso] = useState('tipo');
@@ -21,8 +22,8 @@ export default function Richiesta() {
   const [ospiti, setOspiti] = useState('');
   const [verifica, setVerifica] = useState(null);
   const [controllo, setControllo] = useState(false);
-  const [dati, setDati] = useState({ nome: '', email: '', telefono: '', titolo: '', note: '' });
-  const [privacy, setPrivacy] = useState(false);
+  const [dati, setDati] = useState({ nome: contatto?.nome || '', email: contatto?.email || '', telefono: contatto?.telefono || '', titolo: '', note: '' });
+  const [privacy, setPrivacy] = useState(!!contatto);
   const [invio, setInvio] = useState(false);
   const [esito, setEsito] = useState(null);
 
@@ -94,7 +95,7 @@ export default function Richiesta() {
 
       {passo === 'tipo' && catalogo && (
         <section className="compare">
-          <h1>Affitta uno spazio da noi</h1>
+          <h1>{titolo}</h1>
           <p className="muto">Sale attrezzate per prove, corsi, workshop e feste. Scegli cosa ti serve.</p>
           <div className="scelte" style={{ gridTemplateColumns: '1fr' }}>
             <button type="button" className="scelta" style={{ minHeight: 64 }}
@@ -241,10 +242,12 @@ export default function Richiesta() {
           <div className="campo"><label htmlFor="no">Note</label>
             <textarea id="no" value={dati.note} onChange={(e) => setDati({ ...dati, note: e.target.value })}
                       placeholder="Materiale che ti serve, orari di allestimento, altro…" /></div>
-          <label className="spunta">
-            <input type="checkbox" checked={privacy} onChange={(e) => setPrivacy(e.target.checked)} />
-            <span>Acconsento al trattamento dei dati per gestire la richiesta. <a href="/privacy" target="_blank">Informativa</a></span>
-          </label>
+          {!contatto && (
+            <label className="spunta">
+              <input type="checkbox" checked={privacy} onChange={(e) => setPrivacy(e.target.checked)} />
+              <span>Acconsento al trattamento dei dati per gestire la richiesta. <a href="/privacy" target="_blank">Informativa</a></span>
+            </label>
+          )}
           <button className="btn btn-primario btn-pieno" disabled={invio}>{invio ? 'Invio…' : 'Invia la richiesta'}</button>
           <p style={{ marginTop: 14 }}><button type="button" className="link-btn" onClick={() => setPasso('quando')}>Indietro</button></p>
         </form>

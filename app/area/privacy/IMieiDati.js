@@ -5,7 +5,7 @@ import { supabaseBrowser } from '@/lib/supabase/browser';
 import { dataBreve } from '@/lib/formato';
 
 // Privacy dal telefono: consenso alle promozioni, copia dei dati, richiesta di cancellazione
-export default function IMieiDati({ allievi, marketing, privacyDal }) {
+export default function IMieiDati({ allievi, marketing, privacyDal, moduli = {} }) {
   const router = useRouter();
   const [si, setSi] = useState(marketing);
   const [chiedi, setChiedi] = useState(null);      // id della persona di cui si chiede la cancellazione
@@ -36,7 +36,7 @@ export default function IMieiDati({ allievi, marketing, privacyDal }) {
       <div className="ac-testa">
         <h1>I miei dati</h1>
         <p className="ac-nota" style={{ margin: '2px 0 0' }}>
-          Privacy accettata{privacyDal ? ` il ${dataBreve(privacyDal)}` : ''}. Leggi l'<a href="/privacy">informativa</a> e la <a href="/cookie">cookie policy</a>.
+          Privacy accettata{privacyDal ? ` il ${dataBreve(privacyDal)}` : ''}. Leggi l'<a href="/privacy" target="_blank" rel="noreferrer">informativa</a> e la <a href="/cookie" target="_blank" rel="noreferrer">cookie policy</a>.
         </p>
       </div>
       {errore && <div className="errore" role="alert">{errore}</div>}
@@ -52,13 +52,39 @@ export default function IMieiDati({ allievi, marketing, privacyDal }) {
       </section>
 
       <section className="ac-sezione">
+        <h2>Moduli e firme</h2>
+        {allievi.map((a) => (
+          <div key={a.id} className="md-persona">
+            {allievi.length > 1 && <strong className="md-nome">{a.nome}</strong>}
+            {(moduli[a.id] || []).length === 0 && <p className="ac-nota">Nessun modulo da firmare.</p>}
+            {(moduli[a.id] || []).map((m) => (
+              <div key={m.titolo} className="md-riga">
+                <span className="md-testo">
+                  <strong>{m.titolo}</strong>
+                  <span className={`tag ${m.firmato ? 'tag-ok' : 'tag-attenzione'}`}>{m.firmato ? `firmato il ${dataBreve(m.firma?.firmato_at)}` : 'da firmare'}</span>
+                </span>
+                {m.firmato && m.firma
+                  ? <a className="btn btn-piccolo" href={`/area/firme/${m.firma.id}`}>Apri</a>
+                  : <a className="btn btn-piccolo btn-primario" href="/area/moduli">Firma</a>}
+              </div>
+            ))}
+          </div>
+        ))}
+      </section>
+
+      <section className="ac-sezione">
         <h2>Una copia dei miei dati</h2>
         {allievi.map((a) => (
-          <a key={a.id} className="ac-recupero" href={`/api/privacy/${a.id}`} style={{ background: 'var(--carta)' }}>
-            <span><strong>{a.nome}</strong><span className="piccolo">anagrafica, iscrizioni, pagamenti, presenze…</span></span>
-            <span className="btn btn-piccolo">Scarica</span>
-          </a>
+          <div key={a.id} className="ac-recupero md-copia" style={{ background: 'var(--carta)' }}>
+            <span><strong>{a.nome}</strong><span className="piccolo">anagrafica, iscrizioni, pagamenti, presenze, moduli…</span></span>
+            <span className="md-azioni">
+              <a className="btn btn-piccolo btn-primario" href={`/area/privacy/copia/${a.id}`}>Vedi</a>
+              <a className="btn btn-piccolo" href={`/api/privacy/${a.id}`}>File</a>
+            </span>
+          </div>
         ))}
+        <p className="ac-nota" style={{ marginTop: 6 }}>"Vedi" mostra i dati da leggere e salvare in PDF. "File" scarica uno zip in formato JSON,
+          quello previsto dalla legge per portare i dati in un altro programma.</p>
       </section>
 
       <section className="ac-sezione">

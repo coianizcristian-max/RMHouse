@@ -4,7 +4,8 @@ import { euro, ora, giornoLungo, etaAl, prezzo } from '@/lib/formato';
 
 const PASSI = ['chi', 'cosa', 'quando', 'dati', 'fatto'];
 
-export default function Percorso() {
+// contatto: chi è già entrato nell'app (dati già scritti, privacy già accettata)
+export default function Percorso({ contatto = null }) {
   const [catalogo, setCatalogo] = useState(null);
   const [errore, setErrore] = useState('');
   const [passo, setPasso] = useState('chi');
@@ -18,8 +19,9 @@ export default function Percorso() {
   const [slot, setSlot] = useState(null);
   const [slotScelto, setSlotScelto] = useState(null);
   const [nessunOrario, setNessunOrario] = useState(false);
-  const [dati, setDati] = useState({ nome: '', cognome: '', email: '', telefono: '', data_nascita: '', p_nome: '', p_cognome: '' });
-  const [privacy, setPrivacy] = useState(false);
+  const [dati, setDati] = useState({ nome: contatto?.nome || '', cognome: contatto?.cognome || '', email: contatto?.email || '', telefono: contatto?.telefono || '',
+    data_nascita: contatto?.data_nascita || '', p_nome: '', p_cognome: '' });
+  const [privacy, setPrivacy] = useState(!!contatto);
   const [marketing, setMarketing] = useState(false);
   const [invio, setInvio] = useState(false);
   const [esito, setEsito] = useState(null);
@@ -286,6 +288,7 @@ export default function Percorso() {
           <div className="campo"><label htmlFor="e">Email</label><input id="e" type="email" required autoComplete="email" {...campo('email')} /></div>
           <div className="campo"><label htmlFor="t">Telefono</label><input id="t" type="tel" required autoComplete="tel" {...campo('telefono')} /></div>
 
+          {!contatto && (<>
           <label className="spunta">
             <input type="checkbox" checked={privacy} onChange={(e) => setPrivacy(e.target.checked)} />
             <span>Acconsento al trattamento dei dati per gestire la prenotazione{!adulto && ', anche come genitore del minore'}. <a href="/privacy" target="_blank">Informativa</a></span>
@@ -294,6 +297,7 @@ export default function Percorso() {
             <input type="checkbox" checked={marketing} onChange={(e) => setMarketing(e.target.checked)} />
             <span>Voglio ricevere novità e promozioni (facoltativo)</span>
           </label>
+          </>)}
           <button className="btn btn-primario btn-pieno" disabled={invio}>
             {invio ? 'Invio…' : nessunOrario ? 'Invia la richiesta' : 'Prenota la prova'}
           </button>

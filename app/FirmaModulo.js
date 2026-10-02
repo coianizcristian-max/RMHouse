@@ -74,6 +74,8 @@ export default function FirmaModulo({ modulo, allievo, minore, nomeSuggerito = '
   const [d, setDati2] = useState(null);           // i dati da completare o correggere, come caselle
   const [correggi, setCorreggi] = useState(false);
   const setD = (k) => (e) => setDati2({ ...d, [k]: e.target.value });
+  // una casella ancora vuota resta rossa: si vede subito cosa manca
+  const rosso = (v) => (String(v || '').trim() ? 'fm-ok' : 'fm-vuoto');
   // una casella è aperta se quel dato manca o se si è scelto "Correggi i dati"
   const MANCA = { nato_il: 'data di nascita', nato_a: 'luogo di nascita', cf: 'codice fiscale', residenza: 'residenza', cellulare: 'cellulare' };
   const apri = (k) => !!d && (correggi || (dati?.manca || []).includes(MANCA[k]));
@@ -159,28 +161,28 @@ export default function FirmaModulo({ modulo, allievo, minore, nomeSuggerito = '
             <dt>Nome</dt><dd>{dati.nome}</dd>
             {apri('nato_il') ? <>
               <dt><label htmlFor="fd-nascita">Nato/a il</label></dt>
-              <dd><input id="fd-nascita" type="date" value={d.data_nascita} onChange={setD('data_nascita')} /></dd>
+              <dd><input id="fd-nascita" type="date" className={rosso(d.data_nascita)} value={d.data_nascita} onChange={setD('data_nascita')} /></dd>
             </> : <><dt>Nato/a il</dt><dd>{dataBreve(dati.nato_il)}</dd></>}
             {apri('nato_a') ? <>
               <dt><label htmlFor="fd-luogo">Nato/a a</label></dt>
-              <dd><input id="fd-luogo" value={d.luogo_nascita} onChange={setD('luogo_nascita')} placeholder="Comune" /></dd>
+              <dd><input id="fd-luogo" className={rosso(d.luogo_nascita)} value={d.luogo_nascita} onChange={setD('luogo_nascita')} placeholder="Comune" /></dd>
             </> : <><dt>Nato/a a</dt><dd>{dati.nato_a}</dd></>}
             {apri('cf') ? <>
               <dt><label htmlFor="fd-cf">Codice fiscale</label></dt>
-              <dd><input id="fd-cf" value={d.codice_fiscale} onChange={(e) => setDati2({ ...d, codice_fiscale: e.target.value.toUpperCase() })} maxLength={16} autoCapitalize="characters" /></dd>
+              <dd><input id="fd-cf" className={rosso(d.codice_fiscale.length === 16 ? d.codice_fiscale : '')} value={d.codice_fiscale} onChange={(e) => setDati2({ ...d, codice_fiscale: e.target.value.toUpperCase() })} maxLength={16} autoCapitalize="characters" /></dd>
             </> : <><dt>Codice fiscale</dt><dd>{dati.cf}</dd></>}
             {apri('residenza') ? <>
               <dt><label htmlFor="fd-via">Residenza</label></dt>
               <dd className="fm-residenza">
-                <input id="fd-via" value={d.via} onChange={setD('via')} placeholder="Via e numero" />
-                <input value={d.cap} onChange={setD('cap')} placeholder="CAP" inputMode="numeric" maxLength={5} aria-label="CAP" />
-                <input value={d.citta} onChange={setD('citta')} placeholder="Città" aria-label="Città" />
+                <input id="fd-via" className={rosso(d.via)} value={d.via} onChange={setD('via')} placeholder="Via e numero" />
+                <input className={rosso(d.cap)} value={d.cap} onChange={setD('cap')} placeholder="CAP" inputMode="numeric" maxLength={5} aria-label="CAP" />
+                <input className={rosso(d.citta)} value={d.citta} onChange={setD('citta')} placeholder="Città" aria-label="Città" />
                 <input value={d.provincia} onChange={(e) => setDati2({ ...d, provincia: e.target.value.toUpperCase() })} placeholder="Prov." maxLength={2} aria-label="Provincia" />
               </dd>
             </> : <><dt>Residenza</dt><dd>{dati.residenza}</dd></>}
             {apri('cellulare') ? <>
               <dt><label htmlFor="fd-tel">{dati.genitore ? 'Cellulare del genitore' : 'Cellulare'}</label></dt>
-              <dd><input id="fd-tel" type="tel" inputMode="tel" value={d.telefono} onChange={setD('telefono')} /></dd>
+              <dd><input id="fd-tel" type="tel" inputMode="tel" className={rosso(d.telefono)} value={d.telefono} onChange={setD('telefono')} /></dd>
             </> : !dati.genitore && <><dt>Cellulare</dt><dd>{dati.cellulare}</dd></>}
             {!dati.genitore && dati.email && <><dt>Email</dt><dd>{dati.email}</dd></>}
             {dati.genitore && <><dt>Genitore</dt><dd>{[dati.genitore.nome, !apri('cellulare') && dati.genitore.cellulare, dati.genitore.email].filter(Boolean).join(' · ')}</dd></>}

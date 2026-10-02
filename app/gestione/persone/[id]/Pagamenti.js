@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { supabaseBrowser } from '@/lib/supabase/browser';
 import { euro, dataBreve } from '@/lib/formato';
 import IncassaPersona from './IncassaPersona';
+import EmettiFattura from '../../EmettiFattura';
 
 const METODI = { contanti: 'contanti', pos: 'POS', bonifico: 'bonifico', online: 'online', stripe: 'online', assegno: 'assegno', altro: 'altro' };
 const STATI = { pagato: null, in_attesa: ['da incassare', 'tag-attenzione'], annullato: ['annullato', 'tag-neutro'], rimborsato: ['rimborsato', 'tag-neutro'] };
@@ -15,9 +16,11 @@ export default function Pagamenti({ pagamenti, ricevute, totaleStorico, incassa 
   const [invio, setInvio] = useState(null);
   const [errore, setErrore] = useState('');
   const [aperto, setAperto] = useState(apriIncassa);
+  const [fattura, setFattura] = useState(null);   // l'incasso di cui si sta facendo la fattura
   const pagato = pagamenti.filter((p) => p.stato === 'pagato').reduce((s, p) => s + p.importo_cent, 0);
   const daIncassare = pagamenti.filter((p) => p.stato === 'in_attesa').reduce((s, p) => s + p.importo_cent, 0);
-  const ricevutaDi = (id) => ricevute.find((r) => r.pagamento_id === id && r.tipo_documento === 'ricevuta' && !r.annullata);
+  // il documento dell'incasso: la ricevuta oppure la fattura
+  const ricevutaDi = (id) => ricevute.find((r) => r.pagamento_id === id && (r.tipo_documento === 'ricevuta' || r.tipo_documento === 'fattura') && !r.annullata);
 
   async function emetti(p) {
     setInvio(p.id); setErrore('');
@@ -62,21 +65,27 @@ export default function Pagamenti({ pagamenti, ricevute, totaleStorico, incassa 
                   <span className="pag-destra">
                     <strong>{euro(p.importo_cent)}</strong>
                     {r ? (
-                      <Link prefetch={false} className="link-btn piccolo" href={`/gestione/ricevute/${r.id}`}>ricevuta {r.numero}/{r.anno}</Link>
+                      <Link prefetch={false} className="link-btn piccolo" href={`/gestione/ricevute/${r.id}`}>
+                        {r.tipo_documento === 'fattura' ? 'fattura' : 'ricevuta'} {r.numero}/{r.anno}
+                      </Link>
                     ) : p.stato === 'pagato' ? (
-                      <button className="link-btn piccolo" disabled={invio === p.id} onClick={() => emetti(p)}>
-                        {invio === p.id ? '…' : 'emetti ricevuta'}
-                      </button>
+                      <span className="pag-doc">
+                        <button className="link-btn piccolo" disabled={invio === p.id} onClick={() => emetti(p)}>
+                          {invio === p.id ? '…' : 'emetti ricevuta'}
+                        </button>
+                        <button className="link-btn piccolo" onClick={() => setFattura(fattura === p.id ? null : p.id)}>fattura</button>
+                      </span>
                     ) : null}
                   </span>
                 </span>
+                {fattura === p.id && <EmettiFattura pagamentoId={p.id} onChiudi={() => setFattura(null)} />}
               </li>
             );
           })}
         </ul>
       )}
       <p className="piccolo muto" style={{ marginTop: 8, marginBottom: 0 }}>
-        La ricevuta si apre pronta da stampare o da salvare in PDF ("Stampa o salva in PDF").
+        Ricevuta per quote e corsi; fattura (con IVA) per le attività commerciali. Si aprono pronte da stampare o salvare in PDF.
       </p>
     </section>
   );

@@ -24,6 +24,13 @@ export default function Sede({ palestraId, sedi, palestra }) {
     google_review_url: palestra.google_review_url || '',
     dati_fiscali: palestra.dati_fiscali || '', dicitura_ricevuta: palestra.dicitura_ricevuta || '',
   });
+  // i dati che vanno nella fattura elettronica (XML)
+  const fz0 = palestra.fatturazione || {};
+  const [fz, setFz] = useState({
+    denominazione: fz0.denominazione || '', piva: fz0.piva || '', cf: fz0.cf || '', regime: fz0.regime || 'RF18',
+    indirizzo: fz0.indirizzo || '', cap: fz0.cap || '', comune: fz0.comune || '', provincia: fz0.provincia || '',
+  });
+  const setFzK = (k) => (e) => setFz({ ...fz, [k]: k === 'provincia' ? e.target.value.toUpperCase() : e.target.value });
 
   const set = (k) => (e) => setF({ ...f, [k]: e.target.type === 'checkbox' ? e.target.checked : e.target.value });
   const setG = (k) => (e) => setGen({ ...gen, [k]: e.target.value });
@@ -55,6 +62,7 @@ export default function Sede({ palestraId, sedi, palestra }) {
       base_url: gen.base_url || null, email_mittente: gen.email_mittente || null,
       google_review_url: gen.google_review_url || null,
       dati_fiscali: gen.dati_fiscali.trim() || null, dicitura_ricevuta: gen.dicitura_ricevuta.trim() || null,
+      fatturazione: Object.fromEntries(Object.entries(fz).map(([k, v]) => [k, String(v).trim()])),
     }).eq('id', palestraId);
     setInvio(false);
     if (error) { setErrore('Salvataggio non riuscito.'); return; }
@@ -105,6 +113,30 @@ export default function Sede({ palestraId, sedi, palestra }) {
           <label htmlFor="gd">Dicitura in fondo alle ricevute</label>
           <textarea id="gd" rows={2} value={gen.dicitura_ricevuta} onChange={setG('dicitura_ricevuta')} />
           <span className="piccolo muto">Es. "Documento non fiscale. Operazione esente da IVA…": fattela confermare dal commercialista.</span>
+        </div>
+        <h3 style={{ margin: '18px 0 6px' }}>Dati per la fattura elettronica</h3>
+        <p className="piccolo muto" style={{ marginTop: 0 }}>Servono per emettere le fatture con IVA (attività commerciali) e per il file XML.
+          Il regime fiscale fattelo confermare dal commercialista.</p>
+        <div className="riga-2">
+          <div className="campo"><label htmlFor="fzd">Denominazione</label><input id="fzd" value={fz.denominazione} onChange={setFzK('denominazione')} placeholder="Ritmo Metropolitano S.S.D. a R.L." /></div>
+          <div className="campo"><label htmlFor="fzr">Regime fiscale</label>
+            <select id="fzr" value={fz.regime} onChange={setFzK('regime')}>
+              <option value="RF18">RF18 · Altro (es. forfettario L. 398/91 per SSD/ASD)</option>
+              <option value="RF01">RF01 · Ordinario</option>
+              <option value="RF19">RF19 · Forfettario L. 190/2014 (ditte individuali, senza IVA)</option>
+            </select></div>
+        </div>
+        <div className="riga-2">
+          <div className="campo"><label htmlFor="fzp">Partita IVA</label><input id="fzp" value={fz.piva} onChange={setFzK('piva')} inputMode="numeric" maxLength={11} /></div>
+          <div className="campo"><label htmlFor="fzc">Codice fiscale</label><input id="fzc" value={fz.cf} onChange={setFzK('cf')} maxLength={16} /></div>
+        </div>
+        <div className="riga-2">
+          <div className="campo"><label htmlFor="fzi">Indirizzo della sede legale</label><input id="fzi" value={fz.indirizzo} onChange={setFzK('indirizzo')} placeholder="Via e numero" /></div>
+          <div className="campo"><label htmlFor="fzco">Comune</label><input id="fzco" value={fz.comune} onChange={setFzK('comune')} /></div>
+        </div>
+        <div className="riga-2">
+          <div className="campo"><label htmlFor="fzcap">CAP</label><input id="fzcap" value={fz.cap} onChange={setFzK('cap')} inputMode="numeric" maxLength={5} /></div>
+          <div className="campo"><label htmlFor="fzpr">Provincia</label><input id="fzpr" value={fz.provincia} onChange={setFzK('provincia')} maxLength={2} /></div>
         </div>
         <button className="btn btn-primario" disabled={invio}>Salva i dati della scuola</button>
       </form>

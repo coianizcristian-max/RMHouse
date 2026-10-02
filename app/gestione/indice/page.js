@@ -81,6 +81,7 @@ const SEZIONI = [
       ['Motivi di chi non si iscrive', '/gestione/statistiche', 'In fondo alle statistiche: le risposte del sondaggio mandato a chi ha provato senza poi iscriversi.'],
       ['Incassi', '/gestione/incassi', 'Quote, abbonamenti, prove e affitti incassati, totali per metodo e quello che resta da incassare.'],
       ['Ricevute', '/gestione/ricevute', 'Ricevute non fiscali con IVA a zero per quote e abbonamenti, numerate e stampabili.'],
+      ['Fatture con IVA', '/gestione/ricevute', 'Per le attività commerciali (affitto sale, feste, eventi per esterni): IVA 22% scorporata, PDF di cortesia e file XML della fattura elettronica.'],
       ['Fatture', '/gestione/fatture', 'Carichi gli XML dello SDI: le fatture dei fornitori diventano spese e si abbinano ai movimenti.'],
       ['Banca e cassa', '/gestione/banca', "Carichi l'estratto conto e il sistema lo incrocia con gli incassi registrati."],
       ['Compensi insegnanti', '/gestione/compensi', 'Ore svolte, compenso del mese, extra e pagamento: diventa una spesa nei costi.'],

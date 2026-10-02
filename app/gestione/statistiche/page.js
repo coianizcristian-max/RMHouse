@@ -1,12 +1,12 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { staffCorrente } from '@/lib/staff';
-import { oggiISO } from '@/lib/formato';
+import { oggiISO, euro } from '@/lib/formato';
 import { Barre, Linea, Anello, BarraRiempimento, Numero } from '@/lib/grafici';
 
 export const dynamic = 'force-dynamic';
 
-const eur = (c) => (Number(c || 0) / 100).toLocaleString('it-IT', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 });
+const eur = (c) => euro(Math.round((Number(c) || 0) / 100) * 100);
 const pct = (v) => (v == null ? '–' : `${v}%`);
 const MESI = ['gen', 'feb', 'mar', 'apr', 'mag', 'giu', 'lug', 'ago', 'set', 'ott', 'nov', 'dic'];
 const MOTIVI = { orari: 'Orari', prezzo: 'Prezzo', livello: 'Livello non adatto', distanza: 'Distanza', non_mi_e_piaciuto: 'Disciplina non adatta', altra_struttura: 'Altra struttura', altro: 'Altro' };

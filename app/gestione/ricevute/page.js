@@ -15,7 +15,7 @@ export default async function PaginaRicevute({ searchParams }) {
   const a = /^\d{4}-\d{2}-\d{2}$/.test(al || '') ? al : oggiISO();
 
   const [{ data: righe }, { data: mancanti }, { data: riepilogo }] = await Promise.all([
-    supabase.from('ricevute').select('*, numerazioni ( codice )').eq('palestra_id', p)
+    supabase.from('ricevute').select('*, numerazioni ( codice ), rif:riferimento_id ( tipo_documento )').eq('palestra_id', p)
       .gte('data', da).lte('data', a).order('data', { ascending: false }).order('numero', { ascending: false }).limit(300),
     supabase.rpc('ricevute_mancanti', { p_palestra: p, p_dal: da, p_al: a }),
     supabase.rpc('riepilogo_ricevute', { p_palestra: p, p_dal: da, p_al: a }),

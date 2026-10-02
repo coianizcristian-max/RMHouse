@@ -1,6 +1,7 @@
 import { supabaseServer } from '@/lib/supabase/server';
 import { supabaseAdmin } from '@/lib/supabase/admin';
 import { creaZip } from '@/lib/zip';
+import { raccogliDati } from '@/lib/datiPersona';
 
 export const dynamic = 'force-dynamic';
 
@@ -27,39 +28,21 @@ export async function GET(_request, { params }) {
     supabase = supabaseAdmin();
   }
 
-  const { data: allievo } = await supabase.from('allievi').select('*').eq('id', id).maybeSingle();
-  if (!allievo) return new Response('Persona non trovata.', { status: 404 });
-  const acc = allievo.account_id;
-  const [account, iscrizioni, pagamenti, ricevute, presenze, prove, certificati, quote, storico, rate, messaggi] = await Promise.all([
-    supabase.from('account').select('nome, cognome, email, telefono, codice_fiscale, indirizzo, cap, citta, provincia, fonte, consenso_privacy_at, consenso_marketing, created_at').eq('id', acc).maybeSingle(),
-    supabase.from('iscrizioni').select('data_inizio, data_fine, stato, sconto_cent, note, corsi ( nome ), tipi_abbonamento ( nome )').eq('allievo_id', id),
-    supabase.from('pagamenti').select('pagato_at, created_at, causale, descrizione, importo_cent, metodo, stato').eq('account_id', acc),
-    supabase.from('ricevute').select('numero, anno, data, tipo_documento, descrizione, importo_cent, iva_cent, metodo, annullata').eq('account_id', acc),
-    supabase.from('presenze').select('presente, lezioni ( data, corsi ( nome ) )').eq('allievo_id', id),
-    supabase.from('prove').select('stato, created_at, corsi ( nome ), lezioni ( inizio )').eq('allievo_id', id),
-    supabase.from('certificati').select('caricato_at, scadenza, stato, nome_file').eq('allievo_id', id),
-    supabase.from('quote_iscrizione').select('stagione, importo_cent, data').eq('allievo_id', id),
-    supabase.from('storico_abbonamenti').select('abbonamento, dal, al, valore_cent').eq('allievo_id', id),
-    supabase.from('rate').select('descrizione, numero, di, importo_cent, scadenza, stato').eq('allievo_id', id),
-    supabase.from('messaggi_coda').select('created_at, evento, oggetto, stato').eq('allievo_id', id),
-  ]);
-
-  const { token, codice_esterno, palestra_id, ...persona } = allievo;
-  const dati = {
-    estratto_il: new Date().toISOString(),
-    persona, chi_paga: account.data,
-    iscrizioni: iscrizioni.data, pagamenti: pagamenti.data, ricevute: ricevute.data,
-    presenze: presenze.data, prove: prove.data, certificati: certificati.data, quote_annuali: quote.data,
-    storico_abbonamenti: storico.data, rate: rate.data, messaggi_inviati: messaggi.data,
-  };
+  const raccolti = await raccogliDati(supabase, id);
+  if (!raccolti) return new Response('Persona non trovata.', { status: 404 });
+  const { allievo, dati } = raccolti;
+  const n = (k) => dati[k]?.length || 0;
   const leggimi = [
     `Dati personali di ${allievo.nome} ${allievo.cognome}, estratti il ${new Date().toLocaleDateString('it-IT')}.`,
     '',
     'Il file dati.json contiene tutto quello che la scuola conserva su questa persona e su chi paga:',
     'anagrafica, iscrizioni, pagamenti, ricevute, presenze, prove, certificati (solo i dati, non le immagini),',
-    'quote annuali, storico degli abbonamenti, rate e messaggi inviati.',
+    'quote annuali, storico degli abbonamenti, rate, messaggi inviati e moduli firmati (con le scelte fatte).',
     '',
-    `Iscrizioni: ${iscrizioni.data?.length || 0} · Pagamenti: ${pagamenti.data?.length || 0} · Ricevute: ${ricevute.data?.length || 0} · Presenze: ${presenze.data?.length || 0}`,
+    `Iscrizioni: ${n('iscrizioni')} · Pagamenti: ${n('pagamenti')} · Ricevute e fatture: ${n('ricevute')} · Presenze: ${n('presenze')} · Moduli firmati: ${n('moduli_firmati')}`,
+    '',
+    'Il formato JSON è quello richiesto per la "portabilità" dei dati (si apre con qualsiasi programma).',
+    'Per leggerli comodamente usa "Vedi" in I miei dati, nell\'app: si possono anche salvare in PDF.',
   ].join('\r\n');
   const zip = creaZip([
     { nome: 'LEGGIMI.txt', contenuto: '\uFEFF' + leggimi },

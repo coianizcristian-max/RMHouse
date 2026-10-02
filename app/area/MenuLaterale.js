@@ -81,7 +81,7 @@ export default function MenuLaterale({ aperto, chiudi, esci }) {
           <li><Link prefetch={false} href="/area/io#abbonamenti">{ICONE.abbonamenti}Abbonamenti</Link></li>
           {voce('/area/acquista', 'Acquista un abbonamento', 'carrello')}
           {voce('/area/personal', 'Lezione privata', 'personal')}
-          <li><a href="/spazi">{ICONE.sala}Prenota una sala</a></li>
+          {voce('/area/sala', 'Prenota una sala', 'sala')}
           {voce('/area/pagamenti', 'Pagamenti e ricevute', 'euro')}
           {voce('/area/eventi', 'Eventi e stage', 'eventi')}
           {voce('/area/moduli', 'Moduli e documenti', 'moduli')}
