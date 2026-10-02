@@ -6,7 +6,9 @@ import Link from 'next/link';
 export default function SchermataAccesso({ tipo, titolo, testo, children, altra }) {
   const staff = tipo === 'staff';
   return (
-    <div className="accesso">
+    <div className={`accesso ${staff ? 'staff' : 'iscritti'}`}>
+      {/* sul telefono: in alto il logo grande su bianco, con la punta verso il basso */}
+      <div className="accesso-cima" aria-hidden="true"><img src="/logo.png" alt="" /></div>
       <aside className="accesso-lato" aria-hidden="true">
         <img src="/logo.png" alt="" />
         <p>{staff ? 'Il gestionale della scuola' : 'La tua scuola, dal telefono'}</p>
@@ -20,7 +22,7 @@ export default function SchermataAccesso({ tipo, titolo, testo, children, altra 
       <main className="accesso-corpo">
         <div className="accesso-scheda">
           <Link href="/" className="accesso-logo" aria-label="Ritmo Metropolitano, torna alla home">
-            <img src="/logo-tondo.png" alt="" width="44" height="56" />
+            <img src="/logo-marchio.png" alt="" width="78" height="50" />
           </Link>
           <span className={`accesso-chip${staff ? ' staff' : ''}`}>{staff ? 'Area staff' : 'Area iscritti'}</span>
           <h1>{titolo}</h1>

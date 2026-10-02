@@ -1,6 +1,7 @@
 'use client';
 import { useState } from 'react';
 import Link from 'next/link';
+import DisponibilitaPrivate from './DisponibilitaPrivate';
 import { useRouter } from 'next/navigation';
 import { supabaseBrowser } from '@/lib/supabase/browser';
 import Immagine from '../Immagine';
@@ -149,6 +150,10 @@ export default function SchedaStaff({ palestraId, persona = null, corsi = [], us
           <Link prefetch={false} href={indietro} className="btn">Annulla</Link>
         </div>
       </form>
+
+      {!nuova && (persona.ruolo === 'insegnante' || persona.collaboratore) && (
+        <DisponibilitaPrivate staffId={persona.id} palestraId={palestraId} nome={persona.nome} />
+      )}
 
       {!nuova && !persona.user_id && (
         <p className="piccolo muto" style={{ marginTop: 16 }}>

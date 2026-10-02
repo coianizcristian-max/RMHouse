@@ -2444,16 +2444,26 @@ a.titolo-sala:hover { text-decoration: underline; text-underline-offset: 3px; }
 
 /* tema scuro automatico, solo nell'app del cliente: segue l'impostazione del telefono */
 @media (prefers-color-scheme: dark) {
-  html:has(.pagina-area) {
+  html:not([data-tema="chiaro"]):has(.pagina-area) {
     --bianco: #121212; --carta: #1d1d1f; --nero: #f4f4f4; --testo: #e6e6e6; --testo-2: #a3a3a3; --linea: #2e2e30;
     --rosso-tenue: #3a1515; --ok-tenue: #11301d; --ok: #4cc27a; --attenzione-tenue: #3a2a0c; --attenzione: #f0b44c;
     --rosso-scuro: #ff6b6b; color-scheme: dark;
   }
-  html:has(.pagina-area) body { background: var(--bianco); }
-  html:has(.pagina-area) .barra-area { background: rgba(18, 18, 18, .96); }
-  html:has(.pagina-area) .testata { background: var(--bianco); border-color: var(--linea); }
-  html:has(.pagina-area) .testata img { filter: none; }
+  html:not([data-tema="chiaro"]):has(.pagina-area) body { background: var(--bianco); }
+  html:not([data-tema="chiaro"]):has(.pagina-area) .barra-area { background: rgba(18, 18, 18, .96); }
+  html:not([data-tema="chiaro"]):has(.pagina-area) .testata { background: var(--bianco); border-color: var(--linea); }
+  html:not([data-tema="chiaro"]):has(.pagina-area) .testata img { filter: none; }
 }
+/* tema scelto a mano dal menù (Automatico · Chiaro · Scuro) */
+html[data-tema="scuro"]:has(.pagina-area) {
+    --bianco: #121212; --carta: #1d1d1f; --nero: #f4f4f4; --testo: #e6e6e6; --testo-2: #a3a3a3; --linea: #2e2e30;
+    --rosso-tenue: #3a1515; --ok-tenue: #11301d; --ok: #4cc27a; --attenzione-tenue: #3a2a0c; --attenzione: #f0b44c;
+    --rosso-scuro: #ff6b6b; color-scheme: dark;
+  }
+  html[data-tema="scuro"]:has(.pagina-area) body { background: var(--bianco); }
+  html[data-tema="scuro"]:has(.pagina-area) .barra-area { background: rgba(18, 18, 18, .96); }
+  html[data-tema="scuro"]:has(.pagina-area) .testata { background: var(--bianco); border-color: var(--linea); }
+  html[data-tema="scuro"]:has(.pagina-area) .testata img { filter: none; }
 .scuola-app { grid-column: 1 / -1; }
 .scuola-contatto { display: grid; grid-template-columns: 1.2fr 1fr 1fr; gap: 8px; margin-bottom: 8px; }
 .scuola-contatto input { min-height: 40px; padding: 6px 10px; border: 1px solid var(--linea); border-radius: 10px; font: inherit; font-size: 14px; }
@@ -2565,3 +2575,98 @@ a.titolo-sala:hover { text-decoration: underline; text-underline-offset: 3px; }
 .cc-voce.scelta { font-weight: 750; color: var(--nero); }
 .cc-extra { flex: none; color: var(--testo-2); font-variant-numeric: tabular-nums; }
 .cc-vuoto { padding: 10px; color: var(--testo-2); font-size: 14px; }
+
+/* 087 — logo ufficiale e menù laterale dell'app cliente */
+.marchio img { height: 30px; }
+.cassetto-testa img { width: 52px; }
+.accesso-logo img { height: 46px; }
+.hamburger { display: grid; place-items: center; width: 40px; height: 40px; margin-right: 2px; border: 0; border-radius: 10px; background: none; color: var(--nero); cursor: pointer; flex: none; }
+.testata-sx { display: flex; align-items: center; gap: 4px; min-width: 0; }
+.cl-velo { position: fixed; inset: 0; z-index: 70; background: rgba(0, 0, 0, .4); opacity: 0; pointer-events: none; transition: opacity .2s; }
+.cl-velo.visibile { opacity: 1; pointer-events: auto; }
+.cl-cassetto {
+  position: fixed; z-index: 71; top: 0; bottom: 0; left: 0; width: min(86vw, 340px); background: var(--bianco); color: var(--testo);
+  transform: translateX(-102%); transition: transform .22s ease; overflow-y: auto; border-radius: 0 20px 20px 0;
+  padding: calc(14px + env(safe-area-inset-top, 0px)) 14px calc(20px + env(safe-area-inset-bottom, 0px)); box-shadow: 8px 0 30px rgba(0, 0, 0, .18);
+}
+.cl-cassetto.aperto { transform: none; }
+.cl-chi { display: flex; align-items: center; gap: 12px; padding: 6px 4px 12px; border-bottom: 1px solid var(--linea); }
+.cl-foto { width: 52px; height: 52px; border-radius: 50%; object-fit: cover; flex: none; display: grid; place-items: center; background: var(--carta); font-weight: 800; color: var(--testo-2); }
+.cl-chi strong { display: block; color: var(--nero); font-size: 17px; }
+.cl-chi span { font-size: 12.5px; color: var(--testo-2); overflow-wrap: anywhere; }
+.cl-tema { display: flex; gap: 4px; padding: 10px 0; border-bottom: 1px solid var(--linea); }
+.cl-tema button { flex: 1; padding: 7px 4px; border-radius: 10px; border: 1px solid var(--linea); background: var(--bianco); font: inherit; font-size: 12.5px; font-weight: 650; color: var(--testo-2); cursor: pointer; }
+.cl-tema button[aria-pressed='true'] { background: var(--nero); border-color: var(--nero); color: var(--bianco); }
+.cl-voci { list-style: none; margin: 0; padding: 6px 0; border-bottom: 1px solid var(--linea); }
+.cl-voci a, .cl-voci button {
+  display: flex; align-items: center; gap: 12px; width: 100%; padding: 10px 6px; border: 0; background: none; border-radius: 10px;
+  font: inherit; font-size: 15.5px; font-weight: 600; color: var(--testo); text-decoration: none; cursor: pointer; text-align: left;
+}
+.cl-voci a[aria-current='page'] { color: var(--rosso); }
+.cl-voci svg { flex: none; color: var(--testo-2); }
+.cl-voci a[aria-current='page'] svg { color: var(--rosso); }
+.cl-scuola { display: flex; align-items: center; gap: 10px; padding: 12px 6px; border-bottom: 1px solid var(--linea); text-decoration: none; color: var(--nero); font-weight: 750; }
+.cl-scuola img { width: 54px; height: auto; }
+.cl-chi { text-decoration: none; color: inherit; }
+.cl-chi > span:last-child { display: grid; min-width: 0; }
+
+/* 088 — benvenuto animato e accesso dal telefono */
+.accesso-cima { display: none; }
+@media (max-width: 899px) {
+  .accesso.iscritti { align-content: start; }
+  .accesso.iscritti .accesso-cima {
+    display: grid; place-items: center; background: var(--bianco); padding: calc(34px + env(safe-area-inset-top, 0px)) 20px 70px;
+    clip-path: polygon(0 0, 100% 0, 100% 74%, 50% 100%, 0 74%);
+  }
+  .accesso.iscritti .accesso-cima img { width: min(62vw, 260px); height: auto; animation: bv-entra .6s ease both; }
+  .accesso.iscritti .accesso-corpo { align-content: start; padding-top: 6px; }
+  .accesso.iscritti .accesso-scheda { background: transparent; border: 0; box-shadow: none; padding: 4px 4px 0; }
+  .accesso.iscritti .accesso-logo { display: none; }
+  .accesso.iscritti .accesso-scheda h1 { font-size: 26px; }
+  .accesso.iscritti .campo input { min-height: 54px; border-radius: 14px; background-color: var(--bianco); }
+  .accesso.iscritti input[type='email'] {
+    padding-left: 48px; background-repeat: no-repeat; background-position: 15px center; background-size: 20px;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23777' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='5' width='18' height='14' rx='3'/%3E%3Cpath d='m3 7 9 6 9-6'/%3E%3C/svg%3E");
+  }
+  .accesso.iscritti .acc-password input {
+    padding-left: 48px; background-repeat: no-repeat; background-position: 15px center; background-size: 20px;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23777' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='5' y='11' width='14' height='10' rx='2'/%3E%3Cpath d='M8 11V8a4 4 0 0 1 8 0v3'/%3E%3C/svg%3E");
+  }
+  .accesso.iscritti .btn-grande { min-height: 54px; border-radius: 14px; font-size: 17px; }
+}
+@keyframes bv-entra { from { opacity: 0; transform: scale(.92); } to { opacity: 1; transform: none; } }
+
+.benvenuto {
+  position: fixed; inset: 0; z-index: 200; background: #fff; color: #111; display: grid; grid-template-rows: auto 1fr auto;
+  justify-items: center; align-items: center; padding: calc(40px + env(safe-area-inset-top, 0px)) 24px calc(34px + env(safe-area-inset-bottom, 0px));
+  transition: transform .5s cubic-bezier(.6, 0, .2, 1), opacity .5s; touch-action: none; user-select: none;
+}
+.benvenuto.via { transform: translateY(-100%); opacity: .6; }
+.benvenuto h1 { font-size: 40px; margin: 0; color: #111; animation: bv-entra .7s ease both; }
+.bv-logo { width: min(70vw, 300px); height: auto; animation: bv-entra .8s .1s ease both; }
+.bv-scorri { display: grid; justify-items: center; gap: 4px; border: 0; background: none; font: inherit; font-size: 17px; font-weight: 650; color: #222; cursor: pointer; }
+.bv-scorri svg { color: var(--rosso); animation: bv-su 1.4s ease-in-out infinite; }
+@keyframes bv-su { 0%, 100% { transform: translateY(6px); opacity: .5; } 50% { transform: translateY(-6px); opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .bv-scorri svg, .bv-logo, .benvenuto h1 { animation: none; } }
+
+/* 089 — lezione privata con gli orari liberi dell'insegnante */
+.pe-prof .pe-iniziale { display: grid; place-items: center; width: 64px; height: 64px; border-radius: 50%; background: var(--carta); font-size: 20px; font-weight: 800; color: var(--testo-2); -webkit-line-clamp: unset; overflow: visible; line-height: 1; }
+.pe-prof small { font-size: 11px; color: var(--testo-2); line-height: 1.2; }
+.pe-libero { font-style: normal; font-size: 10.5px; font-weight: 750; color: var(--ok); background: var(--ok-tenue); padding: 2px 7px; border-radius: 999px; }
+.pe-pannello { display: grid; gap: 10px; padding: 14px; border-radius: 16px; border: 2px solid var(--nero); background: var(--bianco); scroll-margin-top: 80px; }
+.pe-testa { display: flex; align-items: center; gap: 10px; }
+.pe-testa img, .pe-iniziale.piccola { width: 44px; height: 44px; border-radius: 50%; object-fit: cover; display: grid; place-items: center; background: var(--carta); font-weight: 800; }
+.pe-testa > span:last-child { display: grid; }
+.pe-testa strong { color: var(--nero); font-size: 17px; }
+.pe-testa small { font-size: 12.5px; color: var(--testo-2); }
+.pe-giorni { display: grid; gap: 10px; max-height: 52vh; overflow-y: auto; padding-right: 2px; }
+.pe-giorno { display: grid; gap: 5px; }
+.pe-data { font-size: 13px; font-weight: 750; color: var(--nero); text-transform: capitalize; }
+.pe-pannello textarea { padding: 8px 10px; border: 1px solid var(--linea); border-radius: 10px; font: inherit; background: var(--bianco); color: var(--testo); }
+.disp-private { margin-top: 16px; }
+.disp-private h2 { font-size: 20px; margin: 0 0 4px; }
+.disp-elenco { list-style: none; margin: 8px 0; padding: 0; display: grid; gap: 4px; }
+.disp-elenco li { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; padding: 6px 10px; border-radius: 10px; background: var(--carta); font-size: 14px; }
+.disp-nuova { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.disp-nuova select, .disp-nuova input { min-height: 38px; padding: 4px 8px; border: 1px solid var(--linea); border-radius: 10px; font: inherit; font-size: 14px; }
+.rich-slot { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }

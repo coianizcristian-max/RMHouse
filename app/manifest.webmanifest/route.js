@@ -18,7 +18,7 @@ export function GET() {
     icons: [
       { src: '/icona-192.png', sizes: '192x192', type: 'image/png' },
       { src: '/icona-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
-      { src: '/icona-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
+      { src: '/icona-512-maskable.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
     ],
     shortcuts: [
       { name: 'Il mio pass', url: '/area/pass', icons: [{ src: '/icona-192.png', sizes: '192x192' }] },

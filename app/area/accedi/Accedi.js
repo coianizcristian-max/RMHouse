@@ -3,6 +3,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { supabaseBrowser } from '@/lib/supabase/browser';
 import SchermataAccesso from '../../SchermataAccesso';
+import Benvenuto from './Benvenuto';
 
 // Accesso dei clienti:
 //  1. scrive l'email che ha lasciato in segreteria
@@ -163,6 +164,8 @@ export default function Accedi({ errore: erroreIniziale, dove = '/area', emailIn
   );
 
   return (
+    <>
+    <Benvenuto />
     <SchermataAccesso tipo="iscritti" titolo="Ciao!" altra={altra}
                       testo="Allievi e genitori: scrivi l'email che hai lasciato in segreteria.">
       {errore && <div className="errore" role="alert">{errore}</div>}
@@ -175,5 +178,6 @@ export default function Accedi({ errore: erroreIniziale, dove = '/area', emailIn
         <button className="btn btn-primario btn-pieno btn-grande" disabled={invio}>{invio ? 'Un attimo…' : 'Avanti'}</button>
       </form>
     </SchermataAccesso>
+    </>
   );
 }

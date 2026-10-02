@@ -41,6 +41,14 @@ function Riga({ r, orari }) {
   const giorni = (d.orari || []).map((id) => orari.find((o) => o.id === id)).filter(Boolean)
     .map((o) => `${GIORNI[o.giorno_settimana]} ${String(o.ora_inizio).slice(0, 5)}`).join(', ');
 
+  async function fissa(t) {
+    setInvio(true); setErrore('');
+    const { error } = await supabaseBrowser().rpc('fissa_personal', { p_id: r.id, p_quando: t, p_risposta: risposta || null });
+    setInvio(false);
+    if (error) { setErrore('Non riuscito. Riprova.'); return; }
+    router.refresh();
+  }
+
   async function rispondi(conferma) {
     if (!conferma && !risposta.trim()) { setErrore('Scrivi due parole al cliente: il motivo o un\'alternativa.'); return; }
     setInvio(true); setErrore('');
@@ -66,7 +74,15 @@ function Riga({ r, orari }) {
       ) : (
         <div className="rich-dati">
           <span>con <strong>{d.insegnante}</strong></span>
-          <span>Quando: {d.quando}</span>
+          {(d.slot || []).length > 0 ? (
+            <span className="rich-slot">Orari scelti — tocca quello che fissi:
+              {d.slot.map((t) => (
+                <button key={t} type="button" className="btn btn-piccolo" disabled={invio || r.stato !== 'da_confermare'} onClick={() => fissa(t)}>
+                  {new Date(t).toLocaleString('it-IT', { weekday: 'short', day: 'numeric', month: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Rome' })}
+                </button>
+              ))}
+            </span>
+          ) : <span>Quando: {d.quando}</span>}
           {d.nota && <span className="piccolo muto">“{d.nota}”</span>}
         </div>
       )}

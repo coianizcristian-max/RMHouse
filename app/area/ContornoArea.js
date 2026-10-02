@@ -4,11 +4,18 @@ import { usePathname, useRouter } from 'next/navigation';
 import { supabaseBrowser } from '@/lib/supabase/browser';
 import Testata from '../Testata';
 import MenuArea from './MenuArea';
+import MenuLaterale from './MenuLaterale';
+import { useEffect, useState } from 'react';
 
 // Testata e menù dell'area clienti, tranne che nella pagina di accesso (che ha la sua impaginazione)
 export default function ContornoArea({ children }) {
   const path = usePathname();
   const router = useRouter();
+  const [menu, setMenu] = useState(false);
+  // tema scelto a mano (Automatico / Chiaro / Scuro), ricordato sul telefono
+  useEffect(() => {
+    try { const t = localStorage.getItem('rm-tema'); if (t === 'chiaro' || t === 'scuro') document.documentElement.setAttribute('data-tema', t); } catch { /* niente */ }
+  }, []);
   async function esci() {
     await supabaseBrowser().auth.signOut();
     router.replace('/area/accedi');
@@ -17,7 +24,11 @@ export default function ContornoArea({ children }) {
   if (path.startsWith('/area/accedi') || path.startsWith('/area/nuova-password')) return children;
   return (
     <>
-      <Testata destra={
+      <Testata sinistra={
+        <button type="button" className="hamburger" aria-label="Apri il menù" aria-expanded={menu} onClick={() => setMenu(true)}>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16" /></svg>
+        </button>
+      } destra={
         <span className="testata-area">
           {/* il pass si apre da qualsiasi pagina: alla reception basta un tocco */}
           <Link prefetch={false} href="/area/pass" className="pulsante-pass" aria-label="Il mio pass">
@@ -29,6 +40,7 @@ export default function ContornoArea({ children }) {
           <button type="button" className="testata-link solo-desktop" onClick={esci}>Esci</button>
         </span>
       } />
+      <MenuLaterale aperto={menu} chiudi={() => setMenu(false)} esci={esci} />
       <MenuArea />
       <main className="pagina pagina-area">{children}</main>
     </>

@@ -18,7 +18,7 @@ export function GET() {
     icons: [
       { src: '/icona-gestione-192.png', sizes: '192x192', type: 'image/png' },
       { src: '/icona-gestione-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
-      { src: '/icona-gestione-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
+      { src: '/icona-gestione-512-maskable.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
     ],
     shortcuts: [
       { name: 'Agenda del giorno', url: '/gestione/oggi', icons: [{ src: '/icona-gestione-192.png', sizes: '192x192' }] },

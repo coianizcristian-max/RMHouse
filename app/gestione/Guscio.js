@@ -121,7 +121,7 @@ export default function Guscio({ gestione, nome, ruolo, palestraId, funzioni = {
       <div className={`velo${cassetto ? ' visibile' : ''}`} onClick={() => setCassetto(false)} aria-hidden="true" />
       <aside id="cassetto" className={`cassetto${cassetto ? ' aperto' : ''}`} aria-hidden={!cassetto} aria-label="Menù">
         <div className="cassetto-testa">
-          <img src="/logo-tondo.png" alt="" width="34" height="44" />
+          <img src="/logo-marchio.png" alt="" width="58" height="37" />
           <div className="ct-testo">
             <strong>Ritmo Metropolitano</strong>
             <span>{nome} · {ruolo}</span>

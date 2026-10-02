@@ -38,7 +38,10 @@ export default function Io({ titolare, persone, anagrafica = [], richieste = [],
   const abb = p.attivi[0];
   const abbStato = abb ? (abb.al < tra(15) ? 'giallo' : 'verde') : 'rosso';
   const certStato = p.certificato_ok ? (p.certificato_scadenza && p.certificato_scadenza < tra(30) ? 'giallo' : 'verde') : p.certificato_in_verifica ? 'giallo' : 'rosso';
-  const quotaStato = p.quota_mancante ? 'rosso' : 'verde';
+  // quota annuale: vale 12 mesi dal pagamento
+  const quotaValida = !p.quota_mancante && p.quota;
+  const quotaScaduta = p.quota_mancante && p.quota;
+  const quotaStato = quotaValida ? (p.quota.valida_fino < tra(30) ? 'giallo' : 'verde') : abb ? 'rosso' : 'grigio';
   const eta = anni(p.nascita);
 
   return (
@@ -80,8 +83,8 @@ export default function Io({ titolare, persone, anagrafica = [], richieste = [],
         </button>
         <div className={`io-tessera ${quotaStato}`}>
           <span>Quota annuale</span>
-          <strong>{p.quota_mancante ? 'da pagare' : 'pagata'}</strong>
-          <em>{p.quota ? `stagione ${p.quota.stagione || ''}`.trim() : p.quota_mancante ? 'in segreteria o online' : ''}</em>
+          <strong>{quotaValida ? `fino al ${dataBreve(p.quota.valida_fino)}` : quotaScaduta ? `scaduta il ${dataBreve(p.quota.valida_fino)}` : 'da pagare'}</strong>
+          <em>{quotaValida ? `pagata il ${dataBreve(p.quota.data)}` : 'si paga con il prossimo abbonamento'}</em>
         </div>
         <div className={`io-tessera ${p.tessera?.numero ? 'verde' : 'grigio'}`}>
           <span>Tessera {p.tessera?.ente || 'ASI'}</span>
