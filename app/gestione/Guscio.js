@@ -16,6 +16,7 @@ const ICONE = {
   conti: <><path d="M4 20V10M10 20V4M16 20v-7M22 20H2" /></>,
   impostazioni: <><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z" /></>,
   home: <><path d="M3 10.5 12 3l9 7.5" /><path d="M5 9.5V21h14V9.5" /></>,
+  appello: <><rect x="5" y="4" width="14" height="17" rx="2" /><path d="M9 4V3h6v1" /><path d="m8.5 12.5 2.5 2.5 4.5-5" /></>,
   menu: <><path d="M4 6h16M4 12h16M4 18h16" /></>,
   chiudi: <><path d="M6 6l12 12M18 6 6 18" /></>,
   freccia: <><path d="m9 6 6 6-6 6" /></>,
@@ -57,7 +58,7 @@ export default function Guscio({ gestione, nome, ruolo, palestraId, funzioni = {
   const voceAttiva = (v) => v === scelta;
   // pagine di dettaglio senza una voce di menù: un titolo lo stesso, così la barra non resta vuota
   const DETTAGLI = [
-    [/^\/gestione\/appello\//, 'Appello'], [/^\/gestione\/persone\/[^/]+\/firma/, 'Firma del modulo'],
+    [/^\/gestione\/appello(\/|$)/, 'Appello'], [/^\/gestione\/persone\/[^/]+\/firma/, 'Firma del modulo'],
     [/^\/gestione\/persone\/(?!nuova)[^/]+$/, 'Scheda persona'], [/^\/gestione\/corsi\/[^/]+\/modifica/, 'Modifica corso'],
     [/^\/gestione\/corsi\/nuovo/, 'Nuovo corso'], [/^\/gestione\/corsi\/[^/]+$/, 'Scheda corso'],
     [/^\/gestione\/ricevute\/[^/]+$/, 'Documento'], [/^\/gestione\/firme\//, 'Modulo firmato'],
@@ -80,9 +81,10 @@ export default function Guscio({ gestione, nome, ruolo, palestraId, funzioni = {
   // La barra in basso del telefono: le quattro cose che si usano di più, poi il menù
   const scorciatoie = (gestione
     ? [['/gestione', 'Home', 'home', true], ['/gestione/calendario', 'Palinsesto', 'calendario'],
+       ['/gestione/appello', 'Appello', 'appello'],
        ['/gestione/persone', 'Persone', 'persone'], ['/gestione/ingresso', 'Ingressi', 'ingresso']]
-    : [['/gestione', 'Home', 'home', true], ['/gestione/calendario', 'Palinsesto', 'calendario'],
-       ['/gestione/giornata', 'Giornata', 'oggi']])
+    : [['/gestione', 'Home', 'home', true], ['/gestione/appello', 'Appello', 'appello'],
+       ['/gestione/calendario', 'Palinsesto', 'calendario'], ['/gestione/giornata', 'Giornata', 'oggi']])
     .filter(([href]) => !nascoste.includes(href));
   const scorciatoiaAttiva = scorciatoie.filter(([href, , , esatto]) => esatto ? path === href : path === href || path.startsWith(href + '/'))
     .sort((a, b) => b[0].length - a[0].length)[0]?.[0];

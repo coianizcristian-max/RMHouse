@@ -27,8 +27,10 @@ export default async function Rendiconto({ searchParams }) {
   const { data: righe } = await supabase.rpc('rendiconto_staff', { p_palestra: staff.palestra_id, p_dal: da, p_al: a });
   const tot = (righe || []).reduce((s, r) => ({
     lezioni: s.lezioni + Number(r.lezioni), minuti: s.minuti + Number(r.minuti),
+    previste: s.previste + Number(r.previste), minPrev: s.minPrev + Number(r.minuti_previsti),
+    daConf: s.daConf + Number(r.da_confermare),
     presenze: s.presenze + Number(r.presenze), compenso: s.compenso + Number(r.compenso_cent),
-  }), { lezioni: 0, minuti: 0, presenze: 0, compenso: 0 });
+  }), { lezioni: 0, minuti: 0, previste: 0, minPrev: 0, daConf: 0, presenze: 0, compenso: 0 });
   const senzaTariffa = (righe || []).filter((r) => !r.tariffa_cent).length;
 
   return (
@@ -36,7 +38,7 @@ export default async function Rendiconto({ searchParams }) {
       <div className="intestazione">
         <div className="occhiello">Conti</div>
         <h1>Rendiconto staff</h1>
-        <p>Chi ha insegnato quanto nel periodo: lezioni, ore, presenze e compenso stimato con la tariffa oraria.</p>
+        <p>Contano solo le lezioni confermate dall'appello («Ho tenuto io la lezione»). Accanto, le lezioni previste in calendario.</p>
       </div>
       <div className="pastiglie">
         {scelte.map(([t, d1, d2]) => (
@@ -51,10 +53,12 @@ export default async function Rendiconto({ searchParams }) {
       </form>
 
       <div className="kpi" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))' }}>
-        <div className="tessera tessera-rossa"><div className="etichetta">Lezioni</div><div className="cifra">{tot.lezioni}</div></div>
-        <div className="tessera"><div className="etichetta">Ore insegnate</div><div className="cifra">{ore(tot.minuti)}</div></div>
-        <div className="tessera"><div className="etichetta">Presenze</div><div className="cifra">{tot.presenze}</div>
-          <div className="sotto">{tot.lezioni ? `${(tot.presenze / tot.lezioni).toFixed(1).replace('.', ',')} a lezione` : '—'}</div></div>
+        <div className="tessera tessera-rossa"><div className="etichetta">Lezioni svolte</div><div className="cifra">{tot.lezioni}</div>
+          <div className="sotto">su {tot.previste} previste</div></div>
+        <div className="tessera"><div className="etichetta">Ore svolte</div><div className="cifra">{ore(tot.minuti)}</div>
+          <div className="sotto">su {ore(tot.minPrev)} previste</div></div>
+        <div className="tessera"><div className="etichetta">Da confermare</div><div className="cifra">{tot.daConf}</div>
+          <div className="sotto">lezioni già finite senza conferma</div></div>
         <div className="tessera tessera-nera"><div className="etichetta">Compenso stimato</div><div className="cifra">{euro(tot.compenso)}</div>
           <div className="sotto">{senzaTariffa ? `${senzaTariffa} senza tariffa oraria` : 'tariffe complete'}</div></div>
       </div>
@@ -62,16 +66,16 @@ export default async function Rendiconto({ searchParams }) {
       {(righe || []).length === 0 ? <div className="vuoto">Nessuna lezione nel periodo.</div> : (
         <div className="tabella-scorre">
           <table>
-            <thead><tr><th>Insegnante</th><th>Lezioni</th><th>Ore</th><th>Presenze</th><th>Per lezione</th><th>Clienti diversi</th><th>Tariffa</th><th>Compenso</th></tr></thead>
+            <thead><tr><th>Insegnante</th><th>Previste</th><th>Svolte</th><th>Ore svolte</th><th>Da confermare</th><th>Presenze</th><th>Tariffa</th><th>Compenso</th></tr></thead>
             <tbody>
               {righe.map((r) => (
                 <tr key={r.staff_id}>
                   <td><strong>{r.nome} {r.cognome}</strong></td>
-                  <td>{r.lezioni}</td>
+                  <td className="muto">{r.previste} · {ore(Number(r.minuti_previsti))}</td>
+                  <td><strong>{r.lezioni}</strong></td>
                   <td>{ore(Number(r.minuti))}</td>
+                  <td>{Number(r.da_confermare) ? <span className="tag tag-attenzione">{r.da_confermare}</span> : <span className="muto">—</span>}</td>
                   <td>{r.presenze}</td>
-                  <td>{Number(r.lezioni) ? (Number(r.presenze) / Number(r.lezioni)).toFixed(1).replace('.', ',') : '—'}</td>
-                  <td>{r.clienti}</td>
                   <td>{r.tariffa_cent ? `${euro(r.tariffa_cent)}/h` : <span className="muto">—</span>}</td>
                   <td><strong>{r.tariffa_cent ? euro(r.compenso_cent) : '—'}</strong></td>
                 </tr>
@@ -81,8 +85,9 @@ export default async function Rendiconto({ searchParams }) {
         </div>
       )}
       <p className="piccolo muto" style={{ marginTop: 12 }}>
-        La tariffa oraria si imposta nella scheda di ogni insegnante (Struttura → Staff). Per approvare e pagare i
-        compensi del mese: <Link prefetch={false} href="/gestione/compensi">Compensi insegnanti</Link>.
+        «Da confermare»: lezioni finite per cui nessuno ha premuto «Ho tenuto io la lezione» nell'appello
+        (la segreteria può confermarle dall'appello). Il compenso qui è una stima con la tariffa oraria; quello vero,
+        con le regole di ogni insegnante, è in <Link prefetch={false} href="/gestione/compensi">Compensi insegnanti</Link>.
       </p>
     </>
   );

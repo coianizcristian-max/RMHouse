@@ -68,6 +68,11 @@ export default async function Home({ searchParams }) {
   ]);
 
   const colore = (id) => corsi?.find((c) => c.id === id)?.colore || 'var(--rosso)';
+  // per l'insegnante: le sue prossime lezioni dei giorni seguenti
+  const { data: prossime } = gestione ? { data: null } : await supabase.from('v_occupazione')
+    .select('lezione_id, corso_id, corso_nome, inizio, capienza, iscritti, sala_nome')
+    .eq('palestra_id', p).eq('insegnante_id', staff.id).gt('data', oggiISO()).neq('stato', 'annullata')
+    .order('inizio').limit(6);
   const adesso = new Date();
   const prossima = lezioni?.find((l) => new Date(l.inizio) > adesso);
   const oraRoma = Number(adesso.toLocaleString('it-IT', { hour: 'numeric', hour12: false, timeZone: 'Europe/Rome' }));
@@ -151,7 +156,8 @@ export default async function Home({ searchParams }) {
         </div>
       )}
 
-      <Promemoria palestraId={p} voci={promemoria || []} chi={staff.nome} oggi={oggiISO()} />
+      {/* i promemoria sono il lavoro della segreteria: all'insegnante servono solo le sue lezioni */}
+      {gestione && <Promemoria palestraId={p} voci={promemoria || []} chi={staff.nome} oggi={oggiISO()} />}
 
       <div className={gestione ? 'cruscotto-3' : ''}>
         {gestione && (
@@ -200,6 +206,26 @@ export default async function Home({ searchParams }) {
             })}
           </ul>
         </section>
+
+        {!gestione && prossime?.length > 0 && (
+          <section className="pannello">
+            <h2>Le prossime</h2>
+            <ul className="mini-lista">
+              {prossime.map((l) => (
+                <li key={l.lezione_id}>
+                  <Link prefetch={false} href={`/gestione/appello/${l.lezione_id}`}>
+                    <span className="pallino-colore" style={{ background: colore(l.corso_id) }} />
+                    <span className="ml-ora">{new Date(l.inizio).toLocaleDateString('it-IT', { weekday: 'short', day: 'numeric', timeZone: 'Europe/Rome' })}</span>
+                    <span className="ml-testo">
+                      <strong>{l.corso_nome}</strong>
+                      <span className="piccolo muto">{ora(l.inizio)} · {l.iscritti}{l.capienza ? `/${l.capienza}` : ''} iscritti{l.sala_nome ? ` · ${l.sala_nome}` : ''}</span>
+                    </span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
 
         {gestione && (
           <section className="pannello">

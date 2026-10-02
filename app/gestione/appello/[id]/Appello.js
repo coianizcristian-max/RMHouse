@@ -16,7 +16,7 @@ const ERRORI_AVVISO = {
 };
 const erroreAvviso = (e) => ERRORI_AVVISO[Object.keys(ERRORI_AVVISO).find((k) => e?.message?.includes(k))] || 'Operazione non riuscita.';
 
-export default function Appello({ lezioneId, palestraId, persone, corsoNome = '', gestione = true, postazioni = [], avvisati = [], nuove = [], finita = false, recuperoDaSegreteria = true }) {
+export default function Appello({ lezioneId, persone, corsoNome = '', gestione = true, postazioni = [], avvisati = [], nuove = [], finita = false, recuperoDaSegreteria = true, registro = null, annullata = false }) {
   const router = useRouter();
   const [presenze, setPresenze] = useState(Object.fromEntries(persone.map((p) => [p.allievo_id, p.presente])));
   // chi arriva dopo (aggiunto in appello) porta con sé la sua presenza
@@ -34,6 +34,8 @@ export default function Appello({ lezioneId, palestraId, persone, corsoNome = ''
   const [candidati, setCandidati] = useState(null);
   const [nuova, setNuova] = useState({ nome: '', telefono: '' });
   const [invio, setInvio] = useState(false);
+  // chi ha fatto l'appello e quando (si aggiorna a ogni presenza segnata)
+  const [reg, setReg] = useState(registro);
 
   // Posti numerati: tocca il posto e scegli chi ci va
   async function assegna(post) {
@@ -156,29 +158,36 @@ export default function Appello({ lezioneId, palestraId, persone, corsoNome = ''
     const prima = presenze[allievoId];
     setPresenze({ ...presenze, [allievoId]: presente });
     setErrore('');
-    const { error } = await supabaseBrowser().from('presenze').upsert(
-      { palestra_id: palestraId, lezione_id: lezioneId, allievo_id: allievoId, presente },
-      { onConflict: 'lezione_id,allievo_id' }
-    );
+    const { data, error } = await supabaseBrowser().rpc('segna_presenze', { p_lezione: lezioneId, p_allievi: [allievoId], p_presente: presente });
     if (error) {
       setPresenze((p) => ({ ...p, [allievoId]: prima }));
-      setErrore('Presenza non salvata. Controlla la connessione e riprova.');
+      setErrore(error.message?.includes('non_autorizzato') ? 'Puoi fare l\'appello solo nelle tue lezioni.' : 'Presenza non salvata. Controlla la connessione e riprova.');
+      return;
     }
+    registra(data);
+  }
+
+  function registra(d) {
+    if (!d) return;
+    setReg((r) => ({ da: r?.at ? r.da : 'te', at: d.appello_at, modDa: 'te', modAt: d.appello_mod_at }));
   }
 
   async function tuttiPresenti() {
     const mancanti = persone.filter((p) => presenze[p.allievo_id] == null);
-    if (!mancanti.length) return;
-    if (!confirm(`Segnare presenti le ${mancanti.length} persone non ancora spuntate?`)) return;
+    if (!mancanti.length) { setAvviso('Sono già tutte segnate.'); return; }
+    const bloccate = mancanti.filter((p) => p.bloccato).length;
+    if (bloccate && !confirm(`${bloccate === 1 ? 'Una persona ha' : `${bloccate} persone hanno`} il certificato scaduto o mancante. Segnare comunque tutti presenti?`)) return;
+    setErrore(''); setAvviso('');
+    const prima = { ...presenze };
     setPresenze({ ...presenze, ...Object.fromEntries(mancanti.map((p) => [p.allievo_id, true])) });
-    const { error } = await supabaseBrowser().from('presenze').upsert(
-      mancanti.map((p) => ({ palestra_id: palestraId, lezione_id: lezioneId, allievo_id: p.allievo_id, presente: true })),
-      { onConflict: 'lezione_id,allievo_id' }
-    );
+    const { data, error } = await supabaseBrowser().rpc('segna_presenze', { p_lezione: lezioneId, p_allievi: mancanti.map((p) => p.allievo_id), p_presente: true });
     if (error) {
-      setPresenze({ ...presenze });
+      setPresenze(prima);
       setErrore('Presenze non salvate. Controlla la connessione e riprova.');
+      return;
     }
+    registra(data);
+    setAvviso(`${mancanti.length} ${mancanti.length === 1 ? 'segnata presente' : 'segnate presenti'}. Chi manca, tocca «No».`);
   }
 
   const cicla = (p) => {
@@ -232,9 +241,18 @@ export default function Appello({ lezioneId, palestraId, persone, corsoNome = ''
 
   return (
     <>
-      {vuota ? <div className="vuoto">Nessun iscritto o prova per questa lezione.</div> : <p className="piccolo muto">
-        {persone.length - nProve} iscritti{nProve > 0 && `, ${nProve} in prova`} · tocca una riga per segnare la presenza
-      </p>}
+      {vuota ? <div className="vuoto">Nessun iscritto o prova per questa lezione.</div> : (
+        <div className="ap-riepilogo">
+          <span className="ap-conti">
+            <strong>{persone.length - nProve} iscritti{nProve > 0 && ` · ${nProve} in prova`}</strong>
+            <span className={`ap-registro${reg?.at ? ' fatto' : ''}`}>
+              {reg?.at
+                ? <>Appello fatto da {reg.da || '—'} alle {ora(reg.at)}{reg.modAt && Math.abs(new Date(reg.modAt) - new Date(reg.at)) > 60000 ? ` · ultima modifica ${reg.modDa || '—'} ${dataBreve(reg.modAt) !== dataBreve(reg.at) ? `il ${dataBreve(reg.modAt)} ` : ''}alle ${ora(reg.modAt)}` : ''}</>
+                : 'Appello non ancora fatto'}
+            </span>
+          </span>
+        </div>
+      )}
       {errore && <div className="errore" role="alert">{errore}</div>}
       {avviso && <div className="avviso-ok" role="status">{avviso}</div>}
 
@@ -352,14 +370,14 @@ export default function Appello({ lezioneId, palestraId, persone, corsoNome = ''
       {/* riepilogo sempre visibile mentre si scorre l'elenco */}
       {!vuota && <div className="barra-appello">
         <div>
-          <strong>{presenti} presenti</strong>
+          <strong>{presenti} {presenti === 1 ? 'presente' : 'presenti'}</strong>
           <span className="muto"> · {Object.values(presenze).filter((v) => v != null).length}/{persone.length} segnati</span>
           <div style={{ height: 5, borderRadius: 3, background: 'var(--linea)', marginTop: 5, overflow: 'hidden', width: 140 }}>
             <div style={{ width: `${Math.round((Object.values(presenze).filter((v) => v != null).length / persone.length) * 100)}%`,
                           height: '100%', background: 'var(--rosso)' }} />
           </div>
         </div>
-        <button type="button" className="btn btn-primario" onClick={tuttiPresenti}>Tutti presenti</button>
+        {!annullata && <button type="button" className="btn btn-primario" onClick={tuttiPresenti}>✓ Tutti presenti</button>}
       </div>}
     </>
   );

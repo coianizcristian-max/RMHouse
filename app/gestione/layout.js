@@ -7,7 +7,7 @@ export const metadata = {
   title: 'Gestione · Ritmo Metropolitano',
   manifest: '/gestione.webmanifest',
   appleWebApp: { capable: true, title: 'RM Gestione', statusBarStyle: 'black' },
-  icons: { icon: '/icona-gestione-192.png', apple: '/apple-icon-gestione.png' },
+  icons: { icon: [{ url: '/favicon-rosso-48.png', sizes: '48x48' }, { url: '/favicon-rosso-192.png', sizes: '192x192' }], apple: '/apple-icon-gestione.png' },
 };
 
 export default async function LayoutGestione({ children }) {

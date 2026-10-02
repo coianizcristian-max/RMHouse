@@ -1,4 +1,5 @@
 'use client';
+import AccessoStaff from './AccessoStaff';
 import { useState } from 'react';
 import Link from 'next/link';
 import DisponibilitaPrivate from './DisponibilitaPrivate';
@@ -84,9 +85,7 @@ export default function SchedaStaff({ palestraId, persona = null, corsi = [], el
 
       {!nuova && (
         <div className="segni-staff" style={{ marginBottom: 10 }}>
-          {persona.user_id
-            ? <span className="tag tag-ok">entra nell'app</span>
-            : <span className="tag tag-attenzione">senza accesso</span>}
+          <AccessoStaff staffId={persona.id} attivo={!!persona.user_id} />
           {persona.archiviato && <span className="tag tag-neutro">archiviato</span>}
           {!persona.attivo && <span className="tag tag-neutro">non attivo</span>}
           <span className="ss-gestione">
@@ -160,12 +159,6 @@ export default function SchedaStaff({ palestraId, persona = null, corsi = [], el
         <DisponibilitaPrivate staffId={persona.id} palestraId={palestraId} nome={persona.nome} />
       )}
 
-      {!nuova && !persona.user_id && (
-        <p className="piccolo muto" style={{ marginTop: 16 }}>
-          Per farla entrare nell'app serve creare il suo utente in Supabase (Authentication → Users) con la stessa
-          email di questa scheda, e collegarlo.
-        </p>
-      )}
     </>
   );
 }

@@ -6,7 +6,7 @@ self.addEventListener('push', (evento) => {
   evento.waitUntil(
     self.registration.showNotification(dati.titolo, {
       body: dati.testo,
-      icon: '/icona-192.png',
+      icon: '/notifica-192.png',
       badge: '/badge-96.png',
       data: { url: dati.url || '/area' },
       tag: dati.tag || undefined,

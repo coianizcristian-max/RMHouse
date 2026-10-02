@@ -27,6 +27,8 @@ export default function ConfermaLezione({ lezioneId, io, titolare, svolta, inseg
   }
 
   const sostituisco = titolare?.id && io?.id && titolare.id !== io.id;
+  // la segreteria che guarda la lezione di un'insegnante non la "sostituisce": può solo indicare chi l'ha tenuta
+  const guarda = gestione && sostituisco;
   return (
     <div className={`conferma-lezione${svolta ? ' fatta' : ''}`}>
       {svolta ? (
@@ -39,12 +41,12 @@ export default function ConfermaLezione({ lezioneId, io, titolare, svolta, inseg
         </span>
       ) : (
         <span className="cl-stato">
-          <strong>{sostituisco ? `Stai sostituendo ${titolare.nome}?` : 'Conferma la lezione'}</strong>
-          <span className="piccolo">{sostituisco ? 'Conferma che la tieni tu: le ore vanno a te.' : 'Tocca a inizio lezione: vale per il conteggio delle ore del mese.'}</span>
+          <strong>{guarda ? 'Lezione non ancora confermata' : sostituisco ? `Stai sostituendo ${titolare.nome}?` : 'Conferma la lezione'}</strong>
+          <span className="piccolo">{guarda ? `La conferma ${titolare.nome} dall'appello; se serve, indicalo tu.` : sostituisco ? 'Conferma che la tieni tu: le ore vanno a te.' : 'Tocca a inizio lezione: vale per il conteggio delle ore del mese.'}</span>
         </span>
       )}
       <span className="cl-azioni">
-        {!svolta && io?.id && (
+        {!svolta && io?.id && !guarda && (
           <button type="button" className="btn btn-primario" disabled={invio} onClick={() => conferma()}>
             {sostituisco ? 'Sì, la tengo io' : 'Ho tenuto io la lezione'}
           </button>

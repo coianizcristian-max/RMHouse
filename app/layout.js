@@ -5,7 +5,7 @@ export const metadata = {
   description: 'Acrobatic and dance center: prenota la tua lezione di prova',
   manifest: '/manifest.webmanifest',
   appleWebApp: { capable: true, title: 'Ritmo Metropolitano', statusBarStyle: 'default' },
-  icons: { icon: [{ url: '/favicon-48.png', sizes: '48x48' }, { url: '/icona-192.png', sizes: '192x192' }], apple: '/apple-icon.png' },
+  icons: { icon: [{ url: '/favicon-rosso-48.png', sizes: '48x48' }, { url: '/favicon-rosso-192.png', sizes: '192x192' }], apple: '/apple-icon.png' },
 };
 
 export const viewport = {
