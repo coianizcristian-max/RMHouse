@@ -2965,3 +2965,5 @@ html[data-tema="scuro"]:has(.pagina-area) {
 .home-piede strong { color: var(--nero); }
 .home-contatti { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px 14px; }
 .home-contatti a, .home-piede a { color: var(--nero); font-weight: 650; text-decoration: none; }
+.accesso-nuovi { display: flex; flex-wrap: wrap; gap: 6px 14px; justify-content: center; align-items: center; margin: 14px 0 4px; font-size: 14px; color: var(--testo-2); }
+.accesso-nuovi a { color: var(--rosso); font-weight: 700; }

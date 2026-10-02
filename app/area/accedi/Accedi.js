@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { supabaseBrowser } from '@/lib/supabase/browser';
 import SchermataAccesso from '../../SchermataAccesso';
 import Benvenuto from './Benvenuto';
+import InstallaApp from '../InstallaApp';
 import { gx } from '@/lib/genere';
 
 // Accesso dei clienti:
@@ -169,7 +170,7 @@ export default function Accedi({ errore: erroreIniziale, dove = '/area', emailIn
     <>
     <Benvenuto />
     <SchermataAccesso tipo="iscritti" titolo="Ciao!" altra={altra}
-                      testo="Allievi e genitori: scrivi l'email che hai lasciato in segreteria.">
+                      testo="Per chi frequenta e per i genitori: scrivi l'email che hai lasciato in segreteria.">
       {errore && <div className="errore" role="alert">{errore}</div>}
       <form onSubmit={avanti}>
         <div className="campo">
@@ -179,6 +180,12 @@ export default function Accedi({ errore: erroreIniziale, dove = '/area', emailIn
         </div>
         <button className="btn btn-primario btn-pieno btn-grande" disabled={invio}>{invio ? 'Un attimo…' : 'Avanti'}</button>
       </form>
+      <div className="accesso-nuovi">
+        <span>Non frequenti ancora?</span>
+        <Link href="/prova" prefetch={false}>Prenota una prova</Link>
+        <Link href="/spazi" prefetch={false}>Affitta una sala</Link>
+      </div>
+      <InstallaApp compatto />
     </SchermataAccesso>
     </>
   );

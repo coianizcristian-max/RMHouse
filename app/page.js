@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import Testata from './Testata';
+import Benvenuto from './area/accedi/Benvenuto';
 import { supabaseAdmin } from '@/lib/supabase/admin';
 import { SLUG } from '@/lib/palestra';
 
@@ -45,6 +46,8 @@ export default async function Home() {
     <>
     {/* TELEFONO: la home di sempre (logo, titolo, pulsanti, le due porte) */}
     <div className="home-telefono">
+      {/* da telefono: prima la pagina bianca col logo; scorrendo verso l'alto si apre l'accesso */}
+      <Benvenuto dopo="/area" />
       <Testata destra={<a href="#entra" className="testata-link">Accedi</a>} />
       <main className="home">
         <section className="home-hero">

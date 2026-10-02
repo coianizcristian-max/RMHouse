@@ -1,10 +1,13 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
+import { useRouter } from 'next/navigation';
 
 // Schermata di benvenuto dell'app (solo telefono, una volta per apertura):
 // pagina bianca con il logo, "Scorri verso l'alto per iniziare" che pulsa,
 // e con il dito verso l'alto (o un tocco) sale e lascia vedere l'accesso.
-export default function Benvenuto() {
+// dopo: dove andare quando la pagina bianca sale (sul sito da telefono: l'area clienti, cioè l'accesso)
+export default function Benvenuto({ dopo = null }) {
+  const router = useRouter();
   const [mostra, setMostra] = useState(false);
   const [via, setVia] = useState(false);
   const [spinta, setSpinta] = useState(0);
@@ -14,12 +17,14 @@ export default function Benvenuto() {
     try {
       const telefono = window.matchMedia('(max-width: 899px)').matches;
       if (telefono && !sessionStorage.getItem('rm-benvenuto')) setMostra(true);
+      if (telefono && dopo) router.prefetch?.(dopo);
     } catch { /* niente */ }
   }, []);
 
   function chiudi() {
     setVia(true);
     try { sessionStorage.setItem('rm-benvenuto', '1'); } catch { /* niente */ }
+    if (dopo) { setTimeout(() => router.push(dopo), 380); return; }
     setTimeout(() => setMostra(false), 520);
   }
   if (!mostra) return null;
