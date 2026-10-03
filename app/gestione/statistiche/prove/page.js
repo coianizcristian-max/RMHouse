@@ -15,7 +15,7 @@ export default async function Prove({ searchParams }) {
   const p = staff.palestra_id;
   const [{ data: k }, { data: s }, { data: funnel }, { data: feedback }] = await Promise.all([
     supabase.rpc('cruscotto', { p_palestra: p, p_dal: per.dal, p_al: per.al }),
-    supabase.rpc('statistiche_stagione', { p_palestra: p, p_dal: per.dal, p_al: per.al }),
+    supabase.rpc('statistiche_stagione', { p_palestra: p, p_dal: per.dal, p_al: per.al, p_sezione: 'prove' }),
     supabase.rpc('statistiche_funnel', { p_palestra: p, p_dal: per.dal, p_al: per.al }),
     supabase.from('feedback_prove').select('motivo').eq('palestra_id', p).gte('created_at', per.dal).lte('created_at', per.al + 'T23:59:59'),
   ]);

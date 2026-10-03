@@ -14,7 +14,7 @@ export default async function Frequenza({ searchParams }) {
   const p = staff.palestra_id;
   const [{ data: k }, { data: s }, { data: andamento }] = await Promise.all([
     supabase.rpc('cruscotto', { p_palestra: p, p_dal: per.dal, p_al: per.al }),
-    supabase.rpc('statistiche_stagione', { p_palestra: p, p_dal: per.dal, p_al: per.al }),
+    supabase.rpc('statistiche_stagione', { p_palestra: p, p_dal: per.dal, p_al: per.al, p_sezione: 'frequenza' }),
     supabase.rpc('andamento_mensile', { p_palestra: p, p_mesi: 12 }),
   ]);
   const d = k || {}; const st = s || {};

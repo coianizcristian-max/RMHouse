@@ -14,7 +14,7 @@ export default async function Persone({ searchParams }) {
   const p = staff.palestra_id;
   const [{ data: k }, { data: s }, { data: distribuzione }] = await Promise.all([
     supabase.rpc('cruscotto', { p_palestra: p, p_dal: per.dal, p_al: per.al }),
-    supabase.rpc('statistiche_stagione', { p_palestra: p, p_dal: per.dal, p_al: per.al }),
+    supabase.rpc('statistiche_stagione', { p_palestra: p, p_dal: per.dal, p_al: per.al, p_sezione: 'persone' }),
     supabase.rpc('distribuzione_iscritti', { p_palestra: p }),
   ]);
   const d = k || {}; const st = s || {};

@@ -1614,11 +1614,11 @@ a.persona-nome:hover { text-decoration: underline; text-underline-offset: 3px; }
   .pm-nuovo { grid-template-columns: minmax(0, 1fr) auto; }
   .pm-nuovo input:not([type='date']) { grid-column: 1 / -1; }
 }
-.guscio .pannello form.pm-nuovo { display: grid; grid-template-columns: minmax(0, 1fr) 170px auto; gap: 8px; }
+.guscio .pannello form.pm-nuovo { display: grid; grid-template-columns: minmax(0, 1fr) 160px minmax(0, 230px) auto; gap: 8px; max-width: none; align-items: center; }
 .guscio .pannello form.pm-nuovo > * { grid-column: auto; }
 @media (max-width: 720px) {
   .guscio .pannello form.pm-nuovo { grid-template-columns: minmax(0, 1fr) auto; }
-  .guscio .pannello form.pm-nuovo > input:not([type='date']) { grid-column: 1 / -1; }
+  .guscio .pannello form.pm-nuovo > input:not([type='date']), .guscio .pannello form.pm-nuovo > select { grid-column: 1 / -1; }
 }
 .guscio .scheda-testa h1 { font-size: clamp(26px, 3vw, 40px); line-height: 1.1; }
 
@@ -3086,3 +3086,27 @@ form.periodo-date input[type='date'] { width: 150px; min-height: 36px; padding: 
 form.periodo-date .btn { flex: none; width: auto; min-height: 36px; padding: 0 14px; }
 .at-chi select { min-width: 240px; min-height: 40px; padding: 6px 10px; font: inherit; font-size: 15px; font-weight: 600; border: 1.5px solid var(--linea); border-radius: 10px; background: var(--bianco); color: var(--nero); }
 .at-ferme { font-size: 13px; color: var(--testo-2); margin: 10px 2px 0; }
+
+/* 108 — barra di caricamento della gestione: risposta immediata al tocco */
+.barra-caricamento { position: fixed; top: 0; left: 0; height: 3px; width: 0; z-index: 200; background: var(--rosso); opacity: 0; pointer-events: none; transition: opacity .2s; }
+.barra-caricamento.attiva { opacity: 1; animation: bc-avanza 8s cubic-bezier(.1, .7, .2, 1) forwards; }
+@keyframes bc-avanza { 0% { width: 0; } 20% { width: 45%; } 60% { width: 75%; } 100% { width: 92%; } }
+[data-in-arrivo] { opacity: .65; cursor: progress; }
+.st-schede a[data-in-arrivo], .periodo-chip a[data-in-arrivo] { background: var(--nero); color: #fff; border-color: var(--nero); opacity: 1; }
+
+/* 108 — "Da fare" assegnabili */
+.pm-nuovo { grid-template-columns: minmax(0, 1fr) 160px minmax(0, 230px) auto; }
+.pm-nuovo select { min-height: 42px; padding: 8px 10px; font: inherit; font-size: 14px; border: 1.5px solid var(--linea); border-radius: 12px; background: var(--bianco); color: var(--testo); width: 100%; }
+.pm-nuovo select.scelto { border-color: var(--rosso); color: var(--nero); font-weight: 600; }
+@media (max-width: 720px) {
+  .pm-nuovo { grid-template-columns: minmax(0, 1fr) auto; }
+  .pm-nuovo input:not([type='date']), .pm-nuovo select { grid-column: 1 / -1; }
+}
+.pm-meta { display: flex; flex-wrap: wrap; gap: 3px 10px; font-size: 12.5px; color: var(--testo-2); margin-top: 2px; text-decoration: none; }
+.pm-elenco li.fatto > label > span .pm-meta { text-decoration: none; }
+.pm-per { display: inline-block; padding: 1px 8px; border-radius: 999px; background: var(--nero); color: #fff; font-weight: 650; font-size: 11.5px; }
+.pm-per.persona { background: var(--rosso); }
+.pm-fatto { color: var(--ok); font-weight: 600; }
+.pm-azioni { display: flex; gap: 6px; flex: none; align-items: center; }
+.pm-elenco li.fatto > label > span { text-decoration: none; color: inherit; }
+.pm-elenco li.fatto .pm-testo { text-decoration: line-through; color: var(--testo-2); }

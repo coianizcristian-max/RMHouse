@@ -28,8 +28,9 @@ const AREE = [
     ['senza_appello', 'Sue lezioni finite senza appello', 'male'], ['disdette', '"Ha avvisato" segnati'],
     ['recuperi', 'Recuperi dati'], ['prenotazioni', 'Prenotazioni e recuperi inseriti'], ['lezioni_modifiche', 'Lezioni spostate o modificate'],
   ]],
-  ['reception', 'Reception e contatti', [
+  ['reception', 'Reception, contatti e promemoria', [
     ['ingressi', 'Ingressi registrati'], ['contatti', 'Contatti con lead e clienti'], ['richieste', "Richieste dall'app gestite"], ['campagne', 'Campagne inviate'],
+    ['promemoria_scritti', 'Cose da fare scritte'], ['promemoria_fatti', 'Cose da fare spuntate'],
   ]],
   ['configurazione', 'Configurazione', [['configurazione', 'Corsi, orari, abbonamenti e impostazioni']]],
 ];
@@ -88,7 +89,7 @@ export default async function Attivita({ searchParams }) {
               <table className="at-tabella">
                 <thead><tr><th>Persona</th><th>Ultimo accesso</th><th className="num">Giorni attivi</th><th className="num">Azioni</th>
                   <th className="num">Anagrafiche</th><th className="num">Iscrizioni</th><th className="num">Incassi</th><th className="num">Lezioni</th>
-                  <th className="num">Reception</th><th className="num">Config.</th><th className="num">Senza appello</th><th className="num">Eliminazioni</th></tr></thead>
+                  <th className="num">Reception e promemoria</th><th className="num">Config.</th><th className="num">Senza appello</th><th className="num">Eliminazioni</th></tr></thead>
                 <tbody>
                   {persone.filter((r) => Number(r.totale) > 0 || Number(r.senza_appello) > 0).map((r) => {
                     const a = (area, val) => (Number(val) ? <Link prefetch={false} href={`/gestione/attivita?${qs}&chi=${r.staff_id}&voce=area:${area}#dettaglio`}>{val}</Link> : <span className="muto">0</span>);

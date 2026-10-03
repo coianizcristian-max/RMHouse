@@ -9,7 +9,7 @@ const STATO_RIGA = { da_verificare: 'NON CONFERMATA: non contata', forfait: 'nel
 const MESI = ['gennaio', 'febbraio', 'marzo', 'aprile', 'maggio', 'giugno',
               'luglio', 'agosto', 'settembre', 'ottobre', 'novembre', 'dicembre'];
 
-export default function Compensi({ palestraId, righe, anno, mese, soloConfermate = true, senzaInsegnante = 0 }) {
+export default function Compensi({ palestraId, righe, anno, mese, soloConfermate = true, senzaInsegnante = 0, ore = null }) {
   const router = useRouter();
   const [errore, setErrore] = useState('');
   const [avviso, setAvviso] = useState('');
@@ -20,7 +20,7 @@ export default function Compensi({ palestraId, righe, anno, mese, soloConfermate
   const daPagare = righe.filter((r) => r.stato !== 'pagato' && r.totale_cent > 0);
   const totaleDaPagare = daPagare.reduce((s, r) => s + r.totale_cent, 0);
   const totalePagato = righe.filter((r) => r.stato === 'pagato').reduce((s, r) => s + r.totale_cent, 0);
-  const oreTotali = righe.reduce((s, r) => s + Number(r.ore || 0), 0);
+  const h = (v) => { const t = Math.round((v || 0) * 60); return `${Math.floor(t / 60)}h${t % 60 ? String(t % 60).padStart(2, '0') : ''}`; };
 
   const precedente = mese === 1 ? { a: anno - 1, m: 12 } : { a: anno, m: mese - 1 };
   const successivo = mese === 12 ? { a: anno + 1, m: 1 } : { a: anno, m: mese + 1 };
@@ -42,6 +42,17 @@ export default function Compensi({ palestraId, righe, anno, mese, soloConfermate
     setInvio(false);
     if (error) { setErrore('Impostazione non salvata.'); return; }
     setAvviso(v ? 'Ora contano solo le lezioni confermate: premi "Ricalcola il mese".' : 'Ora contano tutte le lezioni in calendario: premi "Ricalcola il mese".');
+    router.refresh();
+  }
+
+  async function eliminaBozze() {
+    const n = righe.filter((r) => r.stato === 'bozza').length;
+    if (!confirm(`Eliminare i ${n} cedolini in bozza di ${MESI[mese - 1]} ${anno}?\nQuelli approvati o pagati restano. Si possono ricreare con "Calcola il mese".`)) return;
+    setInvio(true); setErrore(''); setAvviso('');
+    const { data, error } = await supabaseBrowser().rpc('elimina_bozze_compensi', { p_palestra: palestraId, p_anno: anno, p_mese: mese });
+    setInvio(false);
+    if (error) { setErrore('Operazione non riuscita.'); return; }
+    setAvviso(`Eliminati ${data} cedolini in bozza.`);
     router.refresh();
   }
 
@@ -123,9 +134,14 @@ export default function Compensi({ palestraId, righe, anno, mese, soloConfermate
         </div>
         <div className="tessera tessera-nera">
           <div className="etichetta">Ore svolte</div>
-          <div className="cifra">{oreTotali.toFixed(1)}</div>
-          <div className="sotto">{righe.reduce((s, r) => s + (r.lezioni || 0), 0)} lezioni
-            {righe.some((r) => r.da_verificare) ? ` · ${righe.reduce((s, r) => s + (r.da_verificare || 0), 0)} da verificare` : ''}</div>
+          <div className="cifra">{h(ore?.svolte)}</div>
+          <div className="sotto">{ore?.lezioniSvolte ?? 0} lezioni confermate con l&apos;appello
+            {ore?.daConfermare ? ` · ${ore.daConfermare} finite da confermare` : ''}</div>
+        </div>
+        <div className="tessera">
+          <div className="etichetta">Ore in calendario</div>
+          <div className="cifra">{h(ore?.calendario)}</div>
+          <div className="sotto">{ore?.lezioni ?? 0} lezioni previste nel mese</div>
         </div>
       </div>
 
@@ -142,6 +158,9 @@ export default function Compensi({ palestraId, righe, anno, mese, soloConfermate
         </button>
         {righe.some((r) => r.stato === 'bozza') && (
           <button className="btn" disabled={invio} onClick={approva}>Approva tutti</button>
+        )}
+        {righe.some((r) => r.stato === 'bozza') && (
+          <button className="link-btn" disabled={invio} onClick={eliminaBozze}>Elimina le bozze</button>
         )}
         <Link prefetch={false} className="link-btn" href="/gestione/costi">Vedi i costi</Link>
         <label className="spunta" style={{ margin: 0 }}>

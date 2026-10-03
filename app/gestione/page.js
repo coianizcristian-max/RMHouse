@@ -62,12 +62,15 @@ export default async function Home({ searchParams }) {
       : Promise.resolve({ count: 0 }),
     // richieste fatte dai clienti dall'app (abbonamenti con bonifico, lezioni private)
     supabase.from('richieste_cliente').select('id', { count: 'exact', head: true }).eq('palestra_id', p).eq('stato', 'da_confermare'),
-    // promemoria di oggi, quelli rimasti indietro non fatti, e quelli fatti oggi
-    supabase.from('promemoria').select('*').eq('palestra_id', p).lte('data', oggiISO())
-      .or(`fatto.eq.false,data.eq.${oggiISO()}`).order('data').order('created_at').limit(40),
+    // promemoria di oggi, quelli rimasti indietro non fatti, e quelli fatti oggi (per chi è collegato)
+    supabase.rpc('promemoria_miei', { p_palestra: p }),
   ]);
 
   const colore = (id) => corsi?.find((c) => c.id === id)?.colore || 'var(--rosso)';
+  // a chi si può assegnare una cosa da fare
+  const { data: staffRighe } = gestione ? await supabase.from('staff').select('id, nome, cognome')
+    .eq('palestra_id', p).eq('attivo', true).not('archiviato', 'is', true).order('nome') : { data: [] };
+  const elencoStaff = (staffRighe || []).map((s) => ({ id: s.id, nome: `${s.nome} ${s.cognome || ''}`.trim() }));
   // per l'insegnante: le sue prossime lezioni dei giorni seguenti
   const { data: prossime } = gestione ? { data: null } : await supabase.from('v_occupazione')
     .select('lezione_id, corso_id, corso_nome, inizio, capienza, iscritti, sala_nome')
@@ -156,8 +159,8 @@ export default async function Home({ searchParams }) {
         </div>
       )}
 
-      {/* i promemoria sono il lavoro della segreteria: all'insegnante servono solo le sue lezioni */}
-      {gestione && <Promemoria palestraId={p} voci={promemoria || []} chi={staff.nome} oggi={oggiISO()} />}
+      {/* segreteria: tutta la lista (con per chi è); gli altri: solo le cose assegnate a loro */}
+      <Promemoria palestraId={p} voci={promemoria || []} oggi={oggiISO()} gestione={gestione} staff={elencoStaff || []} />
 
       <div className={gestione ? 'cruscotto-3' : ''}>
         {gestione && (

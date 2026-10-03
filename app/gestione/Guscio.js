@@ -3,7 +3,8 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import Cronologia from './Cronologia';
 import Campanella from './Campanella';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
+import BarraCaricamento from './BarraCaricamento';
 import { supabaseBrowser } from '@/lib/supabase/browser';
 import { AREE, areaDi } from '@/lib/menu';
 import AzioniRapide from './AzioniRapide';
@@ -97,6 +98,7 @@ export default function Guscio({ gestione, nome, ruolo, palestraId, funzioni = {
 
   return (
     <div className="guscio">
+      <Suspense fallback={null}><BarraCaricamento /></Suspense>
       {/* colonna delle aree: solo su desktop */}
       <nav className="aree" aria-label="Aree">
         {aree.map((a) => (
@@ -171,7 +173,7 @@ export default function Guscio({ gestione, nome, ruolo, palestraId, funzioni = {
             {titoloBarra && <><span className="b-sep" aria-hidden="true">›</span><span className="corrente">{titoloBarra}</span></>}
           </div>
           <div className="barra-destra">
-            {gestione && <Campanella />}
+            <Campanella />
             {admin && path !== '/gestione/impostazioni/registro' && <Cronologia />}
             <div className="piccolo muto solo-desktop">{nome} · {ruolo}</div>
           </div>

@@ -16,7 +16,7 @@ export default async function Economia({ searchParams }) {
     supabase.rpc('cruscotto', { p_palestra: p, p_dal: per.dal, p_al: per.al }),
     supabase.rpc('flusso_cassa', { p_palestra: p, p_dal: per.dal, p_al: per.al }),
     supabase.rpc('andamento_mensile', { p_palestra: p, p_mesi: 12 }),
-    supabase.rpc('statistiche_stagione', { p_palestra: p, p_dal: per.dal, p_al: per.al }),
+    supabase.rpc('statistiche_stagione', { p_palestra: p, p_dal: per.dal, p_al: per.al, p_sezione: 'economia' }),
     supabase.rpc('statistiche_spazi', { p_palestra: p, p_dal: per.dal, p_al: per.al }),
   ]);
   const d = k || {}; const flusso = flussoR || {}; const st = s || {};

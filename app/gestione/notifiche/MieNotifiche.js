@@ -16,6 +16,7 @@ const TIPI = [
   ['affitto', 'Nuova richiesta di affitto', 'Una richiesta di sala o festa arrivata dal sito, da confermare.', ['admin', 'segreteria']],
   ['certificato', 'Certificato da approvare', 'Un cliente ha caricato il certificato.', ['admin', 'segreteria']],
   ['pagamento', 'Pagamento online ricevuto', 'Quando qualcuno paga con carta (se i pagamenti online sono attivi).', ['admin', 'segreteria']],
+  ['compito', 'Cose da fare assegnate a te', 'Quando qualcuno ti assegna una cosa da fare (a te o al tuo gruppo).', ['admin', 'segreteria', 'insegnante']],
   ['lezione', 'Le mie lezioni', 'Una tua lezione è stata annullata, o te ne è stata assegnata una.', ['admin', 'segreteria', 'insegnante']],
 ];
 

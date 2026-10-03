@@ -62,7 +62,7 @@ export default function Campanella() {
         <div className="cronologia-sfondo" onClick={() => setAperta(false)}>
           <aside className="cronologia" onClick={(e) => e.stopPropagation()} role="dialog" aria-label="Notifiche">
             <div className="cronologia-testa">
-              <div><strong>Notifiche</strong><span className="piccolo muto">nuovi clienti, certificati, richieste, pagamenti</span></div>
+              <div><strong>Notifiche</strong><span className="piccolo muto">le ultime arrivate per te</span></div>
               <button type="button" className="link-btn piccolo" onClick={() => setAperta(false)}>Chiudi</button>
             </div>
             <div className="cronologia-corpo">

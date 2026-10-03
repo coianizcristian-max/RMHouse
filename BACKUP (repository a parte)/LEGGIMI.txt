@@ -1,0 +1,29 @@
+BACKUP AUTOMATICO DEL DATABASE OGNI 4 ORE (gratis, con GitHub)
+
+Con il piano gratuito di Supabase non ci sono backup automatici scaricabili: questo li fa GitHub.
+Ogni 4 ore copia tutto il database (clienti, iscrizioni, pagamenti, utenti…), lo cifra con una tua
+password e lo tiene 7 giorni (42 copie). Costa 0: pochi minuti al mese dei 2000 gratuiti di GitHub.
+
+IMPORTANTE: va in un repository PRIVATO nuovo, non in quello del sito (che è pubblico):
+anche se il file è cifrato, i dati dei clienti non devono stare in un posto pubblico.
+
+1. GitHub → New repository → nome "rmhouse-backup" → PRIVATE → Create.
+2. Carica la cartella .github (con dentro workflows/backup.yml) nel nuovo repository.
+3. Supabase → il progetto → Connect (in alto) → "Session pooler" → copia la stringa che inizia con
+   postgresql://postgres.xxxx:[YOUR-PASSWORD]@aws-...pooler.supabase.com:5432/postgres
+   e al posto di [YOUR-PASSWORD] metti la password del database
+   (se non la ricordi: Project Settings → Database → Reset database password; poi va aggiornata anche qui).
+4. Nel repository rmhouse-backup → Settings → Secrets and variables → Actions → New repository secret:
+     DB_URL           = la stringa del punto 3
+     BACKUP_PASSWORD  = una password lunga a scelta (scrivila nel tuo gestore password: senza non si apre il backup)
+5. Actions → "Backup database" → Run workflow: dopo 1-2 minuti, in fondo alla pagina dell'esecuzione
+   trovi il file rmhouse-AAAA-MM-GG_HHMM.dump.gpg. Da lì in poi parte da solo ogni 4 ore.
+
+COSA NON C'È NEL BACKUP
+  I file caricati (foto dei certificati, loghi, immagini): stanno nello Storage di Supabase.
+  Per quelli conviene scaricare a mano ogni tanto i bucket dallo Storage.
+
+PER RIPRISTINARE (se mai servisse)
+  gpg -d rmhouse-....dump.gpg > rmhouse.dump        (chiede la BACKUP_PASSWORD)
+  pg_restore --clean --if-exists --no-owner -d "STRINGA_DB" rmhouse.dump
+  Meglio farlo insieme, su un progetto Supabase di prova prima che su quello vero.

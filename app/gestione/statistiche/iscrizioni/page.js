@@ -14,7 +14,7 @@ export default async function Iscrizioni({ searchParams }) {
   const p = staff.palestra_id;
   const [{ data: k }, { data: s }, { data: andamento }] = await Promise.all([
     supabase.rpc('cruscotto', { p_palestra: p, p_dal: per.dal, p_al: per.al }),
-    supabase.rpc('statistiche_stagione', { p_palestra: p, p_dal: per.dal, p_al: per.al }),
+    supabase.rpc('statistiche_stagione', { p_palestra: p, p_dal: per.dal, p_al: per.al, p_sezione: 'iscrizioni' }),
     supabase.rpc('andamento_mensile', { p_palestra: p, p_mesi: 12 }),
   ]);
   const d = k || {}; const st = s || {};

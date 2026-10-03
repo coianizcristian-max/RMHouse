@@ -16,7 +16,7 @@ export default async function Panoramica({ searchParams }) {
   const p = staff.palestra_id;
   const [{ data: k }, { data: s }, { data: corsi }] = await Promise.all([
     supabase.rpc('cruscotto', { p_palestra: p, p_dal: per.dal, p_al: per.al }),
-    supabase.rpc('statistiche_stagione', { p_palestra: p, p_dal: per.dal, p_al: per.al }),
+    supabase.rpc('statistiche_stagione', { p_palestra: p, p_dal: per.dal, p_al: per.al, p_sezione: 'panoramica' }),
     supabase.rpc('economia_corsi', { p_palestra: p, p_dal: per.dal, p_al: per.al }),
   ]);
   const d = k || {};
