@@ -127,7 +127,7 @@ export default function FoglioLezione({ lezione, colore, gestione, onClose, aggi
           <>
             <label className="spunta">
               <input type="checkbox" checked={daOggi} onChange={(e) => setDaOggi(e.target.checked)} />
-              <span>Applica a tutte le lezioni future di questo orario</span>
+              <span>Posti, prenotazioni e annullamento qui sotto: valgono anche per le prossime lezioni di questo orario</span>
             </label>
 
             <div className="da-fare">

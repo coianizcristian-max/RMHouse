@@ -71,6 +71,13 @@ export default async function Home({ searchParams }) {
   const { data: staffRighe } = gestione ? await supabase.from('staff').select('id, nome, cognome')
     .eq('palestra_id', p).eq('attivo', true).not('archiviato', 'is', true).order('nome') : { data: [] };
   const elencoStaff = (staffRighe || []).map((s) => ({ id: s.id, nome: `${s.nome} ${s.cognome || ''}`.trim() }));
+  // sostituzioni dei prossimi 14 giorni (lezioni passate a un'altra insegnante)
+  const fra14 = new Date(Date.now() + 14 * 86400000).toLocaleDateString('sv-SE', { timeZone: 'Europe/Rome' });
+  const { data: sostituzioni } = gestione ? await supabase.from('lezioni')
+    .select('id, data, inizio, insegnante_id, insegnante_titolare, sostituzione_da, corsi ( nome )')
+    .eq('palestra_id', p).not('insegnante_titolare', 'is', null).neq('stato', 'annullata')
+    .gte('data', oggiISO()).lte('data', fra14).order('inizio').limit(30) : { data: [] };
+  const nomeStaff = (id) => elencoStaff.find((s) => s.id === id)?.nome || 'nessuno';
   // per l'insegnante: le sue prossime lezioni dei giorni seguenti
   const { data: prossime } = gestione ? { data: null } : await supabase.from('v_occupazione')
     .select('lezione_id, corso_id, corso_nome, inizio, capienza, iscritti, sala_nome')
@@ -161,6 +168,25 @@ export default async function Home({ searchParams }) {
 
       {/* segreteria: tutta la lista (con per chi è); gli altri: solo le cose assegnate a loro */}
       <Promemoria palestraId={p} voci={promemoria || []} oggi={oggiISO()} gestione={gestione} staff={elencoStaff || []} />
+
+      {gestione && sostituzioni?.length > 0 && (
+        <section className="pannello sostituzioni">
+          <h2>Sostituzioni dei prossimi giorni <span className="conta-rossa">{sostituzioni.length}</span></h2>
+          <ul className="mini-lista">
+            {sostituzioni.map((s) => (
+              <li key={s.id}>
+                <Link prefetch={false} href={`/gestione/appello/${s.id}`}>
+                  <span className="ml-ora">{new Date(s.inizio).toLocaleDateString('it-IT', { weekday: 'short', day: 'numeric', timeZone: 'Europe/Rome' })} {ora(s.inizio)}</span>
+                  <span className="ml-testo">
+                    <strong>{s.corsi?.nome}</strong>
+                    <span className="piccolo muto"><b>{nomeStaff(s.insegnante_id)}</b> al posto di {nomeStaff(s.insegnante_titolare)}{s.sostituzione_da ? ` · cambio di ${nomeStaff(s.sostituzione_da)}` : ''}</span>
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       <div className={gestione ? 'cruscotto-3' : ''}>
         {gestione && (

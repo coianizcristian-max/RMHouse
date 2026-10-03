@@ -9,6 +9,7 @@ const ERRORI = {
   lezione_passata: 'La lezione è già iniziata: avvisa la segreteria.',
   scegli_chi: 'Scegli chi ti sostituisce.',
   lezione_annullata: 'La lezione è annullata.',
+  data_non_valida: 'La data di fine deve essere uguale o dopo questa lezione.',
 };
 
 // Chi tiene la lezione e come cambiarlo.
@@ -21,7 +22,9 @@ export default function Sostituzione({ lezioneId, gestione, onFatto }) {
   const [io, setIo] = useState(null);
   const [aperto, setAperto] = useState(false);
   const [chi, setChi] = useState('');
-  const [future, setFuture] = useState(false);
+  const [quali, setQuali] = useState('una');        // una | prossime | fino
+  const [fino, setFino] = useState('');
+  const [ambito, setAmbito] = useState('orario');    // orario | corso
   const [errore, setErrore] = useState('');
   const [invio, setInvio] = useState(false);
 
@@ -48,8 +51,13 @@ export default function Sostituzione({ lezioneId, gestione, onFatto }) {
 
   async function conferma() {
     if (!gestione && !chi) { setErrore('Scegli chi ti sostituisce.'); return; }
+    if (gestione && quali === 'fino' && !fino) { setErrore('Scegli fino a che giorno.'); return; }
     setInvio(true); setErrore('');
-    const { error } = await supabaseBrowser().rpc('sostituisci_lezione', { p_lezione: l.id, p_staff: chi || null, p_da_oggi: gestione && future });
+    const blocco = gestione && quali !== 'una';
+    const { error } = await supabaseBrowser().rpc('sostituisci_lezione', {
+      p_lezione: l.id, p_staff: chi || null, p_da_oggi: blocco && quali === 'prossime',
+      p_fino: blocco && quali === 'fino' ? fino : null, p_tutto_corso: blocco && (ambito === 'corso' || !l.orario_id),
+    });
     setInvio(false);
     if (error) { setErrore(ERRORI[Object.keys(ERRORI).find((k) => error.message?.includes(k))] || 'Cambio non riuscito.'); return; }
     setAperto(false);
@@ -78,11 +86,22 @@ export default function Sostituzione({ lezioneId, gestione, onFatto }) {
             <option value="">{gestione ? 'Nessun insegnante' : 'Chi ti sostituisce?'}</option>
             {staff.filter((s) => s.id !== l.insegnante_id).map((s) => <option key={s.id} value={s.id}>{s.nome} {s.cognome || ''}</option>)}
           </select>
-          {gestione && l.orario_id && (
-            <label className="spunta" style={{ margin: 0 }}>
-              <input type="checkbox" checked={future} onChange={(e) => setFuture(e.target.checked)} />
-              <span className="piccolo">anche tutte le prossime lezioni di questo orario</span>
-            </label>
+          {gestione && (
+            <fieldset className="sost-opzioni">
+              <legend>Quali lezioni</legend>
+              <label><input type="radio" name="quali" checked={quali === 'una'} onChange={() => setQuali('una')} /> Solo questa</label>
+              <label><input type="radio" name="quali" checked={quali === 'prossime'} onChange={() => setQuali('prossime')} /> Tutte le prossime <span className="piccolo muto">(cambio stabile)</span></label>
+              <label><input type="radio" name="quali" checked={quali === 'fino'} onChange={() => setQuali('fino')} /> Fino al
+                <input type="date" value={fino} min={(l.inizio || '').slice(0, 10)} onChange={(e) => { setFino(e.target.value); setQuali('fino'); }} aria-label="Fino al" />
+              </label>
+              {quali !== 'una' && (
+                <div className="sost-ambito">
+                  {l.orario_id && <label><input type="radio" name="ambito" checked={ambito === 'orario'} onChange={() => setAmbito('orario')} /> Solo questo orario <span className="piccolo muto">(stesso giorno e ora)</span></label>}
+                  <label><input type="radio" name="ambito" checked={ambito === 'corso' || !l.orario_id} onChange={() => setAmbito('corso')} /> Tutto il corso <span className="piccolo muto">(tutti i giorni, le lezioni di {nome(l.insegnante_titolare || l.insegnante_id) || 'chi non ha insegnante'})</span></label>
+                </div>
+              )}
+              {quali === 'fino' && <p className="piccolo muto" style={{ margin: 0 }}>Dopo quella data le lezioni tornano alla titolare.</p>}
+            </fieldset>
           )}
           {!gestione && <p className="piccolo muto" style={{ margin: 0 }}>Vale solo per questa lezione. Chi scegli riceve la notifica e la trova nella sua app; la segreteria viene avvisata.</p>}
           <span className="sost-azioni">
