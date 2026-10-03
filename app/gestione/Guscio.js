@@ -26,13 +26,13 @@ const ICONE = {
 };
 const Icona = ({ nome }) => <svg viewBox="0 0 24 24" aria-hidden="true">{ICONE[nome]}</svg>;
 
-export default function Guscio({ gestione, nome, ruolo, palestraId, funzioni = {}, nascoste = [], children }) {
+export default function Guscio({ gestione, nome, ruolo, palestraId, funzioni = {}, nascoste = [], vedeAttivita = false, children }) {
   const path = usePathname();
   const router = useRouter();
   const attiva = areaDi(path);
   // una voce è visibile se il ruolo base la permette, la funzione è accesa e il ruolo su misura non la nasconde
   const admin = ruolo === 'admin';
-  const visibile = (v) => (gestione || !v.soloGestione) && (admin || !v.soloAdmin) && (!v.funzione || funzioni[v.funzione] !== false) && !nascoste.includes(v.href);
+  const visibile = (v) => (vedeAttivita || !v.soloAttivita) && (gestione || !v.soloGestione) && (admin || !v.soloAdmin) && (!v.funzione || funzioni[v.funzione] !== false) && !nascoste.includes(v.href);
   const aree = AREE.filter((a) => (gestione || !a.soloGestione) && a.voci.some(visibile));
   const area = aree.find((a) => a.k === attiva) || aree[0];
   const voci = (area?.voci || []).filter(visibile);

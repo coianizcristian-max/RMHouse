@@ -23,16 +23,18 @@ export default async function LayoutGestione({ children }) {
       </>
     );
   }
-  const [{ data: pal }, { data: profilo }] = await Promise.all([
+  const [{ data: pal }, { data: profilo }, { data: vedeAttivita }] = await Promise.all([
     supabase.from('palestre').select('funzioni').eq('id', staff.palestra_id).maybeSingle(),
     staff.ruolo_id && staff.ruolo !== 'admin'
       ? supabase.from('ruoli').select('voci_nascoste').eq('id', staff.ruolo_id).maybeSingle()
       : Promise.resolve({ data: null }),
+    // "Attività dello staff": solo chi è abilitato (se la query 093 non c'è ancora, semplicemente non si vede)
+    staff.ruolo !== 'insegnante' ? supabase.rpc('puo_vedere_attivita', { p_palestra: staff.palestra_id }) : Promise.resolve({ data: false }),
   ]);
   return (
     <Guscio gestione={staff.ruolo !== 'insegnante'} nome={staff.nome} ruolo={staff.ruolo}
             palestraId={staff.palestra_id} funzioni={pal?.funzioni || {}}
-            nascoste={profilo?.voci_nascoste || []}>
+            nascoste={profilo?.voci_nascoste || []} vedeAttivita={vedeAttivita === true}>
       {children}
     </Guscio>
   );
