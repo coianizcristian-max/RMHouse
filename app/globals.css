@@ -3110,3 +3110,10 @@ form.periodo-date .btn { flex: none; width: auto; min-height: 36px; padding: 0 1
 .pm-azioni { display: flex; gap: 6px; flex: none; align-items: center; }
 .pm-elenco li.fatto > label > span { text-decoration: none; color: inherit; }
 .pm-elenco li.fatto .pm-testo { text-decoration: line-through; color: var(--testo-2); }
+
+/* 109 — chi tiene la lezione, sostituzioni */
+.sost { border: 1px solid var(--linea); border-radius: 12px; padding: 8px 12px; margin: 0 0 12px; background: var(--bianco); }
+.sost-riga { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 14px; }
+.sost-scelta { display: grid; gap: 8px; margin-top: 8px; }
+.sost-scelta select { min-height: 40px; padding: 6px 10px; font: inherit; border: 1.5px solid var(--linea); border-radius: 10px; background: var(--bianco); color: var(--testo); }
+.sost-azioni { display: flex; gap: 10px; align-items: center; }

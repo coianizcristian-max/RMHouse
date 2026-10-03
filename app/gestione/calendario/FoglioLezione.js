@@ -1,4 +1,5 @@
 'use client';
+import Sostituzione from '../Sostituzione';
 import { useState } from 'react';
 import SceltaColore from '../SceltaColore';
 import Link from 'next/link';
@@ -84,6 +85,8 @@ export default function FoglioLezione({ lezione, colore, gestione, onClose, aggi
           {lezione.capienza > 0 && <li className="persona"><span>Posti liberi</span><strong>{Math.max(lezione.capienza - lezione.iscritti - lezione.prove, 0)}</strong></li>}
           {lezione.presenti > 0 && <li className="persona"><span>Presenti</span><strong>{lezione.presenti}</strong></li>}
         </ul>
+
+        <Sostituzione lezioneId={lezione.lezione_id} gestione={gestione} onFatto={() => { onClose(); router.refresh(); }} />
 
         <div className="azioni" style={{ marginBottom: 14 }}>
           <Link prefetch={false} className="btn btn-primario" href={`/gestione/appello/${lezione.lezione_id}`}>Appello e prenotati</Link>

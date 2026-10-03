@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import Sostituzione from '../../Sostituzione';
 import { notFound } from 'next/navigation';
 import { staffCorrente } from '@/lib/staff';
 import { ora, giornoLungo } from '@/lib/formato';
@@ -76,6 +77,7 @@ export default async function PaginaAppello({ params }) {
   return (
     <>
       {testa}
+      <Sostituzione lezioneId={lezione.id} gestione={gestione} />
       {lezione.stato === 'annullata' && <div className="errore">Lezione annullata{lezione.note ? `: ${lezione.note}` : ''}.</div>}
       {lezione.stato !== 'annullata' && (
         <ConfermaLezione lezioneId={lezione.id} gestione={gestione}
