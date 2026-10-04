@@ -31,11 +31,20 @@ export async function POST(request) {
   return NextResponse.json({ ok: true, esito });
 }
 
+// una funzione del database che non riesce deve far fallire l'evento: Stripe lo rimanda più tardi
+async function rpc(db, nome, args) {
+  const { data, error } = await db.rpc(nome, args);
+  if (error) throw new Error(`${nome}: ${error.message}`);
+  return data;
+}
+
 async function ricevutaAutomatica(db, pagamentoId) {
   if (!pagamentoId) return;
   const { data: pal } = await db.from('pagamenti').select('palestre ( stripe )').eq('id', pagamentoId).maybeSingle();
   if (pal?.palestre?.stripe?.ricevuta_automatica === false) return;
-  await db.rpc('emetti_ricevuta', { p_pagamento: pagamentoId });
+  // la ricevuta non blocca l'incasso: se non riesce si emette a mano dalla scheda
+  const { error } = await db.rpc('emetti_ricevuta', { p_pagamento: pagamentoId });
+  if (error) console.error('Ricevuta automatica non emessa', pagamentoId, error.message);
 }
 
 async function segnaCommissione(db, intent) {
@@ -55,7 +64,7 @@ async function gestisci(db, evento) {
     if (!intent && s.invoice) intent = (await stripe('GET', `invoices/${s.invoice}`)).payment_intent;
 
     if (m.tipo === 'acquisto') {
-      const { data: iscr } = await db.rpc('completa_acquisto', {
+      const iscr = await rpc(db, 'completa_acquisto', {
         p_acquisto: m.acquisto_id, p_session: s.id, p_intent: intent, p_customer: s.customer || null, p_subscription: s.subscription || null,
       });
       if (intent) {
@@ -66,13 +75,13 @@ async function gestisci(db, evento) {
       return iscr ? 'iscrizione creata' : 'pagato, iscrizione da sistemare a mano';
     }
     if (m.tipo === 'rata') {
-      const { data: pag } = await db.rpc('paga_rata_online', { p_rata: m.rata_id, p_session: s.id, p_intent: intent });
+      const pag = await rpc(db, 'paga_rata_online', { p_rata: m.rata_id, p_session: s.id, p_intent: intent });
       if (intent) await segnaCommissione(db, intent);
       await ricevutaAutomatica(db, pag);
-      return 'rata pagata';
+      return pag ? 'rata pagata' : 'rata già pagata';
     }
     if (m.pagamento_id) {   // prova o link di pagamento della segreteria
-      await db.rpc('conferma_pagamento_online', { p_pagamento: m.pagamento_id, p_session: s.id, p_intent: intent });
+      await rpc(db, 'conferma_pagamento_online', { p_pagamento: m.pagamento_id, p_session: s.id, p_intent: intent });
       if (intent) await segnaCommissione(db, intent);
       await ricevutaAutomatica(db, m.pagamento_id);
       return 'pagamento confermato';
@@ -82,7 +91,7 @@ async function gestisci(db, evento) {
 
   if (evento.type === 'checkout.session.expired' || evento.type === 'checkout.session.async_payment_failed') {
     if (o.metadata?.pagamento_id && o.metadata?.tipo !== 'link') {
-      await db.rpc('scadi_pagamento_online', { p_pagamento: o.metadata.pagamento_id });
+      await rpc(db, 'scadi_pagamento_online', { p_pagamento: o.metadata.pagamento_id });
     }
     return 'sessione scaduta';
   }
@@ -90,7 +99,7 @@ async function gestisci(db, evento) {
   if (evento.type === 'invoice.paid') {
     const inv = await stripe('GET', `invoices/${o.id}`);
     if (!inv.subscription || inv.billing_reason === 'subscription_create') return 'primo mese già registrato';
-    const { data: pag } = await db.rpc('rinnova_ricorrente', {
+    const pag = await rpc(db, 'rinnova_ricorrente', {
       p_subscription: inv.subscription, p_importo_cent: inv.amount_paid, p_intent: inv.payment_intent,
     });
     if (inv.payment_intent) await segnaCommissione(db, inv.payment_intent);
@@ -99,17 +108,17 @@ async function gestisci(db, evento) {
   }
 
   if (evento.type === 'invoice.payment_failed' && o.subscription) {
-    await db.rpc('stato_ricorrente', { p_subscription: o.subscription, p_stato: 'in_ritardo' });
+    await rpc(db, 'stato_ricorrente', { p_subscription: o.subscription, p_stato: 'in_ritardo' });
     return 'rinnovo non pagato';
   }
 
   if (evento.type === 'customer.subscription.deleted') {
-    await db.rpc('stato_ricorrente', { p_subscription: o.id, p_stato: 'annullato' });
+    await rpc(db, 'stato_ricorrente', { p_subscription: o.id, p_stato: 'annullato' });
     return 'rinnovo annullato';
   }
 
   if (evento.type === 'charge.refunded' && o.payment_intent) {
-    await db.rpc('segna_rimborso_online', { p_intent: o.payment_intent, p_rimborsato_cent: o.amount_refunded });
+    await rpc(db, 'segna_rimborso_online', { p_intent: o.payment_intent, p_rimborsato_cent: o.amount_refunded });
     return 'rimborso registrato';
   }
 
