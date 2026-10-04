@@ -3125,3 +3125,9 @@ form.periodo-date .btn { flex: none; width: auto; min-height: 36px; padding: 0 1
 .sostituzioni .mini-lista .ml-testo .piccolo, .sostituzioni .mini-lista .ml-testo strong { white-space: normal; overflow: visible; text-overflow: clip; }
 .sostituzioni .mini-lista .ml-ora { min-width: 72px; font-size: 13px; line-height: 1.2; }
 .sostituzioni b { color: var(--nero); }
+
+/* 113 — rimborso sulla carta */
+.rimborso { display: grid; gap: 8px; padding: 10px 12px; margin: 6px 0; border: 1.5px solid var(--linea); border-radius: 12px; background: var(--bianco); text-align: left; min-width: min(100%, 300px); }
+.rimborso label:not(.spunta) { display: grid; gap: 3px; font-size: 13px; color: var(--testo-2); }
+.rimborso input:not([type='checkbox']) { min-height: 38px; padding: 6px 10px; font: inherit; font-size: 15px; border: 1.5px solid var(--linea); border-radius: 10px; background: var(--bianco); color: var(--testo); }
+.rimborso-azioni { display: flex; gap: 10px; align-items: center; }

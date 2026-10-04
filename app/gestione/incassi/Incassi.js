@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { supabaseBrowser } from '@/lib/supabase/browser';
 import { euro, dataBreve } from '@/lib/formato';
 import LinkPagamento from '../LinkPagamento';
+import RimborsoCarta from '../RimborsoCarta';
 
 const CAUSALI = [
   ['quota_iscrizione', 'Quota annuale'], ['abbonamento', 'Abbonamento'], ['prova', 'Lezione di prova'],
@@ -185,6 +186,8 @@ export default function Incassi({ palestraId, righe, totali, dal, al, stato, onl
             </span>
             <span style={{ display: 'grid', gap: 4, justifyItems: 'end' }}>
               {r.stato === 'pagato' && <span className="tag tag-ok">incassato</span>}
+              {online && r.stato === 'pagato' && (r.metodo === 'online' || r.metodo === 'stripe') && <RimborsoCarta pagamento={r} />}
+              {r.stato === 'rimborsato' && <span className="tag tag-neutro">rimborsato</span>}
               {r.stato === 'in_attesa' && (
                 <>
                   <span className="tag tag-attenzione">da incassare</span>

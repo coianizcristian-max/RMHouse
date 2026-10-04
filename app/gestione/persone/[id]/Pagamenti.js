@@ -6,12 +6,13 @@ import { supabaseBrowser } from '@/lib/supabase/browser';
 import { euro, dataBreve } from '@/lib/formato';
 import IncassaPersona from './IncassaPersona';
 import EmettiFattura from '../../EmettiFattura';
+import RimborsoCarta from '../../RimborsoCarta';
 
 const METODI = { contanti: 'contanti', pos: 'POS', bonifico: 'bonifico', online: 'online', stripe: 'online', assegno: 'assegno', altro: 'altro' };
 const STATI = { pagato: null, in_attesa: ['da incassare', 'tag-attenzione'], annullato: ['annullato', 'tag-neutro'], rimborsato: ['rimborsato', 'tag-neutro'] };
 
 // Tutti i pagamenti della persona (o della famiglia, se senza persona indicata), con la ricevuta
-export default function Pagamenti({ pagamenti, ricevute, totaleStorico, incassa = null, apriIncassa = false }) {
+export default function Pagamenti({ pagamenti, ricevute, totaleStorico, incassa = null, apriIncassa = false, online = false }) {
   const router = useRouter();
   const [invio, setInvio] = useState(null);
   const [errore, setErrore] = useState('');
@@ -79,6 +80,9 @@ export default function Pagamenti({ pagamenti, ricevute, totaleStorico, incassa 
                   </span>
                 </span>
                 {fattura === p.id && <EmettiFattura pagamentoId={p.id} onChiudi={() => setFattura(null)} />}
+                {online && p.stato === 'pagato' && p.stripe_payment_intent && (
+                  <div style={{ textAlign: 'right' }}><RimborsoCarta pagamento={p} conDocumento={!!r} /></div>
+                )}
               </li>
             );
           })}

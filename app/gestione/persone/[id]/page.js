@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { stripeAttivo } from '@/lib/stripe';
 import { notFound, redirect } from 'next/navigation';
 import { staffCorrente } from '@/lib/staff';
 import { dataBreve, ora, etaAl, euro } from '@/lib/formato';
@@ -66,7 +67,7 @@ export default async function Persona({ params, searchParams }) {
     supabase.rpc('moduli_da_firmare', { p_allievo: id }),
     supabase.from('firme').select('id, modulo_id, versione, titolo, firmato_at').eq('allievo_id', id).order('firmato_at', { ascending: false }),
     // i suoi pagamenti, più quelli della famiglia che non dicono per chi sono
-    supabase.from('pagamenti').select('id, pagato_at, created_at, descrizione, importo_cent, metodo, stato, allievo_id')
+    supabase.from('pagamenti').select('*')
       .eq('palestra_id', p).or(`allievo_id.eq.${id},and(account_id.eq.${allievo.account_id},allievo_id.is.null)`)
       .order('created_at', { ascending: false }).limit(100),
   ]);
@@ -210,7 +211,7 @@ export default async function Persona({ params, searchParams }) {
             </section>
           )}
 
-          <Pagamenti pagamenti={pagamenti || []} ricevute={ricevute || []} totaleStorico={spesoStorico}
+          <Pagamenti pagamenti={pagamenti || []} ricevute={ricevute || []} totaleStorico={spesoStorico} online={stripeAttivo()}
                      key={incassa === '1' ? 'incassa' : 'normale'} apriIncassa={incassa === '1'}
                      incassa={{ palestraId: p, allievoId: id, accountId: allievo.account_id, nome: allievo.nome,
                                 quotaCent: palestra?.quota_iscrizione_cent || 0, quotaMancante: !quotaValida }} />
