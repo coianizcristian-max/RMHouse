@@ -13,23 +13,26 @@ export const TIPI = {
   privata: ['Lezione privata', 'Un importo per ogni lezione privata confermata.'],
   forfait_mese: ['Forfait mensile di un corso', 'Un importo fisso al mese per un corso (es. corso didattico): le sue lezioni non si pagano a parte.'],
   fisso_mese: ['Fisso mensile', 'Un importo fisso ogni mese (coordinamento, rimborso spese…).'],
+  rimborso_giorno: ['Rimborso auto (a giornata)', 'Un importo per ogni giorno in cui ha almeno una lezione contata: con più lezioni nello stesso giorno si paga una volta. Si può limitare alle lezioni dei corsi, alle private, a un corso, a una disciplina o a una sede, e mettere un massimo al mese. Se nello stesso giorno valgono più rimborsi, si paga il più alto.'],
 };
-const AMBITI = { tutte: 'Tutte le lezioni', corso: 'Un corso', disciplina: 'Una disciplina', private: 'Le lezioni private' };
-const VUOTA = { tipo: 'ora', ambito: 'tutte', corso_id: '', disciplina_id: '', importo: '', minimo: '', massimo: '', conta: 'presenti', unita: 'lezione',
+const AMBITI = { tutte: 'Tutte le lezioni', corsi: 'Le lezioni dei corsi (non le private)', corso: 'Un corso', disciplina: 'Una disciplina', private: 'Le lezioni private' };
+const VUOTA = { tipo: 'ora', ambito: 'tutte', corso_id: '', disciplina_id: '', sede_id: '', importo: '', minimo: '', massimo: '', conta: 'presenti', unita: 'lezione',
   fasce: [{ da: '0', a: '5', importo: '' }, { da: '6', a: '', importo: '' }], dal: '', al: '', nota: '' };
 
 const aCent = (v) => { const s = String(v ?? '').trim(); if (!s) return null; const n = Math.round(parseFloat(s.replace(/[€\s]/g, '').replace(',', '.')) * 100); return Number.isFinite(n) ? n : NaN; };
 const daCent = (c) => (c == null ? '' : (c / 100).toFixed(2).replace('.', ',').replace(',00', ''));
 
-export function descrivi(r, corsi = [], discipline = []) {
-  const dove = r.ambito === 'corso' ? (corsi.find((c) => c.id === r.corso_id)?.nome || 'corso')
+export function descrivi(r, corsi = [], discipline = [], sedi = []) {
+  let dove = r.ambito === 'corso' ? (corsi.find((c) => c.id === r.corso_id)?.nome || 'corso')
     : r.ambito === 'disciplina' ? (discipline.find((d) => d.id === r.disciplina_id)?.nome || 'disciplina')
-    : r.ambito === 'private' ? 'lezioni private' : 'tutte le lezioni';
+    : r.ambito === 'private' ? 'lezioni private' : r.ambito === 'corsi' ? 'lezioni dei corsi' : 'tutte le lezioni';
+  if (r.sede_id) dove += ` a ${sedi.find((x) => x.id === r.sede_id)?.nome || 'una sede'}`;
   let quanto = '';
   if (r.tipo === 'ora') quanto = `${euro(r.importo_cent)}/ora`;
   else if (r.tipo === 'lezione' || r.tipo === 'privata') quanto = `${euro(r.importo_cent)} a lezione`;
   else if (r.tipo === 'a_persona') quanto = `${euro(r.importo_cent)} a persona (${r.conta})${r.minimo_cent != null ? `, min ${euro(r.minimo_cent)}` : ''}${r.massimo_cent != null ? `, max ${euro(r.massimo_cent)}` : ''}`;
   else if (r.tipo === 'fasce') quanto = (r.fasce || []).map((f) => `${f.da}${f.a ? `–${f.a}` : '+'}: ${euro(f.importo_cent)}`).join(' · ') + ` ${r.unita === 'ora' ? 'all\'ora' : 'a lezione'} (${r.conta})`;
+  else if (r.tipo === 'rimborso_giorno') quanto = `${euro(r.importo_cent)} per ogni giorno con lezioni${r.massimo_cent != null ? `, massimo ${euro(r.massimo_cent)} al mese` : ''}`;
   else quanto = `${euro(r.importo_cent)} al mese`;
   return { titolo: TIPI[r.tipo]?.[0] || r.tipo, dove: ['forfait_mese', 'fisso_mese', 'privata'].includes(r.tipo) && r.ambito === 'tutte' ? '' : dove, quanto };
 }
@@ -38,6 +41,7 @@ export default function RegoleCompenso({ staffId, palestraId, corsi = [] }) {
   const db = supabaseBrowser();
   const [regole, setRegole] = useState(null);
   const [discipline, setDiscipline] = useState([]);
+  const [sedi, setSedi] = useState([]);
   const [f, setF] = useState(null);           // la regola che si sta scrivendo (nuova o in modifica)
   const [errore, setErrore] = useState('');
   const [invio, setInvio] = useState(false);
@@ -49,13 +53,14 @@ export default function RegoleCompenso({ staffId, palestraId, corsi = [] }) {
   useEffect(() => {
     carica();
     db.from('discipline').select('id, nome').eq('palestra_id', palestraId).order('nome').then(({ data }) => setDiscipline(data || []));
+    db.from('sedi').select('id, nome').eq('palestra_id', palestraId).order('ordine').then(({ data }) => setSedi(data || []));
   }, [staffId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
   function modifica(r) {
     setErrore('');
     setF({
-      id: r.id, tipo: r.tipo, ambito: r.ambito, corso_id: r.corso_id || '', disciplina_id: r.disciplina_id || '',
+      id: r.id, tipo: r.tipo, ambito: r.ambito, corso_id: r.corso_id || '', disciplina_id: r.disciplina_id || '', sede_id: r.sede_id || '',
       importo: daCent(r.importo_cent), minimo: daCent(r.minimo_cent), massimo: daCent(r.massimo_cent),
       conta: r.conta, unita: r.unita, dal: r.dal || '', al: r.al || '', nota: r.nota || '',
       fasce: (r.fasce?.length ? r.fasce : VUOTA.fasce).map((x) => ({ da: String(x.da ?? ''), a: x.a == null ? '' : String(x.a), importo: daCent(x.importo_cent) })),
@@ -67,11 +72,13 @@ export default function RegoleCompenso({ staffId, palestraId, corsi = [] }) {
     setErrore('');
     const r = {
       palestra_id: palestraId, staff_id: staffId, tipo: f.tipo, ambito: f.tipo === 'forfait_mese' && f.ambito === 'tutte' ? 'corso' : f.ambito,
-      corso_id: null, disciplina_id: null, importo_cent: null, minimo_cent: null, massimo_cent: null,
+      corso_id: null, disciplina_id: null, sede_id: null, importo_cent: null, minimo_cent: null, massimo_cent: null,
       conta: f.conta, unita: f.unita, fasce: [], dal: f.dal || null, al: f.al || null, nota: f.nota.trim() || null,
     };
     if (f.tipo === 'fisso_mese') r.ambito = 'tutte';
     if (f.tipo === 'privata') r.ambito = 'private';
+    if (r.ambito === 'corsi' && f.tipo !== 'rimborso_giorno') r.ambito = 'tutte';
+    if (f.tipo === 'rimborso_giorno') r.sede_id = f.sede_id || null;
     if (r.ambito === 'corso') { if (!f.corso_id) { setErrore('Scegli il corso.'); return; } r.corso_id = f.corso_id; }
     if (r.ambito === 'disciplina') { if (!f.disciplina_id) { setErrore('Scegli la disciplina.'); return; } r.disciplina_id = f.disciplina_id; }
     if (f.tipo === 'fasce') {
@@ -85,6 +92,10 @@ export default function RegoleCompenso({ staffId, palestraId, corsi = [] }) {
     } else {
       r.importo_cent = aCent(f.importo);
       if (r.importo_cent == null || Number.isNaN(r.importo_cent)) { setErrore('Scrivi l\'importo, per esempio 25 oppure 22,50.'); return; }
+      if (f.tipo === 'rimborso_giorno') {
+        r.massimo_cent = aCent(f.massimo);
+        if (Number.isNaN(r.massimo_cent)) { setErrore('Massimo al mese: scrivi un importo o lascialo vuoto.'); return; }
+      }
       if (f.tipo === 'a_persona') {
         r.minimo_cent = aCent(f.minimo); r.massimo_cent = aCent(f.massimo);
         if (Number.isNaN(r.minimo_cent) || Number.isNaN(r.massimo_cent)) { setErrore('Minimo e massimo: scrivi un importo o lasciali vuoti.'); return; }
@@ -110,14 +121,15 @@ export default function RegoleCompenso({ staffId, palestraId, corsi = [] }) {
         {!f && <button type="button" className="btn btn-piccolo" onClick={() => { setErrore(''); setF({ ...VUOTA }); }}>+ Aggiungi una regola</button>}
       </div>
       <p className="piccolo muto" style={{ marginTop: 0 }}>Senza regole vale la tariffa oraria standard. Per ogni lezione si usa la regola più precisa:
-        corso, poi disciplina, poi tutte. Le ore contano solo se la lezione è confermata con l&apos;appello (o dalla segreteria).</p>
+        corso, poi disciplina, poi tutte. Le ore contano solo se la lezione è confermata con l&apos;appello (o dalla segreteria).
+        Il rimborso auto si aggiunge ai compensi: un importo per ogni giorno con lezioni.</p>
 
       {regole === null ? <span className="piccolo muto">Carico…</span> : regole.length === 0 && !f ? (
         <div className="vuoto">Nessuna regola: si paga a tariffa oraria standard.</div>
       ) : (
         <ul className="rc-elenco">
           {regole.map((r) => {
-            const d = descrivi(r, corsi, discipline);
+            const d = descrivi(r, corsi, discipline, sedi);
             return (
               <li key={r.id} className={r.attiva ? '' : 'spenta'}>
                 <span className="rc-testo">
@@ -146,7 +158,7 @@ export default function RegoleCompenso({ staffId, palestraId, corsi = [] }) {
           {conAmbito && (
             <label><span>Vale per</span>
               <select value={f.tipo === 'forfait_mese' && f.ambito === 'tutte' ? 'corso' : f.ambito} onChange={set('ambito')}>
-                {Object.entries(AMBITI).filter(([k]) => f.tipo === 'forfait_mese' ? ['corso', 'disciplina'].includes(k) : true)
+                {Object.entries(AMBITI).filter(([k]) => f.tipo === 'forfait_mese' ? ['corso', 'disciplina'].includes(k) : (k !== 'corsi' || f.tipo === 'rimborso_giorno'))
                   .map(([k, t]) => <option key={k} value={k}>{t}</option>)}
               </select></label>
           )}
@@ -162,9 +174,16 @@ export default function RegoleCompenso({ staffId, palestraId, corsi = [] }) {
             <label><span>Si contano</span>
               <select value={f.conta} onChange={set('conta')}><option value="presenti">i presenti all&apos;appello</option><option value="prenotati">i prenotati</option></select></label>
           )}
+          {f.tipo === 'rimborso_giorno' && sedi.length > 1 && (
+            <label><span>Solo nella sede</span>
+              <select value={f.sede_id} onChange={set('sede_id')}><option value="">Qualunque sede</option>{sedi.map((x) => <option key={x.id} value={x.id}>{x.nome}</option>)}</select></label>
+          )}
           {f.tipo !== 'fasce' && (
-            <label><span>{f.tipo === 'ora' ? 'Importo all\'ora (€)' : f.tipo === 'a_persona' ? 'Importo a persona (€)' : ['forfait_mese', 'fisso_mese'].includes(f.tipo) ? 'Importo al mese (€)' : 'Importo a lezione (€)'}</span>
-              <input inputMode="decimal" value={f.importo} onChange={set('importo')} placeholder="es. 25" /></label>
+            <label><span>{f.tipo === 'ora' ? 'Importo all\'ora (€)' : f.tipo === 'a_persona' ? 'Importo a persona (€)' : ['forfait_mese', 'fisso_mese'].includes(f.tipo) ? 'Importo al mese (€)' : f.tipo === 'rimborso_giorno' ? 'Importo al giorno (€)' : 'Importo a lezione (€)'}</span>
+              <input inputMode="decimal" value={f.importo} onChange={set('importo')} placeholder={f.tipo === 'rimborso_giorno' ? 'es. 10' : 'es. 25'} /></label>
+          )}
+          {f.tipo === 'rimborso_giorno' && (
+            <label><span>Massimo al mese (€)</span><input inputMode="decimal" value={f.massimo} onChange={set('massimo')} placeholder="facoltativo" /></label>
           )}
           {f.tipo === 'a_persona' && (<>
             <label><span>Minimo a lezione (€)</span><input inputMode="decimal" value={f.minimo} onChange={set('minimo')} placeholder="facoltativo" /></label>

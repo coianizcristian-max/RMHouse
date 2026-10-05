@@ -1,5 +1,5 @@
-import Link from 'next/link';
 import { staffCorrente } from '@/lib/staff';
+import ElencoFunzioni from './ElencoFunzioni';
 
 export const dynamic = 'force-dynamic';
 
@@ -35,6 +35,7 @@ const SEZIONI = [
       ['Corsi', '/gestione/corsi', 'Anagrafica del corso, foto, colore, capienza, orari settimanali, iscritti e lista d\'attesa.'],
       ['Pagina pubblica del corso', '/gestione/corsi', 'Dentro ogni corso, accanto a "modifica": il link con foto e orari da usare nelle campagne.'],
       ['Staff', '/gestione/staff', 'Insegnanti e segreteria: foto, specialità, colore, compenso orario, archivio.'],
+      ['Regole di compenso e rimborso auto', '/gestione/staff', 'Nella scheda di ogni insegnante: a ora, a lezione, a fasce, a persona, private, forfait, fisso mensile e rimborso auto per giornata (anche solo per una sede, un corso o le private).'],
       ['Sale', '/gestione/sale', 'Foto, capienza, attrezzatura e costo orario (serve per i margini).'],
       ['Categorie, discipline, livelli, fasce d\'età, chiusure', '/gestione/palinsesto', 'Gli elementi con cui sono costruiti i corsi e i giorni di chiusura.'],
       ['Bacheca', '/gestione/bacheca', 'Avvisi e novità con immagine e periodo di validità, da mandare per email agli iscritti.'],
@@ -103,51 +104,5 @@ const PUBBLICHE = [
 export default async function Indice() {
   const { staff } = await staffCorrente();
   const gestione = staff.ruolo !== 'insegnante';
-
-  return (
-    <>
-      <div className="intestazione">
-        <div className="occhiello">Guida</div>
-        <h1>Tutte le funzioni</h1>
-        <p>Cosa sa fare il gestionale e dove sta di casa ogni cosa.</p>
-      </div>
-
-      {SEZIONI.map((s) => (
-        <div key={s.area}>
-          <h2 className="sezione">{s.area}</h2>
-          <div className="da-fare">
-            {s.voci.map(([testo, href, spiega]) => (
-              <Link prefetch={false} key={testo + href} href={href}>
-                <span>
-                  <strong style={{ color: 'var(--nero)' }}>{testo}</strong>
-                  <span className="piccolo muto" style={{ display: 'block' }}>{spiega}</span>
-                </span>
-                <span className="conta">›</span>
-              </Link>
-            ))}
-          </div>
-        </div>
-      ))}
-
-      {gestione && (
-        <>
-          <h2 className="sezione">Pagine pubbliche</h2>
-          <p className="piccolo muto" style={{ marginTop: -4 }}>
-            Quelle che vedono i clienti: aprile in una scheda nuova per controllarle.
-          </p>
-          <div className="da-fare">
-            {PUBBLICHE.map(([testo, href, spiega]) => (
-              <Link prefetch={false} key={href} href={href} target="_blank">
-                <span>
-                  <strong style={{ color: 'var(--nero)' }}>{testo}</strong>
-                  <span className="piccolo muto" style={{ display: 'block' }}>{spiega}</span>
-                </span>
-                <span className="conta">↗</span>
-              </Link>
-            ))}
-          </div>
-        </>
-      )}
-    </>
-  );
+  return <ElencoFunzioni sezioni={SEZIONI} pubbliche={gestione ? PUBBLICHE : []} />;
 }

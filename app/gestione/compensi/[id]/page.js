@@ -18,8 +18,9 @@ export default async function RiepilogoCompenso({ params }) {
     supabase.rpc('dettaglio_compenso', { p_id: id }),
     supabase.from('palestre').select('nome, dati_fiscali, indirizzo').eq('id', staff.palestra_id).maybeSingle(),
   ]);
-  const lezioni = (righe || []).filter((r) => r.stato !== 'mensile');
+  const lezioni = (righe || []).filter((r) => r.stato !== 'mensile' && r.stato !== 'rimborso');
   const mensili = (righe || []).filter((r) => r.stato === 'mensile');
+  const rimborsi = (righe || []).filter((r) => r.stato === 'rimborso');
 
   return (
     <div className="foglio foglio-compenso">
@@ -56,6 +57,11 @@ export default async function RiepilogoCompenso({ params }) {
             <tr key={`m${i}`}><td colSpan={5}><strong>{r.corso}</strong> <span className="piccolo muto">· {r.regola}</span></td>
               <td style={{ textAlign: 'right' }}>{euro(r.importo_cent)}</td></tr>
           ))}
+          {rimborsi.length > 0 && (
+            <tr><td colSpan={5}><strong>Rimborso auto</strong> <span className="piccolo muto">· {rimborsi.length} {rimborsi.length === 1 ? 'giorno' : 'giorni'}:
+              {' '}{rimborsi.map((r) => `${dataBreve(r.data)}${r.importo_cent ? '' : ' (oltre il massimo)'}`).join(', ')}</span></td>
+              <td style={{ textAlign: 'right' }}>{euro(rimborsi.reduce((t, r) => t + r.importo_cent, 0))}</td></tr>
+          )}
           {c.extra_cent > 0 && (
             <tr><td colSpan={5}><strong>Extra</strong>{c.extra_nota ? <span className="piccolo muto"> · {c.extra_nota}</span> : null}</td>
               <td style={{ textAlign: 'right' }}>{euro(c.extra_cent)}</td></tr>

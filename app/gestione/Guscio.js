@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import Cronologia from './Cronologia';
 import Campanella from './Campanella';
-import { useEffect, useState, Suspense } from 'react';
+import { useEffect, useRef, useState, Suspense } from 'react';
 import BarraCaricamento from './BarraCaricamento';
 import { supabaseBrowser } from '@/lib/supabase/browser';
 import { AREE, areaDi } from '@/lib/menu';
@@ -104,8 +104,27 @@ export default function Guscio({ gestione, nome, ruolo, palestraId, funzioni = {
     if (fisso || window.innerWidth < 900) return; // menù fisso o telefono: il link porta alla prima voce come sempre
     if (a.voci.filter(visibile).length < 2) return; // area con una sola voce: ci va diretto
     e.preventDefault();
+    e.currentTarget.setAttribute('data-apre-menu', ''); // la barra di caricamento non deve partire: non si naviga
+    // se si è appena aperto passandoci sopra col mouse, il clic non lo richiude
+    if (menuAperto === a.k && Date.now() - apertoDaMouse.current < 1500) return;
     setMenuAperto(menuAperto === a.k ? null : a.k);
   }
+  // Come nella vecchia app: basta passare col mouse sull'icona per far uscire il menù; si richiude uscendo col mouse
+  // (dall'icona o dal menù) dopo un attimo, così si può andare dall'icona alle voci senza che si chiuda. Solo mouse, non dita.
+  const timer = useRef(null);
+  const apertoDaMouse = useRef(0);
+  const ferma = () => { clearTimeout(timer.current); timer.current = null; };
+  function entraArea(e, a) {
+    if (e.pointerType !== 'mouse' || fisso || window.innerWidth < 900 || a.voci.filter(visibile).length < 2) return;
+    ferma();
+    timer.current = setTimeout(() => { apertoDaMouse.current = Date.now(); setMenuAperto(a.k); }, menuAperto ? 60 : 160);
+  }
+  function esce(e) {
+    if (e.pointerType !== 'mouse' || fisso) return;
+    ferma();
+    timer.current = setTimeout(() => setMenuAperto(null), 350);
+  }
+  useEffect(() => () => ferma(), []);
   // l'area le cui voci si vedono nel sottomenù: quella aperta col clic, altrimenti quella della pagina
   const areaMenu = (menuAperto && aree.find((a) => a.k === menuAperto)) || area;
   const vociMenu = (areaMenu?.voci || []).filter(visibile);
@@ -134,7 +153,8 @@ export default function Guscio({ gestione, nome, ruolo, palestraId, funzioni = {
       <nav className="aree" aria-label="Aree">
         {aree.map((a) => (
           <Link prefetch={false} key={a.k} href={a.voci.find(visibile)?.href || a.href} aria-current={a.k === attiva ? 'page' : undefined}
-                onClick={(e) => cliccaArea(e, a)} aria-expanded={!fisso ? menuAperto === a.k : undefined}
+                onClick={(e) => cliccaArea(e, a)} onPointerEnter={(e) => entraArea(e, a)} onPointerLeave={esce}
+                aria-expanded={!fisso ? menuAperto === a.k : undefined}
                 className={menuAperto === a.k ? 'area-aperta' : undefined}>
             <Icona nome={a.icona} />
             {a.titolo}
@@ -214,7 +234,8 @@ export default function Guscio({ gestione, nome, ruolo, palestraId, funzioni = {
 
         {menuAperto && !fisso && <div className="menu-velo" onClick={() => setMenuAperto(null)} aria-hidden="true" />}
         {vociMenu.length > 0 && (
-          <nav className="sottomenu" aria-label={areaMenu?.titolo}>
+          <nav className="sottomenu" aria-label={areaMenu?.titolo}
+               onPointerEnter={(e) => { if (e.pointerType === 'mouse') ferma(); }} onPointerLeave={(e) => { if (menuAperto) esce(e); }}>
             <div className="titolo-colonna solo-desktop">
               <span>{areaMenu?.titolo}</span>
               <button type="button" className={fisso ? 'menu-puntina fissato' : 'menu-puntina'} onClick={cambiaFisso}

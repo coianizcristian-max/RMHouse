@@ -53,7 +53,7 @@ export default function MieiCompensi({ cedolini }) {
           <button type="button" className="mc-testa" onClick={() => apri(c.id)} aria-expanded={aperto === c.id}>
             <span>
               <strong style={{ textTransform: 'capitalize' }}>{MESI[c.mese - 1]} {c.anno}</strong>
-              <span className="piccolo muto">{c.lezioni} lezioni · {Number(c.ore).toFixed(1).replace('.', ',')} ore{c.sostituzioni ? ` · ${c.sostituzioni} sostituzioni` : ''}</span>
+              <span className="piccolo muto">{c.lezioni} lezioni · {Number(c.ore).toFixed(1).replace('.', ',')} ore{c.sostituzioni ? ` · ${c.sostituzioni} sostituzioni` : ''}{c.rimborsi_cent > 0 ? ` · rimborso auto ${euro(c.rimborsi_cent)}` : ''}</span>
             </span>
             <span className="mc-destra">
               <strong>{euro(c.totale_cent)}</strong>
@@ -75,7 +75,7 @@ export default function MieiCompensi({ cedolini }) {
                         {[r.ore > 0 && `${Number(r.ore).toFixed(2).replace('.', ',')} h`, r.sostituzione, r.regola, NOTA[r.stato]].filter(Boolean).join(' · ')}
                       </span>
                     </span>
-                    <span className="piccolo" style={{ fontWeight: 700 }}>{['contata', 'mensile'].includes(r.stato) ? euro(r.importo_cent) : '—'}</span>
+                    <span className="piccolo" style={{ fontWeight: 700 }}>{['contata', 'mensile', 'rimborso'].includes(r.stato) ? euro(r.importo_cent) : '—'}</span>
                   </li>
                 ))}
               </ul>

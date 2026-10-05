@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { supabaseBrowser } from '@/lib/supabase/browser';
 import { euro, dataBreve, ora } from '@/lib/formato';
 
-const STATO_RIGA = { da_verificare: 'NON CONFERMATA: non contata', forfait: 'nel forfait', sostituita: 'non contata', contata: null, mensile: null };
+const STATO_RIGA = { da_verificare: 'NON CONFERMATA: non contata', forfait: 'nel forfait', sostituita: 'non contata', contata: null, mensile: null, rimborso: null };
 const MESI = ['gennaio', 'febbraio', 'marzo', 'aprile', 'maggio', 'giugno',
               'luglio', 'agosto', 'settembre', 'ottobre', 'novembre', 'dicembre'];
 
@@ -195,6 +195,7 @@ export default function Compensi({ palestraId, righe, anno, mese, soloConfermate
               {Number(r.ore).toFixed(1)} ore · {r.lezioni} lezioni
               {r.sostituzioni > 0 && ` · ${r.sostituzioni} sostituzioni`}
               {r.forfait_cent > 0 && ` · forfait e fissi ${euro(r.forfait_cent)}`}
+              {r.rimborsi_cent > 0 && ` · rimborso auto ${euro(r.rimborsi_cent)}`}
               {r.extra_cent > 0 && ` · extra ${euro(r.extra_cent)}${r.extra_nota ? ` (${r.extra_nota})` : ''}`}
             </span>
             <span style={{ fontSize: 22, fontWeight: 850, color: 'var(--nero)' }}>{euro(r.totale_cent)}</span>
@@ -231,11 +232,11 @@ export default function Compensi({ palestraId, righe, anno, mese, soloConfermate
                     <span>
                       {d.inizio ? `${dataBreve(d.data)} ${ora(d.inizio)} · ` : ''}{d.corso}
                       <span className="piccolo muto" style={{ display: 'block' }}>
-                        {[d.ore > 0 && `${Number(d.ore).toFixed(2).replace('.', ',')} h`, d.presenti != null && d.stato !== 'mensile' && `${d.presenti} presenti / ${d.prenotati} prenotati`,
+                        {[d.ore > 0 && `${Number(d.ore).toFixed(2).replace('.', ',')} h`, d.presenti != null && !['mensile', 'rimborso'].includes(d.stato) && `${d.presenti} presenti / ${d.prenotati} prenotati`,
                           d.sostituzione, d.regola, STATO_RIGA[d.stato]].filter(Boolean).join(' · ')}
                       </span>
                     </span>
-                    <span className="piccolo" style={{ fontWeight: 700 }}>{['contata', 'mensile'].includes(d.stato) ? euro(d.importo_cent) : '—'}</span>
+                    <span className="piccolo" style={{ fontWeight: 700 }}>{['contata', 'mensile', 'rimborso'].includes(d.stato) ? euro(d.importo_cent) : '—'}</span>
                   </li>
                 ))}
               </ul>

@@ -3434,3 +3434,11 @@ form.periodo-date .btn { flex: none; width: auto; min-height: 36px; padding: 0 1
 
 /* 116 · coda per lezioni e giorni pieni */
 .aq-coda { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin-top: 6px; }
+
+/* "Tutte le funzioni": ricerca per parola chiave accanto al titolo */
+.indice-testa { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px 24px; }
+.indice-cerca { display: grid; gap: 4px; flex: 1 1 320px; max-width: 460px; }
+.indice-cerca input { min-height: 44px; padding: 8px 14px; font: inherit; font-size: 15px; border: 1.5px solid var(--linea); border-radius: 12px; background: var(--bianco); width: 100%; }
+.indice-cerca input:focus { outline: none; border-color: var(--nero); }
+.da-fare mark { background: #fff1a8; color: inherit; border-radius: 3px; padding: 0 1px; }
+@media (max-width: 899px) { .indice-cerca { max-width: none; } }

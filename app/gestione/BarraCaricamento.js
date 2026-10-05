@@ -19,15 +19,20 @@ export default function BarraCaricamento() {
   useEffect(() => {
     const qui = () => window.location.pathname + window.location.search;
     function click(e) {
-      if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+      if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
       const a = e.target.closest?.('a[href]');
       if (!a || a.target === '_blank' || a.hasAttribute('download')) return;
       const url = new URL(a.href, window.location.href);
       if (url.origin !== window.location.origin || !url.pathname.startsWith('/gestione')) return;
       if (url.pathname + url.search === qui()) return;          // stessa pagina (o solo un'ancora)
-      a.setAttribute('data-in-arrivo', '');
-      meta.current = url.pathname + url.search;
-      setAttiva(true);
+      // si decide dopo che la pagina ha gestito il clic: se il link ha solo aperto un menù (le icone a sinistra
+      // segnano data-apre-menu) e non naviga, la barra non deve partire (restava accesa 15 secondi)
+      setTimeout(() => {
+        if (a.hasAttribute('data-apre-menu')) { a.removeAttribute('data-apre-menu'); return; }
+        a.setAttribute('data-in-arrivo', '');
+        meta.current = url.pathname + url.search;
+        setAttiva(true);
+      }, 0);
     }
     function invio(e) {
       const f = e.target;
