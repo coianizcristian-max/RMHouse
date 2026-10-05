@@ -8,6 +8,7 @@ import BarraCaricamento from './BarraCaricamento';
 import { supabaseBrowser } from '@/lib/supabase/browser';
 import { AREE, areaDi } from '@/lib/menu';
 import AzioniRapide from './AzioniRapide';
+import GuidaArrivo from './GuidaArrivo';
 
 const ICONE = {
   oggi: <><rect x="3" y="5" width="18" height="16" rx="2" /><path d="M8 3v4M16 3v4M3 10h18" /></>,
@@ -254,6 +255,7 @@ export default function Guscio({ gestione, nome, ruolo, palestraId, funzioni = {
         <main className="contenuto">
           {/* Computer, menù a scomparsa: le voci dell'area come schede in cima alla pagina (Palinsesto · Agenda settimanale · …),
               così si passa da un calendario all'altro senza riaprire il menù, come nella vecchia app */}
+          <Suspense fallback={null}><GuidaArrivo /></Suspense>
           {!fisso && voci.length > 1 && (
             <nav className="schede-area solo-desktop" aria-label={`Pagine di ${area?.titolo}`}>
               {voci.map((v) => (

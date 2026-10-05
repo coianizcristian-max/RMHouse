@@ -3451,3 +3451,18 @@ form.periodo-date .btn { flex: none; width: auto; min-height: 36px; padding: 0 1
 .gestore-barra input { flex: 1 1 240px; max-width: 380px; min-height: 40px; padding: 8px 12px; font: inherit; font-size: 15px; border: 1.5px solid var(--linea); border-radius: 12px; background: var(--bianco); }
 .gestore-barra input:focus { outline: none; border-color: var(--nero); }
 .gestore-barra select { min-height: 40px; padding: 6px 10px; font: inherit; font-size: 14px; border: 1.5px solid var(--linea); border-radius: 12px; background: var(--bianco); }
+
+/* "Tutte le funzioni": voci che stanno dentro una pagina → si aprono i passi */
+.voce-guida { border: 1px solid var(--linea); border-radius: 14px; background: var(--bianco); }
+.voce-guida.aperta { border-color: var(--nero); }
+.vg-testa { display: flex; width: 100%; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 16px;
+  border: 0; background: none; font: inherit; text-align: left; cursor: pointer; color: inherit; }
+.vg-come { flex: none; font-size: 13px; font-weight: 700; color: var(--rosso); white-space: nowrap; padding: 5px 10px; border-radius: 999px; background: var(--rosso-tenue); }
+.vg-corpo { padding: 0 16px 14px; }
+.vg-corpo ol, .guida-arrivo ol { margin: 0 0 12px; padding-left: 22px; display: grid; gap: 6px; font-size: 14.5px; line-height: 1.4; }
+/* in cima alla pagina di arrivo */
+.guida-arrivo { border: 1.5px solid var(--rosso); background: var(--rosso-tenue); border-radius: 14px; padding: 12px 16px 4px; margin: 0 0 16px; }
+.ga-testa { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 8px; }
+.ga-testa strong { color: var(--nero); }
+.guida-arrivo.compatta { padding: 8px 14px; }
+.guida-arrivo.compatta .ga-testa { margin: 0; }

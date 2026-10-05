@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
+import { GUIDE } from '@/lib/guide';
 
 // "Tutte le funzioni" con la ricerca per parola chiave: mentre si scrive restano solo le voci che la contengono
 // (nel nome, nella spiegazione o nell'area), con le parole trovate evidenziate.
@@ -24,15 +25,42 @@ function Evidenzia({ testo, parole }) {
 
 export default function ElencoFunzioni({ sezioni, pubbliche = [] }) {
   const [q, setQ] = useState('');
+  const [aperta, setAperta] = useState(null);   // la voce di cui si stanno leggendo i passi
   const campo = useRef(null);
   useEffect(() => { if (window.innerWidth >= 900) campo.current?.focus(); }, []);
   const parole = norm(q).split(/\s+/).filter(Boolean);
-  const passa = (voce, area) => parole.every((p) => norm(`${voce[0]} ${voce[2]} ${area}`).includes(p));
+  const passa = (voce, area) => parole.every((p) => norm(`${voce[0]} ${voce[2]} ${area} ${(GUIDE[voce[3]]?.passi || []).join(' ')}`).includes(p));
   const filtrate = sezioni.map((s) => ({ ...s, voci: s.voci.filter((v) => passa(v, s.area)) })).filter((s) => s.voci.length);
   const pubbl = pubbliche.filter((v) => passa(v, 'pagine pubbliche sito clienti'));
   const totale = filtrate.reduce((t, s) => t + s.voci.length, 0) + pubbl.length;
 
-  const voce = ([testo, href, spiega], esterna) => (
+  const voce = ([testo, href, spiega, guida], esterna) => {
+    const g = GUIDE[guida];
+    // funzione che sta DENTRO una pagina: toccandola si leggono i passi, poi "Vai" porta alla pagina col promemoria in cima
+    if (g) {
+      const ap = aperta === guida;
+      return (
+        <div key={testo + href} className={ap ? 'voce-guida aperta' : 'voce-guida'}>
+          <button type="button" className="vg-testa" aria-expanded={ap} onClick={() => setAperta(ap ? null : guida)}>
+            <span>
+              <strong style={{ color: 'var(--nero)' }}><Evidenzia testo={testo} parole={parole} /></strong>
+              <span className="piccolo muto" style={{ display: 'block' }}><Evidenzia testo={spiega} parole={parole} /></span>
+            </span>
+            <span className="vg-come">{ap ? 'chiudi' : 'come si fa'}</span>
+          </button>
+          {ap && (
+            <div className="vg-corpo">
+              <ol>{g.passi.map((x, i) => <li key={i}>{x}</li>)}</ol>
+              <Link prefetch={false} className="btn btn-primario btn-piccolo" href={`${g.href}${g.href.includes('?') ? '&' : '?'}guida=${guida}`}>
+                Vai alla pagina →
+              </Link>
+              <span className="piccolo muto"> i passi restano scritti in cima alla pagina</span>
+            </div>
+          )}
+        </div>
+      );
+    }
+    return (
     <Link prefetch={false} key={testo + href} href={href} target={esterna ? '_blank' : undefined}>
       <span>
         <strong style={{ color: 'var(--nero)' }}><Evidenzia testo={testo} parole={parole} /></strong>
@@ -40,7 +68,8 @@ export default function ElencoFunzioni({ sezioni, pubbliche = [] }) {
       </span>
       <span className="conta">{esterna ? '↗' : '›'}</span>
     </Link>
-  );
+    );
+  };
 
   return (
     <>
