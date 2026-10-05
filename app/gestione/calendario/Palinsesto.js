@@ -1,19 +1,48 @@
 'use client';
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { supabaseBrowser } from '@/lib/supabase/browser';
 import FoglioLezione from './FoglioLezione';
+import AzioniGruppo from './AzioniGruppo';
 import { ora } from '@/lib/formato';
 import { testoSu } from '@/lib/colori';
 
 const GIORNI = ['Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato', 'Domenica'];
+const MAX_FACCE = 3; // come la vecchia app: tre cerchietti e poi "…"
 
-export default function Palinsesto({ inizio, lezioni, corsi = [], note = [], facce = [], palestraId, gestione = true }) {
+// Icone piccole e grigie: insegnante, sala, prove
+const IconaPersona = () => (
+  <svg viewBox="0 0 24 24" width="12" height="12" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+    <circle cx="9" cy="8" r="3.5" /><path d="M2.5 20c0-3.6 2.9-6.5 6.5-6.5s6.5 2.9 6.5 6.5" /><circle cx="17" cy="9" r="2.5" /><path d="M16 14.5c3 .3 5.5 2.6 5.5 5.5" />
+  </svg>
+);
+const IconaSala = () => (
+  <svg viewBox="0 0 24 24" width="12" height="12" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" strokeLinecap="round">
+    <path d="M4 21V9l8-5 8 5v12" /><path d="M9 21v-7h6v7" />
+  </svg>
+);
+const IconaProva = () => (
+  <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" strokeLinecap="round">
+    <path d="M3 5h7a3 3 0 0 1 3 3v12a2 2 0 0 0-2-2H3zM21 5h-7a3 3 0 0 0-3 3v12a2 2 0 0 1 2-2h8z" />
+  </svg>
+);
+
+// Palinsesto a schede, una colonna per giorno, con la grafica della vecchia app:
+// bordo e banda nel colore del corso con l'orario, nome del corso, insegnante e sala con l'icona, i cerchietti dei prenotati
+// (o "Nessun prenotato"), i numeri (verde = prenotati, blu = posti liberi), il "+" per aggiungere qualcuno, la barra di riempimento
+// e in basso il cerchietto per selezionare più lezioni insieme (insegnante, sala, posti, prenotazioni, nota, annulla).
+export default function Palinsesto({ inizio, lezioni, corsi = [], note = [], facce = [], sale = [], insegnanti = [], palestraId, gestione = true }) {
+  const [aggiorno, setAggiorno] = useState(false); // mentre la pagina si ricarica dopo un'azione di gruppo
   const [scelta, setScelta] = useState(null);
   const [apriAggiungi, setApriAggiungi] = useState(false);
   const [giorno, setGiorno] = useState(null);
   const [dati, setDati] = useState(null);
+  const [menu, setMenu] = useState(null);
+  const [selezione, setSelezione] = useState([]);
+  const [giornoVisto, setGiornoVisto] = useState(0); // sul telefono: la colonna (giorno) che si sta guardando
+  const scorrevole = useRef(null);
 
-  const colore = (id) => corsi.find((c) => c.id === id)?.colore || 'var(--rosso)';
+  const corsoDi = (id) => corsi.find((c) => c.id === id);
+  const colore = (id) => corsoDi(id)?.colore || 'var(--rosso)';
   const noteDi = (g) => note.filter((n) => n.data === g);
   const facceDi = (id) => facce.filter((f) => f.lezione_id === id);
   const iniziali = (f) => ((f.nome?.[0] || '') + (f.cognome?.[0] || '')).toUpperCase();
@@ -24,110 +53,187 @@ export default function Palinsesto({ inizio, lezioni, corsi = [], note = [], fac
     return d.toISOString().slice(0, 10);
   });
 
+  // Sul telefono si vede un giorno alla volta: all'apertura va su oggi (se è in questa settimana), le linguette portano agli altri
+  useEffect(() => {
+    const el = scorrevole.current;
+    if (!el || window.innerWidth >= 900) return;
+    const i = Math.max(0, giorni.indexOf(oggi));
+    el.scrollTo({ left: el.clientWidth * i + i * 16, behavior: 'instant' });
+    setGiornoVisto(i);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [inizio]);
+  const vaiAlGiorno = (i) => {
+    const el = scorrevole.current; if (!el) return;
+    el.scrollTo({ left: el.clientWidth * i + i * 16, behavior: 'smooth' }); setGiornoVisto(i);
+  };
+  const scorso = () => {
+    const el = scorrevole.current; if (!el || window.innerWidth >= 900) return;
+    const i = Math.round(el.scrollLeft / (el.clientWidth + 16));
+    if (i !== giornoVisto) setGiornoVisto(Math.min(6, Math.max(0, i)));
+  };
+  const lunga = (g) => `${g.slice(8, 10)}-${g.slice(5, 7)}-${g.slice(0, 4)}`;
+
   async function apriGiorno(g) {
-    setGiorno(g); setDati(null);
+    setMenu(null); setGiorno(g); setDati(null);
     const { data } = await supabaseBrowser().rpc('giornata', { p_palestra: palestraId, p_data: g });
     setDati(data || null);
   }
 
-  async function aggiungiNota() {
+  async function aggiungiNota(g) {
+    setMenu(null);
     const testo = prompt('Nota per questo giorno (la vede lo staff):');
     if (!testo?.trim()) return;
-    await supabaseBrowser().from('note_giorno').insert({ palestra_id: palestraId, data: giorno, testo: testo.trim() });
-    apriGiorno(giorno);
+    await supabaseBrowser().from('note_giorno').insert({ palestra_id: palestraId, data: g, testo: testo.trim() });
+    apriGiorno(g);
   }
+
+  const apri = (l) => { setScelta(l); setApriAggiungi(false); };
+  const aggiungi = (e, l) => { e.stopPropagation(); setScelta(l); setApriAggiungi(true); };
+  const seleziona = (e, id) => {
+    e.stopPropagation();
+    setSelezione((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]));
+  };
+  const selezionaGiorno = (g) => {
+    setMenu(null);
+    const ids = lezioni.filter((l) => l.data === g).map((l) => l.lezione_id);
+    setSelezione((s) => Array.from(new Set([...s, ...ids])));
+  };
+  const selezionate = lezioni.filter((l) => selezione.includes(l.lezione_id));
 
   return (
     <>
-      <div className="colonne-giorni">
-        {giorni.map((g, i) => {
-          const delGiorno = lezioni.filter((l) => l.data === g);
-          const prove = delGiorno.reduce((s, l) => s + (l.prove || 0), 0);
-          return (
-            <section key={g} className="colonna-giorno">
-              <header className={g === oggi ? 'testa-giorno oggi' : 'testa-giorno'}>
-                <div>
-                  <div className="piccolo muto">{GIORNI[i]}</div>
-                  <strong>{g.slice(8, 10)}/{g.slice(5, 7)}</strong>
-                </div>
-                <button className="link-btn piccolo" onClick={() => apriGiorno(g)}
-                        style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                  {prove > 0 && <span className="tag tag-rosso">{prove} prove</span>}
-                  {noteDi(g).length > 0 && <span className="tag tag-neutro">{noteDi(g).length} note</span>}
-                  {prove === 0 && noteDi(g).length === 0 && 'giornata'}
-                </button>
-              </header>
+      {menu && <div className="pal-velo" onClick={() => setMenu(null)} />}
+      <div className={selezionate.length ? 'pal-layout con-azioni' : 'pal-layout'}>
+        {gestione && selezionate.length > 0 && (
+          <AzioniGruppo lezioni={selezionate} sale={sale} insegnanti={insegnanti} occupato={aggiorno}
+                        onDeseleziona={() => setSelezione([])}
+                        onFatto={() => {
+                          // ricarico la pagina per intero: dopo un'azione su più lezioni l'aggiornamento "morbido" a volte mostrava ancora i dati vecchi
+                          setSelezione([]); setAggiorno(true); window.location.reload();
+                        }} />
+        )}
+        <div className="pal-settimana">
+        {aggiorno && <div className="pal-aggiorno" role="status">Aggiorno il palinsesto…</div>}
+        <div className="pal-linguette solo-mobile" role="tablist" aria-label="Giorni della settimana">
+          {giorni.map((g, i) => (
+            <button key={g} type="button" role="tab" aria-selected={giornoVisto === i} className={`pal-linguetta${giornoVisto === i ? ' attiva' : ''}${g === oggi ? ' oggi' : ''}`}
+                    onClick={() => vaiAlGiorno(i)}>
+              <span>{GIORNI[i].slice(0, 3)}</span><strong>{Number(g.slice(8, 10))}</strong>
+            </button>
+          ))}
+        </div>
+        <div className="colonne-giorni palinsesto" ref={scorrevole} onScroll={scorso}>
+          {giorni.map((g, i) => {
+            const delGiorno = lezioni.filter((l) => l.data === g);
+            const prove = delGiorno.reduce((s, l) => s + (l.prove || 0), 0);
+            const nNote = noteDi(g).length;
+            const dataBreve = `${Number(g.slice(8, 10))}/${Number(g.slice(5, 7))}`;
+            return (
+              <section key={g} className="colonna-giorno">
+                <header className={g === oggi ? 'pal-testa oggi' : 'pal-testa'}>
+                  <span className="pal-giorno">
+                    <span className="pal-nome-giorno">{GIORNI[i]}</span>
+                    <span className="pal-data">{dataBreve}</span>
+                    <span className="pal-data-lunga">{GIORNI[i]} {lunga(g)}</span>
+                  </span>
+                  <span className="pal-destra">
+                    <button type="button" className={prove > 0 ? 'pal-badge pieno' : 'pal-badge'} title={`${prove} in prova`}
+                            aria-label={`${prove} in prova ${GIORNI[i]} ${dataBreve}`} onClick={() => apriGiorno(g)}>
+                      <IconaProva /> {prove}
+                    </button>
+                    <button type="button" className="pal-menu-btn" aria-label={`Menu di ${GIORNI[i]} ${dataBreve}`}
+                            aria-expanded={menu === g} onClick={() => setMenu(menu === g ? null : g)}>⋮</button>
+                  </span>
+                  {menu === g && (
+                    <div className="pal-tendina" role="menu">
+                      <button type="button" role="menuitem" onClick={() => apriGiorno(g)}>Chi arriva: prove, recuperi, affitti</button>
+                      {gestione && <button type="button" role="menuitem" onClick={() => aggiungiNota(g)}>Aggiungi una nota al giorno</button>}
+                      {gestione && delGiorno.length > 0 && <button type="button" role="menuitem" onClick={() => selezionaGiorno(g)}>Seleziona le {delGiorno.length} lezioni</button>}
+                      {nNote > 0 && <button type="button" role="menuitem" onClick={() => apriGiorno(g)}>{nNote} {nNote === 1 ? 'nota' : 'note'} del giorno</button>}
+                    </div>
+                  )}
+                </header>
 
-              {noteDi(g).map((n) => (
-                <div key={n.id} className="nota-giorno">{n.testo}</div>
-              ))}
+                {noteDi(g).map((n) => (
+                  <div key={n.id} className="nota-giorno">{n.testo}</div>
+                ))}
 
-              {delGiorno.length === 0 && <div className="vuoto" style={{ padding: 16, fontSize: 13 }}>Nessuna lezione</div>}
+                {delGiorno.length === 0 && <div className="pal-vuoto">Nessun elemento presente</div>}
 
-              {delGiorno.map((l) => {
-                const c = colore(l.corso_id);
-                const pieno = l.capienza ? Math.min(100, Math.round(((l.iscritti + l.prove) / l.capienza) * 100)) : 0;
-                const annullata = l.stato === 'annullata';
-                return (
-                  <button key={l.lezione_id} type="button" className="carta-lezione"
-                          onClick={() => setScelta(l)} style={{ borderColor: c, opacity: annullata ? .6 : 1 }}>
-                    <span className="testa" style={{ background: c, color: testoSu(c) }}>
-                      {ora(l.inizio)} – {ora(l.fine)}
+                {delGiorno.map((l) => {
+                  const c = colore(l.corso_id);
+                  const corso = corsoDi(l.corso_id);
+                  const pieno = l.capienza ? Math.min(100, Math.round(((l.iscritti + l.prove) / l.capienza) * 100)) : 0;
+                  const annullata = l.stato === 'annullata';
+                  const nonVisibile = corso && (corso.visibilita !== 'pubblico' || corso.attivo === false);
+                  const posti = l.capienza ? Math.max(l.capienza - l.iscritti - l.prove, 0) : null;
+                  const fl = facceDi(l.lezione_id);
+                  const altri = fl.slice(MAX_FACCE);
+                  const scelto = selezione.includes(l.lezione_id);
+                  const etichetta = annullata ? ['Lezione annullata', 'grigia']
+                    : l.prenotabile === false ? ['Corso non prenotabile', '']
+                    : nonVisibile ? ['Corso non visibile', ''] : null;
+                  return (
+                    <div key={l.lezione_id} role="button" tabIndex={0}
+                         className={`pal-carta${annullata ? ' annullata' : ''}${scelto ? ' selezionata' : ''}`}
+                         style={{ borderColor: c }}
+                         onClick={() => apri(l)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); apri(l); } }}
+                         aria-label={`${l.corso_nome}, ${ora(l.inizio)}`}>
+                      <div className="pal-banda" style={{ background: c, color: testoSu(c) }}>
+                        {ora(l.inizio)} - {ora(l.fine)}
+                        {l.note && !annullata && <span className="pal-angolo" data-tip={l.note} tabIndex={0} aria-label={`Nota: ${l.note}`} />}
+                      </div>
+                      <div className="pal-corpo">
+                        <div className="pal-nome">{l.corso_nome}</div>
+                        <div className="pal-riga"><IconaPersona />{l.insegnante_nome || 'insegnante da assegnare'}</div>
+                        <div className="pal-riga"><IconaSala />{l.sala_nome || 'sala da assegnare'}</div>
+
+                        <div className="pal-piede">
+                          {fl.length === 0
+                            ? <span className="pal-nessuno">{l.presenti > 0 ? `${l.presenti} presenti` : 'Nessun prenotato'}</span>
+                            : (
+                              <span className="pal-facce" tabIndex={0} data-tip={fl.map((f) => `${f.nome} ${f.cognome}`).join(', ')}>
+                                {fl.slice(0, MAX_FACCE).map((f) => (
+                                  f.foto_url
+                                    ? <img key={f.allievo_id} src={f.foto_url} alt="" className={f.tipo === 'prova' ? 'pal-faccia prova' : 'pal-faccia'} />
+                                    : <span key={f.allievo_id} className={f.tipo === 'prova' ? 'pal-faccia prova' : 'pal-faccia'}>{iniziali(f)}</span>
+                                ))}
+                                {altri.length > 0 && <span className="pal-altri" aria-label={`e altri ${altri.length}`}>…</span>}
+                              </span>
+                            )}
+                          <span className="pal-numeri" onClick={(e) => { if (e.target.closest('.pal-cerchio')) { e.stopPropagation(); e.target.closest('.pal-cerchio').focus(); } }}>
+                            <span className="pal-cerchio verde" tabIndex={0} data-tip={`${l.iscritti} ${l.iscritti === 1 ? 'Prenotato' : 'Prenotati'}`} aria-label={`${l.iscritti} prenotati`}>{l.iscritti}</span>
+                            <span className="pal-cerchio blu" tabIndex={0} data-tip={posti === null ? 'Posti senza limite' : `${posti} ${posti === 1 ? 'Posto disponibile' : 'Posti disponibili'}`} aria-label={posti === null ? 'posti senza limite' : `${posti} posti disponibili`}>{posti === null ? '∞' : posti}</span>
+                            {l.prove > 0 && <span className="pal-cerchio rosso" tabIndex={0} data-tip={`${l.prove} in prova`} aria-label={`${l.prove} in prova`}>{l.prove}</span>}
+                            {gestione && !annullata && (
+                              <button type="button" className="pal-piu" data-tip="Aggiungi qualcuno alla lezione" aria-label="Aggiungi qualcuno alla lezione"
+                                      onClick={(e) => aggiungi(e, l)}>+</button>
+                            )}
+                          </span>
+                        </div>
+
+                        <div className="pal-fondo">
+                          {etichetta
+                            ? <div className="pal-centro"><span className={`pal-etichetta ${etichetta[1]}`} title={etichetta[0]}>{etichetta[0]}</span></div>
+                            : <div className="pal-barra"><span style={{ width: `${pieno}%` }} /></div>}
+                        </div>
+                      </div>
                       {gestione && (
-                        <span className="piu" role="button" tabIndex={0}
-                              title="Aggiungi qualcuno a questa lezione"
-                              onClick={(e) => { e.stopPropagation(); setScelta(l); setApriAggiungi(true); }}
-                              onKeyDown={(e) => { if (e.key === 'Enter') { e.stopPropagation(); setScelta(l); setApriAggiungi(true); } }}>+</span>
+                        <button type="button" className={scelto ? 'pal-check scelto' : 'pal-check'} aria-pressed={scelto}
+                                aria-label={scelto ? 'Togli dalla selezione' : 'Seleziona questa lezione'}
+                                onClick={(e) => seleziona(e, l.lezione_id)} onKeyDown={(e) => e.stopPropagation()}>
+                          {scelto && <svg viewBox="0 0 24 24" width="12" height="12" aria-hidden="true" fill="none" stroke="#fff" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12l5 5 9-10" /></svg>}
+                        </button>
                       )}
-                    </span>
-                    <span className="corpo">
-                      <span className="nome">{l.corso_nome}</span>
-                      <span className="riga riga-insegnante">
-                        {l.insegnante_foto
-                          ? <img src={l.insegnante_foto} alt="" className="faccia faccia-ins" />
-                          : <span className="faccia faccia-ins segnaposto">{(l.insegnante_nome || '?').slice(0, 1)}</span>}
-                        <span>
-                          {l.insegnante_nome || 'insegnante da assegnare'}
-                          {l.sala_nome ? ` · ${l.sala_nome}` : ''}
-                        </span>
-                      </span>
-
-                      {facceDi(l.lezione_id).length > 0 && (
-                        <span className="facce">
-                          {facceDi(l.lezione_id).slice(0, 5).map((f) => (
-                            f.foto_url
-                              ? <img key={f.allievo_id} src={f.foto_url} alt="" title={`${f.nome} ${f.cognome}`}
-                                     className={f.tipo === 'prova' ? 'faccia prova' : 'faccia'} />
-                              : <span key={f.allievo_id} title={`${f.nome} ${f.cognome}`}
-                                      className={f.tipo === 'prova' ? 'faccia prova segnaposto' : 'faccia segnaposto'}>{iniziali(f)}</span>
-                          ))}
-                          {facceDi(l.lezione_id).length > 5 && (
-                            <span className="faccia segnaposto piu-facce">+{facceDi(l.lezione_id).length - 5}</span>
-                          )}
-                        </span>
-                      )}
-                      <span className="numeri">
-                        <span className="pallino verde">{l.iscritti}</span>
-                        <span className="pallino azzurro">{l.capienza ? Math.max(l.capienza - l.iscritti - l.prove, 0) : '∞'}</span>
-                        {l.prove > 0 && <span className="pallino rosso">{l.prove}p</span>}
-                        {l.presenti > 0 && <span className="piccolo muto">{l.presenti} presenti</span>}
-                      </span>
-                      {l.capienza > 0 && <span className="riempimento"><span style={{ width: `${pieno}%`, background: c }} /></span>}
-                      {annullata && <span className="tag tag-neutro">Annullata</span>}
-                      {!annullata && l.prenotabile === false && <span className="tag tag-attenzione">Prenotazioni chiuse</span>}
-                    </span>
-                  </button>
-                );
-              })}
-            </section>
-          );
-        })}
+                    </div>
+                  );
+                })}
+              </section>
+            );
+          })}
+        </div>
+        </div>
       </div>
-
-      <p className="piccolo muto" style={{ marginTop: 10 }}>
-        I tre pallini sono iscritti, posti liberi e persone in prova. Tocca una lezione per appello e azioni rapide,
-        oppure il giorno per vedere chi arriva in prova.
-      </p>
 
       {scelta && (
         <FoglioLezione lezione={scelta} colore={colore(scelta.corso_id)} gestione={gestione}
@@ -165,6 +271,7 @@ export default function Palinsesto({ inizio, lezioni, corsi = [], note = [], fac
                 </ul>
               </>
             )}
+            {dati && !dati.prove?.length && <p className="muto piccolo">Nessuno in prova.</p>}
             {dati?.recuperi?.length > 0 && (
               <>
                 <h3 className="giorno-titolo">Recuperi</h3>
@@ -194,7 +301,7 @@ export default function Palinsesto({ inizio, lezioni, corsi = [], note = [], fac
               : <p className="muto piccolo">Nessuna nota.</p>}
 
             <div className="azioni" style={{ marginTop: 14 }}>
-              {gestione && <button className="btn" onClick={aggiungiNota}>Aggiungi nota</button>}
+              {gestione && <button className="btn" onClick={() => aggiungiNota(giorno)}>Aggiungi nota</button>}
               <button className="btn" onClick={() => setGiorno(null)}>Chiudi</button>
             </div>
           </div>
