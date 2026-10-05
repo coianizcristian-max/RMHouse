@@ -66,7 +66,7 @@ export default function Incassi({ palestraId, righe, totali, dal, al, stato, onl
   async function annulla(r) {
     const motivo = prompt('Motivo dell\'annullamento:');
     if (motivo === null) return;
-    await supabaseBrowser().rpc('annulla_pagamento', { p_pagamento: r.id, p_motivo: motivo || null });
+    await supabaseBrowser().rpc('annulla_pagamento', { p_pagamento: r.id, p_motivo: motivo || null, p_anche_ricevuta: true });
     router.refresh();
   }
 

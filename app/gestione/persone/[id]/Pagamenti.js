@@ -25,6 +25,17 @@ export default function Pagamenti({ pagamenti, ricevute, totaleStorico, incassa 
   // il documento dell'incasso: la ricevuta oppure la fattura
   const ricevutaDi = (id) => ricevute.find((r) => r.pagamento_id === id && (r.tipo_documento === 'ricevuta' || r.tipo_documento === 'fattura') && !r.annullata);
 
+  // un incasso registrato per sbaglio (es. due volte): si annulla, e con lui la ricevuta se era già emessa
+  async function annulla(p, r) {
+    const motivo = prompt(`Annullare l'incasso di ${euro(p.importo_cent)} (${p.descrizione})?${r ? `\nViene annullata anche la ${r.tipo_documento === 'fattura' ? 'fattura' : 'ricevuta'} ${r.numero}/${r.anno}.` : ''}\nMotivo (es. registrato due volte):`);
+    if (motivo === null) return;
+    setInvio(p.id); setErrore('');
+    const { error } = await supabaseBrowser().rpc('annulla_pagamento', { p_pagamento: p.id, p_motivo: motivo.trim() || 'annullato dalla segreteria', p_anche_ricevuta: true });
+    setInvio(null);
+    if (error) { setErrore(error.message?.includes('pagamento_online') ? 'È un pagamento con la carta: si rimborsa, non si annulla.' : 'Annullamento non riuscito.'); return; }
+    router.refresh();
+  }
+
   async function emetti(p) {
     setInvio(p.id); setErrore('');
     const { data, error } = await supabaseBrowser().rpc('emetti_ricevuta', { p_pagamento: p.id });
@@ -80,7 +91,13 @@ export default function Pagamenti({ pagamenti, ricevute, totaleStorico, incassa 
                       </span>
                     ) : null}
                     {p.stato === 'pagato' && !p.stripe_payment_intent && p.metodo !== 'online' && p.metodo !== 'stripe' && (
-                      <button className="link-btn piccolo" onClick={() => setCorreggi(correggi === p.id ? null : p.id)}>correggi</button>
+                      <>
+                        <button className="link-btn piccolo" onClick={() => setCorreggi(correggi === p.id ? null : p.id)}>correggi</button>
+                        <button className="link-btn piccolo pericolo" disabled={invio === p.id} onClick={() => annulla(p, r)}>annulla</button>
+                      </>
+                    )}
+                    {p.stato === 'in_attesa' && (
+                      <button className="link-btn piccolo pericolo" disabled={invio === p.id} onClick={() => annulla(p, r)}>annulla</button>
                     )}
                   </span>
                 </span>
@@ -95,7 +112,8 @@ export default function Pagamenti({ pagamenti, ricevute, totaleStorico, incassa 
         </ul>
       )}
       <p className="piccolo muto" style={{ marginTop: 8, marginBottom: 0 }}>
-        Ricevuta per quote e corsi; fattura (con IVA) per le attività commerciali. Si aprono pronte da stampare o salvare in PDF.
+        Ricevuta per quote e corsi; fattura (con IVA) per le attività commerciali. Si aprono pronte da stampare, salvare in PDF o mandare al cliente.
+        «Annulla» toglie un incasso sbagliato (resta in elenco come annullato) e la sua ricevuta.
       </p>
     </section>
   );

@@ -61,18 +61,23 @@ export default function Iscrizioni({ allievoId, iscrizioni, corsi, tipi, orari, 
   const tipo = tipi.find((t) => t.id === f.tipo_abbonamento_id);
   const set = (k) => (e) => setF({ ...f, [k]: e.target.type === 'checkbox' ? e.target.checked : e.target.value });
 
-  // parte a metà mese: l'importo lo decide la segreteria (proposta in base alle lezioni che restano)
-  const metaMese = aMese(tipo) && /^\d{4}-\d{2}-\d{2}$/.test(f.data_inizio) && !f.data_inizio.endsWith('-01');
+  // parte a metà mese: l'importo lo decide la segreteria (proposta in base alle lezioni che restano).
+  // Conta solo se nel primo mese si perdono davvero delle lezioni: chi parte il 2 del mese con la prima lezione il 3 paga il mese intero.
+  const dopoIlPrimo = aMese(tipo) && /^\d{4}-\d{2}-\d{2}$/.test(f.data_inizio) && !f.data_inizio.endsWith('-01');
   useEffect(() => {
-    if (!metaMese) { setRimaste(null); return; }
+    if (!dopoIlPrimo) { setRimaste(null); return; }
     if (f.orari.length) {
       supabaseBrowser().rpc('lezioni_rimaste_mese', { p_orari: f.orari, p_dal: f.data_inizio }).then(({ data }) => setRimaste(data || null));
     } else {
       const fm = fineMese(f.data_inizio); const tot = Number(fm.slice(8, 10));
       setRimaste({ mese: tot, rimaste: tot - Number(f.data_inizio.slice(8, 10)) + 1, giorni: true });
     }
-  }, [metaMese, f.data_inizio, f.orari.join(',')]);
-  const proposto = metaMese && tipo && rimaste?.mese ? Math.round((tipo.prezzo_cent * rimaste.rimaste) / rimaste.mese / 100) * 100 : null;
+  }, [dopoIlPrimo, f.data_inizio, f.orari.join(',')]);
+  const metaMese = dopoIlPrimo && !!rimaste && rimaste.mese > 0 && rimaste.rimaste < rimaste.mese;
+  // abbonamento di più mesi (trimestrale…): si scala solo la parte del primo mese
+  const mesiAbb = Math.max(1, tipo?.durata_mesi || 1);
+  const prezzoMese = tipo ? Math.round(tipo.prezzo_cent / mesiAbb) : 0;
+  const proposto = metaMese && tipo ? Math.round(((tipo.prezzo_cent - prezzoMese) + (prezzoMese * rimaste.rimaste) / rimaste.mese) / 100) * 100 : null;
   // annuale: va dall'inizio dell'anno sportivo (es. ottobre) alla fine della stagione; se parte dopo, si scala l'importo dei mesi persi
   const annuale = !!tipo && tipo.modalita !== 'ingressi' && (tipo.durata_mesi || 0) >= 9 && /^\d{4}-\d{2}-\d{2}$/.test(f.data_inizio);
   const fineStag = annuale ? fineStagione(f.data_inizio, meseFineStagione) : null;
@@ -219,11 +224,13 @@ export default function Iscrizioni({ allievoId, iscrizioni, corsi, tipi, orari, 
             </div>
             {metaMese ? (
             <div className="campo">
-              <label htmlFor="imp">Importo fino al {dataBreve(fineMese(f.data_inizio))} (€)</label>
+              <label htmlFor="imp">{mesiAbb > 1 ? 'Importo dell\'abbonamento (€)' : `Importo fino al ${dataBreve(fineMese(f.data_inizio))} (€)`}</label>
               <input id="imp" inputMode="decimal" value={f.importo} onChange={set('importo')} placeholder={proposto != null ? (proposto / 100).toFixed(2).replace('.', ',') : ''} />
               <span className="piccolo">
-                Parte a metà mese: a listino {euro(tipo.prezzo_cent)} è il mese intero.
-                {rimaste && ` Restano ${rimaste.rimaste} ${rimaste.giorni ? 'giorni' : 'lezioni'} su ${rimaste.mese}.`}
+                Parte a metà mese: {mesiAbb > 1
+                  ? `a listino ${euro(tipo.prezzo_cent)} per ${mesiAbb} mesi, il primo mese vale ${euro(prezzoMese)}.`
+                  : `a listino ${euro(tipo.prezzo_cent)} è il mese intero.`}
+                {rimaste && ` Restano ${rimaste.rimaste} ${rimaste.giorni ? 'giorni' : 'lezioni'} su ${rimaste.mese} del primo mese.`}
                 {rimaste && rimaste.rimaste === 0 && ' Questo mese non ci sono più lezioni: falla partire dal 1° del mese prossimo.'}
                 {proposto != null && (
                   <> <button type="button" className="link-btn" onClick={() => setF({ ...f, importo: (proposto / 100).toFixed(2).replace('.', ',') })}>

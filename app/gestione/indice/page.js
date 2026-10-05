@@ -12,6 +12,7 @@ const SEZIONI = [
       ['Riepilogo di oggi', '/gestione', 'Lezioni, persone attese, prove in arrivo e l\'elenco "Da fare".'],
       ['Agenda del giorno', '/gestione/oggi', 'Le lezioni una sotto l\'altra, con l\'appello a portata di dito.'],
       ['Appello', '/gestione', 'Si apre da una lezione: presenze, aggiungi o togli qualcuno, scrivi ai prenotati, scarica la lista.'],
+      ['Prenotazioni', '/gestione/prenotazioni', 'Ingressi, recuperi e prove in arrivo fatti dai clienti dall\'app o dalla segreteria: si vedono, si disdicono o si spostano.'],
       ['Lead e prove', '/gestione/lead', 'Chi ha chiesto informazioni o prenotato una prova, diviso per stato, con WhatsApp diretto.'],
       ['Liste d\'attesa', '/gestione/attese', 'Chi aspetta un posto, con l\'inserimento manuale dal banco: quando qualcuno disdice, l\'avviso parte da solo.'],
     ],

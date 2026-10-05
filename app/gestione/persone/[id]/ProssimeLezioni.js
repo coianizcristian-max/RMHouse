@@ -28,7 +28,11 @@ export default function ProssimeLezioni({ allievoId, palestraId, lezioni, disdet
   async function disdici(l) {
     if (!confirm(`Disdire ${l.corso_nome} di ${giorno(l.inizio)} alle ${ora(l.inizio)}? Se le regole lo prevedono, nasce il recupero.`)) return;
     setInvio(l.id); setErrore('');
-    const { error } = await supabaseBrowser().rpc('disdici_lezione', { p_lezione: l.id, p_allievo: allievoId });
+    const db = supabaseBrowser();
+    // lezione fissa dell'abbonamento → disdetta con eventuale recupero; prenotazione o recupero → si cancella la prenotazione; prova → si annulla
+    const { error } = l.tipo === 'prova' ? await db.from('prove').update({ stato: 'annullata' }).eq('id', l.riferimento_id)
+      : (l.tipo === 'ingresso' || l.tipo === 'recupero') && l.riferimento_id ? await db.rpc('cancella_prenotazione', { p_prenotazione: l.riferimento_id })
+      : await db.rpc('disdici_lezione', { p_lezione: l.id, p_allievo: allievoId });
     setInvio(null);
     if (error) { setErrore(messaggio(error)); return; }
     router.refresh();

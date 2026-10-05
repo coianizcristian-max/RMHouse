@@ -126,6 +126,7 @@ export default async function Home({ searchParams }) {
             <Link prefetch={false} className="btn btn-primario" href="/gestione/persone/nuova">Nuovo cliente</Link>
             <Link prefetch={false} className="btn" href="/gestione?scegli=incassa">Incassa</Link>
             <Link prefetch={false} className="btn" href="/gestione/scadenze">Scadenze</Link>
+            <Link prefetch={false} className="btn" href="/gestione/prenotazioni">Prenotazioni</Link>
           </div>
         )}
       </div>

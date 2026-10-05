@@ -80,7 +80,7 @@ export default async function Persona({ params, searchParams }) {
     : { data: [] };
   // le sue prossime lezioni (fisse, prenotate, recuperi, prove) nei prossimi 30 giorni, e le disdette già fatte
   const fra30 = new Date(Date.now() + 30 * 86400000).toLocaleDateString('sv-SE');
-  const { data: partecipa } = await supabase.from('v_partecipanti_lezione').select('lezione_id, tipo').eq('allievo_id', id);
+  const { data: partecipa } = await supabase.from('v_partecipanti_lezione').select('lezione_id, tipo, riferimento_id').eq('allievo_id', id);
   const idLez = (partecipa || []).map((x) => x.lezione_id);
   const [{ data: lezProssime }, { data: disdette }] = idLez.length
     ? await Promise.all([
@@ -89,8 +89,8 @@ export default async function Persona({ params, searchParams }) {
         supabase.from('assenze_avvisate').select('lezione_id').eq('allievo_id', id).in('lezione_id', idLez),
       ])
     : [{ data: [] }, { data: [] }];
-  const tipoDi = Object.fromEntries((partecipa || []).map((x) => [x.lezione_id, x.tipo]));
-  const prossime = (lezProssime || []).map((l) => ({ ...l, tipo: tipoDi[l.id] }));
+  const partDi = Object.fromEntries((partecipa || []).map((x) => [x.lezione_id, x]));
+  const prossime = (lezProssime || []).map((l) => ({ ...l, tipo: partDi[l.id]?.tipo, riferimento_id: partDi[l.id]?.riferimento_id }));
 
   const linkCertificato = `${palestra?.base_url || ''}/certificato?t=${allievo.token}`;
   // aveva solo abbonamenti annullati: non è un "lead" né "mai iscritto", ha lasciato
@@ -226,7 +226,7 @@ export default async function Persona({ params, searchParams }) {
             <RinnoviAutomatici rinnovi={rinnovi || []} />
           </section>
 
-          <section className="pannello">
+          <section className="pannello" id="prossime" style={{ scrollMarginTop: 80 }}>
             <h2>Prossime lezioni <span className="piccolo muto">· 30 giorni</span></h2>
             <ProssimeLezioni allievoId={id} palestraId={p} lezioni={prossime} disdette={disdette || []} />
           </section>

@@ -1070,6 +1070,9 @@ a.tessera:hover, .scheda-corso:hover {
 .foglio { max-width: 720px; margin: 0 auto; padding: 32px var(--spazio); background: var(--bianco); color: var(--testo); }
 .foglio-testa { display: flex; justify-content: space-between; gap: 20px; padding-bottom: 16px; border-bottom: 2px solid var(--nero); }
 .foglio-testa strong { color: var(--nero); font-size: 18px; }
+.foglio-ditta { display: flex; align-items: flex-start; gap: 14px; min-width: 0; }
+.foglio-logo { width: 88px; height: 88px; object-fit: contain; flex: none; }
+@media print { .foglio-logo { width: 72px; height: 72px; } }
 .foglio table th { text-align: left; border-bottom: 1px solid var(--linea); padding: 8px 0; font-size: 13px; color: var(--testo-2); }
 .foglio table td { padding: 10px 0; border-bottom: 1px solid var(--linea); }
 .foglio-piede { margin-top: 40px; padding-top: 14px; border-top: 1px solid var(--linea); font-size: 12px; color: var(--testo-2); }

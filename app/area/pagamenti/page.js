@@ -23,6 +23,11 @@ export default async function Pagamenti({ searchParams }) {
     supabase.from('pagamenti').select('id, descrizione, importo_cent, created_at').eq('stato', 'in_attesa').is('stripe_session_id', null).is('rata_id', null)
       .order('created_at', { ascending: false }).limit(10),
   ]);
+  // le ricevute dei pagamenti mostrati: il cliente le apre dall'app con il suo link
+  const { data: ricevute } = (pagamenti || []).length
+    ? await supabase.from('ricevute').select('pagamento_id, numero, anno, token, tipo_documento, annullata').in('pagamento_id', pagamenti.map((x) => x.id)).eq('annullata', false)
+    : { data: [] };
+  const ricevutaDi = (id) => (ricevute || []).find((r) => r.pagamento_id === id && (r.tipo_documento === 'ricevuta' || r.tipo_documento === 'fattura'));
   const online = stripeAttivo();
   const rateOnline = online && pal?.stripe?.rate_online !== false;
   const acquisti = online && pal?.stripe?.abbonamenti_online !== false;
@@ -98,7 +103,14 @@ export default async function Pagamenti({ searchParams }) {
           <li key={p.id} className="persona">
             <span>{p.descrizione}<span className="piccolo muto" style={{ display: 'block' }}>{dataBreve(p.pagato_at)} · {p.metodo === 'online' || p.metodo === 'stripe' ? 'online' : p.metodo}
               {p.rimborsato_cent > 0 && <span style={{ color: 'var(--ok)' }}> · rimborsati {euro(p.rimborsato_cent)}</span>}</span></span>
-            <strong>{euro(p.importo_cent)}</strong>
+            <span style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+              <strong>{euro(p.importo_cent)}</strong>
+              {ricevutaDi(p.id) && (
+                <a className="btn btn-piccolo" href={`/ricevuta/${ricevutaDi(p.id).token}`} target="_blank" rel="noreferrer">
+                  {ricevutaDi(p.id).tipo_documento === 'fattura' ? 'fattura' : 'ricevuta'}
+                </a>
+              )}
+            </span>
           </li>
         ))}
       </ul>
