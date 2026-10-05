@@ -7,7 +7,7 @@ import { dataBreve, etaAl } from '@/lib/formato';
 import { STATI_CLIENTE, statoTesto, scaricaCsv } from '@/lib/stati';
 
 // Elenco con spunte: chi selezioni finisce nella barra d'azioni in basso
-export default function ElencoPersone({ palestraId, persone, etichette, totale, esporta }) {
+export default function ElencoPersone({ palestraId, persone, etichette, totale, esporta, consensi = false }) {
   const router = useRouter();
   const [scelti, setScelti] = useState(new Set());
   const [pannello, setPannello] = useState(null);     // 'etichetta'
@@ -99,11 +99,15 @@ export default function ElencoPersone({ palestraId, persone, etichette, totale, 
                       {!p.is_titolare && (
                         <div className="piccolo muto">paga {p.titolare_nome} {p.titolare_cognome}</div>
                       )}
-                      {(p.etichette?.length > 0 || p.senza_orari || p.quota_mancante) && (
+                      {(p.etichette?.length > 0 || p.senza_orari || p.quota_mancante || consensi) && (
                         <div className="segni">
                           {p.senza_orari && <span className="tag tag-attenzione">giorni da assegnare</span>}
                           {p.quota_mancante && <span className="tag tag-attenzione">quota</span>}
                           {p.etichette?.map((e) => <span key={e} className="tag tag-neutro"># {e}</span>)}
+                          {consensi && [['WhatsApp', p.consenso_whatsapp], ['foto e video', p.consenso_immagini], ['promozioni', p.consenso_marketing]].map(([t, v]) => (
+                            <span key={t} className={`tag ${v === true ? 'tag-ok' : v === false ? 'tag-neutro' : 'tag-tenue'}`}>{t}: {v === true ? 'sì' : v === false ? 'no' : 'non chiesto'}</span>
+                          ))}
+                          {consensi && p.telefono && <a className="piccolo" href={`tel:${p.telefono}`}>{p.telefono}</a>}
                         </div>
                       )}
                     </td>

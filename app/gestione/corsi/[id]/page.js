@@ -7,6 +7,7 @@ import { dataBreve, etaAl } from '@/lib/formato';
 import Orari from './Orari';
 import InsegnantiCorso from './InsegnantiCorso';
 import AssegnaGiorni from '../../AssegnaGiorni';
+import GruppoWhatsApp from './GruppoWhatsApp';
 
 export const dynamic = 'force-dynamic';
 
@@ -110,11 +111,13 @@ export default async function Corso({ params, searchParams }) {
                       href={`/gestione/corsi/${id}?vista=senza_giorni`}>Senza giorni <strong>{senzaGiorni.length}</strong></Link>
               )}
               <Link prefetch={false} className="stato-pillola" aria-current={vista === 'tutti' ? 'true' : undefined} href={`/gestione/corsi/${id}?vista=tutti`}>Anche scaduti</Link>
+              <Link prefetch={false} className="stato-pillola" aria-current={vista === 'whatsapp' ? 'true' : undefined} href={`/gestione/corsi/${id}?vista=whatsapp`}>Per il gruppo WhatsApp</Link>
             </div>
           </div>
 
-          {elenco.length === 0 && <div className="vuoto">Nessuno in questo elenco.</div>}
-          <ul className="elenco-iscritti">
+          {vista === 'whatsapp' && <GruppoWhatsApp iscritti={iscritti || []} />}
+          {vista !== 'whatsapp' && elenco.length === 0 && <div className="vuoto">Nessuno in questo elenco.</div>}
+          {vista !== 'whatsapp' && <ul className="elenco-iscritti">
             {elenco.map((i) => {
               const x = infoIscrizione[i.iscrizione_id];
               const fissi = x?.tipi_abbonamento?.modalita === 'orari_fissi' && (i.stato === 'attiva' || i.stato === 'sospesa');
@@ -133,6 +136,9 @@ export default async function Corso({ params, searchParams }) {
                     <div className="ei-segni">
                       {i.bloccato && i.stato === 'attiva' && <span className="tag tag-rosso">certificato</span>}
                       {i.quota_mancante && i.stato === 'attiva' && <span className="tag tag-attenzione">quota</span>}
+                      {i.consenso_whatsapp === false && <span className="tag tag-neutro" title="Non vuole il gruppo WhatsApp">no WhatsApp</span>}
+                      {i.consenso_immagini === false && <span className="tag tag-neutro" title="Non vuole essere ripreso in foto e video">no foto</span>}
+                      {i.consenso_whatsapp == null && i.stato === 'attiva' && <span className="tag tag-tenue" title="Modulo privacy non ancora firmato: consensi non chiesti">privacy da firmare</span>}
                       {i.telefono && <a className="piccolo" href={`tel:${i.telefono}`}>{i.telefono}</a>}
                     </div>
                   </div>
@@ -143,7 +149,7 @@ export default async function Corso({ params, searchParams }) {
                 </li>
               );
             })}
-          </ul>
+          </ul>}
         </section>
 
         <aside>

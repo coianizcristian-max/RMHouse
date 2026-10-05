@@ -20,9 +20,11 @@ export async function GET(request, { params }) {
     ['Cognome', 'cognome'], ['Nome', 'nome'], ['Nascita', 'data_nascita'], ['Orari', 'orari'],
     ['Abbonamento', 'abbonamento'], ['Inizio', 'data_inizio'], ['Scadenza', 'data_fine'], ['Stato', 'stato'],
     ['Certificato', 'certificato_scadenza'], ['Titolare', 'titolare_nome'], ['Email', 'email'], ['Telefono', 'telefono'],
+    ['Gruppo WhatsApp', 'consenso_whatsapp'], ['Foto e video', 'consenso_immagini'], ['Promozioni', 'consenso_marketing'],
   ];
+  const siNo = (v) => (v === true ? 'sì' : v === false ? 'no' : 'non chiesto');
   const righe = [colonne.map(([t]) => cella(t)).join(';')]
-    .concat(data.map((r) => colonne.map(([, k]) => cella(r[k])).join(';')));
+    .concat(data.map((r) => colonne.map(([, k]) => cella(k.startsWith('consenso_') ? siNo(r[k]) : r[k])).join(';')));
   const nome = (data[0].corso_nome || 'corso').replace(/[^\w]+/g, '-').toLowerCase();
 
   return new NextResponse('\uFEFF' + righe.join('\r\n'), {

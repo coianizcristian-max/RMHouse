@@ -3,7 +3,7 @@ import { useRouter } from 'next/navigation';
 import { useRef } from 'react';
 
 // Ricerca e filtri su una riga: tre menù a tendina con i numeri, invece di venti pulsanti
-export default function FiltriPersone({ valori, stati, campanelli, etichette }) {
+export default function FiltriPersone({ valori, stati, campanelli, etichette, consensi = [] }) {
   const router = useRouter();
   const form = useRef(null);
   const vai = (cambi) => {
@@ -13,7 +13,7 @@ export default function FiltriPersone({ valori, stati, campanelli, etichette }) 
     Object.entries(cambi || {}).forEach(([k, v]) => (v ? u.set(k, v) : u.delete(k)));
     router.push(`/gestione/persone${u.toString() ? `?${u}` : ''}`);
   };
-  const attivi = ['stato', 'campanello', 'etichetta', 'q'].filter((k) => valori[k]).length;
+  const attivi = ['stato', 'campanello', 'etichetta', 'consenso', 'q'].filter((k) => valori[k]).length;
   return (
     <form ref={form} className="filtri-persone" onSubmit={(e) => { e.preventDefault(); vai(); }}>
       <input type="search" name="q" defaultValue={valori.q} placeholder="Cerca: nome, cognome, email, telefono, codice fiscale" aria-label="Cerca" />
@@ -30,6 +30,10 @@ export default function FiltriPersone({ valori, stati, campanelli, etichette }) 
           {etichette.map(([k, testo, n]) => <option key={k} value={k}># {testo} ({n})</option>)}
         </select>
       )}
+      <select name="consenso" defaultValue={valori.consenso || ''} onChange={() => vai()} aria-label="Consensi" className={valori.consenso ? 'scelto' : ''}>
+        <option value="">Consensi: tutti</option>
+        {consensi.map(([k, testo]) => <option key={k} value={k}>{testo}</option>)}
+      </select>
       <button className="btn btn-primario">Cerca</button>
       {attivi > 0 && <button type="button" className="link-btn piccolo" onClick={() => router.push('/gestione/persone')}>azzera</button>}
     </form>

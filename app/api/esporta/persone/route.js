@@ -4,6 +4,8 @@ import { STATI_CLIENTE, comeCsv } from '@/lib/stati';
 
 export const dynamic = 'force-dynamic';
 
+const siNo = (v) => (v === true ? 'sì' : v === false ? 'no' : 'non chiesto');
+
 // Export CSV delle persone con gli stessi filtri della pagina Persone
 export async function GET(request) {
   const supabase = await supabaseServer();
@@ -14,13 +16,13 @@ export async function GET(request) {
   if (!staff || staff.ruolo === 'insegnante') return new Response('Servono i permessi di segreteria', { status: 403 });
 
   const u = new URL(request.url).searchParams;
-  const filtri = { q: u.get('q') || '', stato: u.get('stato') || '', campanello: u.get('campanello') || '', etichetta: u.get('etichetta') || '' };
+  const filtri = { q: u.get('q') || '', stato: u.get('stato') || '', campanello: u.get('campanello') || '', etichetta: u.get('etichetta') || '', consenso: u.get('consenso') || '' };
 
   const righe = [];
   for (let da = 0; ; da += 1000) {
     const { data, error } = await applicaFiltri(
       supabase.from('v_stato_clienti')
-        .select('cognome, nome, data_nascita, codice_fiscale, is_titolare, titolare_nome, titolare_cognome, email, telefono, stato, attivo, prima_data, fine_prossima, ultima_fine, certificato_scadenza, quota_mancante, etichette')
+        .select('cognome, nome, data_nascita, codice_fiscale, is_titolare, titolare_nome, titolare_cognome, email, telefono, stato, attivo, prima_data, fine_prossima, ultima_fine, certificato_scadenza, quota_mancante, etichette, consenso_whatsapp, consenso_immagini, consenso_marketing')
         .eq('palestra_id', staff.palestra_id),
       filtri,
     ).order('cognome').order('nome').range(da, da + 999);
@@ -31,11 +33,11 @@ export async function GET(request) {
 
   const csv = comeCsv(
     ['Cognome', 'Nome', 'Data di nascita', 'Codice fiscale', 'Chi paga', 'Email', 'Telefono', 'Stato', 'Cliente dal',
-     'Abbonamento fino al', 'Ultimo abbonamento finito il', 'Certificato fino al', 'Quota da pagare', 'Etichette'],
+     'Abbonamento fino al', 'Ultimo abbonamento finito il', 'Certificato fino al', 'Quota da pagare', 'Etichette', 'Gruppo WhatsApp', 'Foto e video', 'Promozioni'],
     righe.map((p) => [p.cognome, p.nome, p.data_nascita || '', p.codice_fiscale || '',
       p.is_titolare ? '' : `${p.titolare_nome || ''} ${p.titolare_cognome || ''}`.trim(), p.email || '', p.telefono || '',
       STATI_CLIENTE[p.stato]?.testo || p.stato, p.prima_data || '', p.fine_prossima || '', p.attivo ? '' : (p.ultima_fine || ''),
-      p.certificato_scadenza || '', p.quota_mancante ? 'sì' : '', (p.etichette || []).join(', ')]),
+      p.certificato_scadenza || '', p.quota_mancante ? 'sì' : '', (p.etichette || []).join(', '), siNo(p.consenso_whatsapp), siNo(p.consenso_immagini), siNo(p.consenso_marketing)]),
   );
   const oggi = new Date().toISOString().slice(0, 10);
   return new Response(csv, {
