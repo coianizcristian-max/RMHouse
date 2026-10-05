@@ -9,6 +9,7 @@ import Anagrafica from './Anagrafica';
 import Iscrizioni from './Iscrizioni';
 import RinnoviAutomatici from './RinnoviAutomatici';
 import Recuperi from './Recuperi';
+import ProssimeLezioni from './ProssimeLezioni';
 import EtichettePersona from './EtichettePersona';
 import Privacy from './Privacy';
 import ModuliPersona from './ModuliPersona';
@@ -77,6 +78,19 @@ export default async function Persona({ params, searchParams }) {
   const { data: ricevute } = (pagamenti || []).length
     ? await supabase.from('ricevute').select('id, pagamento_id, numero, anno, tipo_documento, annullata').in('pagamento_id', pagamenti.map((x) => x.id))
     : { data: [] };
+  // le sue prossime lezioni (fisse, prenotate, recuperi, prove) nei prossimi 30 giorni, e le disdette già fatte
+  const fra30 = new Date(Date.now() + 30 * 86400000).toLocaleDateString('sv-SE');
+  const { data: partecipa } = await supabase.from('v_partecipanti_lezione').select('lezione_id, tipo').eq('allievo_id', id);
+  const idLez = (partecipa || []).map((x) => x.lezione_id);
+  const [{ data: lezProssime }, { data: disdette }] = idLez.length
+    ? await Promise.all([
+        supabase.from('v_lezioni').select('id, corso_nome, inizio, sala_nome, insegnante_nome').in('id', idLez).eq('stato', 'programmata')
+          .gt('inizio', new Date().toISOString()).lte('data', fra30).order('inizio').limit(40),
+        supabase.from('assenze_avvisate').select('lezione_id').eq('allievo_id', id).in('lezione_id', idLez),
+      ])
+    : [{ data: [] }, { data: [] }];
+  const tipoDi = Object.fromEntries((partecipa || []).map((x) => [x.lezione_id, x.tipo]));
+  const prossime = (lezProssime || []).map((l) => ({ ...l, tipo: tipoDi[l.id] }));
 
   const linkCertificato = `${palestra?.base_url || ''}/certificato?t=${allievo.token}`;
   // aveva solo abbonamenti annullati: non è un "lead" né "mai iscritto", ha lasciato
@@ -210,6 +224,11 @@ export default async function Persona({ params, searchParams }) {
               apriSubito={iscrivi === '1'}
             />
             <RinnoviAutomatici rinnovi={rinnovi || []} />
+          </section>
+
+          <section className="pannello">
+            <h2>Prossime lezioni <span className="piccolo muto">· 30 giorni</span></h2>
+            <ProssimeLezioni allievoId={id} palestraId={p} lezioni={prossime} disdette={disdette || []} />
           </section>
 
           {crediti?.length > 0 && (

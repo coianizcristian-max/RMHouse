@@ -3,7 +3,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { supabaseBrowser } from '@/lib/supabase/browser';
-import { dataBreve, etaAl } from '@/lib/formato';
+import { dataBreve, etaAl, etichettaPaga } from '@/lib/formato';
 import { STATI_CLIENTE, statoTesto, scaricaCsv } from '@/lib/stati';
 
 // Elenco con spunte: chi selezioni finisce nella barra d'azioni in basso
@@ -33,7 +33,7 @@ export default function ElencoPersone({ palestraId, persone, etichette, totale, 
 
   function esportaScelti() {
     scaricaCsv('persone-selezionate.csv',
-      ['Cognome', 'Nome', 'Nascita', 'Chi paga', 'Email', 'Telefono', 'Stato', 'Abbonamento fino al', 'Certificato fino al', 'Etichette'],
+      ['Cognome', 'Nome', 'Nascita', 'Chi paga / genitore', 'Email', 'Telefono', 'Stato', 'Abbonamento fino al', 'Certificato fino al', 'Etichette'],
       selezionate.map((p) => [p.cognome, p.nome, p.data_nascita || '', p.is_titolare ? '' : `${p.titolare_nome} ${p.titolare_cognome}`.trim(),
         p.email || '', p.telefono || '', statoTesto(p.stato, p.genere), p.fine_prossima || p.ultima_fine || '',
         p.certificato_scadenza || '', (p.etichette || []).join(', ')]));
@@ -97,7 +97,7 @@ export default function ElencoPersone({ palestraId, persone, etichette, totale, 
                       <Link prefetch={false} className="persona-nome" href={`/gestione/persone/${p.id}`}>{p.cognome} {p.nome}</Link>
                       {p.data_nascita && <span className="piccolo muto"> · {etaAl(p.data_nascita)} anni</span>}
                       {!p.is_titolare && (
-                        <div className="piccolo muto">paga {p.titolare_nome} {p.titolare_cognome}</div>
+                        <div className="piccolo muto">{etichettaPaga(p.data_nascita)} {p.titolare_nome} {p.titolare_cognome}</div>
                       )}
                       {(p.etichette?.length > 0 || p.senza_orari || p.quota_mancante || consensi) && (
                         <div className="segni">

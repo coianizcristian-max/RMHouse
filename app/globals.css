@@ -2657,7 +2657,7 @@ html[data-tema="scuro"]:has(.pagina-area) {
 .ip-righe { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
 .ip-righe li { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 10px; align-items: center; padding: 8px 10px; border-radius: 10px; background: var(--attenzione-tenue); font-size: 14px; }
 .ip-libero { display: grid; gap: 8px; }
-.ip-campi { display: grid; grid-template-columns: 130px minmax(0, 1fr) auto; gap: 8px; }
+.ip-campi { display: grid; grid-template-columns: 110px minmax(0, 1fr) 150px auto; gap: 8px; }
 .ip-campi input { min-height: 42px; padding: 6px 10px; border: 1px solid var(--linea); border-radius: 10px; font: inherit; }
 @media (max-width: 600px) { .ip-campi { grid-template-columns: 1fr; } }
 .scheda-testa .scheda-corsi { display: block !important; line-height: 1.5; }

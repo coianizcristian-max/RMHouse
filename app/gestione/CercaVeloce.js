@@ -2,6 +2,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabaseBrowser } from '@/lib/supabase/browser';
+import { applicaRicerca } from '@/lib/ricerca';
+import { etichettaPaga } from '@/lib/formato';
 
 // Cerca un cliente e apri la scheda, oppure scegli per chi fare una nuova iscrizione
 export default function CercaVeloce({ palestraId, modoIniziale = 'scheda' }) {
@@ -16,9 +18,9 @@ export default function CercaVeloce({ palestraId, modoIniziale = 'scheda' }) {
     const t = testo.trim().toLowerCase();
     if (t.length < 2) { setTrovati([]); return; }
     const timer = setTimeout(async () => {
-      const { data } = await supabaseBrowser().from('v_persone')
+      const { data } = await applicaRicerca(supabaseBrowser().from('v_persone')
         .select('id, nome, cognome, data_nascita, telefono, iscrizioni_attive, titolare_nome, titolare_cognome, is_titolare')
-        .eq('palestra_id', palestraId).ilike('ricerca', `%${t}%`).order('cognome').limit(8);
+        .eq('palestra_id', palestraId), t).order('cognome').limit(8);
       setTrovati(data || []); setAttivo(-1);
     }, 200);
     return () => clearTimeout(timer);
@@ -31,7 +33,7 @@ export default function CercaVeloce({ palestraId, modoIniziale = 'scheda' }) {
     <div className="cerca-veloce">
       <div className="cv-riga">
         <input ref={campo} value={testo} onChange={(e) => setTesto(e.target.value)} type="search" autoComplete="off"
-               placeholder={modo === 'iscrivi' ? 'Chi iscrivi? Scrivi nome o cognome' : modo === 'incassa' ? 'Chi paga? Scrivi nome o cognome' : 'Cerca un cliente: nome, cognome, email, telefono'}
+               placeholder={modo === 'iscrivi' ? 'Chi iscrivi? Nome, cognome o le iniziali' : modo === 'incassa' ? 'Chi paga? Nome, cognome o le iniziali' : 'Cerca un cliente: nome, cognome, iniziali, email, telefono'}
                aria-label="Cerca un cliente"
                onKeyDown={(e) => {
                  if (e.key === 'ArrowDown') { e.preventDefault(); setAttivo((a) => Math.min(a + 1, trovati.length - 1)); }
@@ -51,7 +53,7 @@ export default function CercaVeloce({ palestraId, modoIniziale = 'scheda' }) {
                 <strong>{p.cognome} {p.nome}</strong>
                 <span className="piccolo muto">
                   {[p.iscrizioni_attive ? `${p.iscrizioni_attive} iscrizioni in corso` : 'nessuna iscrizione in corso',
-                    !p.is_titolare && p.titolare_nome ? `paga ${p.titolare_nome} ${p.titolare_cognome || ''}` : null, p.telefono].filter(Boolean).join(' · ')}
+                    !p.is_titolare && p.titolare_nome ? `${etichettaPaga(p.data_nascita)} ${p.titolare_nome} ${p.titolare_cognome || ''}` : null, p.telefono].filter(Boolean).join(' · ')}
                 </span>
                 <span className="cv-vai">{modo === 'iscrivi' ? 'Iscrivi →' : modo === 'incassa' ? 'Incassa →' : 'Apri →'}</span>
               </button>

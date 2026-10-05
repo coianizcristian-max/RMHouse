@@ -6,6 +6,7 @@ import { supabaseBrowser } from '@/lib/supabase/browser';
 import { euro, dataBreve } from '@/lib/formato';
 import IncassaPersona from './IncassaPersona';
 import EmettiFattura from '../../EmettiFattura';
+import CorreggiIncasso from '../../CorreggiIncasso';
 import RimborsoCarta from '../../RimborsoCarta';
 
 const METODI = { contanti: 'contanti', pos: 'POS', bonifico: 'bonifico', online: 'online', stripe: 'online', assegno: 'assegno', altro: 'altro' };
@@ -17,6 +18,7 @@ export default function Pagamenti({ pagamenti, ricevute, totaleStorico, incassa 
   const [invio, setInvio] = useState(null);
   const [errore, setErrore] = useState('');
   const [aperto, setAperto] = useState(apriIncassa);
+  const [correggi, setCorreggi] = useState(null);
   const [fattura, setFattura] = useState(null);   // l'incasso di cui si sta facendo la fattura
   const pagato = pagamenti.filter((p) => p.stato === 'pagato').reduce((s, p) => s + p.importo_cent, 0);
   const daIncassare = pagamenti.filter((p) => p.stato === 'in_attesa').reduce((s, p) => s + p.importo_cent, 0);
@@ -77,8 +79,12 @@ export default function Pagamenti({ pagamenti, ricevute, totaleStorico, incassa 
                         <button className="link-btn piccolo" onClick={() => setFattura(fattura === p.id ? null : p.id)}>fattura</button>
                       </span>
                     ) : null}
+                    {p.stato === 'pagato' && !p.stripe_payment_intent && p.metodo !== 'online' && p.metodo !== 'stripe' && (
+                      <button className="link-btn piccolo" onClick={() => setCorreggi(correggi === p.id ? null : p.id)}>correggi</button>
+                    )}
                   </span>
                 </span>
+                {correggi === p.id && <CorreggiIncasso pagamento={p} onChiudi={() => setCorreggi(null)} />}
                 {fattura === p.id && <EmettiFattura pagamentoId={p.id} onChiudi={() => setFattura(null)} />}
                 {online && p.stato === 'pagato' && p.stripe_payment_intent && (
                   <div style={{ textAlign: 'right' }}><RimborsoCarta pagamento={p} conDocumento={!!r} /></div>

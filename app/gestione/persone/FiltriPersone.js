@@ -14,9 +14,12 @@ export default function FiltriPersone({ valori, stati, campanelli, etichette, co
     router.push(`/gestione/persone${u.toString() ? `?${u}` : ''}`);
   };
   const attivi = ['stato', 'campanello', 'etichetta', 'consenso', 'q'].filter((k) => valori[k]).length;
+  // si cerca mentre si scrive (dopo una breve pausa): niente bisogno di premere Cerca
+  const timer = useRef(null);
+  const scrive = () => { clearTimeout(timer.current); timer.current = setTimeout(() => vai({ pagina: '' }), 350); };
   return (
     <form ref={form} className="filtri-persone" onSubmit={(e) => { e.preventDefault(); vai(); }}>
-      <input type="search" name="q" defaultValue={valori.q} placeholder="Cerca: nome, cognome, email, telefono, codice fiscale" aria-label="Cerca" />
+      <input type="search" name="q" defaultValue={valori.q} onChange={scrive} placeholder="Cerca: nome, cognome o solo le iniziali (es. mr), email, telefono" aria-label="Cerca" />
       <select name="stato" defaultValue={valori.stato} onChange={() => vai()} aria-label="Stato" className={valori.stato ? 'scelto' : ''}>
         {stati.map(([k, testo, n]) => <option key={k} value={k}>{testo}{n != null ? ` (${n})` : ''}</option>)}
       </select>

@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabaseBrowser } from '@/lib/supabase/browser';
+import { applicaRicerca } from '@/lib/ricerca';
 
 // Due schede della stessa persona (succede con gli import): si tiene questa e si porta dentro tutto dell'altra
 export default function UnisciPersona({ palestraId, allievo }) {
@@ -14,8 +15,8 @@ export default function UnisciPersona({ palestraId, allievo }) {
   async function trova(t) {
     setCerca(t);
     if (t.trim().length < 2) { setTrovati([]); return; }
-    const { data } = await supabaseBrowser().from('v_persone').select('id, nome, cognome, data_nascita, email')
-      .eq('palestra_id', palestraId).ilike('ricerca', `%${t.trim().toLowerCase()}%`).neq('id', allievo.id).limit(8);
+    const { data } = await applicaRicerca(supabaseBrowser().from('v_persone').select('id, nome, cognome, data_nascita, email')
+      .eq('palestra_id', palestraId), t).neq('id', allievo.id).limit(8);
     setTrovati(data || []);
   }
 

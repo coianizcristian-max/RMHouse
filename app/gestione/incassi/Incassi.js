@@ -3,9 +3,11 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { supabaseBrowser } from '@/lib/supabase/browser';
+import { applicaRicerca } from '@/lib/ricerca';
 import { euro, dataBreve } from '@/lib/formato';
 import LinkPagamento from '../LinkPagamento';
 import RimborsoCarta from '../RimborsoCarta';
+import CorreggiIncasso from '../CorreggiIncasso';
 
 const CAUSALI = [
   ['quota_iscrizione', 'Quota annuale'], ['abbonamento', 'Abbonamento'], ['prova', 'Lezione di prova'],
@@ -17,7 +19,8 @@ const NOME = (k) => (CAUSALI.find(([v]) => v === k) || [null, k])[1];
 export default function Incassi({ palestraId, righe, totali, dal, al, stato, online = false }) {
   const router = useRouter();
   const [apri, setApri] = useState(false);
-  const [f, setF] = useState({ importo: '', causale: 'quota_iscrizione', metodo: 'contanti', descrizione: '', cerca: '', account_id: '', allievo_id: '' });
+  const [f, setF] = useState({ importo: '', causale: 'quota_iscrizione', metodo: 'contanti', descrizione: '', cerca: '', account_id: '', allievo_id: '', data: new Date().toLocaleDateString('sv-SE') });
+  const [correggi, setCorreggi] = useState(null);
   const [trovati, setTrovati] = useState([]);
   const [errore, setErrore] = useState('');
   const [periodo, setPeriodo] = useState({ dal, al });
@@ -28,9 +31,9 @@ export default function Incassi({ palestraId, righe, totali, dal, al, stato, onl
   async function cerca(testo) {
     setF({ ...f, cerca: testo, account_id: '', allievo_id: '' });
     if (testo.trim().length < 2) { setTrovati([]); return; }
-    const { data } = await supabaseBrowser().from('v_persone')
+    const { data } = await applicaRicerca(supabaseBrowser().from('v_persone')
       .select('id, nome, cognome, account_id, titolare_nome, titolare_cognome')
-      .eq('palestra_id', palestraId).ilike('ricerca', `%${testo.trim().toLowerCase()}%`).limit(8);
+      .eq('palestra_id', palestraId), testo).limit(8);
     setTrovati(data || []);
   }
 
@@ -43,7 +46,7 @@ export default function Incassi({ palestraId, righe, totali, dal, al, stato, onl
       p: {
         palestra_id: palestraId, account_id: f.account_id || null, allievo_id: f.allievo_id || null,
         causale: f.causale, metodo: f.metodo, importo_cent: Math.round(importo * 100),
-        descrizione: f.descrizione || NOME(f.causale), incassato: true,
+        descrizione: f.descrizione || NOME(f.causale), incassato: true, pagato_at: f.data || null,
       },
     });
     setInvio(false);
@@ -140,6 +143,10 @@ export default function Incassi({ palestraId, righe, totali, dal, al, stato, onl
             </select>
           </div>
           <div className="campo">
+            <label htmlFor="dt">Quando</label>
+            <input id="dt" type="date" value={f.data} max={new Date().toLocaleDateString('sv-SE')} onChange={set('data')} />
+          </div>
+          <div className="campo">
             <label htmlFor="de">Descrizione</label>
             <input id="de" value={f.descrizione} onChange={set('descrizione')} placeholder={NOME(f.causale)} />
           </div>
@@ -196,8 +203,14 @@ export default function Incassi({ palestraId, righe, totali, dal, al, stato, onl
                 </>
               )}
               {r.stato === 'annullato' && <span className="tag tag-neutro">annullato</span>}
-              {r.stato !== 'annullato' && <button className="link-btn piccolo" onClick={() => annulla(r)}>annulla</button>}
+              <span style={{ display: 'flex', gap: 10 }}>
+                {r.stato === 'pagato' && r.metodo !== 'online' && r.metodo !== 'stripe' && !r.stripe_payment_intent && (
+                  <button className="link-btn piccolo" onClick={() => setCorreggi(correggi === r.id ? null : r.id)}>correggi</button>
+                )}
+                {r.stato !== 'annullato' && <button className="link-btn piccolo" onClick={() => annulla(r)}>annulla</button>}
+              </span>
             </span>
+            {correggi === r.id && <div style={{ gridColumn: '1 / -1' }}><CorreggiIncasso pagamento={r} onChiudi={() => setCorreggi(null)} /></div>}
           </li>
         ))}
       </ul>

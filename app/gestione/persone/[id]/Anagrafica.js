@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabaseBrowser } from '@/lib/supabase/browser';
-import { dataBreve } from '@/lib/formato';
+import { dataBreve, minorenne } from '@/lib/formato';
 import Immagine from '../../Immagine';
 import CaricaCertificato from '../../../CaricaCertificato';
 import AccessoApp from './AccessoApp';
@@ -65,7 +65,7 @@ export default function Anagrafica({ allievo, linkCertificato, ente}) {
         </div>
         {errore && <div className="errore">{errore}</div>}
         <dl className="dati">
-          <dt>Chi paga</dt>
+          <dt>{minorenne(allievo.data_nascita) ? 'Genitore' : 'Chi paga'}</dt>
           <dd>{allievo.is_titolare ? 'la persona stessa' : `${a.nome} ${a.cognome || ''}`.trim()}</dd>
           <dt>Telefono</dt>
           <dd>{a.telefono ? <a href={`tel:${a.telefono}`}>{a.telefono}</a> : <span className="muto">—</span>}</dd>
@@ -74,7 +74,7 @@ export default function Anagrafica({ allievo, linkCertificato, ente}) {
           <dt>App</dt>
           <dd>{a.email ? <AccessoApp allievoId={allievo.id} sito={linkCertificato?.split('/certificato')[0]} /> : <span className="muto">serve l'email</span>}</dd>
           {allievo.codice_fiscale && <><dt>Codice fiscale</dt><dd>{allievo.codice_fiscale}</dd></>}
-          {a.codice_fiscale && a.codice_fiscale !== allievo.codice_fiscale && <><dt>CF di chi paga</dt><dd>{a.codice_fiscale}</dd></>}
+          {a.codice_fiscale && a.codice_fiscale !== allievo.codice_fiscale && <><dt>{minorenne(allievo.data_nascita) ? 'CF del genitore' : 'CF di chi paga'}</dt><dd>{a.codice_fiscale}</dd></>}
           <dt>Tessera {ente || ''}</dt><dd>{allievo.tessera || <span className="muto">da inserire (Modifica)</span>}</dd>
           {allievo.luogo_nascita && <><dt>{{ F: 'Nata a', M: 'Nato a' }[genere(allievo)] || 'Luogo di nascita'}</dt><dd>{allievo.luogo_nascita}</dd></>}
           <dt>Certificato</dt>
@@ -127,7 +127,7 @@ export default function Anagrafica({ allievo, linkCertificato, ente}) {
       </div>
       <div className="campo"><label htmlFor="note">Note</label><textarea id="note" value={f.note} onChange={set('note')} /></div>
 
-      <h3>Chi paga</h3>
+      <h3>{minorenne(f.data_nascita) ? 'Dati del genitore (chi paga)' : 'Chi paga'}</h3>
       <div className="riga-2">
         <div className="campo"><label htmlFor="an">Nome</label><input id="an" value={f.acc_nome} onChange={set('acc_nome')} /></div>
         <div className="campo"><label htmlFor="ac">Cognome</label><input id="ac" value={f.acc_cognome} onChange={set('acc_cognome')} /></div>
@@ -139,7 +139,7 @@ export default function Anagrafica({ allievo, linkCertificato, ente}) {
       <div className="campo">
         <label htmlFor="cf">Codice fiscale</label>
         <input id="cf" value={f.codice_fiscale} onChange={set('codice_fiscale')} />
-        <span className="piccolo muto">Di chi paga: va sulle ricevute.</span>
+        <span className="piccolo muto">{minorenne(f.data_nascita) ? 'Del genitore: va sulle ricevute.' : 'Di chi paga: va sulle ricevute.'}</span>
       </div>
       <div style={{ display: 'flex', gap: 10 }}>
         <button className="btn btn-primario" disabled={invio}>{invio ? 'Salvo…' : 'Salva'}</button>

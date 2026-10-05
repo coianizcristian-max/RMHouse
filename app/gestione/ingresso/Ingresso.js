@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { supabaseBrowser } from '@/lib/supabase/browser';
+import { applicaRicerca } from '@/lib/ricerca';
 import { ora } from '@/lib/formato';
 
 const TITOLO = { ok: 'Tutto in regola', attenzione: 'Può entrare, ma…', bloccato: 'Non può entrare' };
@@ -40,8 +41,8 @@ export default function Ingresso({ palestraId, esitoIniziale, oggi }) {
   async function trova(testo) {
     setCerca(testo);
     if (testo.trim().length < 2) { setTrovati([]); return; }
-    const { data } = await supabaseBrowser().from('v_persone').select('id, nome, cognome')
-      .eq('palestra_id', palestraId).ilike('ricerca', `%${testo.trim().toLowerCase()}%`).limit(8);
+    const { data } = await applicaRicerca(supabaseBrowser().from('v_persone').select('id, nome, cognome')
+      .eq('palestra_id', palestraId), testo).limit(8);
     setTrovati(data || []);
   }
 

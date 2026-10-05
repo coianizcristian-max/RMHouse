@@ -18,7 +18,7 @@ export default function IncassaPersona({ palestraId, allievoId, accountId, nome,
   const [f, setF] = useState({
     causale: quotaMancante ? 'quota_iscrizione' : 'abbonamento',
     importo: quotaMancante && quotaCent ? (quotaCent / 100).toFixed(2).replace('.', ',') : '',
-    descrizione: '',
+    descrizione: '', data: new Date().toLocaleDateString('sv-SE'),
   });
   const [invio, setInvio] = useState(false);
   const [errore, setErrore] = useState('');
@@ -41,7 +41,7 @@ export default function IncassaPersona({ palestraId, allievoId, accountId, nome,
     setInvio(true); setErrore('');
     const { error } = await supabaseBrowser().rpc('registra_incasso', {
       p: { palestra_id: palestraId, account_id: accountId || null, allievo_id: allievoId, causale: f.causale, metodo,
-           importo_cent: Math.round(importo * 100), descrizione: f.descrizione || nomeCausale(f.causale), incassato: true },
+           importo_cent: Math.round(importo * 100), descrizione: f.descrizione || nomeCausale(f.causale), incassato: true, pagato_at: f.data || null },
     });
     setInvio(false);
     if (error) { setErrore('Registrazione non riuscita.'); return; }
@@ -88,6 +88,7 @@ export default function IncassaPersona({ palestraId, allievoId, accountId, nome,
         <div className="ip-campi">
           <input inputMode="decimal" value={f.importo} onChange={(e) => setF({ ...f, importo: e.target.value })} placeholder="Importo €" aria-label="Importo" />
           <input value={f.descrizione} onChange={(e) => setF({ ...f, descrizione: e.target.value })} placeholder={nomeCausale(f.causale)} aria-label="Descrizione" />
+          <input type="date" value={f.data} max={new Date().toLocaleDateString('sv-SE')} onChange={(e) => setF({ ...f, data: e.target.value })} aria-label="Data dell'incasso" title="Data dell'incasso (se non è oggi)" />
           <button className="btn btn-primario" disabled={invio}>{invio ? 'Salvo…' : 'Incassa'}</button>
         </div>
         <span className="piccolo muto">Per un abbonamento nuovo usa "Nuova iscrizione": crea l'iscrizione e l'incasso insieme.</span>
