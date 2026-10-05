@@ -20,6 +20,7 @@ const ICONE = {
   appello: <><rect x="5" y="4" width="14" height="17" rx="2" /><path d="M9 4V3h6v1" /><path d="m8.5 12.5 2.5 2.5 4.5-5" /></>,
   menu: <><path d="M4 6h16M4 12h16M4 18h16" /></>,
   chiudi: <><path d="M6 6l12 12M18 6 6 18" /></>,
+  fissa: <><path d="M9 4h6l-1 6 3 3H7l3-3z" /><path d="M12 16v5" /></>,
   freccia: <><path d="m9 6 6 6-6 6" /></>,
   indietro: <><path d="m15 6-6 6 6 6" /></>,
   ingresso: <><rect x="4" y="4" width="6" height="6" rx="1" /><rect x="14" y="4" width="6" height="6" rx="1" /><rect x="4" y="14" width="6" height="6" rx="1" /><path d="M14 14h2v2h-2zM18 18h2v2h-2zM14 18h2M18 14h2" /></>,
@@ -79,6 +80,36 @@ export default function Guscio({ gestione, nome, ruolo, palestraId, funzioni = {
   }, [cassetto]);
   const areaAperta = aree.find((a) => a.k === aperta);
 
+  // Computer: il sottomenù sta nascosto per lasciare spazio alle pagine. Si apre cliccando l'icona dell'area
+  // (scorre fuori da sinistra sopra la pagina) e si richiude scegliendo una voce, cliccando fuori o con Esc.
+  // Chi lo preferisce sempre aperto lo "fissa" con la puntina (ricordato su questo computer).
+  const [menuAperto, setMenuAperto] = useState(null);
+  const [fisso, setFisso] = useState(false);
+  useEffect(() => {
+    try { setFisso(localStorage.getItem('rm-menu-fisso') === '1'); } catch { /* niente */ }
+  }, []);
+  useEffect(() => { setMenuAperto(null); }, [path]);
+  useEffect(() => {
+    if (!menuAperto) return;
+    const esc = (e) => { if (e.key === 'Escape') setMenuAperto(null); };
+    window.addEventListener('keydown', esc);
+    return () => window.removeEventListener('keydown', esc);
+  }, [menuAperto]);
+  function cambiaFisso() {
+    const v = !fisso;
+    setFisso(v); setMenuAperto(null);
+    try { localStorage.setItem('rm-menu-fisso', v ? '1' : '0'); } catch { /* niente */ }
+  }
+  function cliccaArea(e, a) {
+    if (fisso || window.innerWidth < 900) return; // menù fisso o telefono: il link porta alla prima voce come sempre
+    if (a.voci.filter(visibile).length < 2) return; // area con una sola voce: ci va diretto
+    e.preventDefault();
+    setMenuAperto(menuAperto === a.k ? null : a.k);
+  }
+  // l'area le cui voci si vedono nel sottomenù: quella aperta col clic, altrimenti quella della pagina
+  const areaMenu = (menuAperto && aree.find((a) => a.k === menuAperto)) || area;
+  const vociMenu = (areaMenu?.voci || []).filter(visibile);
+
   // La barra in basso del telefono: le quattro cose che si usano di più, poi il menù
   const scorciatoie = (gestione
     ? [['/gestione', 'Home', 'home', true], ['/gestione/calendario', 'Palinsesto', 'calendario'],
@@ -97,12 +128,14 @@ export default function Guscio({ gestione, nome, ruolo, palestraId, funzioni = {
   }
 
   return (
-    <div className="guscio">
+    <div className={`guscio${fisso ? ' menu-fisso' : ''}${menuAperto ? ' menu-aperto' : ''}`}>
       <Suspense fallback={null}><BarraCaricamento /></Suspense>
       {/* colonna delle aree: solo su desktop */}
       <nav className="aree" aria-label="Aree">
         {aree.map((a) => (
-          <Link prefetch={false} key={a.k} href={a.voci.find(visibile)?.href || a.href} aria-current={a.k === attiva ? 'page' : undefined}>
+          <Link prefetch={false} key={a.k} href={a.voci.find(visibile)?.href || a.href} aria-current={a.k === attiva ? 'page' : undefined}
+                onClick={(e) => cliccaArea(e, a)} aria-expanded={!fisso ? menuAperto === a.k : undefined}
+                className={menuAperto === a.k ? 'area-aperta' : undefined}>
             <Icona nome={a.icona} />
             {a.titolo}
           </Link>
@@ -179,11 +212,20 @@ export default function Guscio({ gestione, nome, ruolo, palestraId, funzioni = {
           </div>
         </header>
 
-        {voci.length > 0 && (
-          <nav className="sottomenu" aria-label={area?.titolo}>
-            <div className="titolo-colonna solo-desktop">{area?.titolo}</div>
-            {voci.map((v) => (
-              <Link prefetch={false} key={v.href} href={v.href} aria-current={voceAttiva(v) ? 'page' : undefined}>{v.testo}</Link>
+        {menuAperto && !fisso && <div className="menu-velo" onClick={() => setMenuAperto(null)} aria-hidden="true" />}
+        {vociMenu.length > 0 && (
+          <nav className="sottomenu" aria-label={areaMenu?.titolo}>
+            <div className="titolo-colonna solo-desktop">
+              <span>{areaMenu?.titolo}</span>
+              <button type="button" className={fisso ? 'menu-puntina fissato' : 'menu-puntina'} onClick={cambiaFisso}
+                      title={fisso ? 'Nascondi il menù: si riapre cliccando le icone a sinistra' : 'Tieni il menù sempre aperto'}
+                      aria-label={fisso ? 'Nascondi il menù' : 'Tieni il menù sempre aperto'} aria-pressed={fisso}>
+                <Icona nome="fissa" />
+              </button>
+            </div>
+            {vociMenu.map((v) => (
+              <Link prefetch={false} key={v.href} href={v.href} aria-current={voceAttiva(v) ? 'page' : undefined}
+                    onClick={() => setMenuAperto(null)}>{v.testo}</Link>
             ))}
           </nav>
         )}
