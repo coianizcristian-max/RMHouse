@@ -42,11 +42,11 @@ export default async function PaginaOrario({ searchParams }) {
     (data || []).forEach((l) => aggiungi(l.lezione_id, { allievo_id: a.id, nome: a.nome, credito: null }));
   }));
   const crediti = [...(dati.crediti || [])].sort((x, y) => String(x.scadenza).localeCompare(String(y.scadenza)));
-  for (const c of crediti) {
-    const { data } = await supabase.rpc('lezioni_per_recupero', { p_credito: c.id });
-    (data || []).filter((l) => !disdette.includes(`${l.lezione_id}:${c.allievo_id}`) && !pieno(c.allievo_id, l.inizio))
+  const perCredito = await Promise.all(crediti.map((c) => supabase.rpc('lezioni_per_recupero', { p_credito: c.id })));   // tutti insieme
+  crediti.forEach((c, i) => {
+    (perCredito[i].data || []).filter((l) => !disdette.includes(`${l.lezione_id}:${c.allievo_id}`) && !pieno(c.allievo_id, l.inizio))
       .forEach((l) => aggiungi(l.lezione_id, { allievo_id: c.allievo_id, nome: c.allievo, credito: c.id }));
-  }
+  });
 
   return <Orario giorno={g} oggi={oggi} lezioni={lezioni || []} prenotabili={prenotabili} sedi={sedi || []}
                  allievi={(dati.allievi || []).map((a) => ({ id: a.id, nome: a.nome }))}

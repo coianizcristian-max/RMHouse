@@ -48,7 +48,9 @@ export default async function Home({ searchParams }) {
     .eq('palestra_id', p).eq('data', oggiISO()).order('inizio');
   if (!gestione) lezioniQ = lezioniQ.eq('insegnante_id', staff.id);
 
-  const [{ data: k }, { data: lezioni }, { data: corsi }, { data: scadenze }, { count: rateScadute }, { count: richieste }, { data: promemoria }] = await Promise.all([
+  const fra14 = new Date(Date.now() + 14 * 86400000).toLocaleDateString('sv-SE', { timeZone: 'Europe/Rome' });
+  const [{ data: k }, { data: lezioni }, { data: corsi }, { data: scadenze }, { count: rateScadute }, { count: richieste }, { data: promemoria },
+         { data: staffRighe }, { data: sostituzioni }, { data: prossime }] = await Promise.all([
     gestione ? supabase.rpc('cruscotto', { p_palestra: p }) : Promise.resolve({ data: null }),
     lezioniQ,
     supabase.from('corsi').select('id, colore').eq('palestra_id', p),
@@ -64,25 +66,24 @@ export default async function Home({ searchParams }) {
     supabase.from('richieste_cliente').select('id', { count: 'exact', head: true }).eq('palestra_id', p).eq('stato', 'da_confermare'),
     // promemoria di oggi, quelli rimasti indietro non fatti, e quelli fatti oggi (per chi è collegato)
     supabase.rpc('promemoria_miei', { p_palestra: p }),
+    // a chi si può assegnare una cosa da fare
+    gestione ? supabase.from('staff').select('id, nome, cognome')
+      .eq('palestra_id', p).eq('attivo', true).not('archiviato', 'is', true).order('nome') : Promise.resolve({ data: [] }),
+    // sostituzioni dei prossimi 14 giorni (lezioni passate a un'altra insegnante)
+    gestione ? supabase.from('lezioni')
+      .select('id, data, inizio, insegnante_id, insegnante_titolare, sostituzione_da, corsi ( nome )')
+      .eq('palestra_id', p).not('insegnante_titolare', 'is', null).neq('stato', 'annullata')
+      .gte('data', oggiISO()).lte('data', fra14).order('inizio').limit(30) : Promise.resolve({ data: [] }),
+    // per l'insegnante: le sue prossime lezioni dei giorni seguenti
+    gestione ? Promise.resolve({ data: null }) : supabase.from('v_occupazione')
+      .select('lezione_id, corso_id, corso_nome, inizio, capienza, iscritti, sala_nome')
+      .eq('palestra_id', p).eq('insegnante_id', staff.id).gt('data', oggiISO()).neq('stato', 'annullata')
+      .order('inizio').limit(6),
   ]);
 
   const colore = (id) => corsi?.find((c) => c.id === id)?.colore || 'var(--rosso)';
-  // a chi si può assegnare una cosa da fare
-  const { data: staffRighe } = gestione ? await supabase.from('staff').select('id, nome, cognome')
-    .eq('palestra_id', p).eq('attivo', true).not('archiviato', 'is', true).order('nome') : { data: [] };
   const elencoStaff = (staffRighe || []).map((s) => ({ id: s.id, nome: `${s.nome} ${s.cognome || ''}`.trim() }));
-  // sostituzioni dei prossimi 14 giorni (lezioni passate a un'altra insegnante)
-  const fra14 = new Date(Date.now() + 14 * 86400000).toLocaleDateString('sv-SE', { timeZone: 'Europe/Rome' });
-  const { data: sostituzioni } = gestione ? await supabase.from('lezioni')
-    .select('id, data, inizio, insegnante_id, insegnante_titolare, sostituzione_da, corsi ( nome )')
-    .eq('palestra_id', p).not('insegnante_titolare', 'is', null).neq('stato', 'annullata')
-    .gte('data', oggiISO()).lte('data', fra14).order('inizio').limit(30) : { data: [] };
   const nomeStaff = (id) => elencoStaff.find((s) => s.id === id)?.nome || 'nessuno';
-  // per l'insegnante: le sue prossime lezioni dei giorni seguenti
-  const { data: prossime } = gestione ? { data: null } : await supabase.from('v_occupazione')
-    .select('lezione_id, corso_id, corso_nome, inizio, capienza, iscritti, sala_nome')
-    .eq('palestra_id', p).eq('insegnante_id', staff.id).gt('data', oggiISO()).neq('stato', 'annullata')
-    .order('inizio').limit(6);
   const adesso = new Date();
   const prossima = lezioni?.find((l) => new Date(l.inizio) > adesso);
   const oraRoma = Number(adesso.toLocaleString('it-IT', { hour: 'numeric', hour12: false, timeZone: 'Europe/Rome' }));

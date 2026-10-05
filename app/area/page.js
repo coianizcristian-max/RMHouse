@@ -23,11 +23,11 @@ export default async function Area() {
     supabase.rpc('disdette_area'),
   ]);
   // moduli obbligatori ancora da firmare, per sé e per i figli
-  let moduliDaFirmare = 0;
-  for (const a of data?.allievi || []) {
+  // (tutte le persone insieme, non una dopo l'altra: una famiglia con tre figli aspettava tre viaggi al database)
+  const moduliDaFirmare = (await Promise.all((data?.allievi || []).map(async (a) => {
     const { data: m } = await supabase.rpc('moduli_da_firmare', { p_allievo: a.id });
-    moduliDaFirmare += (m || []).filter((x) => x.obbligatorio && x.firmata_versione !== x.versione).length;
-  }
+    return (m || []).filter((x) => x.obbligatorio && x.firmata_versione !== x.versione).length;
+  }))).reduce((s, n) => s + n, 0);
   const chiediConsenso = !!miei?.[0] && !miei[0].consenso_marketing && !miei[0].consenso_chiesto_at;
 
   if (!data?.collegato) {
