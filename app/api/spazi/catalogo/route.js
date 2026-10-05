@@ -11,7 +11,7 @@ export async function GET() {
     const pal = await palestraPubblica();
     const db = supabaseAdmin();
     const [sale, tariffe, pacchetti] = await Promise.all([
-      db.from('sale').select('id, nome, capienza').eq('palestra_id', pal.id).order('nome'),
+      db.from('sale').select('id, nome, capienza').eq('palestra_id', pal.id).eq('affittabile', true).order('ordine', { nullsFirst: false }).order('nome'),
       db.from('tariffe_spazi').select('id, nome, sala_id, giorni, ora_da, ora_a, prezzo_ora_cent, minimo_ore')
         .eq('palestra_id', pal.id).eq('attiva', true),
       db.from('pacchetti_evento')

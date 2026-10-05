@@ -30,7 +30,7 @@ export async function settimana({ da, sala, insegnante, mie, sede, corso }) {
 
   const [{ data: lezioni }, { data: sale }, { data: insegnanti }, { data: corsi }, { data: note }, { data: sedi }] = await Promise.all([
     q,
-    supabase.from('sale').select('id, nome').eq('palestra_id', staff.palestra_id).order('nome'),
+    supabase.from('sale').select('id, nome').eq('palestra_id', staff.palestra_id).order('ordine', { nullsFirst: false }).order('nome'),
     supabase.from('staff').select('id, nome, cognome').eq('palestra_id', staff.palestra_id)
       .eq('ruolo', 'insegnante').eq('attivo', true).eq('archiviato', false).order('nome'),
     supabase.from('corsi').select('id, nome, colore, visibilita, attivo').eq('palestra_id', staff.palestra_id).order('nome'),

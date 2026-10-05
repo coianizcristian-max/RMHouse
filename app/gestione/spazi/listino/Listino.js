@@ -33,7 +33,7 @@ export default function Listino({ palestraId, tariffe, pacchetti, sale }) {
             vuoto="Nessuna tariffa: senza listino il sito non può fare preventivi."
             campi={[
               { k: 'nome', etichetta: 'Nome', tipo: 'testo', obbligatorio: true, aiuto: 'Es. "Feriale serale"' },
-              { k: 'sala_id', etichetta: 'Sala', tipo: 'select', opzioni: sale.map((s) => ({ v: s.id, l: s.nome })), vuotoTesto: 'Tutte le sale' },
+              { k: 'sala_id', etichetta: 'Sala', tipo: 'select', opzioni: sale.map((s) => ({ v: s.id, l: s.nome + (s.affittabile === false ? ' (non affittabile)' : '') })), vuotoTesto: 'Tutte le sale affittabili' },
               { k: 'giorni', etichetta: 'Giorni', tipo: 'testo', aiuto: 'Es. {1,2,3,4,5}. Vuoto = tutti i giorni.' },
               { k: 'ora_da', etichetta: 'Dalle', tipo: 'ora', obbligatorio: true },
               { k: 'ora_a', etichetta: 'Alle', tipo: 'ora', obbligatorio: true },

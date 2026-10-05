@@ -12,7 +12,7 @@ export default async function PaginaCosti() {
   const [spese, fornitori, sale, corsi, insegnanti] = await Promise.all([
     supabase.from('spese').select('*').eq('palestra_id', p).order('data', { ascending: false }).limit(200),
     supabase.from('fornitori').select('*').eq('palestra_id', p).order('nome'),
-    supabase.from('sale').select('id, nome, capienza, costo_ora_cent').eq('palestra_id', p).order('nome'),
+    supabase.from('sale').select('id, nome, capienza, costo_ora_cent').eq('palestra_id', p).order('ordine', { nullsFirst: false }).order('nome'),
     supabase.from('corsi').select('id, nome').eq('palestra_id', p).eq('attivo', true).order('nome'),
     supabase.from('staff').select('id, nome, cognome, ruolo, compenso_ora_cent').eq('palestra_id', p)
       .eq('ruolo', 'insegnante').order('nome'),

@@ -244,8 +244,12 @@ export default function Spazi({ palestraId, giorno, richieste, prossime, agenda,
                 <label htmlFor="s">Sala</label>
                 <select id="s" value={f.sala_id} onChange={(e) => cambia('sala_id', e.target.value)}>
                   <option value="">— scegli —</option>
-                  {sale.map((s) => <option key={s.id} value={s.id}>{s.nome}{s.capienza ? ` (${s.capienza} posti)` : ''}</option>)}
+                  {sale.filter((s) => f.tipo === 'interno' || s.affittabile !== false || s.id === f.sala_id)
+                    .map((s) => <option key={s.id} value={s.id}>{s.nome}{s.capienza ? ` (${s.capienza} posti)` : ''}{s.affittabile === false ? ' · non affittabile' : ''}</option>)}
                 </select>
+                {sale.some((s) => s.affittabile === false) && f.tipo !== 'interno' && (
+                  <span className="piccolo muto">Le sale non affittabili compaiono solo con "Uso interno".</span>
+                )}
               </div>
               <div className="campo">
                 <label htmlFor="tp">Tipo</label>
@@ -273,7 +277,7 @@ export default function Spazi({ palestraId, giorno, richieste, prossime, agenda,
               </div>
 
               <CalendarioScelta
-                palestraId={palestraId} sale={sale} data={f.data} salaId={f.sala_id}
+                palestraId={palestraId} sale={f.tipo === 'interno' ? sale : sale.filter((s) => s.affittabile !== false)} data={f.data} salaId={f.sala_id}
                 dalle={f.ora} alle={f.fine_ora}
                 onScegli={({ sala_id, ora: o, fine_ora: fo }) => {
                   const dati = { ...f, sala_id, ora: o, fine_ora: fo };

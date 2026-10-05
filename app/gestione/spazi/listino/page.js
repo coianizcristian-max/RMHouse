@@ -13,7 +13,7 @@ export default async function PaginaListino() {
   const [tariffe, pacchetti, sale] = await Promise.all([
     supabase.from('tariffe_spazi').select('*').eq('palestra_id', p).order('nome'),
     supabase.from('pacchetti_evento').select('*').eq('palestra_id', p).order('nome'),
-    supabase.from('sale').select('id, nome').eq('palestra_id', p).order('nome'),
+    supabase.from('sale').select('id, nome, affittabile').eq('palestra_id', p).order('ordine', { nullsFirst: false }).order('nome'),
   ]);
 
   return (

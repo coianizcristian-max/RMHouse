@@ -20,7 +20,7 @@ export default function SchedaSala({ palestraId, sala = null, sedi = [], orari =
     nome: sala?.nome || '', descrizione: sala?.descrizione || '', attrezzatura: sala?.attrezzatura || '',
     capienza: sala?.capienza ?? '', costo: sala?.costo_ora_cent ? (sala.costo_ora_cent / 100).toFixed(2).replace('.', ',') : '',
     foto_url: sala?.foto_url || null, sede_id: sala?.sede_id || (sedi[0]?.id ?? ''),
-    gestione_postazioni: !!sala?.gestione_postazioni,
+    gestione_postazioni: !!sala?.gestione_postazioni, affittabile: sala ? sala.affittabile !== false : true,
   });
   const [errore, setErrore] = useState('');
   const [invio, setInvio] = useState(false);
@@ -38,7 +38,7 @@ export default function SchedaSala({ palestraId, sala = null, sedi = [], orari =
     const dati = {
       nome: f.nome.trim(), descrizione: f.descrizione.trim() || null, attrezzatura: f.attrezzatura.trim() || null,
       capienza: f.capienza === '' ? null : parseInt(f.capienza, 10), costo_ora_cent: costo,
-      foto_url: f.foto_url, sede_id: f.sede_id || null, gestione_postazioni: f.gestione_postazioni,
+      foto_url: f.foto_url, sede_id: f.sede_id || null, gestione_postazioni: f.gestione_postazioni, affittabile: f.affittabile,
     };
     const db = supabaseBrowser();
     const { data, error } = nuova
@@ -97,6 +97,8 @@ export default function SchedaSala({ palestraId, sala = null, sedi = [], orari =
             <Immagine url={f.foto_url} cartella="sale" etichetta="Foto della sala" onChange={(url) => setF({ ...f, foto_url: url })} />
             <label className="spunta"><input type="checkbox" checked={f.gestione_postazioni} onChange={set('gestione_postazioni')} />
               <span>Posti numerati <span className="piccolo muto" style={{ display: 'block' }}>pertiche, tessuti, tappetini</span></span></label>
+            <label className="spunta"><input type="checkbox" checked={f.affittabile} onChange={set('affittabile')} />
+              <span>Affittabile <span className="piccolo muto" style={{ display: 'block' }}>si può chiedere in affitto dal sito e prenotare come affitto o festa; tolta, la sala resta solo per i corsi (e l&apos;uso interno)</span></span></label>
           </div>
           <div className="ss-dati">
             <div className={`campo ${sedi.length > 1 ? 'ss-4' : 'ss-6'}`}><label htmlFor="n">Nome</label>

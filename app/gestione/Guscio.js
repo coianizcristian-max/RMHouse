@@ -152,6 +152,9 @@ export default function Guscio({ gestione, nome, ruolo, palestraId, funzioni = {
       <Suspense fallback={null}><BarraCaricamento /></Suspense>
       {/* colonna delle aree: solo su desktop */}
       <nav className="aree" aria-label="Aree">
+        <Link prefetch={false} href="/gestione" className="aree-logo" aria-label="Riepilogo di oggi" title="Riepilogo di oggi">
+          <img src="/logo-marchio.png" alt="Ritmo Metropolitano" width="64" height="41" />
+        </Link>
         {aree.map((a) => (
           <Link prefetch={false} key={a.k} href={a.voci.find(visibile)?.href || a.href} aria-current={a.k === attiva ? 'page' : undefined}
                 onClick={(e) => cliccaArea(e, a)} onPointerEnter={(e) => entraArea(e, a)} onPointerLeave={esce}

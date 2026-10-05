@@ -14,7 +14,7 @@ export async function giornata({ giorno, sede }) {
 
   const [{ data: lezioni }, { data: sale }, { data: sedi }, { data: affitti }] = await Promise.all([
     q,
-    supabase.from('sale').select('id, nome, sede_id, capienza').eq('palestra_id', p).order('nome'),
+    supabase.from('sale').select('id, nome, sede_id, capienza').eq('palestra_id', p).order('ordine', { nullsFirst: false }).order('nome'),
     supabase.from('sedi').select('id, nome, principale').eq('palestra_id', p).eq('visibile', true).order('ordine'),
     supabase.from('prenotazioni_spazi').select('id, titolo, contatto_nome, inizio, fine, sala_id, stato')
       .eq('palestra_id', p).in('stato', ['richiesta', 'opzione', 'confermata'])

@@ -16,6 +16,9 @@ export async function GET(request) {
   try {
     const pal = await palestraPubblica();
     const db = supabaseAdmin();
+    // solo le sale affittabili di questa scuola
+    const { data: s } = await db.from('sale').select('id').eq('id', sala).eq('palestra_id', pal.id).eq('affittabile', true).maybeSingle();
+    if (!s) return NextResponse.json({ errore: 'Sala non disponibile per l\'affitto.' }, { status: 404 });
     const [libera, prezzo, occupato] = await Promise.all([
       db.rpc('sala_libera', { p_sala: sala, p_inizio: inizio, p_fine: fine }),
       db.rpc('prezzo_spazio', { p_palestra: pal.id, p_sala: sala, p_inizio: inizio, p_fine: fine }),

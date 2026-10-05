@@ -27,7 +27,7 @@ export default async function Corso({ params, searchParams }) {
       .in('stato', vista === 'tutti' ? ['attiva', 'sospesa', 'scaduta', 'annullata'] : ['attiva', 'sospesa'])
       .order('cognome'),
     supabase.from('orari').select('*').eq('corso_id', id).order('giorno_settimana').order('ora_inizio'),
-    supabase.from('sale').select('id, nome').eq('palestra_id', p).order('nome'),
+    supabase.from('sale').select('id, nome').eq('palestra_id', p).order('ordine', { nullsFirst: false }).order('nome'),
     supabase.from('staff').select('id, nome, cognome, ruolo, foto_url, archiviato').eq('palestra_id', p).eq('attivo', true).order('nome'),
     supabase.from('liste_attesa').select('id, allievi ( id, nome, cognome )').eq('corso_id', id).eq('stato', 'in_attesa'),
     supabase.from('corsi').select('slug, capienza').eq('id', id).maybeSingle(),

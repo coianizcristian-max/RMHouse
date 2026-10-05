@@ -18,7 +18,7 @@ export default async function PaginaSpazi({ searchParams }) {
     supabase.from('prenotazioni_spazi').select('*, sale ( nome )').eq('palestra_id', p)
       .in('stato', ['opzione', 'confermata']).gte('inizio', new Date().toISOString()).order('inizio').limit(30),
     supabase.from('v_agenda_sale').select('*').eq('palestra_id', p).eq('data', data).order('inizio'),
-    supabase.from('sale').select('id, nome, capienza').eq('palestra_id', p).order('nome'),
+    supabase.from('sale').select('id, nome, capienza, affittabile').eq('palestra_id', p).order('ordine', { nullsFirst: false }).order('nome'),
     supabase.from('pacchetti_evento').select('id, nome, durata_min, prezzo_cent').eq('palestra_id', p).eq('attivo', true),
     supabase.rpc('statistiche_spazi', { p_palestra: p, p_dal: oggiISO().slice(0, 8) + '01', p_al: oggiISO() }),
   ]);

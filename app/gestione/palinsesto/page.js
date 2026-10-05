@@ -14,7 +14,7 @@ export default async function PaginaPalinsesto() {
     supabase.from('discipline').select('*').eq('palestra_id', p).order('ordine'),
     supabase.from('livelli').select('*').eq('palestra_id', p).order('ordine'),
     supabase.from('fasce_eta').select('*').eq('palestra_id', p).order('ordine'),
-    supabase.from('sale').select('*').eq('palestra_id', p).order('nome'),
+    supabase.from('sale').select('*').eq('palestra_id', p).order('ordine', { nullsFirst: false }).order('nome'),
     supabase.from('staff').select('*').eq('palestra_id', p).order('nome'),
     supabase.from('chiusure').select('*').eq('palestra_id', p).order('dal', { ascending: false }),
     supabase.from('corsi').select('id, disciplina_id').eq('palestra_id', p),

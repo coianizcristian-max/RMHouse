@@ -10,6 +10,7 @@ const MESSAGGI = {
   troppo_a_ridosso: 'Serve almeno mezza giornata di preavviso: scrivici o chiamaci per le urgenze.',
   sala_occupata: 'Quella fascia è appena stata occupata. Scegli un altro orario.',
   sala_non_trovata: 'Sala non disponibile.',
+  sala_non_affittabile: 'Questa sala non si affitta: scegline un\'altra.',
   pacchetto_non_disponibile: 'Questo pacchetto non è più disponibile.',
 };
 
