@@ -56,9 +56,10 @@ export async function POST(request) {
     } else avviso = 'Rimborso fatto. Questo incasso non aveva una ricevuta: nessuna nota di credito da emettere.';
   }
 
-  // 3. l'incasso si aggiorna subito (il messaggio di Stripe che arriva dopo non duplica nulla)
+  // 3. l'incasso si aggiorna subito, sommando a quanto già rimborsato (due rimborsi insieme non si pestano i piedi;
+  //    il messaggio di Stripe che arriva dopo non duplica nulla)
   const { error: e3 } = await supabaseAdmin().rpc('segna_rimborso_online', {
-    p_intent: p.stripe_payment_intent, p_rimborsato_cent: (p.rimborsato_cent || 0) + importo,
+    p_intent: p.stripe_payment_intent, p_aggiungi: importo,
   });
   if (e3) console.error('segna_rimborso_online', e3.message);
 

@@ -119,14 +119,19 @@ function Sospendi({ iscrizione, chiudi }) {
       palestra_id: iscrizione.palestra_id, iscrizione_id: iscrizione.id, dal: f.dal, al: f.al, motivo: f.motivo || null,
     });
     setInvio(false);
-    if (error) { setErrore('Sospensione non registrata. Controlla le date.'); return; }
+    if (error) {
+      setErrore(error.message?.includes('sospensione_fuori_periodo')
+        ? 'Queste date sono tutte fuori dal periodo di questo abbonamento: scegli l\'abbonamento giusto (o le date giuste).'
+        : 'Sospensione non registrata. Controlla le date.');
+      return;
+    }
     chiudi(); router.refresh();
   }
 
   return (
     <div className="azione-iscrizione">
       <strong className="ai-titolo">Sospendi</strong>
-      <p className="piccolo muto">In quei giorni la persona non compare nelle lezioni e la scadenza si sposta avanti.</p>
+      <p className="piccolo muto">In quei giorni la persona non compare nelle lezioni e la scadenza si sposta avanti di altrettanti giorni (contano solo quelli dentro l'abbonamento).</p>
       {errore && <div className="errore" role="alert">{errore}</div>}
       <div className="ai-griglia">
         <div className="campo"><label htmlFor={`sd-${iscrizione.id}`}>Dal</label>
