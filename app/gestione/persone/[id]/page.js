@@ -58,7 +58,7 @@ export default async function Persona({ params, searchParams }) {
       .eq('palestra_id', p).eq('attivo', true).eq('archiviato', false).order('famiglia').order('nome'),
     supabase.from('orari').select('id, corso_id, giorno_settimana, ora_inizio').eq('palestra_id', p).eq('attivo', true)
       .order('giorno_settimana').order('ora_inizio'),
-    supabase.from('palestre').select('base_url, quota_iscrizione_cent, sconti, ente').eq('id', p).maybeSingle(),
+    supabase.from('palestre').select('base_url, quota_iscrizione_cent, sconti, ente, mese_fine_stagione, mese_inizio_annuale').eq('id', p).maybeSingle(),
     supabase.from('storico_abbonamenti').select('id, abbonamento, dal, al, stato, valore_cent', { count: 'exact' })
       .eq('allievo_id', id).order('dal', { ascending: false }).limit(60),
     supabase.from('etichette').select('id, nome').eq('palestra_id', p).order('nome'),
@@ -204,6 +204,8 @@ export default async function Persona({ params, searchParams }) {
               allievoId={id} iscrizioni={iscrizioni || []} corsi={corsi || []} tipi={tipi || []} orari={orari || []}
               quotaCent={palestra?.quota_iscrizione_cent || 0}
               sconti={palestra?.sconti || {}}
+              meseFineStagione={palestra?.mese_fine_stagione || 7}
+              meseInizioAnnuale={palestra?.mese_inizio_annuale || 10}
               famigliaIscritta={new Set((famigliaIscritta || []).map((x) => x.allievo_id)).size}
               apriSubito={iscrivi === '1'}
             />

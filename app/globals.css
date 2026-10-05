@@ -86,7 +86,7 @@ p { margin: 0 0 1em; }
 .link-btn { background: none; border: 0; padding: 0; font: inherit; color: var(--rosso-scuro); text-decoration: underline; cursor: pointer; }
 
 /* Moduli */
-.campo { display: grid; gap: 6px; margin-bottom: 16px; }
+.campo { display: grid; gap: 6px; margin-bottom: 16px; align-content: start; }   /* un campo accanto a uno con una nota lunga non si allunga */
 .campo label { font-weight: 600; font-size: 15px; }
 .campo input, .campo select, .campo textarea {
   width: 100%; min-height: 48px; padding: 10px 14px; font: inherit;

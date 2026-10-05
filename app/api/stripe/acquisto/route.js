@@ -15,6 +15,7 @@ const MESSAGGI = {
   orario_pieno: 'Uno dei giorni scelti è al completo: scegline un altro o chiedi alla segreteria la lista d\'attesa.',
   eta_non_adatta: 'Questo corso è per un\'altra età: chiedi alla segreteria quello giusto.',
   inizio_meta_mese: 'Gli abbonamenti vanno a mese solare: dall\'app si parte il 1° del mese. Per iniziare adesso passa dalla segreteria, che ti fa l\'importo per i giorni che restano.',
+  annuale_in_segreteria: 'L\'annuale va da ottobre a luglio: iniziandolo a stagione avviata la segreteria ti scala i mesi già passati. Passa in segreteria per farlo.',
 };
 
 // Acquisto di un abbonamento dall'area clienti: prepara l'iscrizione e apre la cassa di Stripe

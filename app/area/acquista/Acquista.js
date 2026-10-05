@@ -32,6 +32,7 @@ const ERRORI = {
   troppi_giorni: 'Hai scelto più giorni di quelli compresi nell\'abbonamento.',
   eta_non_adatta: 'Questo corso è per un\'altra età: chiedi alla segreteria quello giusto.',
   inizio_meta_mese: 'Gli abbonamenti vanno a mese solare: dall\'app si parte il 1° del mese. Per iniziare adesso passa dalla segreteria.',
+  annuale_in_segreteria: 'L\'annuale va da ottobre a luglio: iniziandolo a stagione avviata la segreteria ti scala i mesi già passati. Passa in segreteria per farlo.',
 };
 
 export default function Acquista({ allievi, tipi, corsi, orari, coperti, gruppi, corsoIniziale, quotaCent, carta, rinnovo, bonifico, annullato, pieni = [], attivi = [] }) {

@@ -11,6 +11,8 @@ const GIORNI = ['', 'lun', 'mar', 'mer', 'gio', 'ven', 'sab', 'dom'];
 // mese solare: scade a fine mese (non a ingressi né a giorni)
 const aMese = (t) => !!t && t.scadenza_fine_mese !== false && t.modalita !== 'ingressi' && (!t.durata_giorni || t.durata_giorni >= 28);
 const fineMese = (d) => { const [y, m] = d.split('-').map(Number); return new Date(Date.UTC(y, m, 0)).toISOString().slice(0, 10); };
+// la stagione finisce con il mese di chiusura (luglio): tutto scade lì, niente passa alla stagione dopo
+const fineStagione = (d, meseFine) => { const [y, m] = d.split('-').map(Number); const anno = m > meseFine ? y + 1 : y; return new Date(Date.UTC(anno, meseFine, 0)).toISOString().slice(0, 10); };
 const centDa = (s) => Math.round(parseFloat(String(s || '').replace(',', '.')) * 100);
 const ERRORI = {
   orario_non_attivo: 'Uno dei giorni scelti è stato sospeso: scegli un altro giorno.',
@@ -19,7 +21,7 @@ const ERRORI = {
   allievo_non_trovato: 'Persona non trovata.',
 };
 
-export default function Iscrizioni({ allievoId, iscrizioni, corsi, tipi, orari, quotaCent, sconti = {}, famigliaIscritta = 0, apriSubito = false }) {
+export default function Iscrizioni({ allievoId, iscrizioni, corsi, tipi, orari, quotaCent, sconti = {}, famigliaIscritta = 0, apriSubito = false, meseFineStagione = 7, meseInizioAnnuale = 10 }) {
   const router = useRouter();
   const [apri, setApri] = useState(apriSubito);
   const [errore, setErrore] = useState('');
@@ -71,6 +73,19 @@ export default function Iscrizioni({ allievoId, iscrizioni, corsi, tipi, orari, 
     }
   }, [metaMese, f.data_inizio, f.orari.join(',')]);
   const proposto = metaMese && tipo && rimaste?.mese ? Math.round((tipo.prezzo_cent * rimaste.rimaste) / rimaste.mese / 100) * 100 : null;
+  // annuale: va dall'inizio dell'anno sportivo (es. ottobre) alla fine della stagione; se parte dopo, si scala l'importo dei mesi persi
+  const annuale = !!tipo && tipo.modalita !== 'ingressi' && (tipo.durata_mesi || 0) >= 9 && /^\d{4}-\d{2}-\d{2}$/.test(f.data_inizio);
+  const fineStag = annuale ? fineStagione(f.data_inizio, meseFineStagione) : null;
+  // mesi dell'anno sportivo (da ottobre) già passati quando parte: ognuno vale un decimo (ottobre→luglio = 10 mesi)
+  const mesiAnno = ((meseFineStagione - meseInizioAnnuale + 12) % 12) + 1;
+  const mesiPersi = annuale ? (() => {
+    const m = Number(f.data_inizio.slice(5, 7));
+    if (meseInizioAnnuale <= meseFineStagione) return m > meseInizioAnnuale && m <= meseFineStagione ? m - meseInizioAnnuale : 0;
+    if (m > meseInizioAnnuale) return m - meseInizioAnnuale;            // novembre, dicembre
+    if (m <= meseFineStagione) return m + 12 - meseInizioAnnuale;       // gennaio → luglio
+    return 0;
+  })() : 0;
+  const scontoAnnuale = mesiPersi > 0 ? Math.round((tipo.prezzo_cent / mesiAnno) * mesiPersi / 100) * 100 : 0;
 
   function toggleOrario(id) {
     setF((s) => ({ ...s, orari: s.orari.includes(id) ? s.orari.filter((x) => x !== id) : [...s.orari, id] }));
@@ -192,7 +207,15 @@ export default function Iscrizioni({ allievoId, iscrizioni, corsi, tipi, orari, 
             <div className="campo">
               <label htmlFor="di">Inizio</label>
               <input id="di" type="date" value={f.data_inizio} onChange={set('data_inizio')} />
-              <span className="piccolo muto">{aMese(tipo) ? 'Mese solare: scade a fine mese.' : 'La scadenza si calcola da sola dalla durata dell\'abbonamento.'}</span>
+              <span className="piccolo muto">
+                {annuale ? `Annuale: scade il ${dataBreve(fineStag)}, fine della stagione, da qualunque mese parta.`
+                  : aMese(tipo) ? 'Mese solare: scade a fine mese.' : 'La scadenza si calcola da sola dalla durata dell\'abbonamento (mai oltre la fine della stagione).'}
+                {annuale && mesiPersi > 0 && (
+                  <> Parte {mesiPersi} {mesiPersi === 1 ? 'mese' : 'mesi'} dopo l&apos;inizio dell&apos;anno sportivo: a listino un mese vale {euro(Math.round(tipo.prezzo_cent / mesiAnno))}.
+                    <button type="button" className="link-btn" onClick={() => setF({ ...f, sconto: (scontoAnnuale / 100).toFixed(2).replace('.', ',') })}>scala {euro(scontoAnnuale)}</button>
+                  </>
+                )}
+              </span>
             </div>
             {metaMese ? (
             <div className="campo">
