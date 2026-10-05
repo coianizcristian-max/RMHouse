@@ -218,7 +218,7 @@ export default function Guscio({ gestione, nome, ruolo, palestraId, funzioni = {
             <div className="titolo-colonna solo-desktop">
               <span>{areaMenu?.titolo}</span>
               <button type="button" className={fisso ? 'menu-puntina fissato' : 'menu-puntina'} onClick={cambiaFisso}
-                      title={fisso ? 'Nascondi il menù: si riapre cliccando le icone a sinistra' : 'Tieni il menù sempre aperto'}
+                      title={fisso ? 'Menù fissato. Clic per toglierlo: si richiude e si riapre dalle icone' : 'Fissa il menù: resta sempre aperto e la pagina si stringe accanto'}
                       aria-label={fisso ? 'Nascondi il menù' : 'Tieni il menù sempre aperto'} aria-pressed={fisso}>
                 <Icona nome="fissa" />
               </button>
