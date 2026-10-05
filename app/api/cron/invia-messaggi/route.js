@@ -11,11 +11,15 @@ async function invia(request) {
   if (request.headers.get('authorization') !== `Bearer ${process.env.CRON_SECRET}`) {
     return NextResponse.json({ errore: 'non autorizzato' }, { status: 401 });
   }
-  if (!process.env.RESEND_API_KEY) {
-    return NextResponse.json({ errore: 'RESEND_API_KEY mancante' }, { status: 500 });
-  }
-
   const db = supabaseAdmin();
+  // senza Resend le email restano in coda, ma le notifiche sul telefono partono lo stesso
+  const email = process.env.RESEND_API_KEY ? await inviaEmail(db) : { saltato: 'RESEND_API_KEY mancante' };
+  if (email.errore) return NextResponse.json({ errore: email.errore }, { status: 500 });
+  const push = await inviaPush(db);
+  return NextResponse.json({ ...email, push });
+}
+
+async function inviaEmail(db) {
   const { data: coda, error } = await db
     .from('messaggi_coda')
     .select('id, destinatario, oggetto, corpo, tentativi, canale, palestre ( nome, email, email_mittente )')
@@ -24,7 +28,7 @@ async function invia(request) {
     .lte('programmato_per', new Date().toISOString())
     .order('programmato_per')
     .limit(40);
-  if (error) return NextResponse.json({ errore: error.message }, { status: 500 });
+  if (error) return { errore: error.message };
 
   let inviati = 0, falliti = 0;
   for (const m of coda) {
@@ -57,8 +61,7 @@ async function invia(request) {
       }).eq('id', m.id);
     }
   }
-  const push = await inviaPush(db);
-  return NextResponse.json({ inviati, falliti, push });
+  return { inviati, falliti };
 }
 
 // Notifiche sul telefono: stesso meccanismo della coda, altro canale.

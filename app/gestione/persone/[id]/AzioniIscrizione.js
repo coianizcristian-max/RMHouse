@@ -191,11 +191,17 @@ function AnnullaElimina({ iscrizione, elimina, chiudi }) {
         }
       } else daAnnullare.push(x.id);
     }
-    const { error } = await db.rpc(modo === 'elimina' ? 'elimina_iscrizione' : 'annulla_iscrizione', {
+    const { data: esito, error } = await db.rpc(modo === 'elimina' ? 'elimina_iscrizione' : 'annulla_iscrizione', {
       p_iscrizione: iscrizione.id, p_motivo: motivo || null, p_pagamenti: daAnnullare,
     });
+    if (error) { setInvio(false); setErrore(messaggio(error)); return; }
+    // aveva il rinnovo automatico con carta: si ferma anche su Stripe, così non arrivano altri addebiti
+    if ((esito?.da_disdire || []).length) {
+      const r = await fetch('/api/stripe/disdici', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ids: esito.da_disdire }) });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok) { setInvio(false); setErrore(`Iscrizione annullata, ma il rinnovo automatico è ancora attivo: ${j.errore || 'riprova dalla scheda'}`); router.refresh(); return; }
+    }
     setInvio(false);
-    if (error) { setErrore(messaggio(error)); return; }
     chiudi(); router.refresh();
   }
 

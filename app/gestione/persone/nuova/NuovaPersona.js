@@ -139,7 +139,7 @@ export default function NuovaPersona({ palestraId }) {
     const chi = figlio ? `${maiuscole(f.f_nome)} ${maiuscole(f.f_cognome || f.cognome)}` : `${maiuscole(f.nome)} ${maiuscole(f.cognome)}`;
     if (dopo === 'iscrivi') { router.push(`/gestione/persone/${data.allievo_id}?iscrivi=1`); return; }
     if (dopo === 'scheda') { router.push(`/gestione/persone/${data.allievo_id}`); return; }
-    setFatti((v) => [{ id: data.allievo_id, chi }, ...v].slice(0, 6));
+    setFatti((v) => [{ id: data.allievo_id, chi, gia: data.allievo_nuovo === false }, ...v].slice(0, 6));
     if (dopo === 'fratello') {
       // stesso genitore, nuovo figlio
       setF((v) => ({ ...v, f_nome: '', f_nascita: '', f_cf: '', f_sesso: '', certificato: '' }));
@@ -266,7 +266,7 @@ export default function NuovaPersona({ palestraId }) {
               <ul className="mini-lista">
                 {fatti.map((x) => (
                   <li key={x.id}><a href={`/gestione/persone/${x.id}?iscrivi=1`}>
-                    <span className="ml-testo"><strong>{x.chi}</strong></span><span className="piccolo">iscrivi →</span></a></li>
+                    <span className="ml-testo"><strong>{x.chi}</strong>{x.gia && <span className="piccolo muto"> · c'era già, scheda aggiornata</span>}</span><span className="piccolo">iscrivi →</span></a></li>
                 ))}
               </ul>
             </section>

@@ -7,6 +7,7 @@ import { STATI_CLIENTE, statoTesto } from '@/lib/stati';
 import { genere } from '@/lib/genere';
 import Anagrafica from './Anagrafica';
 import Iscrizioni from './Iscrizioni';
+import RinnoviAutomatici from './RinnoviAutomatici';
 import Recuperi from './Recuperi';
 import EtichettePersona from './EtichettePersona';
 import Privacy from './Privacy';
@@ -39,7 +40,7 @@ export default async function Persona({ params, searchParams }) {
   const [{ data: stato }, { data: iscrizioni }, { data: crediti }, { data: prove }, { data: certificati },
          { data: corsi }, { data: tipi }, { data: orari }, { data: palestra }, { data: storico, count: storicoTotale },
          { data: etichette }, { data: famiglia }, { data: famigliaIscritta }, { data: moduli }, { data: firme },
-         { data: pagamenti }] = await Promise.all([
+         { data: pagamenti }, { data: rinnovi }] = await Promise.all([
     supabase.from('v_stato_clienti').select('stato, attivo, fine_prossima, prima_data, ultima_fine, certificato_scaduto, quota_mancante, quota_valida_fino, senza_orari, etichette_id, giorni_al_compleanno, ultima_presenza')
       .eq('id', id).maybeSingle(),
     supabase.from('iscrizioni')
@@ -70,13 +71,17 @@ export default async function Persona({ params, searchParams }) {
     supabase.from('pagamenti').select('*')
       .eq('palestra_id', p).or(`allievo_id.eq.${id},and(account_id.eq.${allievo.account_id},allievo_id.is.null)`)
       .order('created_at', { ascending: false }).limit(100),
+    supabase.from('abbonamenti_ricorrenti').select('id, stato, importo_cent, tipi_abbonamento ( nome ), corsi ( nome )')
+      .eq('allievo_id', id).neq('stato', 'annullato'),
   ]);
   const { data: ricevute } = (pagamenti || []).length
     ? await supabase.from('ricevute').select('id, pagamento_id, numero, anno, tipo_documento, annullata').in('pagamento_id', pagamenti.map((x) => x.id))
     : { data: [] };
 
   const linkCertificato = `${palestra?.base_url || ''}/certificato?t=${allievo.token}`;
-  const st = STATI_CLIENTE[stato?.stato];
+  // aveva solo abbonamenti annullati: non è un "lead" né "mai iscritto", ha lasciato
+  const ritirato = !stato?.attivo && !stato?.ultima_fine && (iscrizioni || []).some((i) => i.stato === 'annullata');
+  const st = ritirato ? { testo: 'Ritirato/a', m: 'Ritirato', f: 'Ritirata', tono: 'neutro' } : STATI_CLIENTE[stato?.stato];
   const attive = (iscrizioni || []).filter((i) => i.stato === 'attiva' || i.stato === 'sospesa');
   const spesoStorico = (storico || []).reduce((s, x) => s + (x.valore_cent || 0), 0);
   const speso = spesoStorico + (pagamenti || []).filter((x) => x.stato === 'pagato').reduce((s, x) => s + x.importo_cent, 0);
@@ -103,7 +108,7 @@ export default async function Persona({ params, searchParams }) {
               {allievo.data_nascita
                 ? <span>{etaAl(allievo.data_nascita)} anni · {nato} il {dataBreve(allievo.data_nascita)}</span>
                 : <span className="muto">data di nascita da inserire</span>}
-              {st && <span className={`tag tag-${st.tono}`}>{statoTesto(stato.stato, g)}</span>}
+              {st && <span className={`tag tag-${st.tono}`}>{ritirato ? (g === 'F' ? st.f : g === 'M' ? st.m : st.testo) : statoTesto(stato.stato, g)}</span>}
               {stato?.certificato_scaduto && <span className="tag tag-rosso">certificato</span>}
               {stato?.quota_mancante && <span className="tag tag-attenzione">quota da pagare</span>}
               {stato?.senza_orari && <span className="tag tag-attenzione">giorni da assegnare</span>}
@@ -164,7 +169,7 @@ export default async function Persona({ params, searchParams }) {
       <div className="riquadri">
         <div className={`riquadro${stato?.attivo ? '' : ' spento'}`}>
           <span className="etichetta">Abbonamento</span>
-          <strong>{stato?.fine_prossima ? `fino al ${dataBreve(stato.fine_prossima)}` : stato?.ultima_fine ? `finito il ${dataBreve(stato.ultima_fine)}` : 'mai iscritto'}</strong>
+          <strong>{stato?.fine_prossima ? `fino al ${dataBreve(stato.fine_prossima)}` : stato?.ultima_fine ? `finito il ${dataBreve(stato.ultima_fine)}` : ritirato ? 'annullato' : 'mai iscritto'}</strong>
         </div>
         <div className={`riquadro${stato?.certificato_scaduto ? ' allarme' : ''}`}>
           <span className="etichetta">Certificato</span>
@@ -202,6 +207,7 @@ export default async function Persona({ params, searchParams }) {
               famigliaIscritta={new Set((famigliaIscritta || []).map((x) => x.allievo_id)).size}
               apriSubito={iscrivi === '1'}
             />
+            <RinnoviAutomatici rinnovi={rinnovi || []} />
           </section>
 
           {crediti?.length > 0 && (

@@ -14,11 +14,14 @@ export default async function Pagamenti({ searchParams }) {
   const supabase = await supabaseServer();
   const user = await utenteCorrente();
   if (!user) redirect('/area/accedi');
-  const [{ data: rate }, { data: ricorrenti }, { data: pagamenti }, { data: pal }] = await Promise.all([
+  const [{ data: rate }, { data: ricorrenti }, { data: pagamenti }, { data: pal }, { data: dovuti }] = await Promise.all([
     supabase.from('rate').select('id, descrizione, numero, di, importo_cent, scadenza, stato').eq('stato', 'da_pagare').order('scadenza'),
     supabase.from('abbonamenti_ricorrenti').select('id, stato, importo_cent, created_at, allievi ( nome ), tipi_abbonamento ( nome ), corsi ( nome )').neq('stato', 'annullato'),
-    supabase.from('pagamenti').select('id, descrizione, importo_cent, metodo, pagato_at, stato').eq('stato', 'pagato').order('pagato_at', { ascending: false }).limit(12),
+    supabase.from('pagamenti').select('id, descrizione, importo_cent, rimborsato_cent, metodo, pagato_at, stato').in('stato', ['pagato', 'rimborsato']).order('pagato_at', { ascending: false }).limit(12),
     supabase.from('palestre').select('stripe').limit(1).maybeSingle(),
+    // quote da pagare in segreteria (eventi, iscrizioni registrate dalla segreteria): non le carte lasciate a metà
+    supabase.from('pagamenti').select('id, descrizione, importo_cent, created_at').eq('stato', 'in_attesa').is('stripe_session_id', null).is('rata_id', null)
+      .order('created_at', { ascending: false }).limit(10),
   ]);
   const online = stripeAttivo();
   const rateOnline = online && pal?.stripe?.rate_online !== false;
@@ -33,6 +36,20 @@ export default async function Pagamenti({ searchParams }) {
         {acquisti && <p><Link prefetch={false} className="btn btn-primario" href="/area/acquista">Acquista o rinnova un abbonamento</Link></p>}
       </div>
       {pagato && <div className="errore" role="status" style={{ background: 'var(--ok-tenue)', color: 'var(--ok)' }}>Pagamento ricevuto, grazie!</div>}
+
+      {(dovuti || []).length > 0 && (
+        <>
+          <h2 className="sezione">Da pagare in segreteria</h2>
+          <ul className="elenco">
+            {dovuti.map((d) => (
+              <li key={d.id} className="persona">
+                <span>{d.descrizione}<span className="piccolo muto" style={{ display: 'block' }}>dal {dataBreve(d.created_at)}</span></span>
+                <strong>{euro(d.importo_cent)}</strong>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
 
       {(rate || []).length > 0 && (
         <>
@@ -79,7 +96,8 @@ export default async function Pagamenti({ searchParams }) {
       <ul className="elenco">
         {(pagamenti || []).map((p) => (
           <li key={p.id} className="persona">
-            <span>{p.descrizione}<span className="piccolo muto" style={{ display: 'block' }}>{dataBreve(p.pagato_at)} · {p.metodo === 'online' || p.metodo === 'stripe' ? 'online' : p.metodo}</span></span>
+            <span>{p.descrizione}<span className="piccolo muto" style={{ display: 'block' }}>{dataBreve(p.pagato_at)} · {p.metodo === 'online' || p.metodo === 'stripe' ? 'online' : p.metodo}
+              {p.rimborsato_cent > 0 && <span style={{ color: 'var(--ok)' }}> · rimborsati {euro(p.rimborsato_cent)}</span>}</span></span>
             <strong>{euro(p.importo_cent)}</strong>
           </li>
         ))}

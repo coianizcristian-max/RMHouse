@@ -11,6 +11,7 @@ const MESSAGGI = {
   scegli_i_giorni: 'Scegli i giorni in cui verrai.',
   troppi_giorni: 'Hai scelto più giorni di quelli compresi nell\'abbonamento.',
   prezzo_mancante: 'Prezzo non disponibile: chiedi in segreteria.',
+  orario_pieno: 'Uno dei giorni scelti è al completo: scegline un altro o chiedi alla segreteria la lista d\'attesa.',
 };
 
 // Acquisto di un abbonamento dall'area clienti: prepara l'iscrizione e apre la cassa di Stripe

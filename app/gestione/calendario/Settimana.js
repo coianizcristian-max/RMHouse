@@ -35,10 +35,11 @@ export default function Settimana({ inizio, lezioni, corsi = [], palestraId, ges
     setDati(data);
   }
 
-  async function azione(cosa, valore) {
+  async function azione(cosa, valore, recupero = true) {
     setInvio(true); setErrore('');
     const { error } = await supabaseBrowser().rpc('modifica_lezione', {
       p_lezione: scelta.lezione_id, p_cosa: cosa, p_valore: valore == null ? '' : String(valore), p_da_oggi: daOggi,
+      ...(cosa === 'annulla' ? { p_recupero: recupero } : {}),
     });
     setInvio(false);
     if (error) { setErrore('Operazione non riuscita.'); return; }
@@ -254,7 +255,9 @@ export default function Settimana({ inizio, lezioni, corsi = [], palestraId, ges
                     <a href="#" className="urgente" onClick={(e) => {
                       e.preventDefault();
                       const m = prompt('Motivo (lo vede lo staff in agenda):', 'Lezione annullata');
-                      if (m !== null) azione('annulla', m);
+                      if (m === null) return;
+                  const rec = confirm('Chi era iscritto riceve in automatico un recupero.\n\nOK = sì, recupero automatico\nAnnulla = no, il recupero lo fissa la scuola');
+                  azione('annulla', m, rec);
                     }}>
                       <span>Annulla la lezione</span><span className="conta">×</span>
                     </a>

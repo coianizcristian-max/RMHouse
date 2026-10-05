@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabaseBrowser } from '@/lib/supabase/browser';
 import Immagine from '../Immagine';
+import IscrittiEvento from './IscrittiEvento';
 import { dataBreve, ora, euro } from '@/lib/formato';
 
 const VUOTO = {
@@ -67,8 +68,11 @@ export default function Eventi({ palestraId, eventi, sedi, iscritti }) {
   }
 
   async function elimina(e) {
-    if (!confirm(`Eliminare "${e.titolo}"? Spariscono anche le iscrizioni.`)) return;
-    await supabaseBrowser().from('eventi').delete().eq('id', e.id);
+    const n = conta(e.id);
+    const futuro = new Date(e.inizio) > new Date();
+    if (!confirm(`Eliminare "${e.titolo}"?${n && futuro ? ` Le ${n} persone iscritte ricevono l'avviso che l'evento è annullato; le quote non pagate si chiudono.` : ''}`)) return;
+    const { error } = await supabaseBrowser().rpc('elimina_evento', { p_evento: e.id });
+    if (error) { alert('Eliminazione non riuscita. Riprova.'); return; }
     router.refresh();
   }
 
@@ -152,6 +156,7 @@ export default function Eventi({ palestraId, eventi, sedi, iscritti }) {
                   {conta(e.id)} iscritti{e.posti ? ` su ${e.posti} posti` : ''}
                 </div>
               )}
+              <IscrittiEvento iscritti={iscritti.filter((i) => i.evento_id === e.id)} />
               <div className="azioni-riga">
                 <button className="link-btn piccolo" onClick={() => modifica(e)}>Modifica</button>
                 <button className="link-btn piccolo pericolo" onClick={() => elimina(e)}>Elimina</button>

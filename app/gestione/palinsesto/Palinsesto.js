@@ -175,8 +175,8 @@ export default function Palinsesto({ palestraId, dati }) {
         <>
           <h2>Chiusure e festività</h2>
           <p className="muto piccolo">
-            Le lezioni comprese nel periodo vengono annullate subito. Gli abbonamenti non si allungano:
-            i prezzi sono già calcolati al netto delle festività.
+            Le lezioni comprese nel periodo vengono annullate subito e chi era iscritto riceve un avviso solo.
+            Gli abbonamenti non si allungano e non si danno recuperi: i prezzi sono già calcolati al netto delle festività.
           </p>
           <Gestore
             tabella="chiusure" fissi={fissi} righe={dati.chiusure} etichettaNuovo="Aggiungi chiusura"

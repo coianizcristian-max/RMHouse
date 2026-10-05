@@ -3131,3 +3131,19 @@ form.periodo-date .btn { flex: none; width: auto; min-height: 36px; padding: 0 1
 .rimborso label:not(.spunta) { display: grid; gap: 3px; font-size: 13px; color: var(--testo-2); }
 .rimborso input:not([type='checkbox']) { min-height: 38px; padding: 6px 10px; font: inherit; font-size: 15px; border: 1.5px solid var(--linea); border-radius: 10px; background: var(--bianco); color: var(--testo); }
 .rimborso-azioni { display: flex; gap: 10px; align-items: center; }
+
+/* 114 · rinnovi automatici sulla scheda del cliente */
+.rinnovi-auto { margin-top: 10px; display: grid; gap: 6px; }
+.rinnovo-auto { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 12px;
+  padding: 8px 10px; border: 1px solid var(--linea); border-radius: var(--r); font-size: .9rem; }
+.testo-rosso { color: var(--rosso-scuro); }
+.aq-avviso { background: var(--attenzione-tenue); color: var(--attenzione); padding: 8px 10px; border-radius: var(--r); margin: 4px 0 10px; }
+
+/* 114 · iscritti agli eventi */
+.ev-iscritti { margin-top: 8px; }
+.ev-lista { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 6px; }
+.ev-lista li { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 10px; padding: 6px 0; border-top: 1px solid var(--linea); font-size: .9rem; }
+.ev-lista li.annullato { opacity: .55; }
+.ev-chi { min-width: 0; }
+.ev-stato { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; }
+.ev-stato .link-btn.attivo { color: var(--ok); font-weight: 700; }

@@ -12,14 +12,17 @@ const durata = (t) => {
   const m = t.durata_mesi || Math.max(1, Math.round((t.durata_giorni || 30) / 30));
   return m === 1 ? '1 mese' : m >= 9 ? `${m} mesi (annuale)` : `${m} mesi`;
 };
+const giornoDopo = (d) => { const x = new Date(`${d}T12:00:00`); x.setDate(x.getDate() + 1); return x.toISOString().slice(0, 10); };
 const ERRORI = {
   richiesta_gia_inviata: 'L\'hai già chiesto: la segreteria lo attiva appena arriva il bonifico.',
   scegli_i_giorni: 'Scegli i giorni in cui verrai.',
   abbonamento_non_disponibile: 'Questo abbonamento non è più disponibile.',
   corso_non_aperto: 'Le iscrizioni a questo corso non sono aperte.',
+  orario_pieno: 'Uno dei giorni scelti è al completo: scegline un altro o chiedi alla segreteria la lista d\'attesa.',
+  troppi_giorni: 'Hai scelto più giorni di quelli compresi nell\'abbonamento.',
 };
 
-export default function Acquista({ allievi, tipi, corsi, orari, coperti, gruppi, corsoIniziale, quotaCent, carta, rinnovo, bonifico, annullato }) {
+export default function Acquista({ allievi, tipi, corsi, orari, coperti, gruppi, corsoIniziale, quotaCent, carta, rinnovo, bonifico, annullato, pieni = [], attivi = [] }) {
   const [chi, setChi] = useState(allievi[0]?.id || '');
   const [cerca, setCerca] = useState('');
   const [gruppo, setGruppo] = useState('');
@@ -57,11 +60,16 @@ export default function Acquista({ allievi, tipi, corsi, orari, coperti, gruppi,
   const max = tipo?.lezioni_settimanali || 7;
   const nomeCorso = (id) => corsi.find((c) => c.id === id)?.nome || '';
 
+  // ha già un abbonamento a questo corso: il nuovo parte il giorno dopo la fine di quello (come fa il database)
+  const inCorso = attivi.filter((a) => a.allievo_id === chi && a.corso_id === f.corso && a.data_fine >= f.inizio)
+    .sort((a, b) => b.data_fine.localeCompare(a.data_fine))[0];
+  const inizioVero = inCorso ? giornoDopo(inCorso.data_fine) : f.inizio;
+
   // data di fine calcolata dal database (mese solare, giorni…), così è quella vera
   useEffect(() => {
-    if (!tipo || !f.inizio) { setFine(null); return; }
-    supabaseBrowser().rpc('scadenza_abbonamento', { p_tipo: tipo.id, p_inizio: f.inizio }).then(({ data }) => setFine(data || null));
-  }, [tipo, f.inizio]);
+    if (!tipo || !inizioVero) { setFine(null); return; }
+    supabaseBrowser().rpc('scadenza_abbonamento', { p_tipo: tipo.id, p_inizio: inizioVero }).then(({ data }) => setFine(data || null));
+  }, [tipo, inizioVero]);
 
   function scegli(t) {
     if (scelto === t.id) { setScelto(null); return; }
@@ -162,8 +170,9 @@ export default function Acquista({ allievi, tipi, corsi, orari, coperti, gruppi,
                       {orariCorso.length === 0 ? <p className="ac-nota">Nessun orario prenotabile per questo corso: scrivi alla segreteria.</p> : (
                         <div className="aq-chips">
                           {orariCorso.map((o) => (
-                            <button key={o.id} type="button" aria-pressed={f.orari.includes(o.id)} onClick={() => alterna(o.id)}>
-                              {GIORNI[o.giorno_settimana]} {String(o.ora_inizio).slice(0, 5)}
+                            <button key={o.id} type="button" aria-pressed={f.orari.includes(o.id)}
+                                    disabled={pieni.includes(o.id) && !f.orari.includes(o.id)} onClick={() => alterna(o.id)}>
+                              {GIORNI[o.giorno_settimana]} {String(o.ora_inizio).slice(0, 5)}{pieni.includes(o.id) && <small> · completo</small>}
                             </button>
                           ))}
                         </div>
@@ -173,8 +182,13 @@ export default function Acquista({ allievi, tipi, corsi, orari, coperti, gruppi,
 
                   <label className="aq-inizio"><span className="aq-etichetta">Inizia il</span>
                     <input type="date" value={f.inizio} min={oggi()} onChange={(e) => setF({ ...f, inizio: e.target.value })} />
-                    {fine && <span className="ac-nota">valido fino al {dataBreve(fine)}</span>}
+                    {f.ricorrente
+                      ? <span className="ac-nota">{inCorso ? `dal ${dataBreve(inizioVero)} ` : ''}si rinnova ogni mese il giorno {Number(inizioVero.slice(8, 10))}</span>
+                      : fine && <span className="ac-nota">{inCorso ? `dal ${dataBreve(inizioVero)} ` : ''}valido fino al {dataBreve(fine)}</span>}
                   </label>
+                  {inCorso && (
+                    <p className="ac-nota aq-avviso">Hai già un abbonamento a questo corso fino al {dataBreve(inCorso.data_fine)}: il nuovo parte dal {dataBreve(inizioVero)}. Per aggiungere un giorno da subito chiedi alla segreteria.</p>
+                  )}
 
                   <div className="aq-totale">
                     <span><span>{t.nome}</span><span>{euro(prezzo)}</span></span>
@@ -202,7 +216,7 @@ export default function Acquista({ allievi, tipi, corsi, orari, coperti, gruppi,
                         <>
                           {rinnovo && t.rinnovo_automatico && (
                             <label className="spunta"><input type="checkbox" checked={f.ricorrente} onChange={(e) => setF({ ...f, ricorrente: e.target.checked })} />
-                              <span>Rinnovo automatico ogni mese con la stessa carta (lo disdici quando vuoi)</span></label>
+                              <span>Rinnovo automatico ogni mese con la stessa carta: l'abbonamento va di mese in mese dal giorno d'inizio (lo disdici quando vuoi)</span></label>
                           )}
                           <button className="btn btn-primario" disabled={invio} onClick={conCarta}>{invio ? 'Un attimo…' : `Paga ${euro(prezzo + quota)} con carta`}</button>
                         </>

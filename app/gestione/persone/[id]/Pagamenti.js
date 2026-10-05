@@ -59,7 +59,7 @@ export default function Pagamenti({ pagamenti, ricevute, totaleStorico, incassa 
                   <span className="ml-testo">
                     <strong>{p.descrizione}</strong>
                     <span className="piccolo muto">
-                      {dataBreve(p.pagato_at || p.created_at)} · {METODI[p.metodo] || p.metodo}
+                      {dataBreve(p.pagato_at || p.created_at)}{p.stato === 'in_attesa' && !p.stripe_session_id ? '' : ` · ${METODI[p.metodo] || p.metodo}`}
                       {st && <> · <span className={`tag ${st[1]}`}>{st[0]}</span></>}
                     </span>
                   </span>

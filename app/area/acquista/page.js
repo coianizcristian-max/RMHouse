@@ -28,6 +28,10 @@ export default async function PaginaAcquista({ searchParams }) {
     supabase.from('gruppi_listino').select('id, nome, ordine').eq('palestra_id', pal.id).order('ordine'),
     supabase.rpc('profilo_area'),
   ]);
+  const [{ data: pieni }, { data: attivi }] = await Promise.all([
+    supabase.rpc('orari_pieni', { p_palestra: pal.id }),
+    supabase.from('iscrizioni').select('allievo_id, corso_id, data_fine').eq('stato', 'attiva').gte('data_fine', new Date().toISOString().slice(0, 10)),
+  ]);
 
   return <Acquista
     allievi={(persone || []).map((p) => ({ id: p.id, nome: p.nome, quota: !!p.quota_mancante }))}
@@ -36,5 +40,5 @@ export default async function PaginaAcquista({ searchParams }) {
     quotaCent={pal?.quota_iscrizione_cent || 0}
     carta={stripeAttivo() && pal?.stripe?.abbonamenti_online !== false}
     rinnovo={!!pal?.stripe?.rinnovo_automatico}
-    bonifico={pal?.area_cliente?.bonifico || null} annullato={!!annullato} />;
+    bonifico={pal?.area_cliente?.bonifico || null} annullato={!!annullato} pieni={pieni || []} attivi={attivi || []} />;
 }
