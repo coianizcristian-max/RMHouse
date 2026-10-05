@@ -21,7 +21,7 @@ export default function Orari({ palestraId, corsoId, orari, sale, insegnanti, ab
         { k: 'durata_min', etichetta: 'Durata (minuti)', tipo: 'numero', obbligatorio: true },
         { k: 'sala_id', etichetta: 'Sala', tipo: 'select', opzioni: sale.map((s) => ({ v: s.id, l: s.nome })) },
         { k: 'insegnante_id', etichetta: 'Insegnante', tipo: 'select', opzioni: scelta.map((i) => ({ v: i.id, l: `${i.nome} ${i.cognome || ''}`.trim() + (abilitati.length && !abilitati.includes(i.id) ? ' · non sul corso' : '') })) },
-        { k: 'valido_dal', etichetta: 'Valido dal', tipo: 'data' },
+        { k: 'valido_dal', etichetta: 'Valido dal', tipo: 'data', aiuto: 'Vuoto = da oggi' },
         { k: 'valido_al', etichetta: 'Valido fino al', tipo: 'data', aiuto: 'Vuoto = senza scadenza' },
         { k: 'prenotabile', etichetta: 'Prenotabile online', tipo: 'check',
           aiuto: 'Tolto: le lezioni di questo orario non si prenotano dal sito né dall\'area cliente' },

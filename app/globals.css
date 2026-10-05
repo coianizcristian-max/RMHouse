@@ -985,6 +985,11 @@ a.tessera:hover, .scheda-corso:hover {
 .zona-foto .zona-testo { display: grid; gap: 2px; flex: 1; min-width: 0; }
 .zona-foto .zona-testo strong { font-size: 15px; color: var(--nero); }
 .zona-foto .segnaposto svg { stroke: var(--testo-2); }
+/* con la foto caricata: foto grande, sotto Cambia / Togli */
+.zona-foto.con-foto { flex-direction: column; align-items: center; gap: 8px; padding: 12px; }
+.foto-grande { display: block; width: 100%; max-width: 420px; aspect-ratio: 4 / 3; object-fit: cover; border-radius: 12px; background: var(--carta); }
+.foto-grande.tonda { width: min(180px, 100%); aspect-ratio: 1; border-radius: 50%; }
+.zona-foto .zona-azioni { display: flex; gap: 16px; align-items: center; justify-content: center; flex-wrap: wrap; }
 
 
 /* Posti numerati in sala */

@@ -1,3 +1,4 @@
+import { tutte } from '@/lib/tutte';
 import { redirect } from 'next/navigation';
 import { supabaseServer } from '@/lib/supabase/server';
 import { utenteCorrente } from '@/lib/utente';
@@ -24,7 +25,9 @@ export default async function PaginaAcquista({ searchParams }) {
       .eq('palestra_id', pal.id).eq('attivo', true).eq('acquistabile_online', true).or('archiviato.is.null,archiviato.eq.false').order('nome'),
     supabase.from('corsi').select('id, nome, colore, iscrizioni_app, nota_iscrizioni').eq('palestra_id', pal.id).eq('attivo', true).order('nome'),
     supabase.from('orari').select('id, corso_id, giorno_settimana, ora_inizio, durata_min, prenotabile, attivo').eq('palestra_id', pal.id),
-    supabase.from('tipi_abbonamento_corsi').select('tipo_abbonamento_id, corso_id'),
+    // a pagine (oltre 1000 righe Supabase taglia l'elenco) e solo quelli degli abbonamenti di questa scuola
+    tutte(() => supabase.from('tipi_abbonamento_corsi').select('tipo_abbonamento_id, corso_id, tipi_abbonamento!inner ( palestra_id )')
+      .eq('tipi_abbonamento.palestra_id', pal.id).order('tipo_abbonamento_id').order('corso_id')),
     supabase.from('gruppi_listino').select('id, nome, ordine').eq('palestra_id', pal.id).order('ordine'),
     supabase.rpc('profilo_area'),
   ]);

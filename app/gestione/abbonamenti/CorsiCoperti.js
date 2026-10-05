@@ -1,5 +1,5 @@
 'use client';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabaseBrowser } from '@/lib/supabase/browser';
 
@@ -15,6 +15,8 @@ export default function CorsiCoperti({ tipi: tutti, corsi, coperti, gruppi = [] 
   const [scelti, setScelti] = useState(iniziali);
   const [perTipo, setPerTipo] = useState(tipoId);
   if (perTipo !== tipoId) { setPerTipo(tipoId); setScelti(iniziali); }
+  // dopo ogni salvataggio la pagina si ricarica: le pastiglie seguono quello che c'è davvero nel database
+  useEffect(() => { setScelti(iniziali); }, [iniziali]);
 
   const famiglie = [...new Set(tipi.map((t) => t.famiglia || 'Altri'))];
 
@@ -27,7 +29,9 @@ export default function CorsiCoperti({ tipi: tutti, corsi, coperti, gruppi = [] 
     setScelti(prossimo);
     const { error } = togli
       ? await db.from('tipi_abbonamento_corsi').delete().eq('tipo_abbonamento_id', tipoId).eq('corso_id', corsoId)
-      : await db.from('tipi_abbonamento_corsi').insert({ tipo_abbonamento_id: tipoId, corso_id: corsoId });
+      // se l'abbinamento c'è già (doppio clic, pagina non aggiornata) non è un errore
+      : await db.from('tipi_abbonamento_corsi').upsert({ tipo_abbonamento_id: tipoId, corso_id: corsoId },
+          { onConflict: 'tipo_abbonamento_id,corso_id', ignoreDuplicates: true });
     if (error) { setScelti(scelti); setErrore('Modifica non riuscita.'); return; }
     router.refresh();
   }

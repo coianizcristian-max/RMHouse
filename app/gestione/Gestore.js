@@ -66,8 +66,11 @@ export default function Gestore({ tabella, campi, righe, fissi = {}, riassunto, 
     const db = supabaseBrowser();
     // la modifica chiede indietro la riga: se non torna niente, non è stata salvata
     // (succede quando l'accesso è scaduto: il database non dà errore ma non cambia nulla)
+    // una riga nuova non manda i campi lasciati vuoti: così valgono i valori predefiniti del database
+    // (es. "Valido dal" di un orario = oggi), invece di un "vuoto" che il database rifiuta
+    const nuovi = Object.fromEntries(Object.entries(dati).filter(([, v]) => v !== null));
     const scrivi = () => (apri === 'nuovo'
-      ? db.from(tabella).insert({ ...fissi, ...dati })
+      ? db.from(tabella).insert({ ...fissi, ...nuovi })
       : db.from(tabella).update(dati).eq('id', apri).select('id'));
     let { data, error } = await scrivi();
     if (!error && apri !== 'nuovo' && !data?.length) {
