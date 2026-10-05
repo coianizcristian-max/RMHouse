@@ -131,7 +131,7 @@ function Sospendi({ iscrizione, chiudi }) {
   return (
     <div className="azione-iscrizione">
       <strong className="ai-titolo">Sospendi</strong>
-      <p className="piccolo muto">In quei giorni la persona non compare nelle lezioni e la scadenza si sposta avanti di altrettanti giorni (contano solo quelli dentro l'abbonamento).</p>
+      <p className="piccolo muto">In quei giorni la persona non compare nelle lezioni. La scadenza non cambia: la segreteria riceve un promemoria per decidere se fare uno sconto sul rinnovo o dei recuperi.</p>
       {errore && <div className="errore" role="alert">{errore}</div>}
       <div className="ai-griglia">
         <div className="campo"><label htmlFor={`sd-${iscrizione.id}`}>Dal</label>

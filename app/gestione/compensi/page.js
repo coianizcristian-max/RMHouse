@@ -41,5 +41,5 @@ export default async function PaginaCompensi({ searchParams }) {
     daConfermare: daConfermare.length,
   };
   return <Compensi palestraId={staff.palestra_id} righe={righe || []} anno={a} mese={m}
-                   soloConfermate={pal?.compensi?.solo_confermate !== false} senzaInsegnante={senzaInsegnante || 0} ore={ore_mese} />;
+                   soloConfermate={pal?.compensi?.solo_confermate !== false} senzaInsegnante={senzaInsegnante || 0} ore={ore_mese} admin={staff.ruolo === 'admin'} />;
 }

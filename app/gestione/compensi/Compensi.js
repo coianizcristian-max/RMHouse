@@ -9,7 +9,7 @@ const STATO_RIGA = { da_verificare: 'NON CONFERMATA: non contata', forfait: 'nel
 const MESI = ['gennaio', 'febbraio', 'marzo', 'aprile', 'maggio', 'giugno',
               'luglio', 'agosto', 'settembre', 'ottobre', 'novembre', 'dicembre'];
 
-export default function Compensi({ palestraId, righe, anno, mese, soloConfermate = true, senzaInsegnante = 0, ore = null }) {
+export default function Compensi({ palestraId, righe, anno, mese, soloConfermate = true, senzaInsegnante = 0, ore = null, admin = false }) {
   const router = useRouter();
   const [errore, setErrore] = useState('');
   const [avviso, setAvviso] = useState('');
@@ -156,13 +156,14 @@ export default function Compensi({ palestraId, righe, anno, mese, soloConfermate
         <button className="btn btn-primario" disabled={invio} onClick={calcola}>
           {righe.length ? 'Ricalcola il mese' : 'Calcola il mese'}
         </button>
-        {righe.some((r) => r.stato === 'bozza') && (
+        {admin && righe.some((r) => r.stato === 'bozza') && (
           <button className="btn" disabled={invio} onClick={approva}>Approva tutti</button>
         )}
         {righe.some((r) => r.stato === 'bozza') && (
           <button className="link-btn" disabled={invio} onClick={eliminaBozze}>Elimina le bozze</button>
         )}
         <Link prefetch={false} className="link-btn" href="/gestione/costi">Vedi i costi</Link>
+        {!admin && <span className="piccolo muto">Approvazione, extra e pagamento li fa l&apos;amministrazione.</span>}
         <label className="spunta" style={{ margin: 0 }}>
           <input type="checkbox" checked={soloConfermate} disabled={invio} onChange={(e) => cambiaSolo(e.target.checked)} />
           <span className="piccolo">Conta solo le lezioni confermate con l&apos;appello</span>
@@ -214,7 +215,7 @@ export default function Compensi({ palestraId, righe, anno, mese, soloConfermate
               </button>
               <Link prefetch={false} className="link-btn piccolo" href={`/gestione/compensi/${r.id}`} target="_blank">PDF</Link>
               <Link prefetch={false} className="link-btn piccolo" href={`/gestione/staff/${r.staff_id}`}>regole</Link>
-              {r.stato !== 'pagato' && (
+              {admin && r.stato !== 'pagato' && (
                 <>
                   <button className="link-btn piccolo" disabled={invio} onClick={() => extra(r)}>Extra</button>
                   <button className="link-btn piccolo" disabled={invio || r.totale_cent <= 0} onClick={() => paga(r)}>Segna pagato</button>
