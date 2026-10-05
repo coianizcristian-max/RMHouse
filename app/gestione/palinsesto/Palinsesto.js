@@ -51,7 +51,7 @@ export default function Palinsesto({ palestraId, dati }) {
           <h2>Categorie</h2>
           <p className="muto piccolo">Il primo bivio che vede il cliente: danza, acrobatica, benessere.</p>
           <Gestore
-            tabella="categorie" fissi={fissi} righe={dati.categorie} etichettaNuovo="Aggiungi categoria"
+            tabella="categorie" ordinabile fissi={fissi} righe={dati.categorie} etichettaNuovo="Aggiungi categoria"
             campi={[
               { k: 'nome', etichetta: 'Nome', tipo: 'testo', obbligatorio: true },
               { k: 'colore', etichetta: 'Colore di base', tipo: 'colore' },
@@ -72,7 +72,7 @@ export default function Palinsesto({ palestraId, dati }) {
           <p className="muto piccolo">Stanno dentro una categoria: pole dance, danza aerea, contemporanea…</p>
           <Ricolora palestraId={fissi.palestra_id} />
           <Gestore
-            tabella="discipline" fissi={fissi} righe={dati.discipline} etichettaNuovo="Aggiungi disciplina"
+            tabella="discipline" ordinabile fissi={fissi} righe={dati.discipline} etichettaNuovo="Aggiungi disciplina"
             onElimina={eliminaDisciplina}
             campi={[
               { k: 'nome', etichetta: 'Nome', tipo: 'testo', obbligatorio: true },
@@ -97,7 +97,7 @@ export default function Palinsesto({ palestraId, dati }) {
         <>
           <h2>Livelli</h2>
           <Gestore
-            tabella="livelli" fissi={fissi} righe={dati.livelli} etichettaNuovo="Aggiungi livello"
+            tabella="livelli" ordinabile fissi={fissi} righe={dati.livelli} etichettaNuovo="Aggiungi livello"
             campi={[
               { k: 'nome', etichetta: 'Nome', tipo: 'testo', obbligatorio: true },
               { k: 'descrizione', etichetta: 'Come si presenta al cliente', tipo: 'testo', aiuto: 'Es. "Mai fatto o quasi: si parte da zero"' },
@@ -131,7 +131,7 @@ export default function Palinsesto({ palestraId, dati }) {
           <h2>Sale</h2>
           <p className="muto piccolo">La capienza della sala vale come limite per i corsi che non ne hanno uno proprio.</p>
           <Gestore
-            tabella="sale" fissi={fissi} righe={dati.sale} etichettaNuovo="Aggiungi sala"
+            tabella="sale" ordinabile fissi={fissi} righe={dati.sale} etichettaNuovo="Aggiungi sala"
             campi={[
               { k: 'nome', etichetta: 'Nome', tipo: 'testo', obbligatorio: true },
               { k: 'capienza', etichetta: 'Capienza', tipo: 'numero' },
@@ -149,7 +149,7 @@ export default function Palinsesto({ palestraId, dati }) {
             e collegarlo a questa scheda.
           </p>
           <Gestore
-            tabella="staff" fissi={fissi} righe={dati.insegnanti} etichettaNuovo="Aggiungi persona"
+            tabella="staff" ordinabile fissi={fissi} righe={dati.insegnanti} etichettaNuovo="Aggiungi persona"
             campi={[
               { k: 'nome', etichetta: 'Nome', tipo: 'testo', obbligatorio: true },
               { k: 'cognome', etichetta: 'Cognome', tipo: 'testo' },

@@ -10,13 +10,21 @@ import SceltaColore from './SceltaColore';
 // fissi: valori sempre applicati (es. { palestra_id, corso_id })
 // riassunto(riga) -> { titolo, dettaglio, tag?, colore? }
 // sezione(riga) -> { chiave, titolo }: se c'è, le righe (già in ordine) sono divise da un titoletto
-export default function Gestore({ tabella, campi, righe, fissi = {}, riassunto, etichettaNuovo = 'Aggiungi', vuoto = 'Ancora niente qui.', onElimina, sezione }) {
+// ordinabile: elenco di nomi (discipline, categorie, sale…) → con più di 6 righe compaiono la ricerca e l'ordine per nome
+export default function Gestore({ tabella, campi, righe, fissi = {}, riassunto, etichettaNuovo = 'Aggiungi', vuoto = 'Ancora niente qui.', onElimina, sezione, ordinabile = false }) {
   const router = useRouter();
   const [apri, setApri] = useState(null);       // id della riga in modifica, oppure 'nuovo'
   const [bozza, setBozza] = useState({});
   const [errore, setErrore] = useState('');
   const [invio, setInvio] = useState(false);
   const [salvato, setSalvato] = useState(null);  // riga appena salvata, per mostrarlo
+  // elenchi lunghi: ricerca mentre si scrive e ordine per nome (o per il campo "Ordine", quello che vede il cliente)
+  const [cerca, setCerca] = useState('');
+  const conOrdine = campi.some((c) => c.k === 'ordine');
+  const [ordina, setOrdina] = useState('nome');
+  useEffect(() => { try { const v = localStorage.getItem(`rm-ordina-${tabella}`); if (v) setOrdina(v); } catch { /* niente */ } }, [tabella]);
+  const cambiaOrdine = (v) => { setOrdina(v); try { localStorage.setItem(`rm-ordina-${tabella}`, v); } catch { /* niente */ } };
+  const lungo = ordinabile && righe.length > 6;
 
   // valori di partenza delle righe nuove: le caselle spuntate, salvo "predefinito" diverso
   const vuota = Object.fromEntries(campi.map((c) => [c.k, c.predefinito ?? (c.tipo === 'check' ? true : '')]));
@@ -98,21 +106,46 @@ export default function Gestore({ tabella, campi, righe, fissi = {}, riassunto, 
     router.refresh();
   }
 
+  const norm = (t) => String(t ?? '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  const parole = norm(cerca).split(/\s+/).filter(Boolean);
+  const testoDi = (r) => { const x = riassunto(r); return norm(`${x.titolo} ${x.dettaglio || ''} ${x.tag || ''}`); };
+  let mostrate = parole.length ? righe.filter((r) => { const t = testoDi(r); return parole.every((p) => t.includes(p)); }) : righe;
+  // con le sezioni l'ordine lo decide chi chiama; altrimenti per nome (A→Z) o per il campo "Ordine"
+  if (!sezione && lungo) {
+    mostrate = [...mostrate].sort(ordina === 'ordine' && conOrdine
+      ? (a, b) => ((a.ordine ?? 9999) - (b.ordine ?? 9999)) || String(riassunto(a).titolo).localeCompare(String(riassunto(b).titolo), 'it')
+      : (a, b) => String(riassunto(a).titolo).localeCompare(String(riassunto(b).titolo), 'it', { sensitivity: 'base' }));
+  }
+
   return (
     <div>
       {errore && !apri && <div className="errore" role="alert">{errore}</div>}
       {salvato === 'nuovo' && <div className="avviso-ok" role="status">Aggiunto ✓</div>}
 
+      {lungo && (
+        <div className="gestore-barra">
+          <input type="search" value={cerca} onChange={(e) => setCerca(e.target.value)} placeholder="Cerca…" aria-label="Cerca nell'elenco" />
+          {!sezione && conOrdine && (
+            <select value={ordina} onChange={(e) => cambiaOrdine(e.target.value)} aria-label="Ordina">
+              <option value="nome">Per nome (A→Z)</option>
+              <option value="ordine">Come li vede il cliente (campo Ordine)</option>
+            </select>
+          )}
+          <span className="piccolo muto">{parole.length ? `${mostrate.length} su ${righe.length}` : `${righe.length}`}</span>
+        </div>
+      )}
+
       {righe.length === 0 && apri !== 'nuovo' && <div className="vuoto">{vuoto}</div>}
+      {righe.length > 0 && mostrate.length === 0 && <div className="vuoto">Niente con «{cerca}».</div>}
 
       <ul className="elenco">
-        {righe.map((r, i) => {
+        {mostrate.map((r, i) => {
           const sez = sezione?.(r);
-          const nuovaSezione = sez && (i === 0 || sezione(righe[i - 1]).chiave !== sez.chiave);
+          const nuovaSezione = sez && (i === 0 || sezione(mostrate[i - 1]).chiave !== sez.chiave);
           return [
           nuovaSezione && (
             <li key={`sez-${sez.chiave}`} className="gestore-sezione">
-              {sez.titolo} <span>{righe.filter((x) => sezione(x).chiave === sez.chiave).length}</span>
+              {sez.titolo} <span>{mostrate.filter((x) => sezione(x).chiave === sez.chiave).length}</span>
             </li>
           ),
           <li key={r.id}>
@@ -131,6 +164,7 @@ export default function Gestore({ tabella, campi, righe, fissi = {}, riassunto, 
                   {salvato === r.id && <> <span className="tag tag-ok">salvato ✓</span></>}
                   {riassunto(r).tag && <> <span className="tag tag-neutro">{riassunto(r).tag}</span></>}
                   {riassunto(r).dettaglio && <div className="piccolo muto">{riassunto(r).dettaglio}</div>}
+                  {ordina === 'ordine' && conOrdine && lungo && !sezione && <div className="piccolo muto">ordine {r.ordine ?? '—'}</div>}
                 </div>
                 <div className="gestore-azioni">
                   <button className="link-btn" onClick={() => apriModifica(r)}>Modifica</button>

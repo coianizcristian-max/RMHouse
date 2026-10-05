@@ -10,7 +10,7 @@ export default async function NuovoCorso() {
   if (staff.ruolo === 'insegnante') redirect('/gestione');
   const p = staff.palestra_id;
   const [discipline, fasce, livelli, sedi, scuola] = await Promise.all([
-    supabase.from('discipline').select('id, nome, colore').eq('palestra_id', p).order('ordine'),
+    supabase.from('discipline').select('id, nome, colore').eq('palestra_id', p).order('nome'),
     supabase.from('fasce_eta').select('id, nome').eq('palestra_id', p).order('ordine'),
     supabase.from('livelli').select('id, nome').eq('palestra_id', p).order('ordine'),
     supabase.from('sedi').select('id, nome').eq('palestra_id', p).order('ordine'),

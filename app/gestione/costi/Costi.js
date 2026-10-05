@@ -68,7 +68,7 @@ export default function Costi({ palestraId, spese, fornitori, sale, corsi, inseg
 
       {sezione === 'fornitori' && (
         <Gestore
-          tabella="fornitori" fissi={fissi} righe={fornitori} etichettaNuovo="Aggiungi fornitore"
+          tabella="fornitori" ordinabile fissi={fissi} righe={fornitori} etichettaNuovo="Aggiungi fornitore"
           campi={[
             { k: 'nome', etichetta: 'Nome', tipo: 'testo', obbligatorio: true },
             { k: 'categoria', etichetta: 'Categoria', tipo: 'select', obbligatorio: true, opzioni: CATEGORIE.map((c) => ({ v: c, l: c })) },
@@ -93,7 +93,7 @@ export default function Costi({ palestraId, spese, fornitori, sale, corsi, inseg
             Se un insegnante è socio o non retribuito, lascia vuoto.
           </p>
           <Gestore
-            tabella="staff" fissi={fissi} righe={insegnanti} etichettaNuovo="Aggiungi insegnante"
+            tabella="staff" ordinabile fissi={fissi} righe={insegnanti} etichettaNuovo="Aggiungi insegnante"
             campi={[
               { k: 'nome', etichetta: 'Nome', tipo: 'testo', obbligatorio: true },
               { k: 'cognome', etichetta: 'Cognome', tipo: 'testo' },
@@ -114,7 +114,7 @@ export default function Costi({ palestraId, spese, fornitori, sale, corsi, inseg
             che serve a capire se una lezione semivuota si ripaga.
           </p>
           <Gestore
-            tabella="sale" fissi={fissi} righe={sale} etichettaNuovo="Aggiungi sala"
+            tabella="sale" ordinabile fissi={fissi} righe={sale} etichettaNuovo="Aggiungi sala"
             campi={[
               { k: 'nome', etichetta: 'Nome', tipo: 'testo', obbligatorio: true },
               { k: 'capienza', etichetta: 'Capienza', tipo: 'numero' },

@@ -3445,3 +3445,9 @@ form.periodo-date .btn { flex: none; width: auto; min-height: 36px; padding: 0 1
 .indice-cerca input:focus { outline: none; border-color: var(--nero); }
 .da-fare mark { background: #fff1a8; color: inherit; border-radius: 3px; padding: 0 1px; }
 @media (max-width: 899px) { .indice-cerca { max-width: none; } }
+
+/* Elenchi lunghi del Gestore (discipline, categorie, sale…): ricerca e ordine */
+.gestore-barra { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 4px 0 10px; }
+.gestore-barra input { flex: 1 1 240px; max-width: 380px; min-height: 40px; padding: 8px 12px; font: inherit; font-size: 15px; border: 1.5px solid var(--linea); border-radius: 12px; background: var(--bianco); }
+.gestore-barra input:focus { outline: none; border-color: var(--nero); }
+.gestore-barra select { min-height: 40px; padding: 6px 10px; font: inherit; font-size: 14px; border: 1.5px solid var(--linea); border-radius: 12px; background: var(--bianco); }

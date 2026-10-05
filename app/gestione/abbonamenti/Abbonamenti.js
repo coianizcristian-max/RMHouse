@@ -209,7 +209,7 @@ export default function Abbonamenti({ palestraId, sezioneIniziale = 'tipi', tipi
             Contributi, rimborsi spese, campus: si incassano e hanno la loro ricevuta, ma non danno accesso ai corsi.
           </p>
           <Gestore
-            tabella="voci_listino" fissi={{ palestra_id: palestraId }} righe={voci} etichettaNuovo="Aggiungi voce"
+            tabella="voci_listino" ordinabile fissi={{ palestra_id: palestraId }} righe={voci} etichettaNuovo="Aggiungi voce"
             vuoto="Nessuna voce a listino."
             campi={[
               { k: 'nome', etichetta: 'Nome', tipo: 'testo', obbligatorio: true },
