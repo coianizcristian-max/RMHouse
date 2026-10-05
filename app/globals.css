@@ -281,6 +281,14 @@ a.tessera:hover { border-color: var(--nero); }
 .copertina { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; border-radius: 12px; background: var(--carta); }
 .miniatura { width: 46px; height: 46px; border-radius: 50%; object-fit: cover; background: var(--carta); flex: none; }
 .miniatura-grande { width: 72px; height: 72px; border-radius: 14px; object-fit: cover; background: var(--carta); flex: none; }
+/* agenda settimanale: la griglia scorre dentro la finestra, così la barra orizzontale è sempre in vista */
+.griglia-settimana { max-height: calc(100dvh - 230px); min-height: 360px; }
+@media (max-width: 640px) { .griglia-settimana { max-height: calc(100dvh - 330px); min-height: 300px; } }
+/* schede Staff: la foto si vede davvero */
+.miniatura-staff { width: 88px; height: 88px; border-radius: 18px; object-fit: cover; background: var(--carta); flex: none; font-size: 24px; }
+/* elenco Corsi: la foto del corso prima del nome, della stessa altezza del riquadro */
+.miniatura-corso { width: 56px; height: 56px; border-radius: 12px; object-fit: cover; background: var(--carta); flex: none; font-size: 22px; font-weight: 700; }
+@media (max-width: 640px) { .miniatura-staff { width: 64px; height: 64px; border-radius: 14px; } .miniatura-corso { width: 44px; height: 44px; } }
 .segnaposto {
   display: flex; align-items: center; justify-content: center; background: var(--carta);
   color: var(--testo-2); font-weight: 800; font-stretch: 115%;

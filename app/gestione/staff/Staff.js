@@ -116,8 +116,8 @@ export default function Staff({ persone, orari, archiviati, salvato = null }) {
             <span className="banda" style={{ background: p.colore || 'var(--rosso)' }} />
             <span className="centro" style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
               {p.foto_url
-                ? <img src={p.foto_url} alt="" className="miniatura" />
-                : <span className="miniatura segnaposto">{(p.nome[0] || '') + (p.cognome?.[0] || '')}</span>}
+                ? <img src={p.foto_url} alt="" className="miniatura-staff" />
+                : <span className="miniatura-staff segnaposto">{(p.nome[0] || '') + (p.cognome?.[0] || '')}</span>}
               <span style={{ minWidth: 0 }}>
                 <Link prefetch={false} className="titolo" href={`/gestione/staff/${p.id}`} style={{ display: 'block' }}>{p.nome} {p.cognome}</Link>
                 <span className="riga" style={{ display: 'block' }}>

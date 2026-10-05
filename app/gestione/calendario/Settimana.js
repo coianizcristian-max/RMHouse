@@ -125,15 +125,17 @@ export default function Settimana({ inizio, lezioni, corsi = [], palestraId, ges
     <>
       {errore && <div className="errore" role="alert">{errore}</div>}
 
-      <div style={{ overflowX: 'auto', paddingBottom: 8, WebkitOverflowScrolling: 'touch', maxWidth: '100%' }}>
+      {/* la griglia scorre dentro la finestra (anche in orizzontale): la barra di scorrimento è sempre a portata di mano,
+          i giorni restano in alto e le ore a sinistra */}
+      <div className="griglia-settimana" style={{ overflow: 'auto', paddingBottom: 8, WebkitOverflowScrolling: 'touch', maxWidth: '100%' }}>
         <div style={{ display: 'grid', gridTemplateColumns: `42px repeat(7, minmax(${Math.min(62 * colonneMax, 250)}px, 1fr))`,
                       minWidth: 42 + 7 * Math.min(62 * colonneMax, 250) }}>
-          <div />
+          <div style={{ position: 'sticky', top: 0, left: 0, zIndex: 4, background: 'var(--bianco)' }} />
           {giorni.map((g, i) => (
             <button key={g} type="button" onClick={() => apriGiorno(g)}
                     style={{
-                      background: 'none', border: 0, cursor: 'pointer', font: 'inherit',
-                      padding: '6px 2px', fontSize: 13, fontWeight: 700,
+                      background: 'var(--bianco)', border: 0, cursor: 'pointer', font: 'inherit',
+                      padding: '6px 2px', fontSize: 13, fontWeight: 700, position: 'sticky', top: 0, zIndex: 3,
                       color: g === oggi ? 'var(--rosso)' : 'var(--nero)',
                       borderBottom: g === oggi ? '2px solid var(--rosso)' : '1px solid var(--linea)',
                     }}>
@@ -144,7 +146,7 @@ export default function Settimana({ inizio, lezioni, corsi = [], palestraId, ges
             </button>
           ))}
 
-          <div style={{ position: 'relative', height: altezza }}>
+          <div style={{ position: 'sticky', left: 0, zIndex: 2, background: 'var(--bianco)', height: altezza }}>
             {ore.map((h, i) => (piena(h) || !piena(ore[i - 1] ?? -1)) && (
               <div key={h} className="piccolo muto" style={{ position: 'absolute', top: inizioOra[i] - (piena(h) ? 6 : 2), fontSize: piena(h) ? 11 : 9 }}>
                 {String(h / 60).padStart(2, '0')}:00

@@ -53,7 +53,9 @@ export default async function Corsi({ searchParams }) {
             <Link prefetch={false} key={c.corso_id} className="scheda-corso" href={`/gestione/corsi/${c.corso_id}`}>
               <span className="banda" style={{ background: c.colore || 'var(--rosso)' }} />
               <span className="centro" style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-                {c.foto_url && <img src={c.foto_url} alt="" className="miniatura" />}
+                {c.foto_url
+                  ? <img src={c.foto_url} alt="" className="miniatura-corso" />
+                  : <span className="miniatura-corso segnaposto" style={{ color: c.colore || 'var(--rosso)' }}>{(c.corso_nome || '?').trim()[0]}</span>}
                 <span style={{ minWidth: 0 }}>
                   <span className="titolo" style={{ display: 'block' }}>{c.corso_nome}</span>
                   <span className="riga">{[c.fascia, c.livello].filter(Boolean).join(' · ')}</span>
