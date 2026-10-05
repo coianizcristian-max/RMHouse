@@ -231,6 +231,15 @@ export default function Guscio({ gestione, nome, ruolo, palestraId, funzioni = {
         )}
 
         <main className="contenuto">
+          {/* Computer, menù a scomparsa: le voci dell'area come schede in cima alla pagina (Palinsesto · Agenda settimanale · …),
+              così si passa da un calendario all'altro senza riaprire il menù, come nella vecchia app */}
+          {!fisso && voci.length > 1 && (
+            <nav className="schede-area solo-desktop" aria-label={`Pagine di ${area?.titolo}`}>
+              {voci.map((v) => (
+                <Link prefetch={false} key={v.href} href={v.href} aria-current={voceAttiva(v) ? 'page' : undefined}>{v.testo}</Link>
+              ))}
+            </nav>
+          )}
           {vietata ? (
             <div className="vuoto" style={{ marginTop: 30 }}>
               <strong>Questa pagina non è disponibile per il tuo ruolo.</strong>
