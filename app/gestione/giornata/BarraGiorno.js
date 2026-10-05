@@ -20,7 +20,8 @@ export default function BarraGiorno({ base, data, sede, sedi = [], vista }) {
         <Link prefetch={false} className="btn btn-piccolo" href={link(spostaGiorni(data, 1))} aria-label="Giorno dopo">›</Link>
         <form action={base} className="bg-data">
           {sede && <input type="hidden" name="sede" value={sede} />}
-          <input type="date" name="giorno" defaultValue={data} aria-label="Scegli il giorno" />
+          {/* key: cambiando giorno con ‹ › il campo si aggiorna (altrimenti restava la data di prima) */}
+          <input key={data} type="date" name="giorno" defaultValue={data} aria-label="Scegli il giorno" />
           <button className="btn btn-piccolo">Vai</button>
         </form>
         {vista === 'sale' && sedi.length > 1 && (

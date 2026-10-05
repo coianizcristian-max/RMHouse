@@ -128,8 +128,8 @@ export default function Settimana({ inizio, lezioni, corsi = [], palestraId, ges
       {/* la griglia scorre dentro la finestra (anche in orizzontale): la barra di scorrimento è sempre a portata di mano,
           i giorni restano in alto e le ore a sinistra */}
       <div className="griglia-settimana" style={{ overflow: 'auto', paddingBottom: 8, WebkitOverflowScrolling: 'touch', maxWidth: '100%' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: `42px repeat(7, minmax(${Math.min(62 * colonneMax, 250)}px, 1fr))`,
-                      minWidth: 42 + 7 * Math.min(62 * colonneMax, 250) }}>
+        <div style={{ display: 'grid', gridTemplateColumns: `42px repeat(7, minmax(${Math.min(58 * colonneMax, 220)}px, 1fr))`,
+                      minWidth: 42 + 7 * Math.min(58 * colonneMax, 220) }}>
           <div style={{ position: 'sticky', top: 0, left: 0, zIndex: 4, background: 'var(--bianco)' }} />
           {giorni.map((g, i) => (
             <button key={g} type="button" onClick={() => apriGiorno(g)}

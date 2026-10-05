@@ -33,7 +33,9 @@ export default function Giornata({ colonne, blocchi, oggi }) {
 
   return (
     <div className="giornata-scorre">
-      <div className="giornata" style={{ gridTemplateColumns: `52px repeat(${colonne.length}, minmax(170px, 1fr))` }}>
+      {/* le colonne si allargano fino a riempire lo schermo, ma non oltre 300 px l'una; si scorre di lato solo
+          se non ci stanno nemmeno a 110 px */}
+      <div className="giornata" style={{ gridTemplateColumns: `52px repeat(${colonne.length}, minmax(110px, 1fr))`, maxWidth: 52 + colonne.length * 300 }}>
         <div className="g-angolo" />
         {colonne.map((c) => (
           <div key={c.id} className="g-testa">
