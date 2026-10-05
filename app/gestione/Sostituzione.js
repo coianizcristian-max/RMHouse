@@ -27,6 +27,7 @@ export default function Sostituzione({ lezioneId, gestione, onFatto }) {
   const [ambito, setAmbito] = useState('orario');    // orario | corso
   const [errore, setErrore] = useState('');
   const [invio, setInvio] = useState(false);
+  const [conflitti, setConflitti] = useState(null);   // la persona scelta è già occupata a quell'ora?
 
   useEffect(() => {
     const db = supabaseBrowser();
@@ -42,6 +43,16 @@ export default function Sostituzione({ lezioneId, gestione, onFatto }) {
       setL(lez); setStaff(s || []); setIo(me || null);
     })();
   }, [lezioneId]);
+
+  // appena si sceglie chi e quali lezioni: controllo che non sia già occupata alla stessa ora
+  useEffect(() => {
+    if (!l || !chi) { setConflitti(null); return; }
+    const blocco = gestione && quali !== 'una';
+    supabaseBrowser().rpc('verifica_sostituzione', {
+      p_lezione: l.id, p_staff: chi, p_da_oggi: blocco && quali === 'prossime',
+      p_fino: blocco && quali === 'fino' && fino ? fino : null, p_tutto_corso: blocco && (ambito === 'corso' || !l.orario_id),
+    }).then(({ data }) => setConflitti(data?.insegnante?.length ? data.insegnante : null));
+  }, [l, chi, quali, fino, ambito, gestione]);
 
   if (!l || l.stato === 'annullata') return null;
   const nome = (id) => { const s = staff.find((x) => x.id === id); return s ? `${s.nome} ${s.cognome || ''}`.trim() : ''; };
@@ -102,6 +113,11 @@ export default function Sostituzione({ lezioneId, gestione, onFatto }) {
               )}
               {quali === 'fino' && <p className="piccolo muto" style={{ margin: 0 }}>Dopo quella data le lezioni tornano alla titolare.</p>}
             </fieldset>
+          )}
+          {conflitti && (
+            <p className="errore" role="alert" style={{ margin: 0 }}>
+              Attenzione: {nome(chi)} ha già {conflitti.slice(0, 3).map((c) => `${c.corso} (${c.quando}${c.volte > 1 ? `, ${c.volte} volte` : ''})`).join(', ')} alla stessa ora.
+            </p>
           )}
           {!gestione && <p className="piccolo muto" style={{ margin: 0 }}>Vale solo per questa lezione. Chi scegli riceve la notifica e la trova nella sua app; la segreteria viene avvisata.</p>}
           <span className="sost-azioni">

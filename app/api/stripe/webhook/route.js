@@ -52,6 +52,47 @@ async function segnaCommissione(db, intent) {
   if (fee != null) await db.from('pagamenti').update({ commissione_cent: fee }).eq('stripe_payment_intent', intent);
 }
 
+// Il giorno dopo una data (YYYY-MM-DD), alle 6 di mattina in Italia, in secondi
+function giornoDopoAlleSei(data) {
+  const d = new Date(`${data}T12:00:00Z`); d.setUTCDate(d.getUTCDate() + 1);
+  const g = d.toISOString().slice(0, 10);
+  const prova = new Date(`${g}T06:00:00Z`);
+  const ore = Number(new Intl.DateTimeFormat('it-IT', { timeZone: 'Europe/Rome', hour: '2-digit', hourCycle: 'h23' }).format(prova));
+  return Math.floor(prova.getTime() / 1000) - (ore - 6) * 3600;
+}
+
+// Rinnovo automatico (mese solare): il primo mese è appena stato pagato; su Stripe si crea il rinnovo con la carta
+// salvata e il primo addebito il 1° del mese dopo la scadenza (prova gratuita fino a quel giorno, senza importi a metà).
+async function attivaRinnovo(db, acquistoId, iscrizioneId, s, intent) {
+  const { data: gia } = await db.from('abbonamenti_ricorrenti').select('id').eq('ultima_iscrizione_id', iscrizioneId).maybeSingle();
+  if (gia) return;
+  const { data: q } = await db.from('acquisti_online')
+    .select('palestra_id, allievi ( nome, cognome ), corsi ( nome ), tipi_abbonamento ( nome, durata_mesi, prezzo_cent, prezzo_web_cent )')
+    .eq('id', acquistoId).maybeSingle();
+  const { data: i } = await db.from('iscrizioni').select('data_fine').eq('id', iscrizioneId).maybeSingle();
+  try {
+    const pi = await stripe('GET', `payment_intents/${intent}`);
+    const cliente = s.customer || pi.customer;
+    if (!pi.payment_method || !cliente) throw new Error('carta non salvata');
+    const t = q.tipi_abbonamento;
+    const prodotto = await stripe('POST', 'products', { name: `${t.nome} · ${q.corsi.nome} · ${q.allievi.nome}`.slice(0, 250) }, `prodotto-${acquistoId}`);
+    const sub = await stripe('POST', 'subscriptions', {
+      customer: cliente,
+      default_payment_method: pi.payment_method,
+      items: [{ price_data: { currency: 'eur', product: prodotto.id, unit_amount: t.prezzo_web_cent || t.prezzo_cent,
+                              recurring: { interval: 'month', interval_count: Math.max(1, t.durata_mesi || 1) } } }],
+      trial_end: giornoDopoAlleSei(i.data_fine),
+      proration_behavior: 'none',
+      metadata: { tipo: 'rinnovo', acquisto_id: acquistoId },
+    }, `rinnovo-${acquistoId}`);
+    await rpc(db, 'collega_ricorrente', { p_acquisto: acquistoId, p_subscription: sub.id });
+  } catch (e) {
+    console.error('Rinnovo automatico non attivato', acquistoId, e.message);
+    await db.from('promemoria').insert({ palestra_id: q?.palestra_id, data: new Date().toISOString().slice(0, 10), creato_da: 'Stripe',
+      testo: `Rinnovo automatico non attivato per ${q?.allievi?.nome || ''} ${q?.allievi?.cognome || ''}: il mese è pagato, il prossimo va rinnovato a mano o rifatto dall'app (${e.message}).` });
+  }
+}
+
 async function gestisci(db, evento) {
   const o = evento.data.object;
 
@@ -72,6 +113,7 @@ async function gestisci(db, evento) {
         await segnaCommissione(db, intent);
       }
       await ricevutaAutomatica(db, m.pagamento_id);
+      if (iscr && m.ricorrente === '1' && !s.subscription) await attivaRinnovo(db, m.acquisto_id, iscr, s, intent);
       return iscr ? 'iscrizione creata' : 'pagato, iscrizione da sistemare a mano';
     }
     if (m.tipo === 'rata') {
@@ -115,6 +157,14 @@ async function gestisci(db, evento) {
   if (evento.type === 'customer.subscription.deleted') {
     await rpc(db, 'stato_ricorrente', { p_subscription: o.id, p_stato: 'annullato' });
     return 'rinnovo annullato';
+  }
+
+  if (evento.type === 'charge.dispute.created' && o.payment_intent) {
+    const g = await rpc(db, 'segnala_contestazione', {
+      p_intent: o.payment_intent, p_importo_cent: o.amount ?? null, p_motivo: o.reason || null,
+      p_entro: o.evidence_details?.due_by ? new Date(o.evidence_details.due_by * 1000).toISOString() : null,
+    });
+    return g ? 'contestazione segnalata' : 'contestazione di un pagamento sconosciuto';
   }
 
   if (evento.type === 'charge.refunded' && o.payment_intent) {

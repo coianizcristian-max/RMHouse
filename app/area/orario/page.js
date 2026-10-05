@@ -17,12 +17,13 @@ export default async function PaginaOrario({ searchParams }) {
   const oggi = oggiISO();
   const g = /^\d{4}-\d{2}-\d{2}$/.test(giorno || '') && giorno >= oggi ? giorno : oggi;
 
-  const [{ data: dati }, { data: lezioni }, { data: regole }, { data: perMese }, { data: sedi }] = await Promise.all([
+  const [{ data: dati }, { data: lezioni }, { data: regole }, { data: perMese }, { data: sedi }, { data: code }] = await Promise.all([
     supabase.rpc('area_riepilogo'),
     supabase.rpc('orario_area', { p_giorno: g, p_sede: null }),
     supabase.rpc('disdette_area'),
     supabase.rpc('recuperi_per_mese'),
     supabase.from('sedi').select('id, nome, principale').eq('visibile', true).order('principale', { ascending: false }).order('ordine'),
+    supabase.from('liste_attesa').select('lezione_id, allievo_id').in('stato', ['in_attesa', 'avvisato']).not('lezione_id', 'is', null),
   ]);
   const massimo = regole?.recuperi_max_mese ?? null;
   const meseDi = (iso) => new Date(iso).toLocaleDateString('sv-SE', { timeZone: 'Europe/Rome' }).slice(0, 7);
@@ -48,5 +49,6 @@ export default async function PaginaOrario({ searchParams }) {
   }
 
   return <Orario giorno={g} oggi={oggi} lezioni={lezioni || []} prenotabili={prenotabili} sedi={sedi || []}
-                 allievi={(dati.allievi || []).map((a) => ({ id: a.id, nome: a.nome }))} />;
+                 allievi={(dati.allievi || []).map((a) => ({ id: a.id, nome: a.nome }))}
+                 inCoda={(code || []).map((c) => `${c.lezione_id}:${c.allievo_id}`)} />;
 }

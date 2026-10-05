@@ -7,6 +7,7 @@ import { dataBreve, euro } from '@/lib/formato';
 
 const GIORNI = ['', 'Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab', 'Dom'];
 const ERRORI = {
+  orario_non_attivo: 'Il giorno chiesto è stato sospeso: senti il cliente per un altro giorno e rifiuta la richiesta.',
   iscrizione_gia_attiva: 'Ha già un abbonamento attivo per questo corso: controlla la scheda.',
   richiesta_non_trovata: 'Un\'altra persona dello staff l\'ha già gestita.',
 };

@@ -9,6 +9,7 @@ const ERRORI = {
   ha_presenze: 'Ha già delle presenze registrate: non si può eliminare. Puoi annullarla.',
   ha_ingressi_usati: 'Ha già usato degli ingressi: non si può eliminare. Puoi annullarla.',
   collegata_ad_altri_dati: 'È collegata ad altri dati (ricevute, acquisti online): non si può eliminare. Puoi annullarla.',
+  orario_non_attivo: 'Uno dei giorni dell\'abbonamento è stato sospeso: cambia i giorni prima di rinnovare.',
   iscrizione_gia_attiva: 'Con queste date si sovrappone a un\'altra iscrizione allo stesso corso.',
   date_non_valide: 'La fine viene prima dell\'inizio.',
   sconto_non_valido: 'Lo sconto non può superare il prezzo dell\'abbonamento.',

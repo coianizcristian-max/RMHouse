@@ -14,6 +14,7 @@ const MOTIVI_DISDETTA = {
   gia_disdetta: 'Questa lezione era già disdetta.',
   credito_gia_usato: 'Il recupero di questa lezione è già stato usato: non si può tornare indietro.',
   lezione_al_completo: 'Nel frattempo il posto è stato preso: la lezione è al completo.',
+  lezione_sovrapposta: 'A quell\'ora hai già un\'altra lezione: disdici quella prima, se vuoi cambiare.',
 };
 const motivo = (e, base) => MOTIVI_DISDETTA[Object.keys(MOTIVI_DISDETTA).find((k) => e?.message?.includes(k))] || base;
 
@@ -76,7 +77,8 @@ export default function Riepilogo({ dati, materiali = [], inVerifica = [], aspet
 
   async function togliDaAttesa(a) {
     if (!confirm(`Toglierti dalla lista d'attesa di ${a.corso}?`)) return;
-    await supabaseBrowser().from('liste_attesa').update({ stato: 'annullata' }).eq('id', a.id);
+    const { error } = await supabaseBrowser().rpc('esci_dalla_coda', { p_id: a.id });
+    if (error) { alert('Non riuscito. Riprova.'); return; }
     router.refresh();
   }
 
@@ -283,7 +285,8 @@ export default function Riepilogo({ dati, materiali = [], inVerifica = [], aspet
           <ul className="elenco">
             {dati.attese.map((a) => (
               <li key={a.id} className="persona">
-                <span>{a.corso}<span className="piccolo muto" style={{ display: 'block' }}>{a.allievo} · ti avvisiamo appena si libera un posto</span></span>
+                <span>{a.corso}{a.lezione ? ` · ${giornoCorto(a.lezione)} alle ${new Date(a.lezione).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Rome' })}` : ''}
+                  <span className="piccolo muto" style={{ display: 'block' }}>{a.allievo} · {a.stato === 'avvisato' ? 'si è liberato un posto: prenotalo prima che lo prenda un altro' : 'ti avvisiamo appena si libera un posto'}</span></span>
                 <button className="link-btn piccolo" onClick={() => togliDaAttesa(a)}>esci</button>
               </li>
             ))}

@@ -2458,7 +2458,7 @@ html[data-tema="scuro"]:has(.pagina-area) {
 .aq-chips button { display: inline-flex; align-items: center; gap: 6px; padding: 7px 12px; border-radius: 999px; border: 1px solid var(--linea); background: var(--bianco); font: inherit; font-size: 13.5px; font-weight: 650; color: var(--testo); cursor: pointer; }
 .aq-chips button[aria-pressed='true'] { background: var(--nero); border-color: var(--nero); color: var(--bianco); }
 .aq-inizio { display: grid; gap: 4px; }
-.aq-inizio input { min-height: 40px; padding: 6px 10px; border: 1px solid var(--linea); border-radius: 10px; font: inherit; max-width: 200px; background: var(--bianco); color: var(--testo); }
+.aq-inizio input, .aq-inizio select { min-height: 40px; padding: 6px 10px; border: 1px solid var(--linea); border-radius: 10px; font: inherit; max-width: 200px; background: var(--bianco); color: var(--testo); }
 .aq-totale { display: grid; gap: 3px; padding: 10px 12px; border-radius: 12px; background: var(--carta); font-size: 14px; }
 .aq-totale > span { display: flex; justify-content: space-between; gap: 10px; }
 .aq-somma { border-top: 1px solid var(--linea); padding-top: 5px; margin-top: 3px; font-size: 17px; color: var(--nero); }
@@ -3147,3 +3147,6 @@ form.periodo-date .btn { flex: none; width: auto; min-height: 36px; padding: 0 1
 .ev-chi { min-width: 0; }
 .ev-stato { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; }
 .ev-stato .link-btn.attivo { color: var(--ok); font-weight: 700; }
+
+/* 116 · coda per lezioni e giorni pieni */
+.aq-coda { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin-top: 6px; }

@@ -11,7 +11,10 @@ const MESSAGGI = {
   scegli_i_giorni: 'Scegli i giorni in cui verrai.',
   troppi_giorni: 'Hai scelto più giorni di quelli compresi nell\'abbonamento.',
   prezzo_mancante: 'Prezzo non disponibile: chiedi in segreteria.',
+  orario_non_attivo: 'Uno dei giorni scelti non c\'è più: aggiorna la pagina e scegline un altro.',
   orario_pieno: 'Uno dei giorni scelti è al completo: scegline un altro o chiedi alla segreteria la lista d\'attesa.',
+  eta_non_adatta: 'Questo corso è per un\'altra età: chiedi alla segreteria quello giusto.',
+  inizio_meta_mese: 'Gli abbonamenti vanno a mese solare: dall\'app si parte il 1° del mese. Per iniziare adesso passa dalla segreteria, che ti fa l\'importo per i giorni che restano.',
 };
 
 // Acquisto di un abbonamento dall'area clienti: prepara l'iscrizione e apre la cassa di Stripe
@@ -40,11 +43,10 @@ export async function POST(request) {
   const db = supabaseAdmin();
   const { data: acc } = await db.from('account').select('email, stripe_customer_id').eq('user_id', user.id).limit(1).maybeSingle();
   const sito = baseUrl(request);
-  const metadata = { tipo: 'acquisto', acquisto_id: a.acquisto_id, pagamento_id: a.pagamento_id, riferimento: a.acquisto_id };
+  const metadata = { tipo: 'acquisto', acquisto_id: a.acquisto_id, pagamento_id: a.pagamento_id, riferimento: a.acquisto_id, ...(a.ricorrente ? { ricorrente: '1' } : {}) };
   try {
-    const righe = a.righe.map((r, i) => ({ ...r, ricorrente: i === 0 }));   // solo l'abbonamento si ripete, la quota no
     const s = await creaCheckout({
-      righe, metadata, ricorrente: a.ricorrente, cliente: acc?.stripe_customer_id, email: acc?.email || user.email,
+      righe: a.righe, metadata, ricorrente: a.ricorrente, cliente: acc?.stripe_customer_id, email: acc?.email || user.email,
       successo: `${sito}/abbonamento/grazie?s={CHECKOUT_SESSION_ID}`, annullato: `${sito}/abbonamento?annullato=1`,
     });
     await db.from('acquisti_online').update({ stripe_session_id: s.id }).eq('id', a.acquisto_id);

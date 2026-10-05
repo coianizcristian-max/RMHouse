@@ -12,14 +12,26 @@ const durata = (t) => {
   const m = t.durata_mesi || Math.max(1, Math.round((t.durata_giorni || 30) / 30));
   return m === 1 ? '1 mese' : m >= 9 ? `${m} mesi (annuale)` : `${m} mesi`;
 };
+// mese solare: scade a fine mese (non a ingressi né a giorni): dall'app si parte il 1° del mese
+const aMese = (t) => !!t && t.scadenza_fine_mese !== false && t.modalita !== 'ingressi' && (!t.durata_giorni || t.durata_giorni >= 28);
+const primiDelMese = () => {
+  const o = oggi(); const [y, m] = o.split('-').map(Number); const out = [];
+  if (o.endsWith('-01')) out.push(o);
+  for (let k = 1; out.length < 3; k++) { const d = new Date(Date.UTC(y, m - 1 + k, 1)); out.push(d.toISOString().slice(0, 10)); }
+  return out;
+};
+const nomeMese = (d) => new Date(`${d}T12:00:00Z`).toLocaleDateString('it-IT', { month: 'long', year: 'numeric', timeZone: 'UTC' });
 const giornoDopo = (d) => { const x = new Date(`${d}T12:00:00`); x.setDate(x.getDate() + 1); return x.toISOString().slice(0, 10); };
 const ERRORI = {
   richiesta_gia_inviata: 'L\'hai già chiesto: la segreteria lo attiva appena arriva il bonifico.',
   scegli_i_giorni: 'Scegli i giorni in cui verrai.',
   abbonamento_non_disponibile: 'Questo abbonamento non è più disponibile.',
   corso_non_aperto: 'Le iscrizioni a questo corso non sono aperte.',
+  orario_non_attivo: 'Uno dei giorni scelti non c\'è più: aggiorna la pagina e scegline un altro.',
   orario_pieno: 'Uno dei giorni scelti è al completo: scegline un altro o chiedi alla segreteria la lista d\'attesa.',
   troppi_giorni: 'Hai scelto più giorni di quelli compresi nell\'abbonamento.',
+  eta_non_adatta: 'Questo corso è per un\'altra età: chiedi alla segreteria quello giusto.',
+  inizio_meta_mese: 'Gli abbonamenti vanno a mese solare: dall\'app si parte il 1° del mese. Per iniziare adesso passa dalla segreteria.',
 };
 
 export default function Acquista({ allievi, tipi, corsi, orari, coperti, gruppi, corsoIniziale, quotaCent, carta, rinnovo, bonifico, annullato, pieni = [], attivi = [] }) {
@@ -34,6 +46,12 @@ export default function Acquista({ allievi, tipi, corsi, orari, coperti, gruppi,
   const [tuttiCorsi, setTuttiCorsi] = useState(false);
   const [invio, setInvio] = useState(false);
   const [errore, setErrore] = useState(annullato ? 'Pagamento non completato: non ti abbiamo addebitato nulla.' : '');
+  const [inCoda, setInCoda] = useState([]);   // giorni pieni per cui si è messo in coda
+  async function inCodaPer(o) {
+    const { error } = await supabaseBrowser().rpc('mettimi_in_coda_orario', { p_allievo: chi, p_orario: o.id });
+    if (error) { setErrore('Non riuscito. Riprova.'); return; }
+    setInCoda([...inCoda, o.id]);
+  }
   const [richiesta, setRichiesta] = useState(null);       // esito del bonifico
   const persona = allievi.find((a) => a.id === chi);
 
@@ -64,6 +82,7 @@ export default function Acquista({ allievi, tipi, corsi, orari, coperti, gruppi,
   const inCorso = attivi.filter((a) => a.allievo_id === chi && a.corso_id === f.corso && a.data_fine >= f.inizio)
     .sort((a, b) => b.data_fine.localeCompare(a.data_fine))[0];
   const inizioVero = inCorso ? giornoDopo(inCorso.data_fine) : f.inizio;
+  const metaMese = aMese(tipo) && !inizioVero.endsWith('-01');   // dall'app no: l'importo lo fa la segreteria
 
   // data di fine calcolata dal database (mese solare, giorni…), così è quella vera
   useEffect(() => {
@@ -76,7 +95,7 @@ export default function Acquista({ allievi, tipi, corsi, orari, coperti, gruppi,
     const lista = corsiDi[t.id];
     setScelto(t.id); setDescrizione(false); setTuttiCorsi(false); setErrore(''); setRichiesta(null);
     const aperti = lista.filter((c) => (c.iscrizioni_app || 'aperte') === 'aperte');
-    setF({ corso: corsoFiltro && aperti.some((c) => c.id === corsoFiltro) ? corsoFiltro : aperti.length === 1 ? aperti[0].id : '', orari: [], inizio: oggi(), ricorrente: false });
+    setF({ corso: corsoFiltro && aperti.some((c) => c.id === corsoFiltro) ? corsoFiltro : aperti.length === 1 ? aperti[0].id : '', orari: [], inizio: aMese(t) ? primiDelMese()[0] : oggi(), ricorrente: false });
   }
   function alterna(id) {
     setF((v) => ({ ...v, orari: v.orari.includes(id) ? v.orari.filter((x) => x !== id) : v.orari.length >= max ? v.orari : [...v.orari, id] }));
@@ -84,6 +103,7 @@ export default function Acquista({ allievi, tipi, corsi, orari, coperti, gruppi,
   function controlla() {
     if (!f.corso) { setErrore('Scegli il corso.'); return false; }
     if (tipo.modalita === 'orari_fissi' && f.orari.length === 0) { setErrore('Scegli i giorni in cui verrai.'); return false; }
+    if (metaMese) { setErrore(ERRORI.inizio_meta_mese); return false; }
     setErrore(''); return true;
   }
 
@@ -177,17 +197,39 @@ export default function Acquista({ allievi, tipi, corsi, orari, coperti, gruppi,
                           ))}
                         </div>
                       )}
+                      {orariCorso.some((o) => pieni.includes(o.id)) && (
+                        <p className="ac-nota aq-coda">Il giorno che vuoi è al completo?{' '}
+                          {orariCorso.filter((o) => pieni.includes(o.id)).map((o) => (
+                            inCoda.includes(o.id)
+                              ? <span key={o.id} className="tag tag-attenzione">in coda per {GIORNI[o.giorno_settimana]} {String(o.ora_inizio).slice(0, 5)}</span>
+                              : <button key={o.id} type="button" className="link-btn" disabled={invio} onClick={() => inCodaPer(o)}>Mettimi in coda per {GIORNI[o.giorno_settimana]} {String(o.ora_inizio).slice(0, 5)}</button>
+                          ))}
+                        </p>
+                      )}
                     </>
                   )}
 
-                  <label className="aq-inizio"><span className="aq-etichetta">Inizia il</span>
-                    <input type="date" value={f.inizio} min={oggi()} onChange={(e) => setF({ ...f, inizio: e.target.value })} />
-                    {f.ricorrente
-                      ? <span className="ac-nota">{inCorso ? `dal ${dataBreve(inizioVero)} ` : ''}si rinnova ogni mese il giorno {Number(inizioVero.slice(8, 10))}</span>
-                      : fine && <span className="ac-nota">{inCorso ? `dal ${dataBreve(inizioVero)} ` : ''}valido fino al {dataBreve(fine)}</span>}
-                  </label>
-                  {inCorso && (
-                    <p className="ac-nota aq-avviso">Hai già un abbonamento a questo corso fino al {dataBreve(inCorso.data_fine)}: il nuovo parte dal {dataBreve(inizioVero)}. Per aggiungere un giorno da subito chiedi alla segreteria.</p>
+                  {aMese(t) ? (
+                    <label className="aq-inizio"><span className="aq-etichetta">Da</span>
+                      <select value={f.inizio} onChange={(e) => setF({ ...f, inizio: e.target.value })}>
+                        {primiDelMese().map((d) => <option key={d} value={d}>{nomeMese(d)}</option>)}
+                      </select>
+                      {fine && !inCorso && <span className="ac-nota">dal {dataBreve(inizioVero)} al {dataBreve(fine)}{f.ricorrente ? ', poi si rinnova il 1° di ogni mese' : ''}</span>}
+                    </label>
+                  ) : !aMese(t) ? (
+                    <label className="aq-inizio"><span className="aq-etichetta">Inizia il</span>
+                      <input type="date" value={f.inizio} min={oggi()} onChange={(e) => setF({ ...f, inizio: e.target.value })} />
+                      {fine && <span className="ac-nota">{inCorso ? `dal ${dataBreve(inizioVero)} ` : ''}valido fino al {dataBreve(fine)}</span>}
+                    </label>
+                  ) : null}
+                  {aMese(t) && !inCorso && !oggi().endsWith('-01') && (
+                    <p className="ac-nota">Gli abbonamenti vanno a mese solare, dal 1° a fine mese. Vuoi iniziare subito? Passa dalla segreteria: ti fa l'importo per i giorni che restano.</p>
+                  )}
+                  {inCorso && !metaMese && (
+                    <p className="ac-nota aq-avviso">Hai già un abbonamento a questo corso fino al {dataBreve(inCorso.data_fine)}: il nuovo va dal {dataBreve(inizioVero)}{fine ? ` al ${dataBreve(fine)}` : ''}{f.ricorrente ? ', poi si rinnova il 1° di ogni mese' : ''}. Per aggiungere un giorno da subito chiedi alla segreteria.</p>
+                  )}
+                  {metaMese && inCorso && (
+                    <p className="ac-nota aq-avviso">Il tuo abbonamento a questo corso finisce il {dataBreve(inCorso.data_fine)}, a metà mese: per i giorni che restano passa dalla segreteria, che ti fa l'importo, oppure scegli il mese dopo.</p>
                   )}
 
                   <div className="aq-totale">
@@ -216,12 +258,12 @@ export default function Acquista({ allievi, tipi, corsi, orari, coperti, gruppi,
                         <>
                           {rinnovo && t.rinnovo_automatico && (
                             <label className="spunta"><input type="checkbox" checked={f.ricorrente} onChange={(e) => setF({ ...f, ricorrente: e.target.checked })} />
-                              <span>Rinnovo automatico ogni mese con la stessa carta: l'abbonamento va di mese in mese dal giorno d'inizio (lo disdici quando vuoi)</span></label>
+                              <span>Rinnovo automatico con la stessa carta: il 1° di ogni mese paghi il mese nuovo (lo disdici quando vuoi)</span></label>
                           )}
-                          <button className="btn btn-primario" disabled={invio} onClick={conCarta}>{invio ? 'Un attimo…' : `Paga ${euro(prezzo + quota)} con carta`}</button>
+                          <button className="btn btn-primario" disabled={invio || metaMese} onClick={conCarta}>{invio ? 'Un attimo…' : `Paga ${euro(prezzo + quota)} con carta`}</button>
                         </>
                       )}
-                      <button className={`btn ${carta ? '' : 'btn-primario'}`} disabled={invio} onClick={conBonifico}>{invio ? 'Un attimo…' : 'Paga con bonifico'}</button>
+                      <button className={`btn ${carta ? '' : 'btn-primario'}`} disabled={invio || metaMese} onClick={conBonifico}>{invio ? 'Un attimo…' : 'Paga con bonifico'}</button>
                     </div>
                   )}
                 </div>

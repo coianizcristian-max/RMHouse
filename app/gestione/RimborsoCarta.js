@@ -29,7 +29,7 @@ export default function RimborsoCarta({ pagamento, conDocumento = true }) {
     const d = await r.json().catch(() => ({}));
     setInvio(false);
     if (!r.ok) { setErrore(d.errore || 'Rimborso non riuscito.'); return; }
-    setEsito(d.avviso || `Rimborso di ${euro(cent)} fatto${d.nota ? ' e nota di credito emessa' : ''}. Il cliente vede i soldi sulla carta in 5-10 giorni.`);
+    setEsito(d.avviso || `Rimborso di ${euro(cent)} fatto${d.nota ? ' e nota di credito emessa' : ''}. Il cliente vede i soldi sulla carta in 5-10 giorni.${cent === residuo && pagamento.causale !== 'prova' ? ' Se c\'era un abbonamento collegato e non vale più, annullalo dalla scheda della persona.' : ''}`);
     router.refresh();
   }
 

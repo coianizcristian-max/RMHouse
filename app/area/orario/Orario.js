@@ -7,6 +7,7 @@ import { ora } from '@/lib/formato';
 
 const MOTIVI = {
   lezione_al_completo: 'Nel frattempo si è riempita.',
+  lezione_sovrapposta: 'A quell\'ora hai già un\'altra lezione: disdici quella prima, se vuoi cambiare.',
   limite_recuperi_mese: 'Hai già fatto tutti i recuperi di quel mese.',
   lezione_non_disponibile: 'Quella lezione non è più prenotabile.',
   certificato_scaduto: 'Il certificato medico non è valido per quel giorno: caricalo da "Io".',
@@ -28,7 +29,7 @@ function giorni(oggi, da = oggi) {
   return out;
 }
 
-export default function Orario({ giorno: iniziale, oggi, lezioni: primeLezioni, prenotabili, allievi, sedi = [] }) {
+export default function Orario({ giorno: iniziale, oggi, lezioni: primeLezioni, prenotabili, allievi, sedi = [], inCoda = [] }) {
   const router = useRouter();
   const [giorno, setGiorno] = useState(iniziale);
   const [lezioni, setLezioni] = useState(primeLezioni);
@@ -36,6 +37,7 @@ export default function Orario({ giorno: iniziale, oggi, lezioni: primeLezioni, 
   const [sede, setSede] = useState('');
   const [spiega, setSpiega] = useState(null);     // lezione senza abbonamento adatto
   const [avvisati, setAvvisati] = useState([]);   // corsi in partenza per cui ha chiesto l'avviso
+  const [coda, setCoda] = useState(inCoda);        // "lezione:allievo" in coda
   const [carico, setCarico] = useState(false);
   const [chiedo, setChiedo] = useState(null);       // { lezione, opzioni }
   const [invio, setInvio] = useState(false);
@@ -91,6 +93,20 @@ export default function Orario({ giorno: iniziale, oggi, lezioni: primeLezioni, 
     const { data } = await db.rpc('orario_area', { p_giorno: giorno, p_sede: sede || null });
     setLezioni(data || []);
     router.refresh();
+  }
+
+  // lezione piena: in coda (la segreteria lo vede e, se qualcuno disdice, arriva l'avviso)
+  async function mettimiInCoda(l, voce) {
+    setInvio(true); setErrore(''); setAvviso('');
+    const { error } = await supabaseBrowser().rpc('mettimi_in_coda', { p_lezione: l.lezione_id, p_allievo: voce.allievo_id });
+    setInvio(false); setChiedo(null);
+    if (error) {
+      setErrore(error.message?.includes('ci_sono_posti') ? 'Nel frattempo si è liberato un posto: prenotalo!' : 'Non riuscito. Riprova.');
+      if (error.message?.includes('ci_sono_posti')) carica(giorno, sede);
+      return;
+    }
+    setCoda([...coda, `${l.lezione_id}:${voce.allievo_id}`]);
+    setAvviso(`Sei in coda per ${l.corso} alle ${ora(l.inizio)}${piu ? ` (${voce.nome})` : ''}: se qualcuno disdice ti avvisiamo, e la segreteria ti può chiamare.`);
   }
 
   async function avvisami(l) {
@@ -173,6 +189,10 @@ export default function Orario({ giorno: iniziale, oggi, lezioni: primeLezioni, 
                   : passata ? null
                   : opzioni.length > 0 && liberi !== 0
                     ? <button className="btn btn-piccolo btn-primario" disabled={invio} onClick={() => setChiedo(chiedo === k ? null : k)}>Prenota</button>
+                  : liberi === 0 && opzioni.length > 0 && opzioni.every((v) => coda.includes(`${k}:${v.allievo_id}`))
+                    ? <span className="tag tag-attenzione">in coda</span>
+                  : liberi === 0 && opzioni.length > 0
+                    ? <button className="btn btn-piccolo" disabled={invio} onClick={() => (opzioni.length === 1 ? mettimiInCoda(l, opzioni[0]) : setChiedo(chiedo === `coda:${k}` ? null : `coda:${k}`))}>Completa<small>mettimi in coda</small></button>
                   : liberi === 0 ? <span className="tag tag-neutro">completa</span>
                   : !l.prenotabile && !l.per_tutti ? <span className="piccolo muto">non prenotabile</span>
                   : <button className="btn btn-piccolo or-prenota-no" onClick={() => setSpiega(spiega === k ? null : k)}>
@@ -211,6 +231,17 @@ export default function Orario({ giorno: iniziale, oggi, lezioni: primeLezioni, 
                           </button>
                         ))}
                     <button className="btn btn-piccolo" onClick={() => setChiedo(null)}>No</button>
+                  </span>
+                </span>
+              )}
+              {chiedo === `coda:${k}` && (
+                <span className="conferma-disdetta">
+                  <span>{l.corso} alle {ora(l.inizio)} è al completo. Chi mettiamo in coda?</span>
+                  <span className="azioni">
+                    {opzioni.filter((v) => !coda.includes(`${k}:${v.allievo_id}`)).map((v) => (
+                      <button key={v.allievo_id} className="btn btn-primario btn-piccolo" disabled={invio} onClick={() => mettimiInCoda(l, v)}>{v.nome}</button>
+                    ))}
+                    <button className="btn btn-piccolo" onClick={() => setChiedo(null)}>Chiudi</button>
                   </span>
                 </span>
               )}

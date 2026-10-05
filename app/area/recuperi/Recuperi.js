@@ -7,6 +7,7 @@ import { ora, dataBreve, giornoLungo } from '@/lib/formato';
 const MOTIVI = {
   credito_scaduto: 'Questo credito è scaduto.',
   lezione_al_completo: 'Quella lezione si è riempita un attimo fa.',
+  lezione_sovrapposta: 'A quell\'ora hai già un\'altra lezione: disdici quella prima, se vuoi cambiare.',
   lezione_non_disponibile: 'Quella lezione non è più prenotabile.',
   certificato_scaduto: 'Prima serve il certificato medico valido.',
   corso_non_ammesso_per_recupero: 'Su quel corso non si può recuperare.',

@@ -81,7 +81,7 @@ export default async function Pagamenti({ searchParams }) {
               <li key={r.id} className="persona">
                 <span>{r.tipi_abbonamento?.nome} · {r.corsi?.nome}
                   <span className="piccolo muto" style={{ display: 'block' }}>
-                    {r.allievi?.nome} · {euro(r.importo_cent)} al mese{r.stato === 'in_ritardo' ? ' · ultimo addebito non riuscito' : ''}
+                    {r.allievi?.nome} · {euro(r.importo_cent)} il 1° di ogni mese{r.stato === 'in_ritardo' ? ' · ultimo addebito non riuscito' : ''}
                   </span>
                 </span>
                 <a className="btn btn-piccolo" href="/api/stripe/portale">Carta o disdetta</a>

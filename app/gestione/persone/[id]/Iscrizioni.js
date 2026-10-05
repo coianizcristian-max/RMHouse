@@ -8,7 +8,12 @@ import AzioniIscrizione from './AzioniIscrizione';
 import CampoCerca from '../../CampoCerca';
 
 const GIORNI = ['', 'lun', 'mar', 'mer', 'gio', 'ven', 'sab', 'dom'];
+// mese solare: scade a fine mese (non a ingressi né a giorni)
+const aMese = (t) => !!t && t.scadenza_fine_mese !== false && t.modalita !== 'ingressi' && (!t.durata_giorni || t.durata_giorni >= 28);
+const fineMese = (d) => { const [y, m] = d.split('-').map(Number); return new Date(Date.UTC(y, m, 0)).toISOString().slice(0, 10); };
+const centDa = (s) => Math.round(parseFloat(String(s || '').replace(',', '.')) * 100);
 const ERRORI = {
+  orario_non_attivo: 'Uno dei giorni scelti è stato sospeso: scegli un altro giorno.',
   iscrizione_gia_attiva: 'Questa persona è già iscritta a questo corso nel periodo indicato.',
   orario_non_del_corso: "Uno degli orari scelti non appartiene al corso.",
   allievo_non_trovato: 'Persona non trovata.',
@@ -22,8 +27,9 @@ export default function Iscrizioni({ allievoId, iscrizioni, corsi, tipi, orari, 
   const [azione, setAzione] = useState(null);   // { id, modo }
   const [f, setF] = useState({
     corso_id: '', tipo_abbonamento_id: '', data_inizio: new Date().toISOString().slice(0, 10),
-    orari: [], sconto: '', quota: false, note: '',
+    orari: [], sconto: '', importo: '', quota: false, note: '',
   });
+  const [rimaste, setRimaste] = useState(null);   // { mese, rimaste } lezioni per chi parte a metà mese
 
   // il pulsante "Nuova iscrizione" in cima alla scheda apre direttamente il modulo
   useEffect(() => {
@@ -53,6 +59,19 @@ export default function Iscrizioni({ allievoId, iscrizioni, corsi, tipi, orari, 
   const tipo = tipi.find((t) => t.id === f.tipo_abbonamento_id);
   const set = (k) => (e) => setF({ ...f, [k]: e.target.type === 'checkbox' ? e.target.checked : e.target.value });
 
+  // parte a metà mese: l'importo lo decide la segreteria (proposta in base alle lezioni che restano)
+  const metaMese = aMese(tipo) && /^\d{4}-\d{2}-\d{2}$/.test(f.data_inizio) && !f.data_inizio.endsWith('-01');
+  useEffect(() => {
+    if (!metaMese) { setRimaste(null); return; }
+    if (f.orari.length) {
+      supabaseBrowser().rpc('lezioni_rimaste_mese', { p_orari: f.orari, p_dal: f.data_inizio }).then(({ data }) => setRimaste(data || null));
+    } else {
+      const fm = fineMese(f.data_inizio); const tot = Number(fm.slice(8, 10));
+      setRimaste({ mese: tot, rimaste: tot - Number(f.data_inizio.slice(8, 10)) + 1, giorni: true });
+    }
+  }, [metaMese, f.data_inizio, f.orari.join(',')]);
+  const proposto = metaMese && tipo && rimaste?.mese ? Math.round((tipo.prezzo_cent * rimaste.rimaste) / rimaste.mese / 100) * 100 : null;
+
   function toggleOrario(id) {
     setF((s) => ({ ...s, orari: s.orari.includes(id) ? s.orari.filter((x) => x !== id) : [...s.orari, id] }));
   }
@@ -63,6 +82,7 @@ export default function Iscrizioni({ allievoId, iscrizioni, corsi, tipi, orari, 
     if (tipo?.modalita === 'orari_fissi' && f.orari.length === 0) {
       setErrore('Scegli almeno un orario: è quello che fa comparire la persona in appello.'); return;
     }
+    if (metaMese && !(centDa(f.importo) >= 0)) { setErrore('Parte a metà mese: scrivi l\'importo da far pagare fino a fine mese.'); return; }
     setInvio(true); setErrore('');
     const { error } = await supabaseBrowser().rpc('crea_iscrizione', {
       p_allievo: allievoId,
@@ -70,9 +90,9 @@ export default function Iscrizioni({ allievoId, iscrizioni, corsi, tipi, orari, 
       p_corso: f.corso_id,
       p_data_inizio: f.data_inizio,
       p_orari: f.orari,
-      p_sconto_cent: f.sconto ? Math.round(parseFloat(f.sconto.replace(',', '.')) * 100) : 0,
+      p_sconto_cent: metaMese ? Math.max((tipo?.prezzo_cent || 0) - centDa(f.importo), 0) : f.sconto ? centDa(f.sconto) : 0,
       p_quota: f.quota,
-      p_note: f.note || null,
+      p_note: f.note || (metaMese ? 'Parte a metà mese' : null),
     });
     setInvio(false);
     if (error) {
@@ -80,7 +100,7 @@ export default function Iscrizioni({ allievoId, iscrizioni, corsi, tipi, orari, 
       setErrore(ERRORI[k] || 'Iscrizione non riuscita. Riprova.');
       return;
     }
-    setApri(false); setF({ ...f, corso_id: '', tipo_abbonamento_id: '', orari: [], sconto: '', quota: false, note: '' });
+    setApri(false); setF({ ...f, corso_id: '', tipo_abbonamento_id: '', orari: [], sconto: '', importo: '', quota: false, note: '' });
     router.refresh();
   }
 
@@ -172,8 +192,24 @@ export default function Iscrizioni({ allievoId, iscrizioni, corsi, tipi, orari, 
             <div className="campo">
               <label htmlFor="di">Inizio</label>
               <input id="di" type="date" value={f.data_inizio} onChange={set('data_inizio')} />
-              <span className="piccolo muto">La scadenza si calcola da sola dalla durata dell'abbonamento.</span>
+              <span className="piccolo muto">{aMese(tipo) ? 'Mese solare: scade a fine mese.' : 'La scadenza si calcola da sola dalla durata dell\'abbonamento.'}</span>
             </div>
+            {metaMese ? (
+            <div className="campo">
+              <label htmlFor="imp">Importo fino al {dataBreve(fineMese(f.data_inizio))} (€)</label>
+              <input id="imp" inputMode="decimal" value={f.importo} onChange={set('importo')} placeholder={proposto != null ? (proposto / 100).toFixed(2).replace('.', ',') : ''} />
+              <span className="piccolo">
+                Parte a metà mese: a listino {euro(tipo.prezzo_cent)} è il mese intero.
+                {rimaste && ` Restano ${rimaste.rimaste} ${rimaste.giorni ? 'giorni' : 'lezioni'} su ${rimaste.mese}.`}
+                {rimaste && rimaste.rimaste === 0 && ' Questo mese non ci sono più lezioni: falla partire dal 1° del mese prossimo.'}
+                {proposto != null && (
+                  <> <button type="button" className="link-btn" onClick={() => setF({ ...f, importo: (proposto / 100).toFixed(2).replace('.', ',') })}>
+                    usa {euro(proposto)}
+                  </button></>
+                )}
+              </span>
+            </div>
+            ) : (
             <div className="campo">
               <label htmlFor="sc">Sconto (€)</label>
               <input id="sc" inputMode="decimal" value={f.sconto} onChange={set('sconto')} />
@@ -187,6 +223,7 @@ export default function Iscrizioni({ allievoId, iscrizioni, corsi, tipi, orari, 
                 </span>
               )}
             </div>
+            )}
           </div>
           <label className="spunta">
             <input type="checkbox" checked={f.quota} onChange={set('quota')} />

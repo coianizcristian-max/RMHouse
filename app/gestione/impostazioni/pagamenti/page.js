@@ -7,7 +7,7 @@ import Opzioni from './Opzioni';
 export const dynamic = 'force-dynamic';
 
 const EVENTI = ['checkout.session.completed', 'checkout.session.expired', 'checkout.session.async_payment_succeeded',
-  'checkout.session.async_payment_failed', 'invoice.paid', 'invoice.payment_failed', 'customer.subscription.deleted', 'charge.refunded'];
+  'checkout.session.async_payment_failed', 'invoice.paid', 'invoice.payment_failed', 'customer.subscription.deleted', 'charge.refunded', 'charge.dispute.created'];
 
 // Pagamenti online: stato del collegamento a Stripe, cosa si paga online, guida per accenderlo
 export default async function PaginaPagamenti() {

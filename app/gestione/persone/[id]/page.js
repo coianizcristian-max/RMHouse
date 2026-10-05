@@ -54,7 +54,7 @@ export default async function Persona({ params, searchParams }) {
       .order('caricato_at', { ascending: false }).limit(5),
     supabase.from('corsi').select('id, nome').eq('palestra_id', p).eq('attivo', true).order('nome'),
     supabase.from('tipi_abbonamento')
-      .select('id, nome, codice, famiglia, gruppo_id, modalita, durata_mesi, durata_giorni, prezzo_cent, tipi_abbonamento_corsi ( corso_id )')
+      .select('id, nome, codice, famiglia, gruppo_id, modalita, durata_mesi, durata_giorni, scadenza_fine_mese, prezzo_cent, tipi_abbonamento_corsi ( corso_id )')
       .eq('palestra_id', p).eq('attivo', true).eq('archiviato', false).order('famiglia').order('nome'),
     supabase.from('orari').select('id, corso_id, giorno_settimana, ora_inizio').eq('palestra_id', p).eq('attivo', true)
       .order('giorno_settimana').order('ora_inizio'),
