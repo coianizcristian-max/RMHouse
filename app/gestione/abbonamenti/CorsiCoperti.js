@@ -2,10 +2,22 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabaseBrowser } from '@/lib/supabase/browser';
+import { euro } from '@/lib/formato';
 
 const VISTE = [['modifica', 'Modifica per abbonamento'], ['abbonamenti', 'Abbonamento → corsi'], ['corsi', 'Corso → abbonamenti']];
 const chiave = (t, c) => `${t}|${c}`;
 const perNome = (a, b) => a.nome.localeCompare(b.nome, 'it', { numeric: true, sensitivity: 'base' });
+// prezzo, durata e volte a settimana in una riga (come la lista abbonamenti di APP Titolare)
+const durataBreve = (t) => {
+  if (t.modalita === 'ingressi') return `${t.num_ingressi || '?'} ingressi`;
+  if (t.durata_giorni && t.durata_giorni < 28) return t.durata_giorni === 1 ? '1 giorno' : `${t.durata_giorni} giorni`;
+  const m = t.durata_mesi || 1;
+  return m === 1 ? (t.scadenza_fine_mese ? 'mese solare' : '1 mese') : `${m} mesi`;
+};
+const infoTipo = (t) => [t.codice, durataBreve(t), t.lezioni_settimanali ? `${t.lezioni_settimanali}×/sett.` : null,
+  t.prezzo_cent != null ? euro(t.prezzo_cent) : null,
+  t.prezzo_web_cent != null && t.prezzo_web_cent !== t.prezzo_cent ? `${euro(t.prezzo_web_cent)} web` : null,
+  t.attivo === false ? 'non attivo' : null].filter(Boolean).join(' · ');
 const minuscolo = (s) => (s || '').toLocaleLowerCase('it').normalize('NFD').replace(/[̀-ͯ]/g, '');
 
 // Quali corsi dà diritto a frequentare ogni abbonamento. Nessun corso = tutti.
@@ -168,7 +180,7 @@ export default function CorsiCoperti({ tipi: tutti, corsi, coperti, gruppi = [] 
                   <div key={t.id} className="coperti-riga">
                     <button type="button" className="coperti-nome" onClick={() => apriAbbonamento(t.id)}>
                       <strong>{t.nome}</strong>
-                      <span className="piccolo muto">{[t.codice, t.attivo === false ? 'non attivo' : null].filter(Boolean).join(' · ') || ' '}</span>
+                      <span className="piccolo muto">{infoTipo(t)}</span>
                     </button>
                     <div className="coperti-lista">
                       {cs.length ? cs.map((n) => <span key={n} className="coperti-chip">{n}</span>)

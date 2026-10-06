@@ -40,6 +40,7 @@ const SEZIONI = [
     area: 'Struttura',
     voci: [
       ['Modifica veloce dei corsi', '/gestione/corsi/veloce', 'Tutti i corsi in una tabella: posti, prova, prezzo della prova, prenotazioni e stato. Si salva da sola; per cambiarne tanti insieme si spuntano e si usa la barra in basso.'],
+      ['Orari dei corsi', '/gestione/corsi/orari', 'Tutti i corsi in una tabella con i giorni della settimana (ora, sala, insegnante, date); corsi senza giorni in rosso, pallino arancione = non si sceglie dall\'app. Tocchi un orario e lo cambi (giorno, ora, durata, sala, insegnante, date, app) o lo sospendi; "+" aggiunge un giorno.'],
       ['Corsi', '/gestione/corsi', 'Anagrafica del corso, foto, colore, capienza, orari settimanali, insegnanti, iscritti e lista d\'attesa.'],
       ['Gruppo WhatsApp del corso', '/gestione/corsi', 'Nella scheda del corso: "Per il gruppo WhatsApp" copia i numeri di chi ha dato il consenso, da incollare nel gruppo.', 'gruppo-whatsapp'],
       ['Pagina pubblica del corso', '/gestione/corsi', 'Dentro ogni corso, accanto a "modifica": il link con foto e orari da usare nelle campagne.', 'pagina-pubblica-corso'],

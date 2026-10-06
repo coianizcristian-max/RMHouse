@@ -64,7 +64,7 @@ export default function Guscio({ gestione, nome, ruolo, palestraId, funzioni = {
   const DETTAGLI = [
     [/^\/gestione\/appello(\/|$)/, 'Appello'], [/^\/gestione\/persone\/[^/]+\/firma/, 'Firma del modulo'],
     [/^\/gestione\/persone\/(?!nuova)[^/]+$/, 'Scheda persona'], [/^\/gestione\/corsi\/[^/]+\/modifica/, 'Modifica corso'],
-    [/^\/gestione\/corsi\/nuovo/, 'Nuovo corso'], [/^\/gestione\/corsi\/[^/]+$/, 'Scheda corso'],
+    [/^\/gestione\/corsi\/nuovo/, 'Nuovo corso'], [/^\/gestione\/corsi\/(?!nuovo$|veloce$|orari$)[^/]+$/, 'Scheda corso'],
     [/^\/gestione\/ricevute\/[^/]+$/, 'Documento'], [/^\/gestione\/firme\//, 'Modulo firmato'],
     [/^\/gestione\/crm\/sondaggi\/[^/]+$/, 'Risultati'], [/^\/gestione\/commercialista\/attestati/, 'Attestati'],
     [/^\/gestione\/giornata\/staff/, 'Giornata per insegnanti'], [/^\/gestione\/compensi\/[^/]+$/, 'Riepilogo compensi'],
