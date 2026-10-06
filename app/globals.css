@@ -3556,3 +3556,5 @@ form.periodo-date .btn { flex: none; width: auto; min-height: 36px; padding: 0 1
 @media (min-width: 900px) and (max-width: 1199px) {
   .barra-cal .bc-filtri select { flex-basis: 130px; width: 130px; }
 }
+.zona-foto .zona-file { color: var(--testo); overflow-wrap: anywhere; }
+.zona-foto .zona-file b { font-weight: 700; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12.5px; }

@@ -11,7 +11,7 @@ const BLOCCO_PRENOTAZIONI = 3000;
 const BLOCCO_PAGAMENTI = 200;
 
 // Zona di caricamento: niente bottone di sistema, si tocca o si trascina il file
-function ZonaFile({ titolo, sotto, pronto, onFile }) {
+function ZonaFile({ titolo, nomeFile, sotto, caricato, onFile }) {
   const input = useRef(null);
   const [sopra, setSopra] = useState(false);
   return (
@@ -21,9 +21,12 @@ function ZonaFile({ titolo, sotto, pronto, onFile }) {
          onDrop={(e) => { e.preventDefault(); setSopra(false); onFile(e.dataTransfer.files?.[0]); }}
          onClick={() => input.current?.click()}
          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') input.current?.click(); }}>
-      <span className="miniatura segnaposto" aria-hidden="true">{pronto ? '✓' : 'CSV'}</span>
+      <span className="miniatura segnaposto" aria-hidden="true">{caricato ? '✓' : 'CSV'}</span>
       <span className="zona-testo">
         <strong>{titolo}</strong>
+        {caricato
+          ? <span className="piccolo zona-file">caricato: {caricato}</span>
+          : <span className="piccolo zona-file">il file si chiama <b>{nomeFile}</b></span>}
         <span className="piccolo muto">{sotto}</span>
       </span>
       <input ref={input} type="file" accept=".csv,text/csv" hidden
@@ -48,26 +51,34 @@ export default function AppPalestre({ palestraId }) {
   const [prenotazioni, setPrenotazioni] = useState(null);
   const [pagamenti, setPagamenti] = useState(null);
   const [errore, setErrore] = useState('');
+  const [nomi, setNomi] = useState({});              // il nome dei file caricati
   const [fase, setFase] = useState(null);          // { testo, fatto, totale }
   const [esito, setEsito] = useState(null);
 
   const LETTORI = { clienti: [leggiClienti, setClienti], storico: [leggiAbbonamenti, setStorico],
                     prenotazioni: [leggiPrenotazioni, setPrenotazioni], pagamenti: [leggiPagamenti, setPagamenti] };
 
+  // il file si riconosce dalle colonne: se finisce nel riquadro sbagliato va lo stesso in quello giusto
   async function carica(file, tipo) {
     if (!file) return;
     setErrore(''); setEsito(null);
-    try {
-      const [leggi, metti] = LETTORI[tipo];
-      const righe = leggi(await leggiFile(file));
-      if (!righe.length) throw new Error('Il file sembra vuoto.');
-      metti(righe);
-    } catch (e) {
-      setErrore(e.message || 'Non riesco a leggere il file.');
+    let testo;
+    try { testo = await leggiFile(file); } catch { setErrore('Non riesco a leggere il file.'); return; }
+    const ordine = [tipo, ...Object.keys(LETTORI).filter((k) => k !== tipo)];
+    for (const k of ordine) {
+      try {
+        const [leggi, metti] = LETTORI[k];
+        const righe = leggi(testo);
+        if (!righe.length) { setErrore('Il file sembra vuoto.'); return; }
+        metti(righe);
+        setNomi((n) => ({ ...n, [k]: file.name }));
+        return;
+      } catch { /* non è questo: si prova il prossimo */ }
     }
+    setErrore(`"${file.name}" non sembra uno dei quattro file di APP Palestre: controlla di aver scaricato quello giusto (il nome è scritto in ogni riquadro).`);
   }
 
-  function azzera() { setClienti(null); setStorico(null); setPrenotazioni(null); setPagamenti(null); setEsito(null); }
+  function azzera() { setClienti(null); setStorico(null); setPrenotazioni(null); setPagamenti(null); setEsito(null); setNomi({}); }
 
   async function importa() {
     setErrore(''); setEsito(null);
@@ -152,13 +163,17 @@ export default function AppPalestre({ palestraId }) {
 
       <div className="griglia-2" style={{ marginBottom: 18 }}>
         <ZonaFile titolo={clienti ? `1. Lista clienti · ${clienti.length} persone` : '1. Lista clienti'}
-                  sotto="Clienti → seleziona tutti → Scarica CSV" pronto={!!clienti} onFile={(f) => carica(f, 'clienti')} />
+                  nomeFile="lista-clienti-….csv" caricato={clienti && nomi.clienti}
+                  sotto="le persone: obbligatoria" onFile={(f) => carica(f, 'clienti')} />
         <ZonaFile titolo={storico ? `2. Lista abbonamenti · ${storico.length} righe` : '2. Lista abbonamenti'}
-                  sotto="gli abbonamenti venduti: diventano storico e iscrizioni in corso" pronto={!!storico} onFile={(f) => carica(f, 'storico')} />
+                  nomeFile="lista-abbonamenti-….csv" caricato={storico && nomi.storico}
+                  sotto="gli abbonamenti venduti (anche solo gli attivi): diventano iscrizioni in corso" onFile={(f) => carica(f, 'storico')} />
         <ZonaFile titolo={prenotazioni ? `3. Prenotazioni · ${prenotazioni.length} righe` : '3. Prenotazioni'}
-                  sotto="dicono in che corso e a che orari va ognuno" pronto={!!prenotazioni} onFile={(f) => carica(f, 'prenotazioni')} />
+                  nomeFile="file_csv_115_del_….csv" caricato={prenotazioni && nomi.prenotazioni}
+                  sotto="dicono in che corso e a che orari va ognuno" onFile={(f) => carica(f, 'prenotazioni')} />
         <ZonaFile titolo={pagamenti ? `4. Pagamenti clienti · ${pagamenti.length} righe` : '4. Pagamenti clienti'}
-                  sotto="incassi e ricevute, con i numeri di APP Palestre" pronto={!!pagamenti} onFile={(f) => carica(f, 'pagamenti')} />
+                  nomeFile="pagamenti_clienti_….csv" caricato={pagamenti && nomi.pagamenti}
+                  sotto="incassi e ricevute, con i numeri di APP Palestre (meglio dal 1° gennaio)" onFile={(f) => carica(f, 'pagamenti')} />
       </div>
 
       {conti && !esito && (
