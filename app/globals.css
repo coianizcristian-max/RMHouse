@@ -3917,3 +3917,11 @@ body:has(.sportello) .bottone-rapide { display: none; }
 .isc-poi li.fatto::before { content: '✓'; background: var(--ok); color: #fff; }
 .isc-poi li span { color: var(--testo-2); }
 .isc-altre { margin-top: 10px; }
+/* Sportello "a lezioni": numero proposto in grigio, si conferma con ✓ */
+.sp-proposta { position: relative; }
+.sp-proposta input { width: 100%; padding-right: 38px !important; }
+.sp-proposta input::placeholder, #sp-prezzo::placeholder { color: #9a9a9a; font-weight: 600; }
+.sp-conferma-n { position: absolute; right: 5px; top: 50%; transform: translateY(-50%); width: 28px; height: 28px; border-radius: 50%; border: 0;
+  background: var(--ok); color: #fff; font-weight: 800; cursor: pointer; }
+.festivita { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 4px 0 14px; padding: 10px 12px; background: var(--carta); border-radius: 12px; font-size: 13.5px; }
+.festivita select { min-height: 32px; border: 1px solid var(--linea); border-radius: 8px; padding: 2px 8px; font: inherit; }

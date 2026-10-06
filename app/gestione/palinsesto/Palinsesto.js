@@ -3,6 +3,7 @@ import { useState } from 'react';
 import Gestore from '../Gestore';
 import { supabaseBrowser } from '@/lib/supabase/browser';
 import Ricolora from './Ricolora';
+import Festivita from './Festivita';
 import { dataBreve } from '@/lib/formato';
 
 const SEZIONI = [
@@ -177,7 +178,9 @@ export default function Palinsesto({ palestraId, dati }) {
           <p className="muto piccolo">
             Le lezioni comprese nel periodo vengono annullate subito e chi era iscritto riceve un avviso solo.
             Gli abbonamenti non si allungano e non si danno recuperi: i prezzi sono già calcolati al netto delle festività.
+            Se cancelli una chiusura (o ne cambi le date) le lezioni tornano in programma da sole.
           </p>
+          <Festivita palestraId={palestraId} />
           <Gestore
             tabella="chiusure" fissi={fissi} righe={dati.chiusure} etichettaNuovo="Aggiungi chiusura"
             campi={[

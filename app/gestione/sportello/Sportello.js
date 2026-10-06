@@ -44,7 +44,7 @@ export default function Sportello({ palestraId, corsi, tipi, orari, palestra, pe
   const [v, setV] = useState(VENDITA);
   const [lezioni, setLezioni] = useState([]);
   const [rimaste, setRimaste] = useState(null);
-  const [contate, setContate] = useState(null);   // lezioni contate dal database per il pagamento "a lezioni"
+  const [contate, setContate] = useState(null);   // { n, stima }: lezioni proposte per il pagamento "a lezioni"
   const [invio, setInvio] = useState(false);
   const [errore, setErrore] = useState('');
   const [esito, setEsito] = useState(null);
@@ -168,15 +168,30 @@ export default function Sportello({ palestraId, corsi, tipi, orari, palestra, pe
   }, [tipo, dopoIlPrimo, rimaste, v.data_inizio, v.corso_id, s, palestra]);
 
   // ------------------------------------------------------------ pagamento "a lezioni" (es. settembre: si paga da quando si comincia)
+  // il corso ha tanti giorni quanti ne prevede l'abbonamento (es. un solo orario e "1 volta"): si scelgono da soli
   useEffect(() => {
-    if (!v.aLezioni || !v.orari.length || !v.data_inizio || !v.al) { setContate(null); return undefined; }
+    if (!tipo || v.orari.length || !(tipo.modalita === 'orari_fissi' || v.aLezioni)) return;
+    const ids = orari.filter((o) => o.corso_id === v.corso_id).map((o) => o.id);
+    if (ids.length && ids.length <= (tipo.lezioni_settimanali || 1)) setV((x) => ({ ...x, orari: ids }));
+  }, [v.tipo_id, v.corso_id, v.aLezioni]); // eslint-disable-line
+  // lezioni proposte fra Dal e Al: sui giorni scelti; se non sono ancora scelti, una stima sui giorni del corso
+  useEffect(() => {
+    const delCorso = orari.filter((o) => o.corso_id === v.corso_id).map((o) => o.id);
+    const giorni = v.orari.length ? v.orari : delCorso;
+    if (!v.aLezioni || !giorni.length || !v.data_inizio || !v.al) { setContate(null); return undefined; }
     let vivo = true;
-    supabaseBrowser().rpc('conta_lezioni', { p_orari: v.orari, p_dal: v.data_inizio, p_al: v.al }).then(({ data }) => { if (vivo) setContate(data ?? null); });
+    supabaseBrowser().rpc('conta_lezioni', { p_orari: giorni, p_dal: v.data_inizio, p_al: v.al }).then(({ data }) => {
+      if (!vivo || data == null) { if (vivo) setContate(null); return; }
+      if (v.orari.length) setContate({ n: data, stima: false });
+      else setContate({ n: Math.round(data * Math.min(tipo?.lezioni_settimanali || 1, giorni.length) / giorni.length), stima: true });
+    });
     return () => { vivo = false; };
-  }, [v.aLezioni, v.orari.join(','), v.data_inizio, v.al]); // eslint-disable-line
+  }, [v.aLezioni, v.orari.join(','), v.corso_id, v.data_inizio, v.al, v.tipo_id]); // eslint-disable-line
   const euroLezDefault = !tipo ? null : tipo.num_ingressi > 0 ? Math.round(tipo.prezzo_cent / tipo.num_ingressi)
     : tipo.lezioni_settimanali > 0 ? Math.round(tipo.prezzo_cent / Math.max(1, tipo.durata_mesi || 1) / (4 * tipo.lezioni_settimanali)) : null;
-  const nLezioni = v.nLez !== '' ? (Number.isInteger(Number(v.nLez)) ? Number(v.nLez) : null) : contate;
+  // le lezioni proposte restano in grigio finché la segreteria non le conferma (scrivendole o con ✓)
+  const nLezioni = v.nLez !== '' && Number.isInteger(Number(v.nLez)) ? Number(v.nLez) : null;
+  const importoProposto = contate && euroLezDefault != null ? Math.round(contate.n * (v.euroLez !== '' ? centDa(v.euroLez) ?? euroLezDefault : euroLezDefault)) : null;
   const euroLez = v.euroLez !== '' ? centDa(v.euroLez) : euroLezDefault;
   const importoLezioni = nLezioni != null && euroLez != null ? Math.round(nLezioni * euroLez) : null;
   const prezzoCent = !tipo ? 0 : v.aLezioni && !v.prezzoMano ? importoLezioni : centDa(v.prezzo);
@@ -193,7 +208,8 @@ export default function Sportello({ palestraId, corsi, tipi, orari, palestra, pe
     if (v.corso_id && !tipo && !v.lezioni.length) { setErrore('Scegli l\'abbonamento (o togli il corso).'); return; }
     if (tipo?.modalita === 'orari_fissi' && !v.orari.length) { setErrore('Scegli almeno un giorno: è quello che la fa comparire in appello.'); return; }
     if (tipo && v.aLezioni && (!v.al || v.al < v.data_inizio)) { setErrore('A lezioni: scegli fino a quando vale (la data "Al").'); return; }
-    if (tipo && v.aLezioni && prezzoCent == null) { setErrore('A lezioni: scrivi quante lezioni e quanto costa una lezione (o l\'importo).'); return; }
+    if (tipo && v.aLezioni && nLezioni == null && !v.prezzoMano) { setErrore('A lezioni: conferma il numero di lezioni (scrivilo o tocca ✓).'); return; }
+    if (tipo && v.aLezioni && prezzoCent == null) { setErrore('A lezioni: scrivi quanto costa una lezione (o l\'importo).'); return; }
     if (tipo && (prezzoCent == null || prezzoCent < 0)) { setErrore('Controlla il prezzo dell\'abbonamento.'); return; }
     if (!v.quota && !tipo && !v.certificato && !v.lezioni.length) { setErrore('Non c\'è niente da confermare: scegli quota, abbonamento, certificato o una lezione.'); return; }
     if (v.ricevuta && v.inviaEmail && totale > 0 && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v.email.trim())) { setErrore('Scrivi un\'email valida per la ricevuta (o togli "inviala per email").'); return; }
@@ -327,8 +343,15 @@ export default function Sportello({ palestraId, corsi, tipi, orari, palestra, pe
                     </div>
                     <div className="sp-calcolo">
                       <div className="campo"><label htmlFor="sp-nlez">Lezioni</label>
-                        <input id="sp-nlez" inputMode="numeric" value={v.nLez !== '' ? v.nLez : contate ?? ''} placeholder="?"
-                               onChange={(e) => setV((x) => ({ ...x, nLez: e.target.value.replace(/\D/g, ''), prezzoMano: false }))} />
+                        <div className="sp-proposta">
+                          <input id="sp-nlez" inputMode="numeric" value={v.nLez} placeholder={contate ? String(contate.n) : '?'}
+                                 onChange={(e) => setV((x) => ({ ...x, nLez: e.target.value.replace(/\D/g, ''), prezzoMano: false }))}
+                                 onKeyDown={(e) => { if (e.key === 'Enter' && v.nLez === '' && contate) { e.preventDefault(); setV((x) => ({ ...x, nLez: String(contate.n), prezzoMano: false })); } }} />
+                          {contate && v.nLez === '' && (
+                            <button type="button" className="sp-conferma-n" title={`Conferma ${contate.n} lezioni`} aria-label={`Conferma ${contate.n} lezioni`}
+                                    onClick={() => setV((x) => ({ ...x, nLez: String(contate.n), prezzoMano: false }))}>✓</button>
+                          )}
+                        </div>
                       </div>
                       <span className="sp-per" aria-hidden="true">×</span>
                       <div className="campo"><label htmlFor="sp-eurolez">€ a lezione</label>
@@ -337,14 +360,16 @@ export default function Sportello({ palestraId, corsi, tipi, orari, palestra, pe
                       </div>
                       <span className="sp-per" aria-hidden="true">=</span>
                       <div className="campo"><label htmlFor="sp-prezzo">Importo (€)</label>
-                        <input id="sp-prezzo" inputMode="decimal" value={v.prezzoMano ? v.prezzo : euroTesto(importoLezioni)}
+                        <input id="sp-prezzo" inputMode="decimal" value={v.prezzoMano ? v.prezzo : euroTesto(importoLezioni)} placeholder={euroTesto(importoProposto) || ''}
                                onChange={(e) => setV((x) => ({ ...x, prezzo: e.target.value, prezzoMano: true }))} />
                       </div>
                     </div>
                     <p className="piccolo muto sp-calcolo-nota">
-                      {!v.orari.length ? 'Scegli i giorni qui sopra per contare le lezioni (o scrivi il numero a mano).'
-                        : contate != null && v.nLez === '' ? `Contate ${contate} lezioni dal ${dataBreve(v.data_inizio)} al ${dataBreve(v.al)} (chiusure escluse).`
-                        : v.nLez !== '' ? `Lezioni scritte a mano${contate != null ? ` (dal calendario sarebbero ${contate})` : ''}.` : ''}
+                      {contate && v.nLez === '' ? (contate.stima
+                          ? `Circa ${contate.n} lezioni dal ${dataBreve(v.data_inizio)} al ${dataBreve(v.al)}: scegli i giorni per il numero esatto, poi confermalo (✓ o scrivilo).`
+                          : `Dal ${dataBreve(v.data_inizio)} al ${dataBreve(v.al)} ci sono ${contate.n} lezioni (chiusure escluse): confermale con ✓ o scrivi il numero giusto.`)
+                        : v.nLez !== '' ? (contate && !contate.stima && Number(v.nLez) !== contate.n ? `Scritte a mano: dal calendario sarebbero ${contate.n}.` : 'Lezioni confermate.')
+                        : 'Scrivi quante lezioni fa (o scegli i giorni qui sopra per contarle).'}
                       {' '}{euroLezDefault != null && v.euroLez === '' && `Una lezione a listino: ${euro(euroLezDefault)}.`}
                       {(v.nLez !== '' || v.euroLez !== '' || v.prezzoMano) && (
                         <> <button type="button" className="link-btn piccolo" onClick={() => setV((x) => ({ ...x, nLez: '', euroLez: '', prezzoMano: false }))}>ricalcola</button></>
