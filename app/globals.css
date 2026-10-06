@@ -3586,3 +3586,59 @@ form.periodo-date .btn { flex: none; width: auto; min-height: 36px; padding: 0 1
 .fl-persone li a, .fl-persone li > span:not(.pal-faccia):not(.tag) { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .fl-persone .pal-faccia { width: 28px; height: 28px; margin: 0; font-size: 10.5px; flex: none; }
 .fl-persone .tag { flex: none; }
+/* coda delle lezioni piene */
+.pal-cerchio.coda { background: #ffe8c7; color: #b25e00; }
+.pal-barra.piena span { background: var(--rosso); }
+.fl-coda { counter-reset: coda; }
+.fl-coda li::before { counter-increment: coda; content: counter(coda) "."; font-weight: 700; color: var(--testo-2); width: 1.4em; flex: none; }
+.fl-coda-n { color: #b25e00; }
+/* Modifica corso: compatta */
+.cf-compatto .cf-campi .campo { margin-bottom: 8px; }
+.cf-compatto .cf-campi label, .cf-compatto .campo > label { font-size: 13px; margin-bottom: 3px; }
+.cf-compatto input:not([type='checkbox']):not([type='radio']):not([type='color']), .cf-compatto select, .cf-compatto textarea {
+  min-height: 38px; padding-top: 6px; padding-bottom: 6px; font-size: 14.5px; }
+.cf-compatto textarea { min-height: 62px; }
+.cf-1 { grid-column: span 1; }
+.cf-compatto .cf-sezione + .cf-sezione { margin-top: 4px; padding-top: 10px; }
+.cf-interruttori { display: flex; flex-wrap: wrap; gap: 8px; margin: 2px 0 4px; }
+.cf-interruttore { display: inline-flex; align-items: center; gap: 8px; padding: 7px 12px; border: 1px solid var(--linea); border-radius: 999px;
+  font-size: 14px; font-weight: 600; cursor: pointer; background: var(--bianco); }
+.cf-interruttore input { width: 18px; height: 18px; accent-color: var(--rosso); margin: 0; }
+.cf-interruttore:has(input:checked) { border-color: var(--nero); }
+.cf-compatto .cf-stato { padding: 8px 12px; }
+.cf-compatto .cf-lato .zona-foto { padding: 8px; }
+.cf-altri-colori { margin-top: 6px; }
+.cf-altri-colori summary { cursor: pointer; color: var(--testo-2); margin-bottom: 6px; }
+.cf-barra-salva { position: sticky; bottom: 0; z-index: 12; display: flex; gap: 10px; align-items: center; padding: 10px 0 12px;
+  margin-top: 8px; background: linear-gradient(to bottom, rgba(255,255,255,0), var(--bianco) 30%); }
+@media (max-width: 899px) {
+  .cf-1 { grid-column: span 1; }
+  .cf-barra-salva { bottom: calc(64px + env(safe-area-inset-bottom, 0px)); }
+}
+/* Modifica veloce dei corsi */
+.mv-tabella table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.mv-tabella th { text-align: left; font-size: 12.5px; color: var(--testo-2); font-weight: 700; padding: 8px 8px; background: var(--carta); white-space: nowrap; position: sticky; top: 0; z-index: 1; }
+.mv-tabella td { padding: 5px 8px; border-top: 1px solid var(--linea); vertical-align: middle; }
+.mv-tabella tr.selezionata td { background: var(--rosso-tenue); }
+.mv-tabella tr.mv-spento td.mv-nome a { color: var(--testo-2); }
+.mv-nome { min-width: 220px; }
+.mv-nome a { font-weight: 700; color: var(--nero); text-decoration: none; }
+.mv-colore { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 8px; vertical-align: 1px; }
+.mv-num { width: 78px; min-height: 34px; padding: 4px 8px; border: 1px solid var(--linea); border-radius: 8px; font: inherit; font-size: 14px; background: var(--bianco); }
+.mv-num:focus { border-color: var(--nero); outline: none; }
+.mv-spunta { text-align: center; }
+.mv-spunta input { width: 18px; height: 18px; accent-color: var(--rosso); }
+.mv-sel { width: 34px; } .mv-sel input { width: 18px; height: 18px; accent-color: var(--rosso); }
+.mv-stato { width: 90px; white-space: nowrap; }
+.mv-ok { color: var(--ok); } .mv-ko { color: var(--rosso-scuro); font-weight: 700; }
+.mv-massa .nota-breve { width: 120px; }
+.mv-coppia { display: inline-flex; gap: 2px; }
+@media (max-width: 899px) {
+  .mv-tabella td:first-child, .mv-tabella th:first-child { position: sticky; left: 0; background: var(--bianco); z-index: 2; }
+  .mv-nome { min-width: 160px; }
+}
+/* elenco corsi: attivo / prova dal sito / prenotabile */
+.corso-icone { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 5px; }
+.corso-icone .ci { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px 2px 6px; border-radius: 999px; font-size: 11.5px; font-weight: 700; line-height: 1.5; }
+.corso-icone .ci.si { background: var(--ok-tenue); color: var(--ok); }
+.corso-icone .ci.no { background: var(--carta); color: var(--testo-2); text-decoration: line-through; opacity: .8; }

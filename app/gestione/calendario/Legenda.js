@@ -17,6 +17,8 @@ export default function Legenda() {
             <div><span className="pal-cerchio verde">8</span> prenotati alla lezione (iscritti fissi, recuperi e ingressi)</div>
             <div><span className="pal-cerchio blu">4</span> posti ancora liberi (∞ se la lezione non ha un limite)</div>
             <div><span className="pal-cerchio rosso">1</span> persone in prova</div>
+            <div><span className="pal-cerchio coda">2</span> in coda: la lezione è piena e aspettano un posto (passa sopra per i nomi)</div>
+            <div><span className="pal-barra piena" style={{ width: 56, display: 'inline-block', margin: 0 }}><span style={{ width: '100%' }} /></span> lezione piena</div>
             <div><span className="pal-piu" aria-hidden="true">+</span> aggiungi qualcuno alla lezione (recupero o ingresso)</div>
             <div><span className="pal-faccia" style={{ marginLeft: 0 }}>MR</span> chi è prenotato (bordo rosso = in prova); <span className="pal-altri">…</span> ce ne sono altri: passa sopra per i nomi</div>
             <div><span className="pal-barra" style={{ width: 56, display: 'inline-block', margin: 0 }}><span style={{ width: '60%' }} /></span> quanto è piena la lezione</div>

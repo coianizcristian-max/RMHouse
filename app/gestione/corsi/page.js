@@ -4,6 +4,11 @@ import { staffCorrente } from '@/lib/staff';
 
 export const dynamic = 'force-dynamic';
 
+const svg = { viewBox: '0 0 24 24', width: 13, height: 13, 'aria-hidden': true, fill: 'none', stroke: 'currentColor', strokeWidth: 2.2, strokeLinecap: 'round', strokeLinejoin: 'round' };
+const IconaAttivo = () => <svg {...svg}><path d="M12 3v9" /><path d="M6.3 7.5a8 8 0 1 0 11.4 0" /></svg>;
+const IconaSito = () => <svg {...svg}><circle cx="12" cy="12" r="9" /><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18" /></svg>;
+const IconaApp = () => <svg {...svg}><rect x="6" y="2.5" width="12" height="19" rx="2.5" /><path d="M10.5 18h3" /></svg>;
+
 // "Chi è iscritto a danza aerea?" — elenco corsi con i numeri che servono alla segreteria
 export default async function Corsi({ searchParams }) {
   const { archiviati } = await searchParams;
@@ -21,10 +26,11 @@ export default async function Corsi({ searchParams }) {
 
   // stato delle iscrizioni dall'app e chi aspetta che il corso parta
   const [{ data: stati }, { data: attese }] = await Promise.all([
-    supabase.from('corsi').select('id, iscrizioni_app, capienza').eq('palestra_id', staff.palestra_id),
+    supabase.from('corsi').select('id, iscrizioni_app, capienza, attivo, prova_abilitata, prenotabile').eq('palestra_id', staff.palestra_id),
     supabase.from('liste_attesa').select('corso_id').eq('palestra_id', staff.palestra_id).eq('stato', 'in_attesa').is('lezione_id', null),
   ]);
   const statoDi = (id) => (stati || []).find((x) => x.id === id)?.iscrizioni_app || 'aperte';
+  const corsoDi = (id) => (stati || []).find((x) => x.id === id) || {};
   const postiDi = (id) => (stati || []).find((x) => x.id === id)?.capienza ?? null;
   const inAttesa = (id) => (attese || []).filter((x) => x.corso_id === id).length;
 
@@ -60,6 +66,18 @@ export default async function Corsi({ searchParams }) {
                 <span style={{ minWidth: 0 }}>
                   <span className="titolo" style={{ display: 'block' }}>{c.corso_nome}</span>
                   <span className="riga">{[c.fascia, c.livello].filter(Boolean).join(' · ')}</span>
+                  <span className="corso-icone">
+                    {[['attivo', 'attivo', 'Corso attivo', IconaAttivo],
+                      ['prova_abilitata', 'prova dal sito', 'Prova prenotabile dal sito', IconaSito],
+                      ['prenotabile', 'prenota da app', 'Prenotabile dai clienti dall\'app', IconaApp]].map(([k, t, d, Icona]) => {
+                      const si = !!corsoDi(c.corso_id)[k];
+                      return (
+                        <span key={k} className={`ci ${si ? 'si' : 'no'}`} title={`${d}: ${si ? 'sì' : 'no'}`}>
+                          <Icona />{t}
+                        </span>
+                      );
+                    })}
+                  </span>
                 </span>
               </span>
               <span className="destra" style={{ display: 'flex', gap: 4, flexWrap: 'wrap', justifyContent: 'flex-end' }}>

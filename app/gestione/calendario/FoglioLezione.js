@@ -11,9 +11,10 @@ import { ora, giornoLungo } from '@/lib/formato';
 // Pannello che si apre dal basso toccando una lezione
 const TIPI = { recupero: 'recupero', ingresso: 'ingresso', prova: 'in prova' };
 
-export default function FoglioLezione({ lezione, colore, gestione, onClose, aggiungiSubito = false, persone = [] }) {
+export default function FoglioLezione({ lezione, colore, gestione, onClose, aggiungiSubito = false, persone = [], coda = [] }) {
   const router = useRouter();
-  const [elenco, setElenco] = useState(false);   // gli iscritti si vedono toccando "Iscritti" (sono già caricati col palinsesto)
+  const [elenco, setElenco] = useState(false);
+  const [vediCoda, setVediCoda] = useState(true);   // gli iscritti si vedono toccando "Iscritti" (sono già caricati col palinsesto)
   const ordinati = [...persone].sort((a, b) => `${a.cognome} ${a.nome}`.localeCompare(`${b.cognome} ${b.nome}`, 'it'));
   const [aggiungi, setAggiungi] = useState(aggiungiSubito);
   const [testoCerca, setTestoCerca] = useState('');
@@ -107,6 +108,29 @@ export default function FoglioLezione({ lezione, colore, gestione, onClose, aggi
               </ul>
             )}
           </li>
+          {coda.length > 0 && (
+            <li className="persona fl-iscritti">
+              <button type="button" className="fl-espandi" aria-expanded={vediCoda} onClick={() => setVediCoda(!vediCoda)}>
+                <span>In coda <span className="fl-freccia" aria-hidden="true">{vediCoda ? '▾' : '▸'}</span>
+                  <span className="piccolo muto"> lezione piena: entrano se si libera un posto</span></span>
+                <strong className="fl-coda-n">{coda.length}</strong>
+              </button>
+              {vediCoda && (
+                <ol className="fl-persone fl-coda">
+                  {coda.map((c) => (
+                    <li key={c.allievo_id}>
+                      <span className="pal-faccia">{((c.allievi?.nome?.[0] || '') + (c.allievi?.cognome?.[0] || '')).toUpperCase()}</span>
+                      {gestione
+                        ? <Link prefetch={false} href={`/gestione/persone/${c.allievo_id}`}>{c.allievi?.cognome} {c.allievi?.nome}</Link>
+                        : <span>{c.allievi?.cognome} {c.allievi?.nome}</span>}
+                      <span className={`tag ${c.stato === 'avvisato' ? 'tag-ok' : 'tag-attenzione'}`}>{c.stato === 'avvisato' ? 'avvisato' : 'in coda'}</span>
+                    </li>
+                  ))}
+                </ol>
+              )}
+              {gestione && <p className="piccolo muto" style={{ margin: '0 6px 8px' }}>Per farne entrare uno: "Aggiungi qualcuno" (o alza i posti qui sotto). Tutte le code: Persone → Liste d'attesa.</p>}
+            </li>
+          )}
           {lezione.prove > 0 && <li className="persona"><span>In prova</span><strong>{lezione.prove}</strong></li>}
           {lezione.capienza > 0 && <li className="persona"><span>Posti liberi</span><strong>{Math.max(lezione.capienza - lezione.iscritti - lezione.prove, 0)}</strong></li>}
           {lezione.presenti > 0 && <li className="persona"><span>Presenti</span><strong>{lezione.presenti}</strong></li>}

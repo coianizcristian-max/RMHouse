@@ -30,7 +30,7 @@ const IconaProva = () => (
 // bordo e banda nel colore del corso con l'orario, nome del corso, insegnante e sala con l'icona, i cerchietti dei prenotati
 // (o "Nessun prenotato"), i numeri (verde = prenotati, blu = posti liberi), il "+" per aggiungere qualcuno, la barra di riempimento
 // e in basso il cerchietto per selezionare più lezioni insieme (insegnante, sala, posti, prenotazioni, nota, annulla).
-export default function Palinsesto({ giorniVisti = 7, inizio, lezioni, corsi = [], note = [], facce = [], sale = [], insegnanti = [], palestraId, gestione = true }) {
+export default function Palinsesto({ giorniVisti = 7, inizio, lezioni, corsi = [], note = [], facce = [], coda = [], sale = [], insegnanti = [], palestraId, gestione = true }) {
   const [aggiorno, setAggiorno] = useState(false); // mentre la pagina si ricarica dopo un'azione di gruppo
   const [scelta, setScelta] = useState(null);
   const [apriAggiungi, setApriAggiungi] = useState(false);
@@ -45,6 +45,7 @@ export default function Palinsesto({ giorniVisti = 7, inizio, lezioni, corsi = [
   const colore = (id) => corsoDi(id)?.colore || 'var(--rosso)';
   const noteDi = (g) => note.filter((n) => n.data === g);
   const facceDi = (id) => facce.filter((f) => f.lezione_id === id);
+  const codaDi = (id) => coda.filter((c) => c.lezione_id === id);
   const iniziali = (f) => ((f.nome?.[0] || '') + (f.cognome?.[0] || '')).toUpperCase();
   const oggi = new Date().toLocaleDateString('sv-SE');
   const giorni = Array.from({ length: giorniVisti }, (_, i) => {
@@ -208,6 +209,11 @@ export default function Palinsesto({ giorniVisti = 7, inizio, lezioni, corsi = [
                             <span className="pal-cerchio verde" tabIndex={0} data-tip={`${l.iscritti} ${l.iscritti === 1 ? 'Prenotato' : 'Prenotati'}`} aria-label={`${l.iscritti} prenotati`}>{l.iscritti}</span>
                             <span className="pal-cerchio blu" tabIndex={0} data-tip={posti === null ? 'Posti senza limite' : `${posti} ${posti === 1 ? 'Posto disponibile' : 'Posti disponibili'}`} aria-label={posti === null ? 'posti senza limite' : `${posti} posti disponibili`}>{posti === null ? '∞' : posti}</span>
                             {l.prove > 0 && <span className="pal-cerchio rosso" tabIndex={0} data-tip={`${l.prove} in prova`} aria-label={`${l.prove} in prova`}>{l.prove}</span>}
+                            {codaDi(l.lezione_id).length > 0 && (
+                              <span className="pal-cerchio coda" tabIndex={0}
+                                    data-tip={`${codaDi(l.lezione_id).length} in coda: ${codaDi(l.lezione_id).map((c) => `${c.allievi?.nome || ''} ${c.allievi?.cognome || ''}`.trim()).join(', ')}`}
+                                    aria-label={`${codaDi(l.lezione_id).length} in coda`}>{codaDi(l.lezione_id).length}</span>
+                            )}
                             {gestione && !annullata && (
                               <button type="button" className="pal-piu" data-tip="Aggiungi qualcuno alla lezione" aria-label="Aggiungi qualcuno alla lezione"
                                       onClick={(e) => aggiungi(e, l)}>+</button>
@@ -218,7 +224,7 @@ export default function Palinsesto({ giorniVisti = 7, inizio, lezioni, corsi = [
                         <div className="pal-fondo">
                           {etichetta
                             ? <div className="pal-centro"><span className={`pal-etichetta ${etichetta[1]}`} title={etichetta[0]}>{etichetta[0]}</span></div>
-                            : <div className="pal-barra"><span style={{ width: `${pieno}%` }} /></div>}
+                            : <div className={`pal-barra${posti === 0 ? ' piena' : ''}`}><span style={{ width: `${pieno}%` }} /></div>}
                         </div>
                       </div>
                       {gestione && (
@@ -240,7 +246,7 @@ export default function Palinsesto({ giorniVisti = 7, inizio, lezioni, corsi = [
       </div>
 
       {scelta && (
-        <FoglioLezione lezione={scelta} colore={colore(scelta.corso_id)} gestione={gestione} persone={facceDi(scelta.lezione_id)}
+        <FoglioLezione lezione={scelta} colore={colore(scelta.corso_id)} gestione={gestione} persone={facceDi(scelta.lezione_id)} coda={codaDi(scelta.lezione_id)}
                        aggiungiSubito={apriAggiungi}
                        onClose={() => { setScelta(null); setApriAggiungi(false); }} />
       )}

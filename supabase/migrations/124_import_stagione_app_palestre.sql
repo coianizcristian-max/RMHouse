@@ -43,6 +43,8 @@ create table if not exists import_prenotazioni (
 );
 create index if not exists import_prenotazioni_chiave on import_prenotazioni (importazione_id, chiave);
 alter table import_prenotazioni add column if not exists abb_al date;   -- la fine dell'abbonamento scritta nella prenotazione
+alter table import_prenotazioni add column if not exists in_coda boolean not null default false;   -- "In coda" in APP Palestre
+alter table import_prenotazioni add column if not exists prenotata_il timestamp;
 
 -- i pagamenti importati, con quello che serve per abbinarli agli abbonamenti
 create table if not exists import_pagamenti (
@@ -478,9 +480,12 @@ begin
   select palestra_id into v_pal from importazioni where id = p_imp;
   if v_pal is null then raise exception 'importazione_non_trovata'; end if;
   if auth.uid() is not null and not is_gestione(v_pal) then raise exception 'non_autorizzato'; end if;
-  insert into import_prenotazioni (importazione_id, palestra_id, chiave, giorno, corso, abbonamento, abb_dal, abb_al, cancellata)
-  select p_imp, v_pal, x.chiave, x.giorno, x.corso, nullif(x.abbonamento, ''), x.abb_dal, x.abb_al, coalesce(x.cancellata, false)
-    from jsonb_to_recordset(p_righe) as x(chiave text, giorno timestamp, corso text, abbonamento text, abb_dal date, abb_al date, cancellata boolean)
+  insert into import_prenotazioni (importazione_id, palestra_id, chiave, giorno, corso, abbonamento, abb_dal, abb_al, cancellata,
+                                   in_coda, prenotata_il)
+  select p_imp, v_pal, x.chiave, x.giorno, x.corso, nullif(x.abbonamento, ''), x.abb_dal, x.abb_al, coalesce(x.cancellata, false),
+         coalesce(x.in_coda, false), x.prenotata_il
+    from jsonb_to_recordset(p_righe) as x(chiave text, giorno timestamp, corso text, abbonamento text, abb_dal date, abb_al date,
+                                          cancellata boolean, in_coda boolean, prenotata_il timestamp)
    where x.chiave is not null and x.giorno is not null and coalesce(x.corso, '') <> '';
   get diagnostics n = row_count;
   return n;
@@ -732,7 +737,8 @@ declare
   v_corso uuid; v_isc iscrizioni; v_orari uuid[]; v_slot text[]; v_fuori text[]; v_n int; v_lez int;
   v_pag record; v_nome text; v_esistenti int; v_dett text; v_gg text[] := array['lunedì','martedì','mercoledì','giovedì','venerdì','sabato','domenica'];
   n_nuove int := 0; n_aggiornate int := 0; n_con_orari int := 0; n_senza_orari int := 0; n_saltate int := 0; n_quote int := 0;
-  v_primo_pag date; v_rifatta boolean; v_manuale boolean;
+  v_primo_pag date; v_rifatta boolean; v_manuale boolean; v_lezione uuid; v_lez_corso uuid; n_coda int := 0;
+  v_fuso text;
 begin
   select palestra_id, iniziata_at, finita_at is not null into v_pal, v_inizio, v_rifatta from importazioni where id = p_imp;
   if v_pal is null then raise exception 'importazione_non_trovata'; end if;
@@ -743,7 +749,7 @@ begin
     v_inizio := now();
   end if;
   select id into v_sede from sedi where palestra_id = v_pal and principale order by ordine limit 1;
-  select mese_inizio_stagione into v_mese from palestre where id = v_pal;
+  select mese_inizio_stagione, coalesce(fuso_orario, 'Europe/Rome') into v_mese, v_fuso from palestre where id = v_pal;
   select min(data_pagamento) into v_primo_pag from import_pagamenti where importazione_id = p_imp;
 
   -- 7.1 le quote annuali pagate
@@ -997,6 +1003,27 @@ begin
     end if;
   end loop;
 
+  -- 7.25 chi in APP Palestre è "In coda" su una lezione futura piena → in coda sulla stessa lezione in RMHouse
+  --      (stesso ordine: conta quando si era messo in coda). Le code passate non servono.
+  for s in
+    select b.chiave, b.corso, b.giorno, b.prenotata_il, a.id as allievo_id, a.account_id,
+           (select x.orario_id from orario_per_slot(v_pal, corso_norm(b.corso), extract(isodow from b.giorno)::int, b.giorno::time) x) as orario_id
+      from import_prenotazioni b join allievi a on a.palestra_id = v_pal and a.codice_esterno = b.chiave
+     where b.importazione_id = p_imp and b.in_coda and b.giorno > (now() at time zone v_fuso)
+     order by b.prenotata_il nulls last
+  loop
+    v_lezione := null;
+    select l.id, l.corso_id into v_lezione, v_lez_corso from lezioni l
+     where l.orario_id = s.orario_id and l.data = s.giorno::date and l.stato <> 'annullata' limit 1;
+    continue when v_lezione is null;
+    continue when exists (select 1 from liste_attesa la where la.lezione_id = v_lezione and la.allievo_id = s.allievo_id and la.stato in ('in_attesa', 'avvisato'))
+               or exists (select 1 from v_partecipanti_lezione vp where vp.lezione_id = v_lezione and vp.allievo_id = s.allievo_id);
+    insert into liste_attesa (palestra_id, tipo, corso_id, lezione_id, allievo_id, account_id, stato, note, created_at)
+    values (v_pal, 'lezione', v_lez_corso, v_lezione, s.allievo_id, s.account_id, 'in_attesa', 'In coda in APP Palestre',
+            coalesce(s.prenotata_il at time zone v_fuso, now()));
+    n_coda := n_coda + 1;
+  end loop;
+
   -- 7.3 stato delle persone importate
   update allievi a set stato_lead = 'iscritto', motivo_perso = null
    where a.palestra_id = v_pal and a.codice_esterno is not null and a.stato_lead <> 'iscritto'
@@ -1011,10 +1038,10 @@ begin
 
   update importazioni set riepilogo = riepilogo || jsonb_build_object(
       'iscrizioni_nuove', n_nuove, 'iscrizioni_aggiornate', n_aggiornate, 'con_orari', n_con_orari,
-      'senza_orari', n_senza_orari, 'non_create', n_saltate, 'quote', n_quote)
+      'senza_orari', n_senza_orari, 'non_create', n_saltate, 'quote', n_quote, 'in_coda', n_coda)
    where id = p_imp;
   return jsonb_build_object('nuove', n_nuove, 'aggiornate', n_aggiornate, 'con_orari', n_con_orari,
-                            'senza_orari', n_senza_orari, 'non_create', n_saltate, 'quote', n_quote);
+                            'senza_orari', n_senza_orari, 'non_create', n_saltate, 'quote', n_quote, 'in_coda', n_coda);
 end $$;
 
 -- ---------------------------------------------------------------------

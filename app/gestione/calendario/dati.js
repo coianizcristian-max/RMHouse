@@ -47,14 +47,20 @@ export async function settimana({ da, sala, insegnante, mie, sede, corso, giorni
   ]);
 
   const idLezioni = (lezioni || []).map((l) => l.lezione_id);
-  const { data: facce } = idLezioni.length
-    ? await supabase.from('v_facce_lezione')
-        .select('lezione_id, allievo_id, nome, cognome, foto_url, tipo').in('lezione_id', idLezioni)
-    : { data: [] };
+  // chi è prenotato e chi è in coda (lezione piena), lette insieme
+  const [{ data: facce }, { data: coda }] = idLezioni.length
+    ? await Promise.all([
+        supabase.from('v_facce_lezione')
+          .select('lezione_id, allievo_id, nome, cognome, foto_url, tipo').in('lezione_id', idLezioni),
+        supabase.from('liste_attesa')
+          .select('lezione_id, allievo_id, stato, tipo, created_at, allievi ( nome, cognome, foto_url )')
+          .in('lezione_id', idLezioni).in('stato', ['in_attesa', 'avvisato']).order('created_at'),
+      ])
+    : [{ data: [] }, { data: [] }];
 
   return {
     staff, inizio, fine, giorni: n,
     lezioni: lezioni || [], sale: sale || [], insegnanti: insegnanti || [],
-    corsi: corsi || [], note: note || [], facce: facce || [], sedi: sedi || [],
+    corsi: corsi || [], note: note || [], facce: facce || [], coda: coda || [], sedi: sedi || [],
   };
 }
