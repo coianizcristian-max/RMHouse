@@ -60,7 +60,10 @@ const MOTIVI = {
 
 function Data({ id, valore, onChange, etichetta }) {
   const [testo, setTesto] = useState(daISO(valore));
-  useEffect(() => { setTesto(daISO(valore)); }, [valore]);
+  // si riallinea solo se la data cambia da fuori (es. dal codice fiscale): mentre si scrive "011019" non deve
+  // diventare 01/10/2019 e impedire di finire "01101979"
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { if ((valore || '') !== (dataISO(testo) || '')) setTesto(daISO(valore)); }, [valore]);
   const iso = dataISO(testo);
   const anni = eta(iso);
   return (
@@ -99,23 +102,41 @@ export default function NuovaPersona({ palestraId }) {
     };
   }
 
-  // doppioni: mentre si scrive
+  // doppioni: mentre si scrive. Si cerca solo quando c'è qualcosa di utile (nome e cognome, una data completa,
+  // un'email o un telefono interi, il codice fiscale), dopo una breve pausa, e si tiene solo l'ultima risposta.
+  const ultimaRicerca = useRef(0);
+  const cercaNome = figlio ? f.f_nome : f.nome;
+  const cercaCognome = figlio ? (f.f_cognome || f.cognome) : f.cognome;
+  const cercaNascita = figlio ? f.f_nascita : f.nascita;
+  const cercaCf = figlio ? f.f_cf : f.cf;
   useEffect(() => {
+    const utile = /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(f.email.trim()) || soloCifre(f.telefono).length >= 8 || cercaCf.length === 16
+      || (cercaNome.trim().length >= 2 && cercaCognome.trim().length >= 2) || !!cercaNascita;
+    if (!utile) { setDoppioni([]); return undefined; }
     const t = setTimeout(async () => {
-      const cercaNome = figlio ? f.f_nome : f.nome, cercaCognome = figlio ? f.f_cognome : f.cognome;
-      if (!(f.email.includes('@') || soloCifre(f.telefono).length >= 8 || (f.cf || f.f_cf).length === 16
-            || (cercaNome.trim().length >= 2 && cercaCognome.trim().length >= 2))) { setDoppioni([]); return; }
-      const { data } = await supabaseBrowser().rpc('cerca_doppioni', {
-        p_palestra: palestraId, p_nome: cercaNome, p_cognome: cercaCognome,
-        p_email: f.email, p_telefono: f.telefono, p_cf: figlio ? f.f_cf : f.cf,
+      const n = ++ultimaRicerca.current;
+      const { data } = await supabaseBrowser().rpc('possibili_doppioni', {
+        p_palestra: palestraId, p_nome: cercaNome, p_cognome: cercaCognome, p_nascita: cercaNascita || null,
+        p_cf: cercaCf, p_email: f.email, p_telefono: f.telefono,
       });
-      setDoppioni(data || []);
-    }, 350);
+      if (n === ultimaRicerca.current) setDoppioni(data || []);
+    }, 400);
     return () => clearTimeout(t);
-  }, [f.nome, f.cognome, f.email, f.telefono, f.cf, f.f_nome, f.f_cognome, f.f_cf, figlio, palestraId]);
+  }, [cercaNome, cercaCognome, cercaNascita, cercaCf, f.email, f.telefono, palestraId]);
+
+  const [ignorati, setIgnorati] = useState([]);      // "è un'altra persona"
+  const [avvisoSalva, setAvvisoSalva] = useState(false);
+  const allarmi = doppioni.filter((d) => d.livello !== 'famiglia' && !ignorati.includes(d.allievo_id));
+  const famiglia = doppioni.filter((d) => d.livello === 'famiglia');
 
   async function salva(dopo) {
     setErrore('');
+    // prima di creare: se forse c'è già, si chiede di guardare (non si blocca: "È un'altra persona" e si continua)
+    if (allarmi.length) {
+      setAvvisoSalva(true);
+      document.querySelector('.doppione-avviso')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
     if (!f.nome.trim()) { setErrore(figlio ? 'Scrivi il nome del genitore.' : 'Scrivi il nome.'); return; }
     if (figlio && !f.f_nome.trim()) { setErrore('Scrivi il nome di chi frequenta.'); return; }
     if (!(figlio ? f.f_nascita : f.nascita)) { setErrore('Manca la data di nascita di chi frequenta.'); return; }
@@ -146,7 +167,7 @@ export default function NuovaPersona({ palestraId }) {
     } else {
       setF({ ...VUOTO, modo: f.modo });
     }
-    setDoppioni([]);
+    setDoppioni([]); setIgnorati([]); setAvvisoSalva(false);
     setTimeout(() => primo.current?.focus(), 50);
   }
 
@@ -164,6 +185,30 @@ export default function NuovaPersona({ palestraId }) {
       </div>
 
       {errore && <div className="errore" role="alert">{errore}</div>}
+
+      {allarmi.length > 0 && (
+        <div className={`doppione-avviso${avvisoSalva ? ' forte' : ''}`} role="alert">
+          <strong>{allarmi.some((d) => d.livello === 'sicuro') ? 'Questa persona c\'è già' : 'Forse questa persona c\'è già'}</strong>
+          {avvisoSalva && <span className="piccolo"> Prima di creare una scheda nuova controlla qui sotto: se è un'altra persona premi "È un'altra persona".</span>}
+          <ul>
+            {allarmi.map((d) => (
+              <li key={d.allievo_id}>
+                <span className="da-testo">
+                  <b>{d.nome} {d.cognome}</b>
+                  {d.data_nascita ? ` · ${daISO(d.data_nascita)}` : ''}{d.chi_paga ? ` · paga ${d.chi_paga}` : ''}
+                  <span className="piccolo muto"> — {d.motivo}</span>
+                </span>
+                <span className="da-azioni">
+                  <a className="btn btn-piccolo" href={`/gestione/persone/${d.allievo_id}`}>Apri la scheda</a>
+                  <button type="button" className="link-btn piccolo" onClick={() => { setIgnorati((v) => [...v, d.allievo_id]); setAvvisoSalva(false); }}>
+                    È un'altra persona
+                  </button>
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       <form className="reg-griglia" onSubmit={(e) => { e.preventDefault(); salva('iscrivi'); }}>
         <div className="reg-colonna">
@@ -240,12 +285,16 @@ export default function NuovaPersona({ palestraId }) {
         </div>
 
         <aside className="reg-lato">
-          <section className={`pannello${doppioni.length ? ' reg-doppioni' : ''}`}>
-            <h2>{doppioni.length ? 'Forse c\'è già' : 'Controllo doppioni'}</h2>
+          <section className={`pannello${allarmi.length ? ' reg-doppioni' : ''}`}>
+            <h2>{allarmi.length ? 'Forse c\'è già' : famiglia.length ? 'Stessa famiglia' : 'Controllo doppioni'}</h2>
             {doppioni.length === 0 ? (
-              <p className="piccolo muto" style={{ margin: 0 }}>Mentre scrivi nome, telefono, email o codice fiscale controllo che la persona non sia già registrata.</p>
+              <p className="piccolo muto" style={{ margin: 0 }}>Mentre scrivi controllo che la persona non sia già registrata: nome e cognome (anche al contrario),
+                data di nascita, codice fiscale, email e telefono insieme. La sola email non basta, perché è spesso quella di un genitore con più figli.</p>
             ) : (
               <ul className="mini-lista">
+                {famiglia.length > 0 && !allarmi.length && (
+                  <li className="piccolo muto" style={{ padding: '4px 0' }}>Con la stessa email o lo stesso telefono ci sono già (va bene se è un fratello o una sorella: finisce nella stessa famiglia):</li>
+                )}
                 {doppioni.map((d) => (
                   <li key={d.allievo_id}>
                     <a href={`/gestione/persone/${d.allievo_id}`}>
