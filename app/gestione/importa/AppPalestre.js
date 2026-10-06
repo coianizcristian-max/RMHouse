@@ -96,10 +96,13 @@ export default function AppPalestre({ palestraId }) {
       }
       // lo storico si rifà solo per il periodo che c'è nel file: quello più vecchio resta
       const primoDal = storico?.reduce((m, r) => (r.dal && (!m || r.dal < m) ? r.dal : m), null) || null;
-      for (let i = 0; storico && i < storico.length; i += BLOCCO_STORICO) {
-        setFase({ testo: `Abbonamenti ${Math.min(i + BLOCCO_STORICO, storico.length)} di ${storico.length}`, fatto: passo, totale });
+      // file con solo gli attivi: si aggiornano quelli, senza cancellare lo storico
+      const soloAttivi = !!storico?.length && storico.every((r) => r.stato === 'attivo');
+      const bloccoStorico = soloAttivi ? storico.length : BLOCCO_STORICO;   // gli attivi vanno in un colpo solo
+      for (let i = 0; storico && i < storico.length; i += bloccoStorico) {
+        setFase({ testo: `Abbonamenti ${Math.min(i + bloccoStorico, storico.length)} di ${storico.length}`, fatto: passo, totale });
         const d = await chiama('importa_app_palestre_storico', {
-          p_palestra: palestraId, p_righe: storico.slice(i, i + BLOCCO_STORICO), p_azzera: i === 0, p_dal_da: primoDal,
+          p_palestra: palestraId, p_righe: storico.slice(i, i + bloccoStorico), p_azzera: i === 0, p_dal_da: primoDal, p_solo_attivi: soloAttivi,
         });
         somma.storico += d.righe; somma.senza_persona += d.senza_persona;
       }
@@ -171,6 +174,10 @@ export default function AppPalestre({ palestraId }) {
               <div className="sotto">{pagamenti.length} pagamenti dal {dataIt(dataPag[0])} al {dataIt(dataPag[dataPag.length - 1])}
                 {ultimoNumero ? ` · ricevute fino al n. ${ultimoNumero}` : ''}</div></div>}
           </div>
+          {storico?.length > 0 && storico.every((r) => r.stato === 'attivo') && (
+            <p className="piccolo muto">La lista abbonamenti ha solo gli attivi: aggiorno quelli e lo storico già importato resta com'è.
+              Per rifare anche lo storico, in APP Palestre scaricala con tutti gli stati (anche scaduti).</p>
+          )}
           {!storico && (prenotazioni || pagamenti) && (
             <p className="piccolo muto">Senza la lista abbonamenti le iscrizioni in corso non si possono creare: le prenotazioni non verranno usate.</p>
           )}

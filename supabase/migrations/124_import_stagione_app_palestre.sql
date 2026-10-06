@@ -377,15 +377,41 @@ end $$;
 --   • se il file copre solo un periodo (p_dal_da = il primo "dal" del file) rifà solo quel periodo
 --     e lo storico più vecchio resta com'è
 drop function if exists importa_app_palestre_storico(uuid, jsonb, boolean);
+drop function if exists importa_app_palestre_storico(uuid, jsonb, boolean, date);
+--   • se il file ha SOLO abbonamenti attivi (p_solo_attivi: in APP Palestre era filtrato su "attivo") non si cancella
+--     niente: gli abbonamenti del file si aggiornano o si aggiungono e lo storico (anche gli scaduti) resta
 create or replace function importa_app_palestre_storico(p_palestra uuid, p_righe jsonb, p_azzera boolean default false,
-                                                        p_dal_da date default null)
+                                                        p_dal_da date default null, p_solo_attivi boolean default false)
 returns jsonb language plpgsql security definer set search_path = public as $$
-declare n int; n_senza int;
+declare n int; n_agg int := 0; n_senza int;
 begin
   if auth.uid() is not null and not is_gestione(p_palestra) then raise exception 'non_autorizzato'; end if;
-  if p_azzera then
+  if p_azzera and not p_solo_attivi then
     delete from storico_abbonamenti where palestra_id = p_palestra and fonte = 'app_palestre'
        and (p_dal_da is null or dal >= p_dal_da);
+  end if;
+
+  create temp table _st on commit drop as
+  select x.chiave, x.abbonamento, x.dal, x.al, x.stato, x.esaurito, x.restanti, x.valore_cent
+    from jsonb_to_recordset(p_righe) as x(chiave text, abbonamento text, dal date, al date, stato text,
+                                          esaurito boolean, restanti int, valore_cent int);
+  if p_solo_attivi then
+    update storico_abbonamenti st set al = x.al, stato = x.stato, esaurito = x.esaurito, restanti = x.restanti,
+           valore_cent = x.valore_cent, tipo_abbonamento_id = tipo_da_nome(p_palestra, x.abbonamento)
+      from _st x
+     where st.palestra_id = p_palestra and st.fonte = 'app_palestre' and st.chiave = x.chiave
+       and testo_norm(st.abbonamento) = testo_norm(x.abbonamento) and st.dal = x.dal;
+    get diagnostics n_agg = row_count;
+    -- gli abbonamenti che risultavano attivi ma nel file degli attivi non ci sono più: in APP Palestre sono stati tolti
+    -- (il file degli attivi arriva tutto in una volta, nel primo blocco)
+    if p_azzera then
+      update storico_abbonamenti st set stato = 'annullato'
+       where st.palestra_id = p_palestra and st.fonte = 'app_palestre' and st.stato = 'attivo' and st.al >= current_date
+         and not exists (select 1 from _st x where x.chiave = st.chiave and testo_norm(x.abbonamento) = testo_norm(st.abbonamento) and x.dal = st.dal);
+    end if;
+    delete from _st x where exists (select 1 from storico_abbonamenti st
+       where st.palestra_id = p_palestra and st.fonte = 'app_palestre' and st.chiave = x.chiave
+         and testo_norm(st.abbonamento) = testo_norm(x.abbonamento) and st.dal = x.dal);
   end if;
 
   insert into storico_abbonamenti (palestra_id, allievo_id, chiave, abbonamento, tipo_abbonamento_id,
@@ -394,12 +420,11 @@ begin
          (select id from allievi a where a.palestra_id = p_palestra and a.codice_esterno = x.chiave),
          x.chiave, x.abbonamento, tipo_da_nome(p_palestra, x.abbonamento),
          x.dal, x.al, x.stato, x.esaurito, x.restanti, x.valore_cent
-  from jsonb_to_recordset(p_righe) as x(chiave text, abbonamento text, dal date, al date, stato text,
-                                        esaurito boolean, restanti int, valore_cent int);
+  from _st x;
   get diagnostics n = row_count;
   select count(*) into n_senza from jsonb_to_recordset(p_righe) as x(chiave text)
    where not exists (select 1 from allievi a where a.palestra_id = p_palestra and a.codice_esterno = x.chiave);
-  return jsonb_build_object('righe', n, 'senza_persona', n_senza);
+  return jsonb_build_object('righe', n + n_agg, 'nuove', n, 'aggiornate', n_agg, 'senza_persona', n_senza);
 end $$;
 
 -- ---------------------------------------------------------------------
@@ -565,6 +590,7 @@ language sql stable security definer set search_path = public as $$
     select o.id, o.corso_id, c.nome, true as scelto, 0 as pri, 0::numeric as distanza, true as stesso
       from corsi_alias al join orari o on o.id = al.orario_id join corsi c on c.id = o.corso_id
      where al.palestra_id = p_palestra and al.corso_norm = p_cn and al.giorno = p_giorno and al.ora = p_ora
+       and o.attivo and (o.valido_al is null or o.valido_al >= current_date)   -- un orario chiuso non si usa più
     union all
     select o.id, o.corso_id, c.nome, false, 1, abs(extract(epoch from (o.ora_inizio - p_ora))), true
       from orari o join corsi c on c.id = o.corso_id
@@ -1063,6 +1089,22 @@ begin
       'ric_sovrapposta|' || r.id, '/gestione/ricevute/' || r.id);
   end loop;
 
+  -- iscrizioni nate da APP Palestre il cui abbonamento in APP Palestre non c'è più (tolto o annullato)
+  for r in
+    select i.id, i.allievo_id, i.data_inizio, i.data_fine, t.nome as tipo
+      from iscrizioni i join tipi_abbonamento t on t.id = i.tipo_abbonamento_id
+     where i.palestra_id = v_pal and i.codice_esterno is not null and i.stato in ('attiva', 'sospesa')
+       and coalesce(i.data_fine, current_date) >= current_date
+       and not exists (select 1 from storico_abbonamenti st where st.iscrizione_id = i.id and st.stato = 'attivo' and st.al >= current_date)
+  loop
+    perform anomalia_import(v_pal, p_imp, r.allievo_id, 'abbonamenti', 'da_verificare',
+      'Abbonamento non più in APP Palestre: ' || r.tipo,
+      'L''iscrizione a ' || r.tipo || ' dal ' || to_char(r.data_inizio, 'DD/MM/YYYY') || coalesce(' al ' || to_char(r.data_fine, 'DD/MM/YYYY'), '') ||
+      ' era arrivata da APP Palestre, ma ora lì quell''abbonamento non è più attivo (tolto, annullato o cambiato). ' ||
+      'Controlla: se non frequenta più, annulla l''iscrizione dalla scheda; se è giusta, segna come fatto.',
+      'non_piu_in_app|' || r.id);
+  end loop;
+
   -- prenotazioni future fatte senza abbonamento
   for r in
     select b.chiave, a.id as allievo_id, count(*) as quante, string_agg(distinct trim(b.corso), ', ') as corsi, min(b.giorno) as prima
@@ -1123,8 +1165,8 @@ begin
   return jsonb_build_object('storico', n_storico, 'pagamenti', n_pag);
 end $$;
 revoke execute on function abbina_abbonamento_import(uuid, text, uuid) from public, anon;
-revoke execute on function importa_app_palestre_storico(uuid, jsonb, boolean, date) from public, anon;
-grant execute on function importa_app_palestre_storico(uuid, jsonb, boolean, date) to authenticated;
+revoke execute on function importa_app_palestre_storico(uuid, jsonb, boolean, date, boolean) from public, anon;
+grant execute on function importa_app_palestre_storico(uuid, jsonb, boolean, date, boolean) to authenticated;
 grant execute on function abbina_abbonamento_import(uuid, text, uuid) to authenticated;
 
 -- segnare come fatta (o riaprire) una anomalia
