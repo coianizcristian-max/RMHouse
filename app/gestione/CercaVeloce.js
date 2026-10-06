@@ -2,7 +2,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabaseBrowser } from '@/lib/supabase/browser';
-import { applicaRicerca } from '@/lib/ricerca';
+import { cercaPersone } from '@/lib/ricerca';
 import { etichettaPaga } from '@/lib/formato';
 
 // Cerca un cliente e apri la scheda, oppure scegli per chi fare una nuova iscrizione
@@ -18,9 +18,9 @@ export default function CercaVeloce({ palestraId, modoIniziale = 'scheda' }) {
     const t = testo.trim().toLowerCase();
     if (t.length < 2) { setTrovati([]); return; }
     const timer = setTimeout(async () => {
-      const { data } = await applicaRicerca(supabaseBrowser().from('v_persone')
+      const { data } = await cercaPersone(() => supabaseBrowser().from('v_persone')
         .select('id, nome, cognome, data_nascita, telefono, iscrizioni_attive, titolare_nome, titolare_cognome, is_titolare')
-        .eq('palestra_id', palestraId), t).order('cognome').limit(8);
+        .eq('palestra_id', palestraId), t, 8);
       setTrovati(data || []); setAttivo(-1);
     }, 200);
     return () => clearTimeout(timer);

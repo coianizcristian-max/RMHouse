@@ -2,7 +2,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { supabaseBrowser } from '@/lib/supabase/browser';
-import { applicaRicerca } from '@/lib/ricerca';
+import { cercaPersone } from '@/lib/ricerca';
 import { euro, dataBreve, ora } from '@/lib/formato';
 import CampoCerca from '../CampoCerca';
 import NuovoCliente from './NuovoCliente';
@@ -578,14 +578,18 @@ function Cerca({ palestraId, testo, setTesto, onScegli, onNuovo }) {
     if (t.length < 2 && filtro === 'tutti') { setTrovati([]); setTotale(0); return undefined; }
     const timer = setTimeout(async () => {
       const n = ++ultima.current; setCerco(true);
-      let q = supabaseBrowser().from('v_stato_clienti')
-        .select('id, nome, cognome, data_nascita, telefono, attivo, fine_prossima, ultima_fine, certificato_scadenza, quota_valida_fino, is_titolare, titolare_nome, titolare_cognome', { count: 'exact' })
-        .eq('palestra_id', palestraId);
-      if (t.length >= 2) q = applicaRicerca(q, t);
-      if (filtro === 'attivi') q = q.eq('attivo', true);
-      if (filtro === 'scaduti') q = q.eq('attivo', false).not('ultima_fine', 'is', null);
-      if (filtro === 'certificato') q = q.or(`certificato_scadenza.is.null,certificato_scadenza.lt.${oggi()}`).eq('attivo', true);
-      const { data, count } = await q.order('cognome').order('nome').limit(12);
+      const base = () => {
+        let q = supabaseBrowser().from('v_stato_clienti')
+          .select('id, nome, cognome, data_nascita, telefono, attivo, fine_prossima, ultima_fine, certificato_scadenza, quota_valida_fino, is_titolare, titolare_nome, titolare_cognome', { count: 'exact' })
+          .eq('palestra_id', palestraId);
+        if (filtro === 'attivi') q = q.eq('attivo', true);
+        if (filtro === 'scaduti') q = q.eq('attivo', false).not('ultima_fine', 'is', null);
+        if (filtro === 'certificato') q = q.or(`certificato_scadenza.is.null,certificato_scadenza.lt.${oggi()}`).eq('attivo', true);
+        return q;
+      };
+      // con il testo: prima chi ha quelle iniziali o comincia così, poi gli altri
+      const { data, count } = t.length >= 2 ? await cercaPersone(base, t, 12)
+        : await base().order('cognome').order('nome').limit(12);
       if (n !== ultima.current) return;
       setTrovati(data || []); setTotale(count || 0); setAttivo(0); setCerco(false);
     }, 180);
@@ -624,6 +628,7 @@ function Cerca({ palestraId, testo, setTesto, onScegli, onNuovo }) {
           );
         })}
       </ul>
+      {testo.trim().length < 2 && <p className="piccolo muto sp-suggerimento">Bastano le iniziali: &quot;mr&quot; trova Marco Rossi e Rossi Marta. Oppure pezzi di nome e cognome in qualunque ordine (&quot;ros ma&quot;), telefono o email.</p>}
       {totale > trovati.length && <p className="piccolo muto">e altri {totale - trovati.length}: scrivi qualche lettera in più.</p>}
       {!cerco && testo.trim().length >= 2 && trovati.length === 0 && <p className="piccolo muto">Nessuno con &quot;{testo.trim()}&quot;.</p>}
       <button type="button" className={`btn sp-largo${testo.trim().length >= 2 && trovati.length === 0 && !cerco ? ' btn-primario' : ''}`} onClick={onNuovo}>

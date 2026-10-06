@@ -3,7 +3,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { supabaseBrowser } from '@/lib/supabase/browser';
-import { applicaRicerca } from '@/lib/ricerca';
+import { cercaPersone } from '@/lib/ricerca';
 import { euro, dataBreve } from '@/lib/formato';
 import LinkPagamento from '../LinkPagamento';
 import RimborsoCarta from '../RimborsoCarta';
@@ -31,9 +31,9 @@ export default function Incassi({ palestraId, righe, totali, dal, al, stato, onl
   async function cerca(testo) {
     setF({ ...f, cerca: testo, account_id: '', allievo_id: '' });
     if (testo.trim().length < 2) { setTrovati([]); return; }
-    const { data } = await applicaRicerca(supabaseBrowser().from('v_persone')
+    const { data } = await cercaPersone(() => supabaseBrowser().from('v_persone')
       .select('id, nome, cognome, account_id, titolare_nome, titolare_cognome')
-      .eq('palestra_id', palestraId), testo).limit(8);
+      .eq('palestra_id', palestraId), testo, 8);
     setTrovati(data || []);
   }
 
