@@ -4021,3 +4021,6 @@ body:has(.sportello) .bottone-rapide { display: none; }
 .sp-storia li:first-child::before { background: var(--testo-2); }
 .sp-storia-nome { display: flex; flex-direction: column; min-width: 0; font-size: 13.5px; }
 .sp-storia-nome b { font-weight: 600; overflow-wrap: anywhere; }
+/* Iscriviti: giorni degli altri corsi compresi nell'abbonamento */
+.isc-sotto { font-size: 15px; margin: 14px 0 6px; }
+.isc-altro-corso .isc-giorni { margin-bottom: 4px; }

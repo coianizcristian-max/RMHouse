@@ -8,5 +8,5 @@ export default async function Abbonamento({ searchParams }) {
   const q = new URLSearchParams();
   if (p?.corso) q.set('corso', p.corso);
   if (p?.annullato) q.set('annullato', '1');
-  redirect(`/area/acquista${q.toString() ? `?${q}` : ''}`);
+  redirect(`/area/iscriviti${q.toString() ? `?${q}` : ''}`);
 }

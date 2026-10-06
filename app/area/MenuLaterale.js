@@ -44,14 +44,15 @@ export default function MenuLaterale({ aperto, chiudi, esci }) {
     else document.documentElement.setAttribute('data-tema', t === 'scuro' ? 'scuro' : 'chiaro');
   }
   const voce = (href, testo, icona) => (
-    <li><Link prefetch={false} href={href} aria-current={path === href ? 'page' : undefined}>{ICONE[icona]}{testo}</Link></li>
+    // il menù si chiude sempre al tocco (anche se la pagina è la stessa o cambia solo la parte dopo #)
+    <li><Link prefetch={false} href={href} onClick={chiudi} aria-current={path === href.split('#')[0] ? 'page' : undefined}>{ICONE[icona]}{testo}</Link></li>
   );
 
   return (
     <>
       <div className={`cl-velo${aperto ? ' visibile' : ''}`} onClick={chiudi} aria-hidden="true" />
       <aside className={`cl-cassetto${aperto ? ' aperto' : ''}`} aria-hidden={!aperto} aria-label="Menù">
-        <Link prefetch={false} href="/area/io" className="cl-chi">
+        <Link prefetch={false} href="/area/io" className="cl-chi" onClick={chiudi}>
           <span className="cl-foto">{(chi?.nome || '?').split(' ').map((p) => p[0]).slice(0, 2).join('')}</span>
           <span>
             <strong>{chi?.nome || 'La mia area'}</strong>
@@ -73,13 +74,13 @@ export default function MenuLaterale({ aperto, chiudi, esci }) {
           {voce('/area/io', 'Io', 'io')}
         </ul>
 
-        <Link prefetch={false} href="/area/scuola" className="cl-scuola">
+        <Link prefetch={false} href="/area/scuola" className="cl-scuola" onClick={chiudi}>
           <img src="/logo-marchio.png" alt="" /> Ritmo Metropolitano
         </Link>
 
         <ul className="cl-voci">
-          <li><Link prefetch={false} href="/area/io#abbonamenti">{ICONE.abbonamenti}Abbonamenti</Link></li>
-          {voce('/area/iscriviti', 'Iscriviti a un corso', 'carrello')}
+          {voce('/area/iscriviti', 'Abbonati o rinnova', 'carrello')}
+          {voce('/area/io#abbonamenti', 'I miei abbonamenti', 'abbonamenti')}
           {voce('/area/personal', 'Lezione privata', 'personal')}
           {voce('/area/sala', 'Prenota una sala', 'sala')}
           {voce('/area/pagamenti', 'Pagamenti e ricevute', 'euro')}

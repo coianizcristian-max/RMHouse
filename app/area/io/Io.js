@@ -71,7 +71,7 @@ export default function Io({ titolare, persone, anagrafica = [], richieste = [],
 
       {/* le quattro cose da tenere in regola: verde ok, giallo a breve, rosso da fare */}
       <section className="io-scadenze">
-        <Link prefetch={false} href={abb ? '#abbonamenti' : '/area/acquista'} className={`io-tessera ${abbStato}`}>
+        <Link prefetch={false} href={abb ? '#abbonamenti' : `/area/iscriviti?per=${p.id}`} className={`io-tessera ${abbStato}`}>
           <span>Abbonamento</span>
           <strong>{abb ? `fino al ${dataBreve(abb.al)}` : 'nessuno'}</strong>
           <em>{abb ? (abb.ingressi != null ? `${abb.ingressi} ingressi` : abb.corso) : 'Acquista ›'}</em>
@@ -145,7 +145,7 @@ export default function Io({ titolare, persone, anagrafica = [], richieste = [],
           ))}
         </ul>
         <div className="io-azioni">
-          <Link prefetch={false} className="btn btn-piccolo btn-primario" href="/area/acquista">{p.attivi.length ? 'Rinnova o aggiungi' : 'Acquista un abbonamento'}</Link>
+          <Link prefetch={false} className="btn btn-piccolo btn-primario" href={`/area/iscriviti?per=${p.id}`}>{p.attivi.length ? 'Rinnova o aggiungi' : 'Acquista un abbonamento'}</Link>
           {p.storico.length > 0 && <button type="button" className="link-btn piccolo" onClick={() => setStorico(!storico)}>{storico ? 'Nascondi lo storico' : `Storico (${p.storico.length})`}</button>}
         </div>
         {storico && (

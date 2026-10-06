@@ -124,6 +124,26 @@ export default function Iscriviti({ persone, corsi, tipi, orari, coperti, pieni,
   const orariCorso = orari.filter((o) => o.corso_id === corsoId)
     .sort((a, b) => a.giorno_settimana - b.giorno_settimana || String(a.ora_inizio).localeCompare(String(b.ora_inizio)));
   const max = tipo?.lezioni_settimanali || 7;
+  // gli altri corsi compresi nell'abbonamento scelto (Corsi coperti), adatti all'età e aperti dall'app:
+  // servono quando il corso ha meno giorni di quelli dell'abbonamento (es. Hip Hop 2 solo il mercoledì, abbonamento 3 volte)
+  const altriCorsi = useMemo(() => {
+    if (!tipo) return [];
+    const ids = new Set(coperti.filter((c) => c.tipo_abbonamento_id === tipo.id && c.corso_id !== corsoId).map((c) => c.corso_id));
+    // stessa regola dell'età del corso scelto: se l'ha scelto fuori età ("tutte le età"), non si filtra
+    const filtraEta = !corso || adatto(corso);
+    return corsi.filter((c) => ids.has(c.id) && c.iscrizioni_app === 'aperte' && (!filtraEta || adatto(c)))
+      .map((c) => ({ corso: c, orari: orari.filter((o) => o.corso_id === c.id)
+        .sort((a, b) => a.giorno_settimana - b.giorno_settimana || String(a.ora_inizio).localeCompare(String(b.ora_inizio))) }))
+      .filter((x) => x.orari.length)
+      .sort((a, b) => a.corso.nome.localeCompare(b.corso.nome, 'it'));
+  }, [tipo, coperti, corsoId, corsi, orari, anni]); // eslint-disable-line react-hooks/exhaustive-deps
+  const [vediAltriCorsi, setVediAltriCorsi] = useState(false);
+  const pochiGiorni = !!tipo?.lezioni_settimanali && orariCorso.length < tipo.lezioni_settimanali;
+  const giorniPossibili = orariCorso.length + altriCorsi.reduce((n, x) => n + x.orari.length, 0);
+  // si chiedono tutti i giorni dell'abbonamento quando ce ne sono abbastanza; altrimenti basta almeno uno
+  const servono = tipo?.lezioni_settimanali ? Math.min(tipo.lezioni_settimanali, giorniPossibili) : 1;
+  const mancano = Math.max(0, servono - scelti.length);
+  const orariVisibili = [...orariCorso, ...(pochiGiorni || vediAltriCorsi ? altriCorsi.flatMap((x) => x.orari) : [])];
   const inCorso = attivi.filter((a) => a.allievo_id === chi && a.corso_id === corsoId && a.data_fine >= (inizio || oggi()))
     .sort((a, b) => b.data_fine.localeCompare(a.data_fine))[0];
   const inizioVero = inCorso ? giornoDopo(inCorso.data_fine) : inizio;
@@ -142,7 +162,7 @@ export default function Iscriviti({ persone, corsi, tipi, orari, coperti, pieni,
     vai('abbonamento');
   }
   function scegliTipo(t) {
-    setTipoId(t.id); setScelti([]); setInizio(aMese(t) ? primiDelMese()[0] : oggi()); setRicorrente(false); setRichiesta(null);
+    setTipoId(t.id); setScelti([]); setInizio(aMese(t) ? primiDelMese()[0] : oggi()); setRicorrente(false); setRichiesta(null); setVediAltriCorsi(false);
     vai(t.modalita === 'orari_fissi' ? 'giorni' : 'paga');
   }
   function alterna(o) {
@@ -154,7 +174,7 @@ export default function Iscriviti({ persone, corsi, tipi, orari, coperti, pieni,
     setInCoda((v) => [...v, o.id]);
   }
   function controlla() {
-    if (fissi && !scelti.length) { setErrore('Scegli i giorni in cui verrai.'); return false; }
+    if (fissi && (!scelti.length || mancano > 0)) { setErrore('Scegli i giorni in cui verrai.'); return false; }
     if (metaMese) { setErrore(ERRORI.inizio_meta_mese); return false; }
     setErrore(''); return true;
   }
@@ -186,7 +206,16 @@ export default function Iscriviti({ persone, corsi, tipi, orari, coperti, pieni,
   }
   const copia = (t) => { try { navigator.clipboard.writeText(t); } catch { /* niente */ } };
   const giorniTesto = (lista) => lista.map((id) => orari.find((o) => o.id === id)).filter(Boolean)
-    .map((o) => `${GIORNI[o.giorno_settimana]} ${String(o.ora_inizio).slice(0, 5)}`).join(' · ');
+    .map((o) => `${GIORNI[o.giorno_settimana]} ${String(o.ora_inizio).slice(0, 5)}${o.corso_id !== corsoId ? ` (${corsi.find((c) => c.id === o.corso_id)?.nome || 'altro corso'})` : ''}`).join(' · ');
+  const bottoneGiorno = (o) => {
+    const pieno = pieni.includes(o.id) && !scelti.includes(o.id);
+    return (
+      <button key={o.id} type="button" aria-pressed={scelti.includes(o.id)} disabled={pieno} onClick={() => alterna(o)}>
+        <strong>{GIORNI_LUNGHI[o.giorno_settimana]}</strong><span>{String(o.ora_inizio).slice(0, 5)}{o.durata_min ? ` · ${o.durata_min} min` : ''}</span>
+        {pieno && <small>completo</small>}
+      </button>
+    );
+  };
 
   return (
     <div className="area-casa isc">
@@ -323,26 +352,42 @@ export default function Iscriviti({ persone, corsi, tipi, orari, coperti, pieni,
         <section>
           <h2 className="isc-domanda">{max === 1 ? 'Che giorno vieni?' : tipo.lezioni_settimanali ? `Scegli ${max} giorni` : 'Scegli i giorni'}</h2>
           {orariCorso.length === 0 && <div className="vuoto">Questo corso non ha giorni prenotabili: scrivi alla segreteria.</div>}
-          <div className="isc-giorni">
-            {orariCorso.map((o) => {
-              const pieno = pieni.includes(o.id) && !scelti.includes(o.id);
-              return (
-                <button key={o.id} type="button" aria-pressed={scelti.includes(o.id)} disabled={pieno} onClick={() => alterna(o)}>
-                  <strong>{GIORNI_LUNGHI[o.giorno_settimana]}</strong><span>{String(o.ora_inizio).slice(0, 5)}{o.durata_min ? ` · ${o.durata_min} min` : ''}</span>
-                  {pieno && <small>completo</small>}
-                </button>
-              );
-            })}
-          </div>
-          {orariCorso.some((o) => pieni.includes(o.id)) && (
+          {altriCorsi.length > 0 && orariCorso.length > 0 && <h3 className="isc-sotto">{corso?.nome}</h3>}
+          <div className="isc-giorni">{orariCorso.map(bottoneGiorno)}</div>
+          {altriCorsi.length > 0 && (pochiGiorni || vediAltriCorsi) && (
+            <>
+              <p className="isc-nota">
+                {pochiGiorni
+                  ? `${corso?.nome} ha ${orariCorso.length === 1 ? 'un solo giorno' : `${orariCorso.length} giorni`} a settimana: gli altri ${tipo.lezioni_settimanali - orariCorso.length === 1 ? 'lo scegli' : 'li scegli'} fra i corsi compresi nel tuo abbonamento.`
+                  : 'Corsi compresi nel tuo abbonamento: puoi scegliere anche questi giorni.'}
+              </p>
+              {altriCorsi.map((x) => (
+                <div key={x.corso.id} className="isc-altro-corso">
+                  <h3 className="isc-sotto">{x.corso.nome}{x.corso.livello ? <span className="muto"> · {x.corso.livello}</span> : null}</h3>
+                  <div className="isc-giorni">{x.orari.map(bottoneGiorno)}</div>
+                </div>
+              ))}
+            </>
+          )}
+          {altriCorsi.length > 0 && !pochiGiorni && !vediAltriCorsi && (
+            <button type="button" className="link-btn isc-nota" onClick={() => setVediAltriCorsi(true)}>
+              Vuoi venire anche in un altro corso compreso nell&apos;abbonamento? ({altriCorsi.length})
+            </button>
+          )}
+          {pochiGiorni && altriCorsi.length === 0 && orariCorso.length > 0 && (
+            <p className="isc-nota">Questo corso ha {orariCorso.length === 1 ? 'un solo giorno' : `${orariCorso.length} giorni`} a settimana: per gli altri giorni dell&apos;abbonamento senti la segreteria.</p>
+          )}
+          {orariVisibili.some((o) => pieni.includes(o.id)) && (
             <p className="isc-nota">Il giorno che vuoi è pieno?{' '}
-              {orariCorso.filter((o) => pieni.includes(o.id)).map((o) => (inCoda.includes(o.id)
+              {orariVisibili.filter((o) => pieni.includes(o.id)).map((o) => (inCoda.includes(o.id)
                 ? <span key={o.id} className="tag tag-attenzione">in coda per {GIORNI[o.giorno_settimana]} {String(o.ora_inizio).slice(0, 5)}</span>
                 : <button key={o.id} type="button" className="link-btn" onClick={() => inCodaPer(o)}>mettimi in coda per {GIORNI[o.giorno_settimana]} {String(o.ora_inizio).slice(0, 5)}</button>))}
             </p>
           )}
-          <button type="button" className="btn btn-primario btn-pieno btn-grande isc-avanti" disabled={!scelti.length} onClick={() => vai('paga')}>
-            {scelti.length ? `Avanti con ${giorniTesto(scelti)} →` : 'Scegli almeno un giorno'}
+          <button type="button" className="btn btn-primario btn-pieno btn-grande isc-avanti" disabled={!scelti.length || mancano > 0} onClick={() => vai('paga')}>
+            {!scelti.length ? (servono > 1 ? `Scegli ${servono} giorni` : 'Scegli almeno un giorno')
+              : mancano > 0 ? `Scegli ancora ${mancano === 1 ? 'un giorno' : `${mancano} giorni`}`
+              : `Avanti con ${giorniTesto(scelti)} →`}
           </button>
         </section>
       )}
