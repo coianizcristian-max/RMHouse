@@ -130,7 +130,11 @@ export default async function Home({ searchParams }) {
         </div>
         {gestione && (
           <div className="azioni">
-            <Link prefetch={false} className="btn btn-primario" href="/gestione/persone/nuova">Nuovo cliente</Link>
+            <Link prefetch={false} className="btn btn-primario btn-sportello" href="/gestione/sportello">
+              <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="9" cy="8" r="3.2" /><path d="M3 20c0-3.3 2.7-5.5 6-5.5s6 2.2 6 5.5" /><path d="M18.5 7v6M15.5 10h6" /></svg>
+              Sportello
+            </Link>
+            <Link prefetch={false} className="btn" href="/gestione/persone/nuova">Nuovo cliente</Link>
             <Link prefetch={false} className="btn" href="/gestione?scegli=incassa">Incassa</Link>
             <Link prefetch={false} className="btn" href="/gestione/scadenze">Scadenze</Link>
             <Link prefetch={false} className="btn" href="/gestione/prenotazioni">Prenotazioni</Link>

@@ -134,6 +134,7 @@ export default async function Persona({ params, searchParams }) {
         </div>
         <div className="sp-azioni">
           <a className="btn btn-primario" href="#nuova-iscrizione">Nuova iscrizione</a>
+          <Link prefetch={false} className="btn" href={`/gestione/sportello?persona=${id}`}>Allo sportello</Link>
           <Link prefetch={false} className="btn" href={`/gestione/persone/${id}?incassa=1#pagamenti`}>Incassa</Link>
           {wa && <a className="btn" href={wa} target="_blank" rel="noreferrer">WhatsApp</a>}
           {allievo.account?.email && <a className="btn" href={`mailto:${allievo.account.email}`}>Email</a>}

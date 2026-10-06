@@ -7,7 +7,7 @@ import { ora } from '@/lib/formato';
 import { testoSu } from '@/lib/colori';
 
 const GIORNI = ['Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato', 'Domenica'];
-const MAX_FACCE = 3; // come la vecchia app: tre cerchietti e poi "…"
+const MAX_FACCE = 6; // al massimo 6 cerchietti e poi "…"; se la scheda è stretta sfumano verso destra
 
 // Icone piccole e grigie: insegnante, sala, prove
 const IconaPersona = () => (
@@ -46,6 +46,11 @@ export default function Palinsesto({ giorniVisti = 7, inizio, lezioni, corsi = [
   const noteDi = (g) => note.filter((n) => n.data === g);
   const facceDi = (id) => facce.filter((f) => f.lezione_id === id);
   const codaDi = (id) => coda.filter((c) => c.lezione_id === id);
+  // nome e cognome dell'insegnante (nella vista c'è solo il nome)
+  const nomeInsegnante = (l) => {
+    const s = insegnanti.find((x) => x.id === l.insegnante_id);
+    return s ? `${s.nome || ''} ${s.cognome || ''}`.trim() : l.insegnante_nome;
+  };
   const iniziali = (f) => ((f.nome?.[0] || '') + (f.cognome?.[0] || '')).toUpperCase();
   // l'elenco dei prenotati per il riquadro che compare passandoci sopra: i nomi sono già nella pagina, nessuna richiesta in più
   const elencoNomi = (fl, titolo) => {
@@ -62,6 +67,11 @@ export default function Palinsesto({ giorniVisti = 7, inizio, lezioni, corsi = [
   });
   // il nome del giorno dalla data (con 1, 3 o 5 giorni il primo non è per forza lunedì)
   const nomeGiorno = (g) => GIORNI[(new Date(g + 'T12:00:00Z').getUTCDay() + 6) % 7];
+  // computer, 3, 5 o 7 giorni: un giorno senza lezioni (di solito la domenica) diventa una colonna stretta che si intravede,
+  // così gli altri giorni hanno più spazio; se c'è anche una sola lezione torna larga come le altre
+  const vuoti = giorni.map((g) => !lezioni.some((l) => l.data === g) && !note.some((n) => n.data === g));
+  const colonne = giorni.length >= 3 && vuoti.some(Boolean) && !vuoti.every(Boolean)
+    ? vuoti.map((v) => (v ? 'minmax(92px, .42fr)' : 'minmax(0, 1fr)')).join(' ') : null;
 
   // Sul telefono si vede un giorno alla volta: all'apertura va su oggi (se è in questa settimana), le linguette portano agli altri
   useEffect(() => {
@@ -132,14 +142,15 @@ export default function Palinsesto({ giorniVisti = 7, inizio, lezioni, corsi = [
             </button>
           ))}
         </div>}
-        <div className={`colonne-giorni palinsesto giorni-${giorni.length}`} ref={scorrevole} onScroll={scorso}>
+        <div className={`colonne-giorni palinsesto giorni-${giorni.length}`} ref={scorrevole} onScroll={scorso}
+             style={colonne ? { '--pal-colonne': colonne } : undefined}>
           {giorni.map((g) => {
             const delGiorno = lezioni.filter((l) => l.data === g);
             const prove = delGiorno.reduce((s, l) => s + (l.prove || 0), 0);
             const nNote = noteDi(g).length;
             const dataBreve = `${Number(g.slice(8, 10))}/${Number(g.slice(5, 7))}`;
             return (
-              <section key={g} className="colonna-giorno">
+              <section key={g} className={`colonna-giorno${delGiorno.length === 0 ? ' vuota' : ''}`}>
                 <header className={g === oggi ? 'pal-testa oggi' : 'pal-testa'}>
                   <span className="pal-giorno">
                     <span className="pal-nome-giorno">{nomeGiorno(g)}</span>
@@ -168,7 +179,7 @@ export default function Palinsesto({ giorniVisti = 7, inizio, lezioni, corsi = [
                   <div key={n.id} className="nota-giorno">{n.testo}</div>
                 ))}
 
-                {delGiorno.length === 0 && <div className="pal-vuoto">Nessun elemento presente</div>}
+                {delGiorno.length === 0 && <div className="pal-vuoto">Nessuna lezione</div>}
 
                 <div className="pal-carte">
                 {delGiorno.map((l) => {
@@ -196,8 +207,8 @@ export default function Palinsesto({ giorniVisti = 7, inizio, lezioni, corsi = [
                       </div>
                       <div className="pal-corpo">
                         <div className="pal-nome">{l.corso_nome}</div>
-                        <div className="pal-riga"><IconaPersona />{l.insegnante_nome || 'insegnante da assegnare'}</div>
-                        <div className="pal-riga"><IconaSala />{l.sala_nome || 'sala da assegnare'}</div>
+                        <div className="pal-riga" title={nomeInsegnante(l) || undefined}><IconaPersona />{nomeInsegnante(l) || 'insegnante da assegnare'}</div>
+                        <div className="pal-riga" title={l.sala_nome || undefined}><IconaSala />{l.sala_nome || 'sala da assegnare'}</div>
 
                         <div className="pal-piede">
                           {fl.length === 0

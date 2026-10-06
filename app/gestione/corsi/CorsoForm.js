@@ -27,6 +27,7 @@ export default function CorsoForm({ palestraId, corso, discipline, fasce, livell
     prenotabile: corso ? corso.prenotabile : true,
     iscrizioni_app: corso?.iscrizioni_app || 'aperte',
     nota_iscrizioni: corso?.nota_iscrizioni || '',
+    link_whatsapp: corso?.link_whatsapp || '',
     sede_id: corso?.sede_id || (sedi[0]?.id ?? ''),
   });
   const [errore, setErrore] = useState('');
@@ -41,6 +42,7 @@ export default function CorsoForm({ palestraId, corso, discipline, fasce, livell
     e.preventDefault();
     if (!f.nome || !f.disciplina_id || !f.fascia_eta_id) { setErrore('Nome, disciplina e fascia d\'età sono obbligatori.'); return; }
     if (f.colore && !/^#[0-9a-f]{6}$/i.test(f.colore)) { setErrore('Il colore va scritto come #rrggbb, per esempio #ff00ff.'); return; }
+    if (f.link_whatsapp.trim() && !/^https?:\/\//i.test(f.link_whatsapp.trim())) { setErrore('Il link del gruppo WhatsApp deve iniziare con https:// (es. https://chat.whatsapp.com/…).'); return; }
     setInvio(true); setErrore('');
     const dati = {
       nome: f.nome.trim(),
@@ -60,6 +62,7 @@ export default function CorsoForm({ palestraId, corso, discipline, fasce, livell
       visibilita: f.visibilita,
       prenotabile: f.prenotabile,
       iscrizioni_app: f.iscrizioni_app,
+      link_whatsapp: f.link_whatsapp.trim() || null,
       nota_iscrizioni: f.nota_iscrizioni.trim() || null,
       sede_id: f.sede_id || null,
     };
@@ -170,6 +173,8 @@ export default function CorsoForm({ palestraId, corso, discipline, fasce, livell
               <div className="campo cf-3"><label htmlFor="info">Cosa sapere prima della prova <span className="eti-info">· va nell'email di conferma</span></label>
                 <textarea id="info" rows={2} value={f.info_prova} onChange={set('info_prova')}
                           placeholder="Abbigliamento, cosa portare, quanto arrivare prima…" /></div>
+              <div className="campo cf-3"><label htmlFor="wa">Link del gruppo WhatsApp <span className="eti-info">· dallo Sportello si manda al nuovo iscritto con un clic</span></label>
+                <input id="wa" value={f.link_whatsapp} onChange={set('link_whatsapp')} placeholder="https://chat.whatsapp.com/…" inputMode="url" /></div>
             </div>
           </section>
         </div>

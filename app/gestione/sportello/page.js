@@ -1,0 +1,31 @@
+import { redirect } from 'next/navigation';
+import { staffCorrente } from '@/lib/staff';
+import Sportello from './Sportello';
+
+export const dynamic = 'force-dynamic';
+export const metadata = { title: 'Sportello' };
+
+// Sportello: il cliente al banco in una schermata (cerca o nuovo → situazione → abbonamento, quota,
+// certificato, posto a lezione → incasso e ricevuta per email → gruppo WhatsApp e tessera dell'ente)
+export default async function PaginaSportello({ searchParams }) {
+  const { persona } = (await searchParams) || {};
+  const { supabase, staff } = await staffCorrente();
+  if (staff.ruolo === 'insegnante') redirect('/gestione');
+  const p = staff.palestra_id;
+
+  const [{ data: corsi }, { data: tipi }, { data: orari }, { data: palestra }] = await Promise.all([
+    supabase.from('corsi').select('id, nome, colore, capienza, link_whatsapp').eq('palestra_id', p).eq('attivo', true).order('nome'),
+    supabase.from('tipi_abbonamento')
+      .select('id, nome, famiglia, modalita, durata_mesi, durata_giorni, num_ingressi, lezioni_settimanali, scadenza_fine_mese, prezzo_cent, tipi_abbonamento_corsi ( corso_id )')
+      .eq('palestra_id', p).eq('attivo', true).eq('archiviato', false).order('famiglia').order('nome'),
+    supabase.from('orari').select('id, corso_id, giorno_settimana, ora_inizio, valido_al').eq('palestra_id', p).eq('attivo', true)
+      .order('giorno_settimana').order('ora_inizio'),
+    supabase.from('palestre').select('nome, quota_iscrizione_cent, sconti, ente, mese_fine_stagione, mese_inizio_annuale, mese_inizio_stagione')
+      .eq('id', p).maybeSingle(),
+  ]);
+
+  return (
+    <Sportello palestraId={p} corsi={corsi || []} tipi={tipi || []} orari={orari || []} palestra={palestra || {}}
+               personaIniziale={persona || null} />
+  );
+}
