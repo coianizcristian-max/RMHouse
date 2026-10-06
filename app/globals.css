@@ -487,8 +487,8 @@ h2.sezione::after { content: ''; flex: 1; height: 1px; background: var(--linea);
 }
 .pal-numeri [data-tip]:hover::after, .pal-numeri [data-tip]:focus::after { left: auto; right: 0; transform: none; }
 .pal-angolo[data-tip]:hover::after, .pal-angolo[data-tip]:focus::after { left: auto; right: 0; top: 18px; transform: none; white-space: normal; width: max-content; max-width: 240px; }
-.pal-facce[data-tip]:hover::after, .pal-facce[data-tip]:focus::after { left: 0; transform: none; white-space: normal; width: max-content; max-width: 240px; }
-.pal-cerchio[tabindex], .pal-facce[tabindex] { cursor: default; outline: none; }
+.pal-facce-box[data-tip]:hover::after, .pal-facce-box[data-tip]:focus::after { left: 0; transform: none; white-space: normal; width: max-content; max-width: 240px; }
+.pal-cerchio[tabindex], .pal-facce-box[tabindex] { cursor: default; outline: none; }
 .pal-legenda-box [data-tip]::after { display: none; }
 
 /* Il cerchietto in basso: seleziona la lezione */
@@ -755,6 +755,7 @@ h2.sezione::after { content: ''; flex: 1; height: 1px; background: var(--linea);
   .colonne-giorni.palinsesto .pal-faccia:first-child { margin-left: 0; }
   .colonne-giorni.palinsesto .pal-altri { font-size: clamp(10px, 1cqw, 14px); }
   /* se la colonna è stretta i cerchietti dei prenotati sfumano prima di toccare i numeri */
+  .colonne-giorni.palinsesto .pal-facce-box { flex: 1 1 0; min-width: 0; display: flex; }
   .colonne-giorni.palinsesto .pal-facce { flex: 1 1 0; min-width: 0; overflow: hidden; -webkit-mask-image: linear-gradient(to right, #000 72%, transparent 100%); mask-image: linear-gradient(to right, #000 72%, transparent 100%); }
   .colonne-giorni.palinsesto .pal-nessuno { flex: 1 1 0; min-width: 0; }
   .colonne-giorni.palinsesto .pal-numeri { gap: clamp(3px, .5cqw, 7px); }
@@ -3675,3 +3676,13 @@ form.periodo-date .btn { flex: none; width: auto; min-height: 36px; padding: 0 1
 }
 /* mentre la barra dei corsi selezionati è aperta, il "+" non ci finisce sopra */
 body:has(.mv-barra) .bottone-rapide { display: none; }
+
+/* elenco dei prenotati / della coda passando sopra: un nome per riga */
+.pal-facce-box { display: flex; min-width: 0; }
+.pal-facce-box[data-tip]:hover::after, .pal-facce-box[data-tip]:focus::after,
+.pal-cerchio.verde[data-tip]:hover::after, .pal-cerchio.verde[data-tip]:focus::after,
+.pal-cerchio.coda[data-tip]:hover::after, .pal-cerchio.coda[data-tip]:focus::after {
+  white-space: pre-line; width: max-content; max-width: 240px; text-align: left; line-height: 1.45; z-index: 25;
+}
+/* la carta sotto il mouse sta sopra alle altre, così l'elenco non finisce coperto dalla lezione dopo */
+.pal-carta:hover, .pal-carta:focus-within { position: relative; z-index: 6; }

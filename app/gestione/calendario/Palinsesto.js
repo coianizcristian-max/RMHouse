@@ -47,6 +47,13 @@ export default function Palinsesto({ giorniVisti = 7, inizio, lezioni, corsi = [
   const facceDi = (id) => facce.filter((f) => f.lezione_id === id);
   const codaDi = (id) => coda.filter((c) => c.lezione_id === id);
   const iniziali = (f) => ((f.nome?.[0] || '') + (f.cognome?.[0] || '')).toUpperCase();
+  // l'elenco dei prenotati per il riquadro che compare passandoci sopra: i nomi sono già nella pagina, nessuna richiesta in più
+  const elencoNomi = (fl, titolo) => {
+    const nomi = [...fl].sort((a, b) => `${a.nome} ${a.cognome}`.localeCompare(`${b.nome} ${b.cognome}`, 'it'))
+      .map((f) => `${f.nome || ''} ${f.cognome || ''}`.trim() + (f.tipo === 'prova' ? ' (prova)' : ''));
+    const max = 20;
+    return [titolo, ...nomi.slice(0, max), ...(nomi.length > max ? [`… e altri ${nomi.length - max}`] : [])].join('\n');
+  };
   const oggi = new Date().toLocaleDateString('sv-SE');
   const giorni = Array.from({ length: giorniVisti }, (_, i) => {
     const d = new Date(inizio + 'T12:00:00Z');
@@ -196,7 +203,8 @@ export default function Palinsesto({ giorniVisti = 7, inizio, lezioni, corsi = [
                           {fl.length === 0
                             ? <span className="pal-nessuno">{l.presenti > 0 ? `${l.presenti} presenti` : 'Nessun prenotato'}</span>
                             : (
-                              <span className="pal-facce" tabIndex={0} data-tip={fl.map((f) => `${f.nome} ${f.cognome}`).join(', ')}>
+                              <span className="pal-facce-box" tabIndex={0} data-tip={elencoNomi(fl, `${fl.length} ${fl.length === 1 ? 'Prenotato' : 'Prenotati'}:`)}>
+                              <span className="pal-facce">
                                 {fl.slice(0, MAX_FACCE).map((f) => (
                                   f.foto_url
                                     ? <img key={f.allievo_id} src={f.foto_url} alt="" className={f.tipo === 'prova' ? 'pal-faccia prova' : 'pal-faccia'} />
@@ -204,14 +212,15 @@ export default function Palinsesto({ giorniVisti = 7, inizio, lezioni, corsi = [
                                 ))}
                                 {altri.length > 0 && <span className="pal-altri" aria-label={`e altri ${altri.length}`}>…</span>}
                               </span>
+                              </span>
                             )}
                           <span className="pal-numeri" onClick={(e) => { if (e.target.closest('.pal-cerchio')) { e.stopPropagation(); e.target.closest('.pal-cerchio').focus(); } }}>
-                            <span className="pal-cerchio verde" tabIndex={0} data-tip={`${l.iscritti} ${l.iscritti === 1 ? 'Prenotato' : 'Prenotati'}`} aria-label={`${l.iscritti} prenotati`}>{l.iscritti}</span>
+                            <span className="pal-cerchio verde" tabIndex={0} data-tip={fl.length ? elencoNomi(fl, `${l.iscritti} ${l.iscritti === 1 ? 'Prenotato' : 'Prenotati'}:`) : `${l.iscritti} ${l.iscritti === 1 ? 'Prenotato' : 'Prenotati'}`} aria-label={`${l.iscritti} prenotati`}>{l.iscritti}</span>
                             <span className="pal-cerchio blu" tabIndex={0} data-tip={posti === null ? 'Posti senza limite' : `${posti} ${posti === 1 ? 'Posto disponibile' : 'Posti disponibili'}`} aria-label={posti === null ? 'posti senza limite' : `${posti} posti disponibili`}>{posti === null ? '∞' : posti}</span>
                             {l.prove > 0 && <span className="pal-cerchio rosso" tabIndex={0} data-tip={`${l.prove} in prova`} aria-label={`${l.prove} in prova`}>{l.prove}</span>}
                             {codaDi(l.lezione_id).length > 0 && (
                               <span className="pal-cerchio coda" tabIndex={0}
-                                    data-tip={`${codaDi(l.lezione_id).length} in coda: ${codaDi(l.lezione_id).map((c) => `${c.allievi?.nome || ''} ${c.allievi?.cognome || ''}`.trim()).join(', ')}`}
+                                    data-tip={[`${codaDi(l.lezione_id).length} in coda:`, ...codaDi(l.lezione_id).map((c, i) => `${i + 1}. ${`${c.allievi?.nome || ''} ${c.allievi?.cognome || ''}`.trim()}`)].join('\n')}
                                     aria-label={`${codaDi(l.lezione_id).length} in coda`}>{codaDi(l.lezione_id).length}</span>
                             )}
                             {gestione && !annullata && (
