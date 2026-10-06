@@ -3631,8 +3631,6 @@ form.periodo-date .btn { flex: none; width: auto; min-height: 36px; padding: 0 1
 .mv-sel { width: 34px; } .mv-sel input { width: 18px; height: 18px; accent-color: var(--rosso); }
 .mv-stato { width: 90px; white-space: nowrap; }
 .mv-ok { color: var(--ok); } .mv-ko { color: var(--rosso-scuro); font-weight: 700; }
-.mv-massa .nota-breve { width: 120px; }
-.mv-coppia { display: inline-flex; gap: 2px; }
 @media (max-width: 899px) {
   .mv-tabella td:first-child, .mv-tabella th:first-child { position: sticky; left: 0; background: var(--bianco); z-index: 2; }
   .mv-nome { min-width: 160px; }
@@ -3642,3 +3640,38 @@ form.periodo-date .btn { flex: none; width: auto; min-height: 36px; padding: 0 1
 .corso-icone .ci { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px 2px 6px; border-radius: 999px; font-size: 11.5px; font-weight: 700; line-height: 1.5; }
 .corso-icone .ci.si { background: var(--ok-tenue); color: var(--ok); }
 .corso-icone .ci.no { background: var(--carta); color: var(--testo-2); text-decoration: line-through; opacity: .8; }
+
+/* Modifica veloce corsi: allineamenti e barra dei selezionati */
+.mv-tabella th, .mv-tabella td { text-align: left; }
+.mv-tabella th.mv-spunta, .mv-tabella td.mv-spunta, .mv-tabella .mv-sel { text-align: center; }
+.mv-barra {
+  position: sticky; bottom: 12px; z-index: 20; margin-top: 14px;
+  display: flex; flex-wrap: wrap; align-items: center; gap: 10px 22px;
+  padding: 10px 14px; border-radius: 14px; background: var(--nero); color: var(--bianco);
+  box-shadow: 0 10px 30px rgba(0,0,0,.25); font-size: 14px;
+}
+.mv-b-conta { display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+.mv-b-conta strong { font-size: 16px; }
+.mv-b-chiudi { width: 26px; height: 26px; border-radius: 50%; border: 0; background: rgba(255,255,255,.15); color: var(--bianco);
+  font-size: 17px; line-height: 1; cursor: pointer; margin-left: 4px; }
+.mv-b-chiudi:hover { background: rgba(255,255,255,.3); }
+.mv-b-numeri { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.mv-b-numeri label { display: flex; align-items: center; gap: 6px; margin: 0; color: rgba(255,255,255,.75); font-size: 13px; white-space: nowrap; }
+.mv-b-numeri input { width: 58px; height: 32px; padding: 0 8px; border: 0; border-radius: 8px; font: inherit; font-size: 14px;
+  background: var(--bianco); color: var(--nero); }
+.mv-b-applica { height: 32px; padding: 0 14px; border: 0; border-radius: 8px; background: var(--rosso); color: var(--bianco);
+  font: inherit; font-size: 14px; font-weight: 700; cursor: pointer; }
+.mv-b-spunte { display: flex; flex-wrap: wrap; gap: 8px 14px; margin-left: auto; }
+.mv-b-coppia { display: inline-flex; align-items: center; }
+.mv-b-coppia span { color: rgba(255,255,255,.75); font-size: 13px; margin-right: 6px; white-space: nowrap; }
+.mv-b-coppia button { height: 30px; padding: 0 11px; border: 1.5px solid rgba(255,255,255,.6); background: transparent;
+  color: var(--bianco); font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; }
+.mv-b-coppia button:first-of-type { border-radius: 999px 0 0 999px; }
+.mv-b-coppia button:last-of-type { border-left: 0; border-radius: 0 999px 999px 0; }
+.mv-b-coppia button:hover { background: rgba(255,255,255,.18); }
+@media (max-width: 899px) {
+  .mv-barra { bottom: 72px; gap: 10px; }
+  .mv-b-spunte { margin-left: 0; }
+}
+/* mentre la barra dei corsi selezionati è aperta, il "+" non ci finisce sopra */
+body:has(.mv-barra) .bottone-rapide { display: none; }

@@ -1,5 +1,5 @@
 'use client';
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { supabaseBrowser } from '@/lib/supabase/browser';
 
@@ -38,6 +38,7 @@ export default function ModificaVeloce({ corsi: iniziali }) {
   const [scelti, setScelti] = useState(new Set());
   const [massa, setMassa] = useState({ capienza: '', prezzo: '', prove: '' });
   const [avviso, setAvviso] = useState('');
+  const timer = useRef(null);
 
   const visibili = useMemo(() => {
     const q = normalizza(cerca).split(/\s+/).filter(Boolean);
@@ -55,7 +56,7 @@ export default function ModificaVeloce({ corsi: iniziali }) {
   const errore = (id) => setStato((st) => ({ ...st, [id]: 'errore' }));
   const tutti = visibili.length > 0 && visibili.every((c) => scelti.has(c.id));
   const cambia = (id) => { const s = new Set(scelti); s.has(id) ? s.delete(id) : s.add(id); setScelti(s); };
-  const mostra = (t) => { setAvviso(t); setTimeout(() => setAvviso(''), 3000); };
+  const mostra = (t) => { setAvviso(t); clearTimeout(timer.current); timer.current = setTimeout(() => setAvviso(''), 3000); };
 
   async function applica(cambi, testo) {
     const ids = [...scelti];
@@ -127,22 +128,25 @@ export default function ModificaVeloce({ corsi: iniziali }) {
       {visibili.length === 0 && <div className="vuoto">Nessun corso.</div>}
 
       {scelti.size > 0 && (
-        <div className="barra-selezione" role="region" aria-label="Modifica dei corsi selezionati">
-          <strong>{scelti.size} {scelti.size === 1 ? 'corso selezionato' : 'corsi selezionati'}</strong>
-          <div className="azioni mv-massa">
-            <input className="nota-breve" placeholder="Posti" inputMode="numeric" value={massa.capienza} onChange={(e) => setMassa({ ...massa, capienza: e.target.value })} />
-            <input className="nota-breve" placeholder="Prova €" inputMode="decimal" value={massa.prezzo} onChange={(e) => setMassa({ ...massa, prezzo: e.target.value })} />
-            <input className="nota-breve" placeholder="Prove / lezione" inputMode="numeric" value={massa.prove} onChange={(e) => setMassa({ ...massa, prove: e.target.value })} />
-            <button className="btn btn-primario" onClick={applicaNumeri}>Applica</button>
+        <div className="mv-barra" role="region" aria-label="Modifica dei corsi selezionati">
+          <div className="mv-b-conta">
+            <strong>{scelti.size}</strong> {scelti.size === 1 ? 'corso selezionato' : 'corsi selezionati'}
+            <button type="button" className="mv-b-chiudi" onClick={() => setScelti(new Set())} aria-label="Togli la selezione">×</button>
           </div>
-          <div className="azioni">
+          <div className="mv-b-numeri">
+            <label><span>Posti</span><input inputMode="numeric" value={massa.capienza} onChange={(e) => setMassa({ ...massa, capienza: e.target.value })} /></label>
+            <label><span>Prova €</span><input inputMode="decimal" value={massa.prezzo} onChange={(e) => setMassa({ ...massa, prezzo: e.target.value })} /></label>
+            <label><span>Prove / lez.</span><input inputMode="numeric" value={massa.prove} onChange={(e) => setMassa({ ...massa, prove: e.target.value })} /></label>
+            <button type="button" className="mv-b-applica" onClick={applicaNumeri}>Applica</button>
+          </div>
+          <div className="mv-b-spunte">
             {SPUNTE.map(([k, t]) => (
-              <span key={k} className="mv-coppia">
-                <button className="btn" onClick={() => applica({ [k]: true }, `${t}: sì`)}>{t}: sì</button>
-                <button className="btn" onClick={() => applica({ [k]: false }, `${t}: no`)}>no</button>
-              </span>
+              <div key={k} className="mv-b-coppia">
+                <span>{t}</span>
+                <button type="button" onClick={() => applica({ [k]: true }, `${t}: sì`)}>Sì</button>
+                <button type="button" onClick={() => applica({ [k]: false }, `${t}: no`)}>No</button>
+              </div>
             ))}
-            <button className="link-btn" onClick={() => setScelti(new Set())}>Annulla</button>
           </div>
         </div>
       )}
