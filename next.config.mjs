@@ -37,6 +37,9 @@ const sicurezza = [
 
 const nextConfig = {
   poweredByHeader: false,
+  // le pagine appena visitate restano nel browser per 30 secondi: tornare indietro (es. Sportello → Riepilogo → Sportello)
+  // è immediato invece di aspettare di nuovo il server. Dopo ogni modifica (router.refresh) si ricaricano comunque.
+  experimental: { staleTimes: { dynamic: 30 } },
   async headers() {
     return [
       { source: '/:path*', headers: sicurezza },
