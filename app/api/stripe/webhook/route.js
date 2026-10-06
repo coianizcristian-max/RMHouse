@@ -43,8 +43,11 @@ async function ricevutaAutomatica(db, pagamentoId) {
   const { data: pal } = await db.from('pagamenti').select('palestre ( stripe )').eq('id', pagamentoId).maybeSingle();
   if (pal?.palestre?.stripe?.ricevuta_automatica === false) return;
   // la ricevuta non blocca l'incasso: se non riesce si emette a mano dalla scheda
-  const { error } = await db.rpc('emetti_ricevuta', { p_pagamento: pagamentoId });
-  if (error) console.error('Ricevuta automatica non emessa', pagamentoId, error.message);
+  const { data: ricevuta, error } = await db.rpc('emetti_ricevuta', { p_pagamento: pagamentoId });
+  if (error) { console.error('Ricevuta automatica non emessa', pagamentoId, error.message); return; }
+  // e la manda per email al cliente (se ha un'email): se non riesce resta da scaricare nell'app
+  const { error: e2 } = await db.rpc('invia_ricevuta_email', { p_id: ricevuta });
+  if (e2) console.error('Ricevuta non inviata per email', ricevuta, e2.message);
 }
 
 async function segnaCommissione(db, intent) {

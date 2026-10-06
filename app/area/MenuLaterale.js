@@ -79,7 +79,7 @@ export default function MenuLaterale({ aperto, chiudi, esci }) {
 
         <ul className="cl-voci">
           <li><Link prefetch={false} href="/area/io#abbonamenti">{ICONE.abbonamenti}Abbonamenti</Link></li>
-          {voce('/area/acquista', 'Acquista un abbonamento', 'carrello')}
+          {voce('/area/iscriviti', 'Iscriviti a un corso', 'carrello')}
           {voce('/area/personal', 'Lezione privata', 'personal')}
           {voce('/area/sala', 'Prenota una sala', 'sala')}
           {voce('/area/pagamenti', 'Pagamenti e ricevute', 'euro')}

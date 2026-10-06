@@ -212,7 +212,7 @@ export default function Orario({ giorno: iniziale, oggi, lezioni: primeLezioni, 
                 <span className="conferma-disdetta">
                   <span>Per prenotare <strong>{l.corso}</strong> serve un abbonamento che lo comprenda{piu ? ' (o un recupero valido)' : ' (oppure un recupero valido per questo corso)'}.</span>
                   <span className="azioni">
-                    <Link prefetch={false} className="btn btn-primario btn-piccolo" href={`/area/acquista?corso=${l.corso_id}`}>Acquista l'abbonamento</Link>
+                    <Link prefetch={false} className="btn btn-primario btn-piccolo" href={`/area/iscriviti?corso=${l.corso_id}`}>Iscriviti</Link>
                     {l.prova && <Link prefetch={false} className="btn btn-piccolo" href="/area/prova">Prova una lezione</Link>}
                     <button className="btn btn-piccolo" onClick={() => setSpiega(null)}>Chiudi</button>
                   </span>

@@ -85,6 +85,11 @@ export default async function PaginaCorso({ params }) {
             <Link className="btn btn-primario btn-pieno" href="/prova">Prenota la lezione di prova</Link>
           </div>
         )}
+        <div className="scheda" style={{ marginTop: 16 }}>
+          <strong style={{ display: 'block', color: 'var(--nero)' }}>Vuoi iscriverti?</strong>
+          <p className="piccolo muto" style={{ marginBottom: 12 }}>Dal telefono: scegli abbonamento e giorni, paghi e le lezioni sono già prenotate.</p>
+          <Link className="btn btn-pieno" href={`/area/iscriviti?corso=${c.id}`}>Iscriviti a {c.nome}</Link>
+        </div>
       </main>
     </>
   );

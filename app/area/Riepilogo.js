@@ -107,9 +107,9 @@ export default function Riepilogo({ dati, materiali = [], inVerifica = [], aspet
       </div>
 
       {senzaAbbonamento && (
-        <Link prefetch={false} href="/area/acquista" className="ac-avviso rosso ac-compra">
-          <span><strong>Non hai un abbonamento attivo</strong> · scegli il tuo e prenota le lezioni</span>
-          <span className="btn btn-piccolo btn-primario">Acquista</span>
+        <Link prefetch={false} href="/area/iscriviti" className="ac-avviso rosso ac-compra">
+          <span><strong>Non hai un abbonamento attivo</strong> · scegli corso e giorni, paga e sei dentro</span>
+          <span className="btn btn-piccolo btn-primario">Iscriviti</span>
         </Link>
       )}
 

@@ -16,6 +16,9 @@ const MESSAGGI = {
   eta_non_adatta: 'Questo corso è per un\'altra età: chiedi alla segreteria quello giusto.',
   inizio_meta_mese: 'Gli abbonamenti vanno a mese solare: dall\'app si parte il 1° del mese. Per iniziare adesso passa dalla segreteria, che ti fa l\'importo per i giorni che restano.',
   annuale_in_segreteria: 'L\'annuale va da ottobre a luglio: iniziandolo a stagione avviata la segreteria ti scala i mesi già passati. Passa in segreteria per farlo.',
+  corso_non_valido: 'Questo corso non c\'è più: aggiorna la pagina e scegline un altro.',
+  orario_non_del_corso: 'Uno dei giorni scelti non è di questo corso: torna indietro e riscegli i giorni.',
+  iscrizione_gia_attiva: 'Hai già questo abbonamento in quelle date.',
 };
 
 // Acquisto di un abbonamento dall'area clienti: prepara l'iscrizione e apre la cassa di Stripe
@@ -48,7 +51,9 @@ export async function POST(request) {
   try {
     const s = await creaCheckout({
       righe: a.righe, metadata, ricorrente: a.ricorrente, cliente: acc?.stripe_customer_id, email: acc?.email || user.email,
-      successo: `${sito}/abbonamento/grazie?s={CHECKOUT_SESSION_ID}`, annullato: `${sito}/abbonamento?annullato=1`,
+      // dall'iscrizione guidata si torna nell'app, con l'esito e i passi dopo
+      successo: b.ritorno === 'iscriviti' ? `${sito}/area/iscriviti/fatto?s={CHECKOUT_SESSION_ID}` : `${sito}/abbonamento/grazie?s={CHECKOUT_SESSION_ID}`,
+      annullato: b.ritorno === 'iscriviti' ? `${sito}/area/iscriviti?annullato=1` : `${sito}/abbonamento?annullato=1`,
     });
     await db.from('acquisti_online').update({ stripe_session_id: s.id }).eq('id', a.acquisto_id);
     await db.from('pagamenti').update({ stripe_session_id: s.id }).eq('id', a.pagamento_id);

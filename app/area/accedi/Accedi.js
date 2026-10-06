@@ -165,7 +165,8 @@ export default function Accedi({ errore: erroreIniziale, dove = '/area', emailIn
     <SchermataAccesso tipo="iscritti" titolo="Non ti troviamo" altra={altra}>
       {emailFissa}
       <p className="accesso-testo">Questa email non è fra quelle registrate in segreteria. Forse ne hai lasciata un'altra: scrivici e la sistemiamo.</p>
-      <p className="accesso-testo">Non frequenti ancora? <Link href="/prova">Prenota una lezione di prova</Link>.</p>
+      <Link className="btn btn-primario btn-pieno btn-grande" href={`/area/accedi/registrati?email=${encodeURIComponent(pulita)}${dove && dove !== '/area' ? `&da=${encodeURIComponent(dove)}` : ''}`}>Sei nuovo? Registrati</Link>
+      <p className="accesso-testo">Non frequenti ancora e vuoi provare? <Link href="/prova">Prenota una lezione di prova</Link>.</p>
     </SchermataAccesso>
   );
 
@@ -185,6 +186,7 @@ export default function Accedi({ errore: erroreIniziale, dove = '/area', emailIn
       </form>
       <div className="accesso-nuovi">
         <span>Non frequenti ancora?</span>
+        <Link href={`/area/accedi/registrati${dove && dove !== '/area' ? `?da=${encodeURIComponent(dove)}` : ''}`} prefetch={false}><strong>Registrati e iscriviti</strong></Link>
         <Link href="/prova" prefetch={false}>Prenota una prova</Link>
         <Link href="/spazi" prefetch={false}>Affitta una sala</Link>
       </div>

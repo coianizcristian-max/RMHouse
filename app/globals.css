@@ -3551,10 +3551,9 @@ form.periodo-date .btn { flex: none; width: auto; min-height: 36px; padding: 0 1
   .colonne-giorni.palinsesto.giorni-1 { grid-template-columns: minmax(0, 1fr); }
   .colonne-giorni.palinsesto.giorni-3 { grid-template-columns: var(--pal-colonne, repeat(3, minmax(0, 1fr))); }
   .colonne-giorni.palinsesto.giorni-5 { grid-template-columns: var(--pal-colonne, repeat(5, minmax(0, 1fr))); }
-  /* colonne larghe (1 o 3 giorni): le schede si affiancano invece di diventare enormi */
-  .colonne-giorni.palinsesto.giorni-1 .pal-carte, .colonne-giorni.palinsesto.giorni-3 .pal-carte {
-    display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); column-gap: clamp(8px, 1cqw, 14px);
-  }
+  /* il palinsesto è sempre un elenco in ordine di orario (mai schede affiancate nello stesso giorno);
+     con 1 giorno le schede non si allargano oltre una misura comoda da leggere */
+  .colonne-giorni.palinsesto.giorni-1 .pal-carte { max-width: 460px; }
 }
 @media (min-width: 900px) and (max-width: 1199px) {
   .barra-cal .bc-filtri select { flex-basis: 130px; width: 130px; }
@@ -3826,3 +3825,95 @@ body:has(.sportello) .bottone-rapide { display: none; }
 .sp-per { font-size: 18px; font-weight: 800; color: var(--testo-2); padding-bottom: 14px; }
 .sp-calcolo #sp-prezzo { font-weight: 800; }
 .sp-calcolo-nota { margin: 0 0 6px; }
+
+/* =====================================================================
+   Area clienti: registrazione e iscrizione guidata (telefono prima di tutto)
+   ===================================================================== */
+.reg-scelte { display: grid; gap: 10px; margin: 6px 0 14px; }
+.reg-scelte button { display: grid; gap: 2px; text-align: left; padding: 14px 16px; border: 1.5px solid var(--linea); border-radius: 14px; background: var(--bianco); font: inherit; cursor: pointer; }
+.reg-scelte button:hover, .reg-scelte button:focus-visible { border-color: var(--rosso); }
+.reg-scelte strong { font-size: 17px; color: var(--nero); }
+.reg-scelte span { font-size: 13.5px; color: var(--testo-2); }
+.reg-form { display: grid; gap: 2px; }
+.reg-indietro { justify-self: start; margin-bottom: 6px; }
+.reg-riga { display: grid; grid-template-columns: 1fr 1fr; gap: 0 10px; }
+.reg-figli { border: 0; padding: 10px 12px; margin: 6px 0 10px; background: var(--carta); border-radius: 12px; }
+.reg-figli-titolo { font-weight: 800; margin-bottom: 4px; }
+.reg-figli { min-width: 0; }
+.reg-figlio + .reg-figlio { border-top: 1px solid var(--linea); padding-top: 8px; }
+.reg-form .spunta { font-size: 13.5px; margin: 4px 0 8px; }
+
+.isc { max-width: 640px; margin: 0 auto; padding-bottom: 40px; }
+.isc-testa { display: grid; grid-template-columns: 40px 1fr; align-items: center; gap: 6px; }
+.isc-indietro { width: 38px; height: 38px; border-radius: 50%; border: 1.5px solid var(--linea); background: var(--bianco); font-size: 18px; cursor: pointer; }
+.isc-titolo h1 { margin: 0; font-size: 22px; line-height: 1.1; }
+.isc-titolo span { font-size: 13px; color: var(--testo-2); }
+.isc-barra { height: 5px; border-radius: 3px; background: var(--carta); margin: 10px 0 12px; overflow: hidden; }
+.isc-barra span { display: block; height: 100%; background: var(--rosso); border-radius: 3px; transition: width .25s; }
+.isc-scelte { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+.isc-scelte button { display: inline-flex; align-items: center; gap: 6px; border: 0; background: var(--carta); border-radius: 999px; padding: 5px 11px; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
+.isc-domanda { font-size: 21px; margin: 4px 0 10px; }
+.isc-nota { font-size: 13.5px; color: var(--testo-2); margin: 4px 0 10px; line-height: 1.45; }
+.isc-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; align-items: center; }
+.isc-chips > span { font-size: 12.5px; color: var(--testo-2); font-weight: 600; margin-right: 2px; }
+.isc-chips button { border: 1.5px solid var(--linea); background: var(--bianco); border-radius: 999px; padding: 8px 14px; font: inherit; font-size: 14.5px; font-weight: 600; cursor: pointer; }
+.isc-chips.piccoli button { padding: 5px 10px; font-size: 13px; }
+.isc-chips button[aria-pressed='true'] { background: var(--nero); border-color: var(--nero); color: var(--bianco); }
+.isc-cerca { width: 100%; min-height: 42px; padding: 8px 12px; border: 1px solid var(--linea); border-radius: 12px; font: inherit; font-size: 15px; margin-bottom: 4px; }
+.isc-conta { font-size: 12.5px; color: var(--testo-2); margin: 4px 0 8px; }
+.isc-carte { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; margin-bottom: 14px; }
+.isc-carta { display: grid; gap: 2px; text-align: left; padding: 16px; border: 1.5px solid var(--linea); border-radius: 14px; background: var(--bianco); font: inherit; cursor: pointer; }
+.isc-carta strong { font-size: 18px; }
+.isc-carta span { font-size: 13px; color: var(--testo-2); }
+.isc-carta.scelta { border-color: var(--nero); }
+.isc-corsi, .isc-tipi { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.isc-corso { width: 100%; display: grid; gap: 3px; text-align: left; padding: 12px 14px 12px 16px; border: 1px solid var(--linea); border-left: 6px solid var(--colore); border-radius: 12px; background: var(--bianco); font: inherit; cursor: pointer; }
+.isc-corso:hover, .isc-corso:focus-visible { box-shadow: 0 4px 14px rgba(0,0,0,.08); }
+.isc-corso.chiuso { opacity: .6; cursor: default; }
+.isc-corso-nome { font-size: 17px; font-weight: 800; color: var(--nero); }
+.isc-corso-info { font-size: 13px; color: var(--testo-2); }
+.isc-corso-orari { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 2px; }
+.isc-corso-orari span { font-size: 12.5px; font-weight: 700; background: var(--carta); border-radius: 6px; padding: 2px 7px; }
+.isc-corso-stato { font-size: 12.5px; font-weight: 700; color: var(--attenzione); }
+.isc-tipo { width: 100%; display: flex; justify-content: space-between; align-items: center; gap: 10px; text-align: left; padding: 13px 14px; border: 1.5px solid var(--linea); border-radius: 12px; background: var(--bianco); font: inherit; cursor: pointer; }
+.isc-tipo.scelto, .isc-tipo:hover { border-color: var(--nero); }
+.isc-tipo-nome { display: grid; gap: 2px; min-width: 0; }
+.isc-tipo-nome strong { font-size: 15.5px; }
+.isc-tipo-nome span { font-size: 12px; color: var(--testo-2); }
+.isc-tipo-prezzo { display: grid; justify-items: end; flex: none; }
+.isc-tipo-prezzo strong { font-size: 18px; }
+.isc-tipo-prezzo span { font-size: 11.5px; color: var(--testo-2); }
+.isc-giorni { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; margin-bottom: 10px; }
+.isc-giorni button { display: grid; gap: 2px; padding: 14px; border: 1.5px solid var(--linea); border-radius: 12px; background: var(--bianco); font: inherit; cursor: pointer; text-align: left; }
+.isc-giorni button strong { font-size: 16px; text-transform: capitalize; }
+.isc-giorni button span { font-size: 13.5px; color: var(--testo-2); }
+.isc-giorni button[aria-pressed='true'] { background: var(--nero); border-color: var(--nero); color: var(--bianco); }
+.isc-giorni button[aria-pressed='true'] span { color: #ddd; }
+.isc-giorni button:disabled { opacity: .5; cursor: default; }
+.isc-giorni small { font-size: 12px; font-weight: 700; color: var(--rosso-scuro); }
+.isc-avanti { margin-top: 8px; }
+.isc-riepilogo { display: grid; border: 1px solid var(--linea); border-radius: 12px; overflow: hidden; margin-bottom: 8px; }
+.isc-riepilogo > div { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 9px 12px; border-top: 1px solid var(--linea); font-size: 14px; }
+.isc-riepilogo > div:first-child { border-top: 0; }
+.isc-riepilogo span { color: var(--testo-2); }
+.isc-riepilogo strong { text-align: right; }
+.isc-riepilogo select, .isc-riepilogo input { min-height: 36px; border: 1px solid var(--linea); border-radius: 8px; padding: 4px 8px; font: inherit; }
+.isc-totale { display: grid; gap: 4px; background: var(--carta); border-radius: 12px; padding: 10px 12px; margin: 10px 0; font-size: 14px; }
+.isc-totale > div { display: flex; justify-content: space-between; gap: 10px; }
+.isc-totale .somma { border-top: 1px solid var(--linea); padding-top: 6px; font-size: 18px; }
+.isc-cert { border: 1.5px solid var(--attenzione); background: #fff7e6; border-radius: 12px; padding: 10px 12px; margin-bottom: 10px; font-size: 13.5px; }
+.isc-cert summary { cursor: pointer; }
+.isc-paga { display: grid; gap: 8px; }
+.isc-rinnovo { font-size: 13.5px; }
+.isc-attesa, .isc-ok { text-align: center; padding: 24px 8px 12px; display: grid; gap: 6px; justify-items: center; }
+.isc-attesa h1, .isc-ok h1 { margin: 6px 0 0; font-size: 24px; }
+.isc-ok p { margin: 0; }
+.isc-spunta { width: 60px; height: 60px; border-radius: 50%; background: var(--ok); color: #fff; display: grid; place-items: center; font-size: 32px; font-weight: 800; }
+.isc-rotella { width: 40px; height: 40px; border-radius: 50%; border: 4px solid var(--carta); border-top-color: var(--rosso); animation: isc-gira .9s linear infinite; }
+@keyframes isc-gira { to { transform: rotate(360deg); } }
+.isc-poi { list-style: none; padding: 0; margin: 14px 0; display: grid; gap: 8px; counter-reset: poi; }
+.isc-poi li { display: grid; gap: 3px; padding: 10px 12px 10px 44px; border: 1px solid var(--linea); border-radius: 12px; position: relative; font-size: 14px; }
+.isc-poi li::before { counter-increment: poi; content: counter(poi); position: absolute; left: 12px; top: 10px; width: 22px; height: 22px; border-radius: 50%; background: var(--carta); display: grid; place-items: center; font-size: 12px; font-weight: 800; }
+.isc-poi li.fatto::before { content: '✓'; background: var(--ok); color: #fff; }
+.isc-poi li span { color: var(--testo-2); }
+.isc-altre { margin-top: 10px; }
