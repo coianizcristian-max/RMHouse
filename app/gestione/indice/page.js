@@ -10,7 +10,7 @@ const SEZIONI = [
   {
     area: 'Ogni giorno',
     voci: [
-      ['Riepilogo di oggi', '/gestione', 'Lezioni, persone attese, prove in arrivo e l\'elenco "Da fare"; in alto la ricerca veloce di un cliente (anche con le sole iniziali, es. "mr").'],
+      ['Riepilogo di oggi', '/gestione', 'Lezioni, persone attese, prove in arrivo e l\'elenco "Da fare"; in alto la ricerca veloce di un cliente: bastano le prime lettere di cognome e nome attaccate ("mr", "ccri", "coiac").'],
       ['Sportello', '/gestione/sportello', 'Il cliente al banco in una schermata: cerca o crea (con avviso doppioni e controllo del codice fiscale), quota, certificato e tessera, abbonamento, incasso, posto a lezione, ricevuta per email, gruppo WhatsApp e tessera ASI.'],
       ['Pagare solo le lezioni che restano', '/gestione/sportello', 'Allo Sportello, "a lezioni (calcola)": dal giorno in cui comincia conta le lezioni (saltando chiusure e festività) e propone l\'importo, che si può cambiare.', 'sportello-lezioni'],
       ['Pagamento con Satispay al banco', '/gestione/sportello', 'Allo Sportello il cliente riceve la richiesta sull\'app Satispay: quando accetta, abbonamento, incasso e ricevuta si registrano da soli.', 'sportello-satispay'],
@@ -56,7 +56,7 @@ const SEZIONI = [
     area: 'Persone',
     voci: [
       ['Nuovo cliente', '/gestione/persone/nuova', 'Chi paga e chi frequenta al banco, con avviso se la persona c\'è già (anche nome e cognome invertiti) e controllo del codice fiscale: poi dalla scheda si crea l\'iscrizione al corso.'],
-      ['Anagrafiche', '/gestione/persone', 'Ricerca mentre scrivi (pezzi di nome e cognome in qualunque ordine, o le iniziali), filtri per stato e per consensi (WhatsApp, foto), etichette, selezione multipla ed export CSV.'],
+      ['Anagrafiche', '/gestione/persone', 'Ricerca mentre scrivi (pezzi di nome e cognome in qualunque ordine, o le prime lettere di cognome e nome attaccate come "ccri"), filtri per stato e per consensi (WhatsApp, foto), etichette, selezione multipla ed export CSV.'],
       ['Recuperi', '/gestione/persone', 'Nella scheda della persona: crediti maturati, scadenza e prenotazione del recupero.', 'recuperi'],
       ['Prossime lezioni della persona', '/gestione/persone', 'Nella scheda: le lezioni dei prossimi 30 giorni (fisse, prenotate, recuperi, prove) con disdici e "Aggiungi a una lezione".', 'prossime-lezioni'],
       ['Iscrizioni e abbonamenti', '/gestione/persone', 'Nella scheda: nuova iscrizione, cambia giorni, sospendi, annulla. Annuale fino a fine stagione con i mesi da scalare; chi parte a metà mese paga solo le lezioni che restano.', 'iscrizioni'],

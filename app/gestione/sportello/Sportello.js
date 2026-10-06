@@ -628,7 +628,7 @@ function Cerca({ palestraId, testo, setTesto, onScegli, onNuovo }) {
           );
         })}
       </ul>
-      {testo.trim().length < 2 && <p className="piccolo muto sp-suggerimento">Bastano le iniziali: &quot;mr&quot; trova Marco Rossi e Rossi Marta. Oppure pezzi di nome e cognome in qualunque ordine (&quot;ros ma&quot;), telefono o email.</p>}
+      {testo.trim().length < 2 && <p className="piccolo muto sp-suggerimento">Bastano le prime lettere di cognome e nome attaccate: &quot;mr&quot;, &quot;rosm&quot; o &quot;rmar&quot; trovano Rossi Marco. Oppure pezzi di nome e cognome in qualunque ordine (&quot;ros ma&quot;), telefono o email.</p>}
       {totale > trovati.length && <p className="piccolo muto">e altri {totale - trovati.length}: scrivi qualche lettera in più.</p>}
       {!cerco && testo.trim().length >= 2 && trovati.length === 0 && <p className="piccolo muto">Nessuno con &quot;{testo.trim()}&quot;.</p>}
       <button type="button" className={`btn sp-largo${testo.trim().length >= 2 && trovati.length === 0 && !cerco ? ' btn-primario' : ''}`} onClick={onNuovo}>
