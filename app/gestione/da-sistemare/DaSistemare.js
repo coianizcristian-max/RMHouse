@@ -18,6 +18,9 @@ const VISTE = [
   ['fatte', 'Fatte'],
 ];
 const PAGINA = 150;
+// le anomalie che si sistemano da sole con i dati del codice fiscale ("Correggi")
+const CORREGGIBILI = { invertiti: 'Inverti nome e cognome', sesso_cf: 'Metti il sesso del codice', nascita_cf: 'Metti la data del codice' };
+const correggibile = (a) => !a.risolta && CORREGGIBILI[String(a.chiave || '').split('|')[0]];
 
 const quando = (iso) => (iso ? new Date(iso).toLocaleString('it-IT', {
   day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Rome' }) : '');
@@ -249,6 +252,14 @@ export default function DaSistemare({ palestraId, anomalie, ultima, daAbbinare, 
     router.refresh();
   }
 
+  async function correggi(ids) {
+    const { data, error } = await supabaseBrowser().rpc('correggi_da_cf', { p_ids: ids });
+    if (error) { mostra('Non riuscito: riprova.'); return; }
+    setScelte(new Set());
+    mostra(data === 1 ? 'Scheda corretta' : `${data} schede corrette`);
+    router.refresh();
+  }
+
   function esporta() {
     const elenco = scelte.size ? righe.filter((a) => scelte.has(a.id)) : righe;
     scaricaCsv('da-sistemare.csv', ['Tipo', 'Gravità', 'Persona', 'Cosa', 'Cosa fare', 'Stato', 'Nota'],
@@ -348,6 +359,9 @@ export default function DaSistemare({ palestraId, anomalie, ultima, daAbbinare, 
                       {a.link && a.link === `/gestione/persone/${a.allievo_id}` && (
                         <Link prefetch={false} className="link-btn piccolo" href={a.link}>Apri la scheda</Link>
                       )}
+                      {correggibile(a) && (
+                        <button className="link-btn piccolo ds-correggi" onClick={() => correggi([a.id])} title={correggibile(a)}>Correggi</button>
+                      )}
                       <button className="link-btn piccolo" onClick={() => segna([a.id], !a.risolta)}>{a.risolta ? 'Riapri' : 'Fatto'}</button>
                     </div>
                   </li>
@@ -375,6 +389,11 @@ export default function DaSistemare({ palestraId, anomalie, ultima, daAbbinare, 
             {vista === 'fatte'
               ? <button className="btn btn-primario" onClick={() => segna([...scelte], false)}>Riapri</button>
               : <button className="btn btn-primario" onClick={() => segna([...scelte], true)}>Segna fatte</button>}
+            {vista !== 'fatte' && anomalie.some((a) => scelte.has(a.id) && correggibile(a)) && (
+              <button className="btn" onClick={() => correggi(anomalie.filter((a) => scelte.has(a.id) && correggibile(a)).map((a) => a.id))}>
+                Correggi dal codice fiscale ({anomalie.filter((a) => scelte.has(a.id) && correggibile(a)).length})
+              </button>
+            )}
             <button className="btn" onClick={esporta}>Scarica</button>
             <button className="link-btn" onClick={() => setScelte(new Set())}>Annulla</button>
           </div>

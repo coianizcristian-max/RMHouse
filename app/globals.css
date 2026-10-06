@@ -3558,3 +3558,10 @@ form.periodo-date .btn { flex: none; width: auto; min-height: 36px; padding: 0 1
 }
 .zona-foto .zona-file { color: var(--testo); overflow-wrap: anywhere; }
 .zona-foto .zona-file b { font-weight: 700; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12.5px; }
+.ds-azioni .ds-correggi { border-color: var(--nero); color: var(--nero); font-weight: 700; }
+/* controllo del codice fiscale nella scheda */
+.cf-controllo { display: grid; gap: 4px; margin-top: 6px; padding: 8px 10px; border-radius: 10px; background: var(--carta); line-height: 1.45; }
+.cf-controllo .cf-codice { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: .03em; }
+.cf-controllo .cf-bene { color: var(--ok); font-weight: 700; }
+.cf-controllo .cf-male { color: var(--rosso-scuro); font-weight: 700; }
+.cf-controllo .link-btn { margin-left: 4px; }

@@ -25,7 +25,7 @@ export default async function PaginaDaSistemare() {
 
   const [anomalie, { data: ultima }, senzaTipo, { data: tipi }, { data: alias }, { data: slot }, orari] = await Promise.all([
     tutte(() => supabase.from('anomalie_import')
-      .select('id, categoria, gravita, titolo, dettaglio, link, risolta, risolta_at, nota, chiusa_sola, allievo_id, aggiornata_at, allievi ( nome, cognome )')
+      .select('id, chiave, categoria, gravita, titolo, dettaglio, link, risolta, risolta_at, nota, chiusa_sola, allievo_id, aggiornata_at, allievi ( nome, cognome )')
       .eq('palestra_id', p).order('categoria').order('titolo').order('id')),
     supabase.from('importazioni').select('id, iniziata_at, finita_at, ricalcolata_at, riepilogo')
       .eq('palestra_id', p).order('iniziata_at', { ascending: false }).limit(1),

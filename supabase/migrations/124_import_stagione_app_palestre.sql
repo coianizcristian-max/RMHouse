@@ -167,9 +167,14 @@ create index if not exists allievi_nome_norm on allievi (palestra_id, testo_norm
 create index if not exists allievi_cognome_nome_norm on allievi (palestra_id, testo_norm(coalesce(cognome, '') || ' ' || nome));
 create index if not exists allievi_nome_app_norm on allievi (palestra_id, testo_norm(split_part(codice_esterno, '|', 1) || ' ' || split_part(codice_esterno, '|', 2)));
 
+-- codice fiscale: senza spazi né punti, maiuscolo ("rss mra 80a01 h501u" → "RSSMRA80A01H501U")
+create or replace function cf_norm(p text) returns text language sql immutable as $$
+  select nullif(upper(regexp_replace(coalesce(p, ''), '[^A-Za-z0-9]', '', 'g')), '');
+$$;
+
 -- codice fiscale: formato e carattere di controllo
 create or replace function cf_valido(p text) returns boolean language plpgsql immutable as $$
-declare c text := upper(trim(coalesce(p, ''))); s int := 0; ch text; i int; v int;
+declare c text := coalesce(cf_norm(p), ''); s int := 0; ch text; i int; v int;
   dispari int[] := array[1,0,5,7,9,13,15,17,19,21,2,4,18,20,11,3,6,8,12,14,16,10,22,25,24,23];
 begin
   if c !~ '^[A-Z]{6}[0-9LMNPQRSTUV]{2}[ABCDEHLMPRST][0-9LMNPQRSTUV]{2}[A-Z][0-9LMNPQRSTUV]{3}[A-Z]$' then return false; end if;
@@ -181,9 +186,25 @@ begin
   return chr(65 + s % 26) = substr(c, 16, 1);
 end $$;
 
+-- perché un codice fiscale non va (null se va bene): lo scrive nel "Da sistemare"
+create or replace function cf_problema(p text) returns text language plpgsql immutable as $$
+declare c text := coalesce(cf_norm(p), '');
+begin
+  if c = '' then return null; end if;
+  if c ~ '^[0-9]{11}$' then return 'è una partita IVA (11 cifre), non il codice fiscale di una persona'; end if;
+  if length(c) <> 16 then return 'ha ' || length(c) || ' caratteri invece di 16'; end if;
+  if c !~ '^[A-Z]{6}[0-9LMNPQRSTUV]{2}[ABCDEHLMPRST][0-9LMNPQRSTUV]{2}[A-Z][0-9LMNPQRSTUV]{3}[A-Z]$' then
+    if substr(c, 7, 2) || substr(c, 10, 2) || substr(c, 13, 3) ~ 'O' then return 'c''è una lettera O dove va lo zero'; end if;
+    if position(substr(c, 9, 1) in 'ABCDEHLMPRST') = 0 then return 'la lettera del mese ("' || substr(c, 9, 1) || '") non esiste'; end if;
+    return 'lettere e cifre non sono al posto giusto';
+  end if;
+  if not cf_valido(c) then return 'l''ultima lettera (di controllo) non torna: quasi sempre una lettera o una cifra è sbagliata'; end if;
+  return null;
+end $$;
+
 -- la data di nascita scritta nel codice fiscale (null se il codice non è valido)
 create or replace function cf_nascita(p text) returns date language plpgsql stable as $$
-declare c text := upper(trim(coalesce(p, ''))); aa int; mm int; gg int; anno int;
+declare c text := coalesce(cf_norm(p), ''); aa int; mm int; gg int; anno int;
 begin
   if not cf_valido(c) then return null; end if;
   aa := translate(substr(c, 7, 2), 'LMNPQRSTUV', '0123456789')::int;
@@ -194,6 +215,25 @@ begin
   return make_date(anno, mm, gg);
 exception when others then return null;
 end $$;
+
+-- il sesso scritto nel codice fiscale (giorno + 40 per le donne)
+create or replace function cf_sesso(p text) returns text language sql immutable as $$
+  select case when cf_valido(p) then
+    case when translate(substr(cf_norm(p), 10, 2), 'LMNPQRSTUV', '0123456789')::int > 40 then 'F' else 'M' end end;
+$$;
+
+-- le tre lettere del cognome e del nome come nel codice fiscale
+create or replace function cf_lettere(t text) returns text language sql immutable as $$
+  select regexp_replace(translate(upper(coalesce(t, '')), 'ÀÁÂÃÄÅÈÉÊËÌÍÎÏÒÓÔÕÖÙÚÛÜÇÑ', 'AAAAAAEEEEIIIIOOOOOUUUUCN'), '[^A-Z]', '', 'g');
+$$;
+create or replace function cf_parte_cognome(t text) returns text language sql immutable as $$
+  select substr(regexp_replace(cf_lettere(t), '[AEIOU]', '', 'g') || regexp_replace(cf_lettere(t), '[^AEIOU]', '', 'g') || 'XXX', 1, 3);
+$$;
+create or replace function cf_parte_nome(t text) returns text language sql immutable as $$
+  select case when length(regexp_replace(cf_lettere(t), '[AEIOU]', '', 'g')) >= 4
+              then substr(regexp_replace(cf_lettere(t), '[AEIOU]', '', 'g'), 1, 1) || substr(regexp_replace(cf_lettere(t), '[AEIOU]', '', 'g'), 3, 2)
+              else cf_parte_cognome(t) end;
+$$;
 
 -- scrive (o aggiorna) una anomalia; se era già stata segnata come fatta resta fatta
 create or replace function anomalia_import(p_palestra uuid, p_imp uuid, p_allievo uuid, p_categoria text, p_gravita text,
@@ -959,7 +999,7 @@ begin
   if auth.uid() is not null and not is_gestione(v_pal) then raise exception 'non_autorizzato'; end if;
 
   create temp table _imp_pers on commit drop as
-    select a.id, a.nome, a.cognome, a.data_nascita, upper(trim(a.codice_fiscale)) as cf, a.tessera, a.codice_esterno,
+    select a.id, a.nome, a.cognome, a.data_nascita, cf_norm(a.codice_fiscale) as cf, a.sesso, a.tessera, a.codice_esterno,
            ac.email, ac.telefono, ac.id as account_id, a.is_titolare,
            testo_norm(a.nome || ' ' || coalesce(a.cognome, '')) as nc,
            exists (select 1 from iscrizioni i where i.allievo_id = a.id and i.stato in ('attiva', 'sospesa') and coalesce(i.data_fine, current_date) >= current_date) as attivo
@@ -985,32 +1025,55 @@ begin
       'doppione|' || r.id);
   end loop;
 
-  -- codice fiscale non valido
-  for r in select * from _imp_pers where cf is not null and cf <> '' and not cf_valido(cf) loop
-    perform anomalia_import(v_pal, p_imp, r.id, 'persone', case when r.attivo then 'da_sistemare' else 'da_verificare' end,
-      'Codice fiscale non valido', 'Sulla scheda c''è "' || r.cf || '", che non è un codice fiscale valido (lettere o cifre sbagliate o mancanti). ' ||
-      'Correggilo: serve per le ricevute e per la detrazione delle spese sportive.', 'cf_errato|' || r.id);
+  -- CODICE FISCALE (solo per chi è iscritto ora: per gli altri ci si pensa quando tornano, la scheda aiuta)
+  -- codice non valido, con il motivo
+  for r in select *, cf_problema(cf) as motivo from _imp_pers where attivo and cf is not null and cf_problema(cf) is not null loop
+    perform anomalia_import(v_pal, p_imp, r.id, 'persone', 'da_sistemare',
+      'Codice fiscale non valido',
+      'Sulla scheda c''è "' || r.cf || '": ' || r.motivo || '. Apri la scheda → Modifica: sotto il codice fiscale c''è quello calcolato ' ||
+      'da nome, cognome, data, sesso e luogo di nascita, da confrontare con il documento.', 'cf_errato|' || r.id);
   end loop;
 
   -- stesso codice fiscale su persone diverse (di solito il CF del genitore messo sul figlio)
   for r in
     select p.*, (select string_agg(q.nome || ' ' || coalesce(q.cognome, ''), ', ') from _imp_pers q where q.cf = p.cf and q.id <> p.id and q.nc <> p.nc) as altri
-      from _imp_pers p where p.cf is not null and p.cf <> ''
+      from _imp_pers p where p.attivo and p.cf is not null
        and exists (select 1 from _imp_pers q where q.cf = p.cf and q.id <> p.id and q.nc <> p.nc)
   loop
-    perform anomalia_import(v_pal, p_imp, r.id, 'persone', case when r.attivo then 'da_sistemare' else 'da_verificare' end,
+    perform anomalia_import(v_pal, p_imp, r.id, 'persone', 'da_sistemare',
       'Codice fiscale uguale a quello di un''altra persona',
       'Il codice fiscale ' || r.cf || ' è anche su: ' || r.altri || '. Di solito è il codice del genitore messo sulla scheda del figlio: ' ||
-      'sulla scheda va il codice di chi frequenta, quello del genitore va sul titolare che paga.', 'cf_doppio|' || r.id);
+      'sulla scheda va il codice di chi frequenta, quello del genitore va su chi paga.', 'cf_doppio|' || r.id);
   end loop;
 
-  -- data di nascita diversa da quella del codice fiscale
-  for r in select * from _imp_pers where data_nascita is not null and cf_nascita(cf) is not null and cf_nascita(cf) <> data_nascita loop
-    perform anomalia_import(v_pal, p_imp, r.id, 'persone', case when r.attivo then 'da_sistemare' else 'da_verificare' end,
-      'Data di nascita diversa dal codice fiscale',
-      'Sulla scheda è nato/a il ' || to_char(r.data_nascita, 'DD/MM/YYYY') || ', il codice fiscale ' || r.cf || ' dice ' ||
-      to_char(cf_nascita(r.cf), 'DD/MM/YYYY') || '. Uno dei due è sbagliato (a volte il codice è quello del genitore): ' ||
-      'la data serve per la fascia d''età dei corsi.', 'nascita_cf|' || r.id);
+  -- codice valido ma la scheda dice altro: quasi sempre è sbagliata la scheda (in APP Palestre nome e cognome
+  -- venivano spesso scritti al contrario e il sesso era impostato a caso)
+  for r in select *, cf_parte_cognome(cognome) || cf_parte_nome(nome) as giusto, cf_parte_cognome(nome) || cf_parte_nome(cognome) as invertito
+             from _imp_pers where attivo and cf_valido(cf) loop
+    if left(r.cf, 6) <> r.giusto and left(r.cf, 6) = r.invertito then
+      perform anomalia_import(v_pal, p_imp, r.id, 'persone', 'da_sistemare',
+        'Nome e cognome invertiti',
+        'Sulla scheda il nome è "' || r.nome || '" e il cognome "' || coalesce(r.cognome, '') || '", ma il codice fiscale ' || r.cf ||
+        ' dice il contrario. "Correggi" li scambia (anche su chi paga, se è la stessa persona).', 'invertiti|' || r.id);
+    elsif left(r.cf, 6) <> r.giusto then
+      perform anomalia_import(v_pal, p_imp, r.id, 'persone', 'da_verificare',
+        'Il codice fiscale sembra di un''altra persona',
+        'Il codice fiscale ' || r.cf || ' non corrisponde a "' || r.nome || ' ' || coalesce(r.cognome, '') || '" (le lettere di nome e cognome ' ||
+        'non tornano). Forse è quello del genitore o c''è un errore nel nome: controlla sul documento.', 'cf_altro|' || r.id);
+    end if;
+    if r.sesso in ('M', 'F') and cf_sesso(r.cf) <> r.sesso then
+      perform anomalia_import(v_pal, p_imp, r.id, 'persone', 'da_sistemare',
+        'Sesso diverso dal codice fiscale',
+        'Sulla scheda il sesso è ' || r.sesso || ', il codice fiscale dice ' || cf_sesso(r.cf) || '. "Correggi" mette quello del codice ' ||
+        '(serve per la tessera e l''assicurazione).', 'sesso_cf|' || r.id);
+    end if;
+    if r.data_nascita is not null and cf_nascita(r.cf) is not null and cf_nascita(r.cf) <> r.data_nascita then
+      perform anomalia_import(v_pal, p_imp, r.id, 'persone', 'da_sistemare',
+        'Data di nascita diversa dal codice fiscale',
+        'Sulla scheda è nato/a il ' || to_char(r.data_nascita, 'DD/MM/YYYY') || ', il codice fiscale ' || r.cf || ' dice ' ||
+        to_char(cf_nascita(r.cf), 'DD/MM/YYYY') || '. "Correggi" mette la data del codice; se invece è sbagliato il codice, correggilo dalla scheda.',
+        'nascita_cf|' || r.id);
+    end if;
   end loop;
 
   -- chi è iscritto ora: dati che mancano
@@ -1168,6 +1231,37 @@ revoke execute on function abbina_abbonamento_import(uuid, text, uuid) from publ
 revoke execute on function importa_app_palestre_storico(uuid, jsonb, boolean, date, boolean) from public, anon;
 grant execute on function importa_app_palestre_storico(uuid, jsonb, boolean, date, boolean) to authenticated;
 grant execute on function abbina_abbonamento_import(uuid, text, uuid) to authenticated;
+
+-- "Correggi": sistema la scheda con quello che dice il codice fiscale (nome/cognome invertiti, sesso, data di nascita)
+-- e segna l'anomalia come fatta. Solo per queste tre; le altre si sistemano a mano.
+create or replace function correggi_da_cf(p_ids uuid[])
+returns int language plpgsql security definer set search_path = public as $$
+declare r record; a allievi; n int := 0; v_tipo text;
+begin
+  for r in select * from anomalie_import where id = any(p_ids) and not risolta loop
+    if not is_gestione(r.palestra_id) then raise exception 'non_autorizzato'; end if;
+    v_tipo := split_part(r.chiave, '|', 1);
+    if v_tipo not in ('invertiti', 'sesso_cf', 'nascita_cf') or r.allievo_id is null then continue; end if;
+    select * into a from allievi where id = r.allievo_id;
+    if not cf_valido(a.codice_fiscale) then continue; end if;
+    if v_tipo = 'invertiti' then
+      -- anche chi paga, se è la stessa persona scritta allo stesso modo
+      update account set nome = coalesce(a.cognome, ''), cognome = a.nome
+       where id = a.account_id and a.is_titolare and testo_norm(nome) = testo_norm(a.nome) and testo_norm(cognome) is not distinct from testo_norm(a.cognome);
+      update allievi set nome = coalesce(nullif(a.cognome, ''), a.nome), cognome = a.nome where id = a.id;
+    elsif v_tipo = 'sesso_cf' then
+      update allievi set sesso = cf_sesso(a.codice_fiscale) where id = a.id;
+    else
+      update allievi set data_nascita = cf_nascita(a.codice_fiscale) where id = a.id;
+    end if;
+    update anomalie_import set risolta = true, risolta_at = now(), risolta_da = auth.uid(), chiusa_sola = false,
+           nota = 'Corretto con i dati del codice fiscale' where id = r.id;
+    n := n + 1;
+  end loop;
+  return n;
+end $$;
+revoke execute on function correggi_da_cf(uuid[]) from public, anon;
+grant execute on function correggi_da_cf(uuid[]) to authenticated;
 
 -- segnare come fatta (o riaprire) una anomalia
 create or replace function segna_anomalia(p_id uuid, p_risolta boolean, p_nota text default null)

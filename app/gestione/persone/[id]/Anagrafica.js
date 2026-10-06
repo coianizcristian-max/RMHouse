@@ -7,6 +7,8 @@ import Immagine from '../../Immagine';
 import CaricaCertificato from '../../../CaricaCertificato';
 import AccessoApp from './AccessoApp';
 import { genere } from '@/lib/genere';
+import { normalizzaCF } from '@/lib/codiceFiscale';
+import ControlloCF from './ControlloCF';
 
 export default function Anagrafica({ allievo, linkCertificato, ente}) {
   const router = useRouter();
@@ -23,6 +25,7 @@ export default function Anagrafica({ allievo, linkCertificato, ente}) {
     email: allievo.account.email || '', telefono: allievo.account.telefono || '',
     codice_fiscale: allievo.account.codice_fiscale || '',
     cf_allievo: allievo.codice_fiscale || '', tessera: allievo.tessera || '',
+    sesso: allievo.sesso || '', luogo_nascita: allievo.luogo_nascita || '',
   });
   const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
 
@@ -35,12 +38,13 @@ export default function Anagrafica({ allievo, linkCertificato, ente}) {
         foto_url: f.foto_url,
         nome: f.nome.trim(), cognome: f.cognome.trim(), data_nascita: f.data_nascita || null,
         certificato_scadenza: f.certificato_scadenza || null, note: f.note || null,
-        codice_fiscale: f.cf_allievo.trim().toUpperCase() || null, tessera: f.tessera.trim() || null,
+        codice_fiscale: normalizzaCF(f.cf_allievo) || null, tessera: f.tessera.trim() || null,
+        sesso: f.sesso || null, luogo_nascita: f.luogo_nascita.trim() || null,
       }).eq('id', allievo.id),
       db.from('account').update({
         nome: f.acc_nome.trim(), cognome: f.acc_cognome.trim(),
         email: f.email.trim().toLowerCase() || null, telefono: f.telefono || null,
-        codice_fiscale: f.codice_fiscale || null,
+        codice_fiscale: normalizzaCF(f.codice_fiscale) || null,
       }).eq('id', allievo.account.id),
     ]);
     setInvio(false);
@@ -122,7 +126,18 @@ export default function Anagrafica({ allievo, linkCertificato, ente}) {
         <div className="campo"><label htmlFor="cs">Scadenza certificato</label><input id="cs" type="date" value={f.certificato_scadenza} onChange={set('certificato_scadenza')} /></div>
       </div>
       <div className="riga-2">
-        <div className="campo"><label htmlFor="cfa">Codice fiscale</label><input id="cfa" value={f.cf_allievo} onChange={set('cf_allievo')} /></div>
+        <div className="campo"><label htmlFor="sx">Sesso</label>
+          <select id="sx" value={f.sesso} onChange={set('sesso')}>
+            <option value="">—</option><option value="F">F</option><option value="M">M</option>
+          </select></div>
+        <div className="campo"><label htmlFor="ln">Luogo di nascita</label>
+          <input id="ln" value={f.luogo_nascita} onChange={set('luogo_nascita')} placeholder="Comune, o lo stato se è nato/a all'estero" /></div>
+      </div>
+      <div className="riga-2">
+        <div className="campo"><label htmlFor="cfa">Codice fiscale</label>
+          <input id="cfa" value={f.cf_allievo} onChange={set('cf_allievo')} autoComplete="off" spellCheck={false} />
+          <ControlloCF nome={f.nome} cognome={f.cognome} data={f.data_nascita} sesso={f.sesso} luogo={f.luogo_nascita} cf={f.cf_allievo}
+                       onCambia={(patch) => setF((v) => ({ ...v, ...patch }))} /></div>
         <div className="campo"><label htmlFor="tes">Numero di tessera {ente || ''}</label><input id="tes" value={f.tessera} onChange={set('tessera')} /></div>
       </div>
       <div className="campo"><label htmlFor="note">Note</label><textarea id="note" value={f.note} onChange={set('note')} /></div>
