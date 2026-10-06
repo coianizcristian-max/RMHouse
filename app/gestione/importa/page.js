@@ -4,7 +4,8 @@ import Importa from './Importa';
 
 export const dynamic = 'force-dynamic';
 
-export default async function PaginaImporta() {
+export default async function PaginaImporta({ searchParams }) {
+  const { vista } = (await searchParams) || {};
   const { supabase, staff } = await staffCorrente();
   if (staff.ruolo === 'insegnante') redirect('/gestione');
 
@@ -13,5 +14,5 @@ export default async function PaginaImporta() {
     supabase.from('tipi_abbonamento').select('id, nome').eq('palestra_id', staff.palestra_id).order('nome'),
   ]);
 
-  return <Importa corsi={corsi.data || []} tipi={tipi.data || []} palestraId={staff.palestra_id} />;
+  return <Importa corsi={corsi.data || []} tipi={tipi.data || []} palestraId={staff.palestra_id} vista={vista} />;
 }

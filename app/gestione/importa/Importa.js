@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { leggiCsv, leggiData, indovina } from '@/lib/csv';
 import AppPalestre from './AppPalestre';
+import Esporta from './Esporta';
 import SceltaFile from '../SceltaFile';
 
 const CAMPI = [
@@ -19,8 +20,8 @@ const CAMPI = [
   { k: 'data_inizio', etichetta: 'Inizio abbonamento', parole: ['inizio', 'datainizio'] },
 ];
 
-export default function Importa({ corsi, tipi, palestraId }) {
-  const [fonte, setFonte] = useState('app');
+export default function Importa({ corsi, tipi, palestraId, vista }) {
+  const [fonte, setFonte] = useState(vista === 'esporta' ? 'esporta' : vista === 'altro' ? 'altro' : 'app');
   const [dati, setDati] = useState(null);      // { intestazioni, righe }
   const [mappa, setMappa] = useState({});
   const [errore, setErrore] = useState('');
@@ -72,18 +73,18 @@ export default function Importa({ corsi, tipi, palestraId }) {
     <>
       <div className="intestazione">
         <div className="occhiello">Persone</div>
-        <h1>Importa da CSV</h1>
-        <p>Porta dentro l'elenco che hai oggi, da APP Palestre o da qualunque altro file.</p>
+        <h1>Importa ed esporta</h1>
+        <p>Porta dentro i dati da APP Palestre o da qualunque altro file, e scarica i dati di RMHouse per darli ad altri.</p>
       </div>
 
       <div className="filtri">
-        {[['app', 'Da APP Palestre'], ['altro', 'Da un altro file']].map(([k, l]) => (
+        {[['app', 'Da APP Palestre'], ['altro', 'Da un altro file'], ['esporta', 'Esporta']].map(([k, l]) => (
           <a key={k} href="#" onClick={(e) => { e.preventDefault(); setFonte(k); }}
              aria-current={fonte === k ? 'true' : undefined}>{l}</a>
         ))}
       </div>
 
-      {fonte === 'app' ? <AppPalestre palestraId={palestraId} /> : (
+      {fonte === 'esporta' ? <Esporta palestraId={palestraId} /> : fonte === 'app' ? <AppPalestre palestraId={palestraId} /> : (
       <>
 
       {errore && <div className="errore" role="alert">{errore}</div>}

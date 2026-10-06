@@ -50,7 +50,7 @@ export default async function Home({ searchParams }) {
 
   const fra14 = new Date(Date.now() + 14 * 86400000).toLocaleDateString('sv-SE', { timeZone: 'Europe/Rome' });
   const [{ data: k }, { data: lezioni }, { data: corsi }, { data: scadenze }, { count: rateScadute }, { count: richieste }, { data: promemoria },
-         { data: staffRighe }, { data: sostituzioni }, { data: prossime }] = await Promise.all([
+         { data: staffRighe }, { data: sostituzioni }, { data: prossime }, { count: daSistemare }, { count: daVerificare }] = await Promise.all([
     gestione ? supabase.rpc('cruscotto', { p_palestra: p }) : Promise.resolve({ data: null }),
     lezioniQ,
     supabase.from('corsi').select('id, colore').eq('palestra_id', p),
@@ -79,6 +79,11 @@ export default async function Home({ searchParams }) {
       .select('lezione_id, corso_id, corso_nome, inizio, capienza, iscritti, sala_nome')
       .eq('palestra_id', p).eq('insegnante_id', staff.id).gt('data', oggiISO()).neq('stato', 'annullata')
       .order('inizio').limit(6),
+    // quello che non torna dopo l'import da APP Palestre
+    gestione ? supabase.from('anomalie_import').select('id', { count: 'exact', head: true })
+      .eq('palestra_id', p).eq('risolta', false).eq('gravita', 'da_sistemare') : Promise.resolve({ count: 0 }),
+    gestione ? supabase.from('anomalie_import').select('id', { count: 'exact', head: true })
+      .eq('palestra_id', p).eq('risolta', false).eq('gravita', 'da_verificare') : Promise.resolve({ count: 0 }),
   ]);
 
   const colore = (id) => corsi?.find((c) => c.id === id)?.colore || 'var(--rosso)';
@@ -97,6 +102,8 @@ export default async function Home({ searchParams }) {
     ['Certificati da verificare', k.certificati_da_verificare, '/gestione/certificati', 'urgente'],
     ['Richieste di affitto sala', k.spazi_da_rispondere, '/gestione/spazi', 'urgente'],
     ['Rate scadute', rateScadute, '/gestione/rate?vista=scadute', 'urgente'],
+    ['Da sistemare dopo l\'import', daSistemare, '/gestione/da-sistemare', 'urgente'],
+    ['Da verificare dopo l\'import', daVerificare, '/gestione/da-sistemare', 'attenzione'],
     ['Abbonamenti in scadenza entro 7 giorni', k.in_scadenza_7, '/gestione/scadenze?tipo=abbonamento', 'attenzione'],
     ['Ingressi quasi finiti', k.in_esaurimento, '/gestione/scadenze?tipo=ingressi', 'attenzione'],
     ['Iscritti senza giorni assegnati', k.senza_orari, '/gestione/persone?campanello=senza_orari', 'attenzione'],
