@@ -9,12 +9,19 @@ export function lunedi(iso) {
   return d.toISOString().slice(0, 10);
 }
 
+// Quanti giorni mostra il palinsesto: 1, 3, 5 o 7 (la settimana da lunedì)
+export const VISTE_GIORNI = [1, 3, 5, 7];
+export const giorniValidi = (v) => (VISTE_GIORNI.includes(Number(v)) ? Number(v) : 7);
+
 // Tutto quello che serve a una settimana di calendario, usato sia dal
 // palinsesto sia dall'agenda: così le due pagine restano allineate.
-export async function settimana({ da, sala, insegnante, mie, sede, corso }) {
+// Con `giorni` 1, 3 o 5 il periodo parte dal giorno scelto (o da oggi) invece che dal lunedì.
+export async function settimana({ da, sala, insegnante, mie, sede, corso, giorni = 7 }) {
   const { supabase, staff } = await staffCorrente();
-  const inizio = lunedi(/^\d{4}-\d{2}-\d{2}$/.test(da || '') ? da : oggiISO());
-  const fine = spostaGiorni(inizio, 6);
+  const n = giorniValidi(giorni);
+  const giorno = /^\d{4}-\d{2}-\d{2}$/.test(da || '') ? da : oggiISO();
+  const inizio = n === 7 ? lunedi(giorno) : giorno;
+  const fine = spostaGiorni(inizio, n - 1);
 
   let q = supabase
     .from('v_occupazione')
@@ -46,7 +53,7 @@ export async function settimana({ da, sala, insegnante, mie, sede, corso }) {
     : { data: [] };
 
   return {
-    staff, inizio, fine,
+    staff, inizio, fine, giorni: n,
     lezioni: lezioni || [], sale: sale || [], insegnanti: insegnanti || [],
     corsi: corsi || [], note: note || [], facce: facce || [], sedi: sedi || [],
   };

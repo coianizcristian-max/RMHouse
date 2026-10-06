@@ -23,7 +23,7 @@ export default async function PaginaDaSistemare() {
   const p = staff.palestra_id;
   const oggi = new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Rome' });
 
-  const [anomalie, { data: ultima }, senzaTipo, { data: tipi }, { data: alias }] = await Promise.all([
+  const [anomalie, { data: ultima }, senzaTipo, { data: tipi }, { data: alias }, { data: slot }, orari] = await Promise.all([
     tutte(() => supabase.from('anomalie_import')
       .select('id, categoria, gravita, titolo, dettaglio, link, risolta, risolta_at, nota, chiusa_sola, allievo_id, aggiornata_at, allievi ( nome, cognome )')
       .eq('palestra_id', p).order('categoria').order('titolo').order('id')),
@@ -33,6 +33,11 @@ export default async function PaginaDaSistemare() {
       .eq('palestra_id', p).eq('fonte', 'app_palestre').is('tipo_abbonamento_id', null).eq('stato', 'attivo').gte('al', oggi).order('id')),
     supabase.from('tipi_abbonamento').select('id, nome').eq('palestra_id', p).eq('archiviato', false).order('nome'),
     supabase.from('abbonamenti_alias').select('nome, origine, tipo_abbonamento_id, tipi_abbonamento ( nome )').eq('palestra_id', p).order('nome'),
+    // gli orari di APP Palestre in cui sono prenotate le persone, e gli orari di RMHouse tra cui scegliere
+    supabase.rpc('orari_import', { p_palestra: p }),
+    tutte(() => supabase.from('orari').select('id, giorno_settimana, ora_inizio, corsi ( nome ), sale ( nome )')
+      .eq('palestra_id', p).eq('attivo', true).or(`valido_al.is.null,valido_al.gte.${oggi}`)
+      .order('giorno_settimana').order('ora_inizio').order('id')),
   ]);
 
   // abbonamenti di APP Palestre in corso che non corrispondono a niente del listino
@@ -61,7 +66,8 @@ export default async function PaginaDaSistemare() {
         <p>Quello che non torna dopo l'import da APP Palestre: per ogni cosa c'è scritto cosa manca o è sbagliato e come sistemarlo.</p>
       </div>
       <DaSistemare palestraId={p} anomalie={anomalie} ultima={ultima?.[0] || null}
-                   daAbbinare={daAbbinare} tipi={tipi || []} alias={alias || []} />
+                   daAbbinare={daAbbinare} tipi={tipi || []} alias={alias || []}
+                   slot={(slot || []).filter((x) => !x.orario_id || x.scelto)} orari={orari} />
     </>
   );
 }

@@ -3522,3 +3522,37 @@ form.periodo-date .btn { flex: none; width: auto; min-height: 36px; padding: 0 1
 .esporta-periodo { display: flex; flex-wrap: wrap; gap: 10px; }
 .esporta-periodo label { display: grid; gap: 2px; flex: 1 1 140px; }
 .esporta-periodo input { min-height: 40px; border: 1.5px solid var(--linea); border-radius: 10px; padding: 0 10px; font: inherit; }
+
+/* Palinsesto: 1, 3, 5 o 7 giorni */
+.scelta-giorni { display: inline-flex; gap: 2px; padding: 3px; background: var(--carta); border-radius: 999px; }
+.scelta-giorni button {
+  border: 0; background: none; font: inherit; font-size: 13px; font-weight: 700; color: var(--testo-2);
+  min-width: 34px; height: 30px; padding: 0 10px; border-radius: 999px; cursor: pointer; white-space: nowrap;
+}
+.scelta-giorni button[aria-pressed='true'] { background: var(--nero); color: var(--bianco); }
+.scelta-giorni .sg-g { font-weight: 600; }
+.bc-destra { display: inline-flex; align-items: center; gap: 8px; margin-left: auto; }
+.bc-destra .pal-legenda { margin-left: 0; }
+@media (max-width: 1279px) { .scelta-giorni .sg-g { display: none; } }
+@media (min-width: 900px) {
+  /* filtri del calendario su una riga sola, bassi: lo spazio resta alle lezioni */
+  .barra-cal { margin-bottom: 6px; gap: 8px; }
+  .barra-cal .bc-filtri { gap: 6px; flex-wrap: nowrap; min-width: 0; }
+  .barra-cal .bc-filtri select {
+    flex: 0 1 170px; width: 170px; min-width: 90px; min-height: 34px; height: 34px; padding: 4px 8px;
+    font-size: 13.5px; border-radius: 10px; border-width: 1px; text-overflow: ellipsis;
+  }
+  .barra-cal .bc-filtri .stato-pillola { min-height: 34px; padding: 4px 12px; font-size: 13.5px; white-space: nowrap; flex: none; }
+  .barra-cal .bc-filtri .link-btn { white-space: nowrap; }
+  .barra-cal .pal-btn-legenda { min-height: 34px; padding: 4px 12px; font-size: 13.5px; }
+  .colonne-giorni.palinsesto.giorni-1 { grid-template-columns: minmax(0, 1fr); }
+  .colonne-giorni.palinsesto.giorni-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .colonne-giorni.palinsesto.giorni-5 { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+  /* colonne larghe (1 o 3 giorni): le schede si affiancano invece di diventare enormi */
+  .colonne-giorni.palinsesto.giorni-1 .pal-carte, .colonne-giorni.palinsesto.giorni-3 .pal-carte {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); column-gap: clamp(8px, 1cqw, 14px);
+  }
+}
+@media (min-width: 900px) and (max-width: 1199px) {
+  .barra-cal .bc-filtri select { flex-basis: 130px; width: 130px; }
+}

@@ -146,9 +146,26 @@ $$;
 revoke execute on function tipo_da_nome(uuid, text) from public, anon;
 grant execute on function tipo_da_nome(uuid, text) to authenticated;
 
+-- orari di APP Palestre abbinati a mano a un orario di RMHouse (corso, giorno della settimana 1-7, ora)
+create table if not exists corsi_alias (
+  palestra_id  uuid not null references palestre(id) on delete cascade,
+  corso_norm   text not null,
+  giorno       int  not null check (giorno between 1 and 7),
+  ora          time not null,
+  orario_id    uuid not null references orari(id) on delete cascade,
+  created_at   timestamptz not null default now(),
+  primary key (palestra_id, corso_norm, giorno, ora)
+);
+alter table corsi_alias enable row level security;
+grant select, insert, update, delete on corsi_alias to authenticated;
+drop policy if exists gestione_tutto on corsi_alias;
+create policy gestione_tutto on corsi_alias for all to authenticated
+  using (is_gestione(palestra_id)) with check (is_gestione(palestra_id));
+
 -- per trovare in fretta le persone per nome (anche scritto "Cognome Nome")
 create index if not exists allievi_nome_norm on allievi (palestra_id, testo_norm(nome || ' ' || coalesce(cognome, '')));
 create index if not exists allievi_cognome_nome_norm on allievi (palestra_id, testo_norm(coalesce(cognome, '') || ' ' || nome));
+create index if not exists allievi_nome_app_norm on allievi (palestra_id, testo_norm(split_part(codice_esterno, '|', 1) || ' ' || split_part(codice_esterno, '|', 2)));
 
 -- codice fiscale: formato e carattere di controllo
 create or replace function cf_valido(p text) returns boolean language plpgsql immutable as $$
@@ -205,7 +222,9 @@ begin
   select coalesce(array_agg(a.id order by (a.codice_esterno is not null) desc, a.created_at), '{}') into ids
     from allievi a
    where a.palestra_id = p_palestra
-     and (testo_norm(a.nome || ' ' || coalesce(a.cognome, '')) = c or testo_norm(coalesce(a.cognome, '') || ' ' || a.nome) = c);
+     and (testo_norm(a.nome || ' ' || coalesce(a.cognome, '')) = c or testo_norm(coalesce(a.cognome, '') || ' ' || a.nome) = c
+          -- il nome com'era in APP Palestre (se in RMHouse è stato corretto)
+          or testo_norm(split_part(a.codice_esterno, '|', 1) || ' ' || split_part(a.codice_esterno, '|', 2)) = c);
   -- stesso nome e stessa email (la più sicura)
   if testo_norm(p_email) is not null then
     select a.id into v from allievi a join account ac on ac.id = a.account_id
@@ -261,6 +280,96 @@ begin
   delete from import_prenotazioni where palestra_id = p_palestra;
   insert into importazioni (palestra_id) values (p_palestra) returning id into v;
   return v;
+end $$;
+
+-- le persone (sostituisce quella della 031): chi c'è già in RMHouse non viene sovrascritto, si completano solo i dati mancanti
+create or replace function importa_app_palestre_clienti(p_palestra uuid, p_righe jsonb)
+returns jsonb language plpgsql security definer set search_path = public as $$
+declare
+  r record; v_all allievi; v_acc uuid; v_mese int; v_quota int;
+  n_nuovi int := 0; n_aggiornati int := 0; n_account int := 0;
+begin
+  if auth.uid() is not null and not is_gestione(p_palestra) then raise exception 'non_autorizzato'; end if;
+  select mese_inizio_stagione, quota_iscrizione_cent into v_mese, v_quota from palestre where id = p_palestra;
+
+  for r in select * from jsonb_to_recordset(p_righe) as x(
+      chiave text, nome text, cognome text, email text, telefono text, nascita date, luogo text,
+      cf text, sesso text, indirizzo text, cap text, citta text, provincia text, intestatario text,
+      tessera text, certificato date, prima date, quota_dal date, nota text, bloccato boolean)
+  loop
+    if coalesce(trim(r.nome), '') = '' then continue; end if;
+    v_all := null; v_acc := null;
+
+    select * into v_all from allievi where palestra_id = p_palestra and codice_esterno = r.chiave;
+    if v_all.id is null and r.email is not null then
+      select a.* into v_all from allievi a join account ac on ac.id = a.account_id
+       where a.palestra_id = p_palestra and ac.email = r.email
+         and lower(a.nome) = lower(r.nome) and lower(a.cognome) = lower(r.cognome)
+       limit 1;
+    end if;
+
+    -- chi paga
+    if v_all.id is not null then
+      v_acc := v_all.account_id;
+    elsif r.email is not null then
+      select id into v_acc from account where palestra_id = p_palestra and email = r.email;
+    else
+      select id into v_acc from account where palestra_id = p_palestra and codice_esterno = 'noemail|' || r.chiave;
+    end if;
+
+    if v_acc is null then
+      insert into account (palestra_id, nome, cognome, email, telefono, codice_fiscale, indirizzo, cap, citta,
+                           provincia, fonte, codice_esterno)
+      values (p_palestra, coalesce(r.intestatario, r.nome), case when r.intestatario is null then r.cognome else '' end,
+              r.email, r.telefono, case when r.intestatario is null then r.cf end, r.indirizzo, r.cap, r.citta,
+              r.provincia, 'app_palestre', case when r.email is null then 'noemail|' || r.chiave end)
+      returning id into v_acc;
+      n_account := n_account + 1;
+    else
+      -- già in RMHouse: si completano solo i dati che mancano, quelli presenti (magari corretti a mano) restano
+      update account set
+        telefono  = coalesce(nullif(telefono, ''), r.telefono),
+        indirizzo = coalesce(nullif(indirizzo, ''), r.indirizzo),
+        cap       = coalesce(nullif(cap, ''), r.cap),
+        citta     = coalesce(nullif(citta, ''), r.citta),
+        provincia = coalesce(nullif(provincia, ''), r.provincia)
+      where id = v_acc;
+    end if;
+
+    -- chi frequenta
+    if v_all.id is null then
+      insert into allievi (palestra_id, account_id, nome, cognome, data_nascita, is_titolare, certificato_scadenza,
+                           note, codice_fiscale, sesso, luogo_nascita, tessera, codice_esterno, created_at)
+      values (p_palestra, v_acc, r.nome, r.cognome, r.nascita, r.intestatario is null, r.certificato,
+              nullif(concat_ws(E'\n', case when r.bloccato then 'Bloccato in APP Palestre' end, r.nota), ''),
+              r.cf, r.sesso, r.luogo, r.tessera, r.chiave, coalesce(r.prima::timestamptz, now()))
+      returning * into v_all;
+      n_nuovi := n_nuovi + 1;
+    else
+      -- già in RMHouse: nome, cognome, nascita, codice fiscale... restano quelli di RMHouse (corretti a mano);
+      -- si completano solo i campi vuoti, e il certificato si aggiorna solo se APP Palestre ne ha uno che scade dopo
+      update allievi set
+        data_nascita = coalesce(data_nascita, r.nascita),
+        certificato_scadenza = greatest(r.certificato, certificato_scadenza),
+        codice_fiscale = coalesce(nullif(codice_fiscale, ''), r.cf),
+        sesso = coalesce(nullif(sesso, ''), r.sesso),
+        luogo_nascita = coalesce(nullif(luogo_nascita, ''), r.luogo),
+        tessera = coalesce(nullif(tessera, ''), r.tessera),
+        note = coalesce(note, nullif(concat_ws(E'\n', case when r.bloccato then 'Bloccato in APP Palestre' end, r.nota), '')),
+        codice_esterno = r.chiave
+      where id = v_all.id;
+      n_aggiornati := n_aggiornati + 1;
+    end if;
+
+    -- quota annuale già pagata
+    if r.quota_dal is not null then
+      insert into quote_iscrizione (palestra_id, allievo_id, stagione, importo_cent, data)
+      values (p_palestra, v_all.id, stagione_di(r.quota_dal, v_mese), coalesce(v_quota, 0), r.quota_dal)
+      on conflict (allievo_id, stagione) do nothing;
+    end if;
+  end loop;
+
+  return jsonb_build_object('nuovi', n_nuovi, 'aggiornati', n_aggiornati, 'account_nuovi', n_account);
 end $$;
 
 -- lo storico degli abbonamenti (sostituisce quella della 031):
@@ -443,9 +552,35 @@ end $$;
 -- ---------------------------------------------------------------------
 -- 6. Gli orari di una persona per un abbonamento, ricavati dalle prenotazioni
 -- ---------------------------------------------------------------------
+-- l'orario di RMHouse per un orario di APP Palestre (corso, giorno, ora):
+-- 1. quello scelto a mano in "Da sistemare" (corsi_alias);
+-- 2. stesso nome del corso, stesso giorno, ora vicina (APP Palestre a volte sposta di un quarto d'ora).
+-- Se il corso in RMHouse ha un altro nome (es. "Heels liv. 2" → "Heels open") non si indovina: si abbina a mano,
+-- con un suggerimento. Corsi e orari di RMHouse non vengono mai modificati dall'import.
+drop function if exists orario_per_slot(uuid, text, int, time);
+create function orario_per_slot(p_palestra uuid, p_cn text, p_giorno int, p_ora time)
+returns table (orario_id uuid, corso_id uuid, corso_nome text, scelto boolean)
+language sql stable security definer set search_path = public as $$
+  select x.id, x.corso_id, x.nome, x.scelto from (
+    select o.id, o.corso_id, c.nome, true as scelto, 0 as pri, 0::numeric as distanza, true as stesso
+      from corsi_alias al join orari o on o.id = al.orario_id join corsi c on c.id = o.corso_id
+     where al.palestra_id = p_palestra and al.corso_norm = p_cn and al.giorno = p_giorno and al.ora = p_ora
+    union all
+    select o.id, o.corso_id, c.nome, false, 1, abs(extract(epoch from (o.ora_inizio - p_ora))), true
+      from orari o join corsi c on c.id = o.corso_id
+     where o.palestra_id = p_palestra and o.attivo and o.giorno_settimana = p_giorno
+       and (o.valido_al is null or o.valido_al >= current_date)
+       and corso_norm(c.nome) = p_cn and abs(extract(epoch from (o.ora_inizio - p_ora))) <= 30 * 60
+  ) x
+  order by x.pri, x.stesso desc, x.distanza
+  limit 1;
+$$;
+revoke execute on function orario_per_slot(uuid, text, int, time) from public, anon;
+grant execute on function orario_per_slot(uuid, text, int, time) to authenticated;
+
 drop function if exists import_orari_prenotati(uuid, text, text, date);
 create function import_orari_prenotati(p_imp uuid, p_chiave text, p_abbonamento text, p_dal date)
-returns table (giorno int, ora time, corso text, quante int, orario_id uuid, corso_id uuid, corso_rmhouse text)
+returns table (giorno int, ora time, corso text, quante int, orario_id uuid, corso_id uuid, corso_rmhouse text, scelto boolean)
 language sql stable security definer set search_path = public as $$
   with pr as (
     select b.* from import_prenotazioni b
@@ -462,22 +597,63 @@ language sql stable security definer set search_path = public as $$
   ), tenuti as (   -- una prenotazione isolata (un recupero, uno spostamento) non fa un orario fisso
     select * from gruppi g where g.quante >= 2 or not exists (select 1 from gruppi x where x.quante >= 2)
   )
-  select t.giorno, t.ora, t.corso, t.quante, o.id, o.corso_id, o.nome
+  select t.giorno, t.ora, t.corso, t.quante, o.orario_id, o.corso_id, o.corso_nome, coalesce(o.scelto, false)
     from tenuti t
-    left join lateral (
-      -- stesso corso, stesso giorno, ora vicina (APP Palestre a volte sposta di un quarto d'ora);
-      -- se il corso in RMHouse ha cambiato nome, va bene anche un corso che comincia con la stessa parola
-      -- (es. "Heels liv. 2" → "Heels open") purché giorno e ora siano gli stessi
-      select o.id, o.corso_id, c.nome from orari o join corsi c on c.id = o.corso_id
-       join importazioni i on i.id = p_imp and i.palestra_id = o.palestra_id
-       where o.attivo and o.giorno_settimana = t.giorno
-         and (o.valido_al is null or o.valido_al >= current_date)
-         and (   (corso_norm(c.nome) = t.cn and abs(extract(epoch from (o.ora_inizio - t.ora))) <= 30 * 60)
-              or (split_part(corso_norm(c.nome), ' ', 1) = split_part(t.cn, ' ', 1) and abs(extract(epoch from (o.ora_inizio - t.ora))) <= 15 * 60))
-       order by (corso_norm(c.nome) = t.cn) desc, abs(extract(epoch from (o.ora_inizio - t.ora))), c.attivo desc, o.valido_dal desc
-       limit 1) o on true
+    join importazioni i on i.id = p_imp
+    left join lateral orario_per_slot(i.palestra_id, t.cn, t.giorno, t.ora) o on true
    order by t.quante desc, t.giorno, t.ora;
 $$;
+
+-- gli orari di APP Palestre in cui sono prenotate le persone (dall'ultima importazione), con l'orario di RMHouse
+-- che l'import ha trovato: servono al riquadro "Orari da abbinare" del "Da sistemare"
+drop function if exists orari_import(uuid);
+create function orari_import(p_palestra uuid)
+returns table (corso text, corso_norm text, giorno int, ora time, persone int, orario_id uuid, corso_rmhouse text, scelto boolean,
+               suggerito_id uuid)
+language plpgsql stable security definer set search_path = public as $$
+declare v_imp uuid;
+begin
+  if not is_gestione(p_palestra) then raise exception 'non_autorizzato'; end if;
+  select id into v_imp from importazioni where palestra_id = p_palestra order by iniziata_at desc limit 1;
+  return query
+  with fut as (
+    select corso_norm(b.corso) as cn, min(b.corso) as corso, extract(isodow from b.giorno)::int as g, b.giorno::time as o,
+           count(distinct b.chiave)::int as persone
+      from import_prenotazioni b
+     where b.importazione_id = v_imp and not b.cancellata and b.abbonamento is not null and b.giorno::date >= current_date
+     group by 1, 3, 4
+  )
+  select f.corso, f.cn, f.g, f.o, f.persone, x.orario_id, x.corso_nome, coalesce(x.scelto, false),
+         -- un suggerimento per chi non è abbinato: lo stesso giorno, ora vicina, meglio se il corso comincia con la stessa parola
+         (select o2.id from orari o2 join corsi c2 on c2.id = o2.corso_id
+           where x.orario_id is null and o2.palestra_id = p_palestra and o2.attivo and o2.giorno_settimana = f.g
+             and (o2.valido_al is null or o2.valido_al >= current_date)
+             and abs(extract(epoch from (o2.ora_inizio - f.o))) <= 15 * 60
+           order by (split_part(corso_norm(c2.nome), ' ', 1) = split_part(f.cn, ' ', 1)) desc, abs(extract(epoch from (o2.ora_inizio - f.o)))
+           limit 1)
+    from fut f left join lateral orario_per_slot(p_palestra, f.cn, f.g, f.o) x on true
+   where f.persone >= 1
+   order by (x.orario_id is null) desc, f.cn, f.g, f.o;
+end $$;
+revoke execute on function orari_import(uuid) from public, anon;
+grant execute on function orari_import(uuid) to authenticated;
+
+-- abbinare un orario di APP Palestre a un orario di RMHouse (o togliere l'abbinamento con p_orario null)
+create or replace function abbina_orario_import(p_palestra uuid, p_corso_norm text, p_giorno int, p_ora time, p_orario uuid)
+returns void language plpgsql security definer set search_path = public as $$
+begin
+  if not is_gestione(p_palestra) then raise exception 'non_autorizzato'; end if;
+  if p_orario is null then
+    delete from corsi_alias where palestra_id = p_palestra and corso_norm = p_corso_norm and giorno = p_giorno and ora = p_ora;
+  else
+    if not exists (select 1 from orari where id = p_orario and palestra_id = p_palestra) then raise exception 'orario_non_trovato'; end if;
+    insert into corsi_alias (palestra_id, corso_norm, giorno, ora, orario_id)
+    values (p_palestra, p_corso_norm, p_giorno, p_ora, p_orario)
+    on conflict (palestra_id, corso_norm, giorno, ora) do update set orario_id = excluded.orario_id, created_at = now();
+  end if;
+end $$;
+revoke execute on function abbina_orario_import(uuid, text, int, time, uuid) from public, anon;
+grant execute on function abbina_orario_import(uuid, text, int, time, uuid) to authenticated;
 
 -- ---------------------------------------------------------------------
 -- 7. Chiusura: iscrizioni in corso con corso e orari, quote, stato delle persone
@@ -529,8 +705,8 @@ begin
       perform anomalia_import(v_pal, p_imp, s.allievo_id, 'abbonamenti', 'da_sistemare',
         'Abbonamento non presente nel listino: ' || trim(s.abbonamento),
         'In APP Palestre ha ' || v_nome || '. In RMHouse non c''è un abbonamento con questo nome, quindi l''iscrizione NON è stata creata. ' ||
-        'Se in RMHouse ha un altro nome, abbinalo in cima a questa pagina ("Abbonamenti da abbinare"): l''iscrizione si crea da sola. ' ||
-        'Se manca proprio, crealo nel listino (Abbonamenti) e poi abbinalo, oppure iscrivi la persona a mano.',
+        'In cima a questa pagina ("Abbonamenti da abbinare") scegli a quale abbonamento di RMHouse corrisponde: l''iscrizione si crea da sola. ' ||
+        'Se non corrisponde a nessuno, iscrivi la persona a mano dalla scheda.',
         'abb_listino|' || s.chiave || '|' || testo_norm(s.abbonamento) || '|' || s.dal);
       continue;
     end if;
@@ -542,13 +718,6 @@ begin
     if t.modalita = 'orari_fissi' then
       for o in select * from import_orari_prenotati(p_imp, s.chiave, s.abbonamento, s.dal) loop
         if o.orario_id is not null then
-          if corso_norm(o.corso_rmhouse) <> corso_norm(o.corso) then
-            perform anomalia_import(v_pal, p_imp, null, 'corsi', 'da_verificare',
-              'Corso con nome diverso: "' || trim(o.corso) || '" in APP Palestre, "' || o.corso_rmhouse || '" in RMHouse',
-              'Chi in APP Palestre è prenotato a "' || trim(o.corso) || '" il ' || v_gg[o.giorno] || ' alle ' || to_char(o.ora, 'HH24:MI') ||
-              ' è stato messo su "' || o.corso_rmhouse || '" (stesso giorno e stessa ora). Controlla che sia lo stesso corso.',
-              'nome_diverso|' || corso_norm(o.corso) || '|' || o.corso_id, '/gestione/corsi');
-          end if;
           if v_lez = 0 or v_n < v_lez then
             v_orari := v_orari || o.orario_id; v_n := v_n + 1;
             v_slot := v_slot || (v_gg[o.giorno] || ' ' || to_char(o.ora, 'HH24:MI') || ' ' || trim(o.corso));
@@ -562,9 +731,9 @@ begin
           v_corso := coalesce(v_corso, (select c.id from corsi c where c.palestra_id = v_pal and corso_norm(c.nome) = corso_norm(o.corso) limit 1));
           perform anomalia_import(v_pal, p_imp, null, 'corsi', 'da_sistemare',
             'Orario prenotato in APP Palestre che in RMHouse non c''è: ' || v_gg[o.giorno] || ' ' || to_char(o.ora, 'HH24:MI') || ' ' || trim(o.corso),
-            'Le persone prenotate in APP Palestre a questo orario non hanno potuto prenderlo in RMHouse. Aggiungi l''orario al corso ' ||
-            '(Corsi → il corso → Orari) e rifai l''import, oppure assegnalo a mano a chi è nell''elenco con lo stesso orario.',
-            'orario_manca|' || corso_norm(o.corso) || '|' || o.giorno || '|' || to_char(o.ora, 'HH24:MI'), '/gestione/corsi');
+            'In RMHouse non c''è un orario con questo corso, giorno e ora, quindi chi è prenotato lì non l''ha avuto. ' ||
+            'In cima a questa pagina ("Orari da abbinare") scegli a quale orario di RMHouse corrisponde: gli orari si aggiungono da soli alle iscrizioni.',
+            'orario_manca|' || corso_norm(o.corso) || '|' || o.giorno || '|' || to_char(o.ora, 'HH24:MI'), '/gestione/da-sistemare#orari');
         end if;
       end loop;
     end if;
@@ -587,7 +756,7 @@ begin
       perform anomalia_import(v_pal, p_imp, s.allievo_id, 'abbonamenti', 'da_sistemare',
         'Abbonamento senza corsi collegati: ' || trim(s.abbonamento),
         'In APP Palestre ha ' || v_nome || ', ma in RMHouse questo abbonamento non copre nessun corso attivo: iscrizione NON creata. ' ||
-        'Collega i corsi all''abbonamento (Abbonamenti → Corsi coperti) e rifai l''import, oppure iscrivi la persona a mano.',
+        'Iscrivi la persona a mano dalla scheda scegliendo il corso, oppure abbina gli orari prenotati in cima a questa pagina.',
         'abb_corsi|' || s.chiave || '|' || testo_norm(s.abbonamento) || '|' || s.dal);
       continue;
     end if;
@@ -644,7 +813,9 @@ begin
              corso_id = case when v_esistenti = 0 then v_corso else corso_id end,
              ingressi_residui = case when t.modalita = 'ingressi' then coalesce(s.restanti, ingressi_residui) else ingressi_residui end
        where id = v_isc.id;
-      if v_esistenti = 0 then
+      if v_esistenti = 0 or not exists (select orario_id from iscrizioni_orari where iscrizione_id = v_isc.id
+                                         except select unnest(v_orari)) then
+        -- nessun orario, o solo orari che vengono da APP Palestre: si completano con quelli trovati ora
         insert into iscrizioni_orari (iscrizione_id, orario_id) select v_isc.id, unnest(v_orari) on conflict do nothing;
       elsif cardinality(v_orari) > 0 and exists (
               select unnest(v_orari) except select orario_id from iscrizioni_orari where iscrizione_id = v_isc.id) then
@@ -687,7 +858,7 @@ begin
         perform anomalia_import(v_pal, p_imp, s.allievo_id, 'corsi', 'da_verificare',
           'Corso non coperto dall''abbonamento: ' || (select nome from corsi where id = v_corso),
           'In APP Palestre con ' || v_nome || ' frequenta "' || (select nome from corsi where id = v_corso) || '", ma in RMHouse ' ||
-          'questo corso non è tra quelli coperti dall''abbonamento. Se è giusto aggiungilo ai corsi coperti, altrimenti cambia il corso.',
+          'questo corso non è tra quelli coperti dall''abbonamento. Controlla dalla scheda: o il corso o l''abbonamento in APP Palestre era sbagliato.',
           'corso_non_coperto|' || s.chiave || '|' || testo_norm(s.abbonamento) || '|' || s.dal);
       end if;
       if extract(day from s.al + 1) <> 1 or (extract(day from s.dal) <> 1 and s.dal >= date_trunc('month', current_date)::date) then

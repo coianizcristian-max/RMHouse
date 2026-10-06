@@ -24,6 +24,122 @@ const quando = (iso) => (iso ? new Date(iso).toLocaleString('it-IT', {
 const nomePersona = (a) => (a?.allievi ? `${a.allievi.cognome || ''} ${a.allievi.nome}`.trim() : '');
 const normalizza = (t) => String(t || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
 
+// rifà il controllo finale dell'ultima importazione (crea iscrizioni e orari con gli abbinamenti nuovi)
+async function ricontrollaImport(db, ultima, setLavoro) {
+  if (!ultima) return;
+  setLavoro('Aggiorno iscrizioni e orari e rifaccio il controllo…');
+  const { error: e1 } = await db.rpc('importa_ap_chiudi', { p_imp: ultima.id });
+  if (e1) throw e1;
+  const { error: e2 } = await db.rpc('importa_ap_anomalie', { p_imp: ultima.id });
+  if (e2) throw e2;
+}
+
+const GG = ['', 'lun', 'mar', 'mer', 'gio', 'ven', 'sab', 'dom'];
+const GG_LUNGHI = ['', 'lunedì', 'martedì', 'mercoledì', 'giovedì', 'venerdì', 'sabato', 'domenica'];
+const hhmm = (t) => String(t || '').slice(0, 5);
+
+// Il riquadro per abbinare gli orari di APP Palestre a un orario di RMHouse (i corsi di RMHouse non si toccano)
+function AbbinaOrari({ palestraId, slot, orari, ultima, onFatto }) {
+  const daFare = slot.filter((x) => !x.orario_id);
+  const scelti = slot.filter((x) => x.scelto);
+  const chiave = (x) => `${x.corso_norm}|${x.giorno}|${x.ora}`;
+  const [scelte, setScelte] = useState(() => Object.fromEntries(daFare.map((x) => [chiave(x), x.suggerito_id || ''])));
+  const [lavoro, setLavoro] = useState('');
+  const [errore, setErrore] = useState('');
+  // gli orari di RMHouse raggruppati per corso
+  const perCorso = useMemo(() => {
+    const m = new Map();
+    for (const o of orari) {
+      const k = o.corsi?.nome || 'Corso';
+      if (!m.has(k)) m.set(k, []);
+      m.get(k).push(o);
+    }
+    return [...m.entries()].sort((a, b) => a[0].localeCompare(b[0]));
+  }, [orari]);
+  const nomeOrario = (id) => {
+    const o = orari.find((x) => x.id === id);
+    return o ? `${o.corsi?.nome} · ${GG[o.giorno_settimana]} ${hhmm(o.ora_inizio)}${o.sale?.nome ? ` · ${o.sale.nome}` : ''}` : '';
+  };
+
+  async function abbina(x, orario) {
+    setErrore('');
+    const db = supabaseBrowser();
+    try {
+      setLavoro('Abbino…');
+      const { error } = await db.rpc('abbina_orario_import', {
+        p_palestra: palestraId, p_corso_norm: x.corso_norm, p_giorno: x.giorno, p_ora: x.ora, p_orario: orario,
+      });
+      if (error) throw error;
+      await ricontrollaImport(db, ultima, setLavoro);
+      onFatto(orario ? `${x.corso} ${GG[x.giorno]} ${hhmm(x.ora)} abbinato: orari aggiunti, elenco aggiornato.` : 'Abbinamento tolto.');
+    } catch (e) {
+      console.error(e);
+      setErrore('Non riuscito: riprova.');
+    }
+    setLavoro('');
+  }
+
+  if (!daFare.length && !scelti.length) return null;
+  return (
+    <section className="scheda abbina" id="orari" aria-labelledby="orari-titolo">
+      <h2 id="orari-titolo" style={{ marginTop: 0 }}>Orari da abbinare</h2>
+      {daFare.length > 0 ? (
+        <p className="piccolo muto">
+          In APP Palestre queste persone sono prenotate a orari che in RMHouse non hanno un corso con lo stesso nome, giorno e ora.
+          Scegli a quale orario di RMHouse corrispondono (dove c'è, è già proposto quello più vicino): gli orari si aggiungono alle iscrizioni.
+          Corsi e orari di RMHouse non vengono modificati.
+        </p>
+      ) : <p className="piccolo muto">Tutti gli orari prenotati in APP Palestre sono abbinati.</p>}
+      {errore && <div className="errore" role="alert">{errore}</div>}
+      {daFare.length > 0 && (
+        <ul className="abbina-elenco">
+          {daFare.map((x) => (
+            <li key={chiave(x)}>
+              <div className="abbina-nome">
+                <strong>{x.corso} · {GG_LUNGHI[x.giorno]} {hhmm(x.ora)}</strong>
+                <span className="piccolo muto">
+                  {x.persone} {x.persone === 1 ? 'persona prenotata' : 'persone prenotate'}
+                  {x.suggerito_id && scelte[chiave(x)] === x.suggerito_id ? ' · proposto in base a giorno e ora: controlla' : ''}
+                </span>
+              </div>
+              <div className="abbina-scelta">
+                <select aria-label={`Orario di RMHouse per ${x.corso} ${GG_LUNGHI[x.giorno]} ${hhmm(x.ora)}`} value={scelte[chiave(x)] || ''}
+                        onChange={(e) => setScelte((s) => ({ ...s, [chiave(x)]: e.target.value }))}>
+                  <option value="">Scegli l'orario…</option>
+                  {perCorso.map(([corso, lista]) => (
+                    <optgroup key={corso} label={corso}>
+                      {lista.map((o) => (
+                        <option key={o.id} value={o.id}>{corso} · {GG[o.giorno_settimana]} {hhmm(o.ora_inizio)}{o.sale?.nome ? ` · ${o.sale.nome}` : ''}</option>
+                      ))}
+                    </optgroup>
+                  ))}
+                </select>
+                <button className="btn btn-primario" disabled={!scelte[chiave(x)] || !!lavoro} onClick={() => abbina(x, scelte[chiave(x)])}>
+                  Abbina
+                </button>
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+      {lavoro && <p className="piccolo" role="status">{lavoro}</p>}
+      {scelti.length > 0 && (
+        <details style={{ marginTop: 10 }}>
+          <summary className="piccolo">Orari già abbinati ({scelti.length})</summary>
+          <ul className="abbina-fatti">
+            {scelti.map((x) => (
+              <li key={chiave(x)} className="piccolo">
+                <span>{x.corso} {GG[x.giorno]} {hhmm(x.ora)} → <strong>{nomeOrario(x.orario_id) || x.corso_rmhouse}</strong></span>
+                <button className="link-btn piccolo" disabled={!!lavoro} onClick={() => abbina(x, null)}>togli</button>
+              </li>
+            ))}
+          </ul>
+        </details>
+      )}
+    </section>
+  );
+}
+
 // Il riquadro per abbinare gli abbonamenti di APP Palestre che in RMHouse hanno un altro nome
 function Abbina({ palestraId, daAbbinare, tipi, alias, ultima, onFatto }) {
   const [scelte, setScelte] = useState({});
@@ -31,14 +147,6 @@ function Abbina({ palestraId, daAbbinare, tipi, alias, ultima, onFatto }) {
   const [errore, setErrore] = useState('');
   const scelti = alias.filter((a) => a.origine === 'scelto');
 
-  async function ricontrolla(db) {
-    if (!ultima) return;
-    setLavoro('Creo le iscrizioni e rifaccio il controllo…');
-    const { error: e1 } = await db.rpc('importa_ap_chiudi', { p_imp: ultima.id });
-    if (e1) throw e1;
-    const { error: e2 } = await db.rpc('importa_ap_anomalie', { p_imp: ultima.id });
-    if (e2) throw e2;
-  }
 
   async function abbina(nome, tipo) {
     setErrore('');
@@ -47,7 +155,7 @@ function Abbina({ palestraId, daAbbinare, tipi, alias, ultima, onFatto }) {
       setLavoro('Abbino…');
       const { error } = await db.rpc('abbina_abbonamento_import', { p_palestra: palestraId, p_nome: nome, p_tipo: tipo });
       if (error) throw error;
-      await ricontrolla(db);
+      await ricontrollaImport(db, ultima, setLavoro);
       onFatto(tipo ? `"${nome}" abbinato: iscrizioni create, elenco aggiornato.` : `Abbinamento di "${nome}" tolto.`);
     } catch (e) {
       console.error(e);
@@ -63,8 +171,8 @@ function Abbina({ palestraId, daAbbinare, tipi, alias, ultima, onFatto }) {
       {daAbbinare.length > 0 ? (
         <p className="piccolo muto">
           Questi abbonamenti di APP Palestre sono in corso ma in RMHouse non c'è un abbonamento con lo stesso nome, quindi le iscrizioni
-          non sono state create. Scegli a quale abbonamento del listino corrispondono: le iscrizioni si creano subito.
-          Se manca proprio, crealo in <Link prefetch={false} href="/gestione/abbonamenti">Abbonamenti</Link> e torna qui.
+          non sono state create. Scegli a quale abbonamento di RMHouse corrispondono: le iscrizioni si creano subito.
+          Gli abbonamenti di RMHouse non vengono modificati.
         </p>
       ) : <p className="piccolo muto">Tutti gli abbonamenti in corso sono abbinati.</p>}
       {errore && <div className="errore" role="alert">{errore}</div>}
@@ -110,7 +218,7 @@ function Abbina({ palestraId, daAbbinare, tipi, alias, ultima, onFatto }) {
   );
 }
 
-export default function DaSistemare({ palestraId, anomalie, ultima, daAbbinare, tipi, alias }) {
+export default function DaSistemare({ palestraId, anomalie, ultima, daAbbinare, tipi, alias, slot = [], orari = [] }) {
   const router = useRouter();
   const [vista, setVista] = useState('da_sistemare');
   const [categoria, setCategoria] = useState('');
@@ -167,6 +275,8 @@ export default function DaSistemare({ palestraId, anomalie, ultima, daAbbinare, 
 
       <Abbina palestraId={palestraId} daAbbinare={daAbbinare} tipi={tipi} alias={alias} ultima={ultima}
               onFatto={(t) => { mostra(t); router.refresh(); }} />
+      <AbbinaOrari key={slot.map((x) => `${x.corso_norm}${x.giorno}${x.ora}${x.orario_id}`).join()} palestraId={palestraId}
+                   slot={slot} orari={orari} ultima={ultima} onFatto={(t) => { mostra(t); router.refresh(); }} />
 
       {anomalie.length > 0 && (
         <>

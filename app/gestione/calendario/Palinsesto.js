@@ -30,7 +30,7 @@ const IconaProva = () => (
 // bordo e banda nel colore del corso con l'orario, nome del corso, insegnante e sala con l'icona, i cerchietti dei prenotati
 // (o "Nessun prenotato"), i numeri (verde = prenotati, blu = posti liberi), il "+" per aggiungere qualcuno, la barra di riempimento
 // e in basso il cerchietto per selezionare più lezioni insieme (insegnante, sala, posti, prenotazioni, nota, annulla).
-export default function Palinsesto({ inizio, lezioni, corsi = [], note = [], facce = [], sale = [], insegnanti = [], palestraId, gestione = true }) {
+export default function Palinsesto({ giorniVisti = 7, inizio, lezioni, corsi = [], note = [], facce = [], sale = [], insegnanti = [], palestraId, gestione = true }) {
   const [aggiorno, setAggiorno] = useState(false); // mentre la pagina si ricarica dopo un'azione di gruppo
   const [scelta, setScelta] = useState(null);
   const [apriAggiungi, setApriAggiungi] = useState(false);
@@ -47,11 +47,13 @@ export default function Palinsesto({ inizio, lezioni, corsi = [], note = [], fac
   const facceDi = (id) => facce.filter((f) => f.lezione_id === id);
   const iniziali = (f) => ((f.nome?.[0] || '') + (f.cognome?.[0] || '')).toUpperCase();
   const oggi = new Date().toLocaleDateString('sv-SE');
-  const giorni = Array.from({ length: 7 }, (_, i) => {
+  const giorni = Array.from({ length: giorniVisti }, (_, i) => {
     const d = new Date(inizio + 'T12:00:00Z');
     d.setUTCDate(d.getUTCDate() + i);
     return d.toISOString().slice(0, 10);
   });
+  // il nome del giorno dalla data (con 1, 3 o 5 giorni il primo non è per forza lunedì)
+  const nomeGiorno = (g) => GIORNI[(new Date(g + 'T12:00:00Z').getUTCDay() + 6) % 7];
 
   // Sul telefono si vede un giorno alla volta: all'apertura va su oggi (se è in questa settimana), le linguette portano agli altri
   useEffect(() => {
@@ -69,7 +71,7 @@ export default function Palinsesto({ inizio, lezioni, corsi = [], note = [], fac
   const scorso = () => {
     const el = scorrevole.current; if (!el || window.innerWidth >= 900) return;
     const i = Math.round(el.scrollLeft / (el.clientWidth + 16));
-    if (i !== giornoVisto) setGiornoVisto(Math.min(6, Math.max(0, i)));
+    if (i !== giornoVisto) setGiornoVisto(Math.min(giorni.length - 1, Math.max(0, i)));
   };
   const lunga = (g) => `${g.slice(8, 10)}-${g.slice(5, 7)}-${g.slice(0, 4)}`;
 
@@ -114,16 +116,16 @@ export default function Palinsesto({ inizio, lezioni, corsi = [], note = [], fac
         )}
         <div className="pal-settimana">
         {aggiorno && <div className="pal-aggiorno" role="status">Aggiorno il palinsesto…</div>}
-        <div className="pal-linguette solo-mobile" role="tablist" aria-label="Giorni della settimana">
+        {giorni.length > 1 && <div className="pal-linguette solo-mobile" role="tablist" aria-label="Giorni">
           {giorni.map((g, i) => (
             <button key={g} type="button" role="tab" aria-selected={giornoVisto === i} className={`pal-linguetta${giornoVisto === i ? ' attiva' : ''}${g === oggi ? ' oggi' : ''}`}
                     onClick={() => vaiAlGiorno(i)}>
-              <span>{GIORNI[i].slice(0, 3)}</span><strong>{Number(g.slice(8, 10))}</strong>
+              <span>{nomeGiorno(g).slice(0, 3)}</span><strong>{Number(g.slice(8, 10))}</strong>
             </button>
           ))}
-        </div>
-        <div className="colonne-giorni palinsesto" ref={scorrevole} onScroll={scorso}>
-          {giorni.map((g, i) => {
+        </div>}
+        <div className={`colonne-giorni palinsesto giorni-${giorni.length}`} ref={scorrevole} onScroll={scorso}>
+          {giorni.map((g) => {
             const delGiorno = lezioni.filter((l) => l.data === g);
             const prove = delGiorno.reduce((s, l) => s + (l.prove || 0), 0);
             const nNote = noteDi(g).length;
@@ -132,16 +134,16 @@ export default function Palinsesto({ inizio, lezioni, corsi = [], note = [], fac
               <section key={g} className="colonna-giorno">
                 <header className={g === oggi ? 'pal-testa oggi' : 'pal-testa'}>
                   <span className="pal-giorno">
-                    <span className="pal-nome-giorno">{GIORNI[i]}</span>
+                    <span className="pal-nome-giorno">{nomeGiorno(g)}</span>
                     <span className="pal-data">{dataBreve}</span>
-                    <span className="pal-data-lunga">{GIORNI[i]} {lunga(g)}</span>
+                    <span className="pal-data-lunga">{nomeGiorno(g)} {lunga(g)}</span>
                   </span>
                   <span className="pal-destra">
                     <button type="button" className={prove > 0 ? 'pal-badge pieno' : 'pal-badge'} title={`${prove} in prova`}
-                            aria-label={`${prove} in prova ${GIORNI[i]} ${dataBreve}`} onClick={() => apriGiorno(g)}>
+                            aria-label={`${prove} in prova ${nomeGiorno(g)} ${dataBreve}`} onClick={() => apriGiorno(g)}>
                       <IconaProva /> {prove}
                     </button>
-                    <button type="button" className="pal-menu-btn" aria-label={`Menu di ${GIORNI[i]} ${dataBreve}`}
+                    <button type="button" className="pal-menu-btn" aria-label={`Menu di ${nomeGiorno(g)} ${dataBreve}`}
                             aria-expanded={menu === g} onClick={() => setMenu(menu === g ? null : g)}>⋮</button>
                   </span>
                   {menu === g && (
@@ -160,6 +162,7 @@ export default function Palinsesto({ inizio, lezioni, corsi = [], note = [], fac
 
                 {delGiorno.length === 0 && <div className="pal-vuoto">Nessun elemento presente</div>}
 
+                <div className="pal-carte">
                 {delGiorno.map((l) => {
                   const c = colore(l.corso_id);
                   const corso = corsoDi(l.corso_id);
@@ -228,6 +231,7 @@ export default function Palinsesto({ inizio, lezioni, corsi = [], note = [], fac
                     </div>
                   );
                 })}
+                </div>
               </section>
             );
           })}

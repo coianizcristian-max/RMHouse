@@ -3,10 +3,11 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 
 // Sede, sala e insegnante in tre menù; "Solo le mie" come interruttore; "azzera" se c'è un filtro
-export default function Filtri({ base, inizio, sale, insegnanti, sedi, corsi = [], scelti, extra = null }) {
+export default function Filtri({ base, inizio, giorni, sale, insegnanti, sedi, corsi = [], scelti, extra = null }) {
   const router = useRouter();
   const vai = (chiave, valore) => {
     const p = new URLSearchParams({ da: inizio });
+    if (giorni) p.set('giorni', giorni);
     Object.entries({ ...scelti, [chiave]: valore }).forEach(([k, v]) => v && p.set(k, v));
     const url = `${base}?${p.toString()}`;
     router.push(url);
@@ -44,7 +45,7 @@ export default function Filtri({ base, inizio, sale, insegnanti, sedi, corsi = [
       <button type="button" className={`stato-pillola${scelti.mie ? '' : ''}`} aria-current={scelti.mie ? 'true' : undefined}
               onClick={() => vai('mie', scelti.mie ? '' : '1')}>Solo le mie</button>
       {attivi > 0 && (
-        <button type="button" className="link-btn piccolo" onClick={() => router.push(`${base}?da=${inizio}`)}>azzera i filtri</button>
+        <button type="button" className="link-btn piccolo" onClick={() => router.push(`${base}?da=${inizio}${giorni ? `&giorni=${giorni}` : ''}`)}>azzera i filtri</button>
       )}
       {extra}
     </div>
