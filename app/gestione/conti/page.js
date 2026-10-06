@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { staffCorrente } from '@/lib/staff';
 import { euro, oggiISO, dataBreve } from '@/lib/formato';
+import { meseStagione } from '@/lib/stagione';
 
 export const dynamic = 'force-dynamic';
 
@@ -14,13 +15,16 @@ export default async function RiepilogoConti() {
   const p = staff.palestra_id;
   const oggi = oggiISO();
   const inizioMese = oggi.slice(0, 8) + '01';
-  const inizioAnno = oggi.slice(0, 5) + '01-01';
+  const inizioAnno = oggi.slice(0, 5) + '01-01';   // le ricevute mancanti: anno fiscale (solare)
+  const mS = await meseStagione();
+  const [yy, mm] = oggi.split('-').map(Number);
+  const inizioStagione = `${mm >= mS ? yy : yy - 1}-${String(mS).padStart(2, '0')}-01`;
 
   const [{ data: giorno }, { data: mese }, { data: anno }, { data: mancanti }, { data: attesa }, { data: rateScadute },
          { data: prossime }, { data: ultimi }, { data: fatture }] = await Promise.all([
     supabase.rpc('incassi_periodo', { p_palestra: p, p_dal: oggi, p_al: oggi }),
     supabase.rpc('incassi_periodo', { p_palestra: p, p_dal: inizioMese, p_al: oggi }),
-    supabase.rpc('incassi_periodo', { p_palestra: p, p_dal: inizioAnno, p_al: oggi }),
+    supabase.rpc('incassi_periodo', { p_palestra: p, p_dal: inizioStagione, p_al: oggi }),
     supabase.rpc('ricevute_mancanti', { p_palestra: p, p_dal: inizioAnno, p_al: oggi }),
     supabase.from('pagamenti').select('importo_cent').eq('palestra_id', p).eq('stato', 'in_attesa'),
     supabase.from('v_rate').select('importo_cent').eq('palestra_id', p).eq('scaduta', true),
@@ -59,7 +63,7 @@ export default async function RiepilogoConti() {
       <div className="kpi">
         <div className="tessera tessera-rossa"><div className="etichetta">Incassato oggi</div><div className="cifra">{euro(giorno?.incassato_cent || 0)}</div></div>
         <Link prefetch={false} className="tessera" href="/gestione/incassi"><div className="etichetta">Nel mese</div><div className="cifra">{euro(mese?.incassato_cent || 0)}</div></Link>
-        <Link prefetch={false} className="tessera" href="/gestione/statistiche"><div className="etichetta">Da inizio anno</div><div className="cifra">{euro(anno?.incassato_cent || 0)}</div></Link>
+        <Link prefetch={false} className="tessera" href="/gestione/statistiche/economia"><div className="etichetta">Da inizio stagione</div><div className="cifra">{euro(anno?.incassato_cent || 0)}</div></Link>
         <Link prefetch={false} className={`tessera${daIncassare ? ' tessera-nera' : ''}`} href="/gestione/rate?vista=scadute">
           <div className="etichetta">Da incassare</div><div className="cifra">{euro(daIncassare)}</div>
           <div className="sotto">in attesa e rate scadute</div></Link>

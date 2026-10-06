@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation';
 import { staffCorrente } from '@/lib/staff';
+import { meseStagione } from '@/lib/stagione';
 import { leggiPeriodo } from '@/lib/periodo';
 import { Numero, Anello, BarreGruppi, BarreOrizzontali } from '@/lib/grafici';
 import { pct, meseDi, quota } from '@/lib/statistiche';
@@ -9,7 +10,7 @@ export const dynamic = 'force-dynamic';
 const MOTIVI = { orari: 'Orari', prezzo: 'Prezzo', livello: 'Livello non adatto', distanza: 'Distanza', non_mi_e_piaciuto: 'Disciplina non adatta', altra_struttura: 'Altra struttura', altro: 'Altro' };
 
 export default async function Prove({ searchParams }) {
-  const per = leggiPeriodo(await searchParams, 'stagione');
+  const per = leggiPeriodo(await searchParams, 'stagione', await meseStagione());
   const { supabase, staff } = await staffCorrente();
   if (staff.ruolo === 'insegnante') redirect('/gestione');
   const p = staff.palestra_id;

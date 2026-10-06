@@ -11,6 +11,9 @@ const SEZIONI = [
     area: 'Ogni giorno',
     voci: [
       ['Riepilogo di oggi', '/gestione', 'Lezioni, persone attese, prove in arrivo e l\'elenco "Da fare"; in alto la ricerca veloce di un cliente (anche con le sole iniziali, es. "mr").'],
+      ['Sportello', '/gestione/sportello', 'Il cliente al banco in una schermata: cerca o crea (con avviso doppioni e controllo del codice fiscale), quota, certificato e tessera, abbonamento, incasso, posto a lezione, ricevuta per email, gruppo WhatsApp e tessera ASI.'],
+      ['Pagare solo le lezioni che restano', '/gestione/sportello', 'Allo Sportello, "a lezioni (calcola)": dal giorno in cui comincia conta le lezioni (saltando chiusure e festività) e propone l\'importo, che si può cambiare.', 'sportello-lezioni'],
+      ['Pagamento con Satispay al banco', '/gestione/sportello', 'Allo Sportello il cliente riceve la richiesta sull\'app Satispay: quando accetta, abbonamento, incasso e ricevuta si registrano da soli.', 'sportello-satispay'],
       ['Agenda del giorno', '/gestione/oggi', 'Le lezioni una sotto l\'altra, con l\'appello a portata di dito.'],
       ['Appello', '/gestione/appello', 'Si apre da una lezione: presenze, aggiungi o togli qualcuno, scrivi ai prenotati, scarica la lista.'],
       ['Richieste dall\'app', '/gestione/richieste', 'Quello che i clienti chiedono dall\'app (lezioni private, cambi, informazioni): si conferma o si risponde.'],
@@ -36,13 +39,15 @@ const SEZIONI = [
   {
     area: 'Struttura',
     voci: [
+      ['Modifica veloce dei corsi', '/gestione/corsi/veloce', 'Tutti i corsi in una tabella: posti, prova, prezzo della prova, prenotazioni e stato. Si salva da sola; per cambiarne tanti insieme si spuntano e si usa la barra in basso.'],
       ['Corsi', '/gestione/corsi', 'Anagrafica del corso, foto, colore, capienza, orari settimanali, insegnanti, iscritti e lista d\'attesa.'],
       ['Gruppo WhatsApp del corso', '/gestione/corsi', 'Nella scheda del corso: "Per il gruppo WhatsApp" copia i numeri di chi ha dato il consenso, da incollare nel gruppo.', 'gruppo-whatsapp'],
       ['Pagina pubblica del corso', '/gestione/corsi', 'Dentro ogni corso, accanto a "modifica": il link con foto e orari da usare nelle campagne.', 'pagina-pubblica-corso'],
       ['Staff', '/gestione/staff', 'Insegnanti e segreteria: foto (si clicca per aprire la scheda), specialità, colore, compenso orario, archivio.'],
       ['Regole di compenso e rimborso auto', '/gestione/staff', 'Nella scheda di ogni insegnante: a ora, a lezione, a fasce, a persona, private, forfait, fisso mensile e rimborso auto per giornata (anche solo per una sede, un corso o le private).', 'regole-compenso'],
       ['Sale', '/gestione/sale', 'Foto, capienza, attrezzatura e costo orario (serve per i margini).'],
-      ['Categorie, discipline, livelli, fasce d\'età, chiusure', '/gestione/palinsesto', 'Gli elementi con cui sono costruiti i corsi e i giorni di chiusura. Elenchi in ordine di nome con la ricerca; si può vedere anche l\'ordine che vede il cliente.', 'categorie-ordine'],
+      ['Categorie, discipline, livelli, fasce d\'età, chiusure', '/gestione/palinsesto', 'Gli elementi con cui sono costruiti i corsi e i giorni di chiusura (le lezioni di quei giorni non si fanno: niente recuperi, scadenze uguali, nel palinsesto il giorno risulta chiuso). Elenchi in ordine di nome con la ricerca; si può vedere anche l\'ordine che vede il cliente.', 'categorie-ordine'],
+      ['Festività della stagione', '/gestione/palinsesto', 'In Chiusure, "Proponi le festività": le feste nazionali, Pasqua e le vacanze di Natale e Pasqua della stagione. Togli, correggi o aggiungi (es. santo patrono) e salvi.', 'festivita'],
       ['Bacheca', '/gestione/bacheca', 'Avvisi e novità con immagine e periodo di validità, da mandare per email agli iscritti.'],
       ['Sede e contatti', '/gestione/sede', 'Dati della scuola, mittente delle email, indirizzo del sito, sedi con logo e indirizzo.'],
     ],
@@ -50,7 +55,7 @@ const SEZIONI = [
   {
     area: 'Persone',
     voci: [
-      ['Nuovo cliente', '/gestione/persone/nuova', 'Chi paga e chi frequenta al banco: poi dalla scheda si crea l\'iscrizione al corso.'],
+      ['Nuovo cliente', '/gestione/persone/nuova', 'Chi paga e chi frequenta al banco, con avviso se la persona c\'è già (anche nome e cognome invertiti) e controllo del codice fiscale: poi dalla scheda si crea l\'iscrizione al corso.'],
       ['Anagrafiche', '/gestione/persone', 'Ricerca mentre scrivi (pezzi di nome e cognome in qualunque ordine, o le iniziali), filtri per stato e per consensi (WhatsApp, foto), etichette, selezione multipla ed export CSV.'],
       ['Recuperi', '/gestione/persone', 'Nella scheda della persona: crediti maturati, scadenza e prenotazione del recupero.', 'recuperi'],
       ['Prossime lezioni della persona', '/gestione/persone', 'Nella scheda: le lezioni dei prossimi 30 giorni (fisse, prenotate, recuperi, prove) con disdici e "Aggiungi a una lezione".', 'prossime-lezioni'],
@@ -68,7 +73,7 @@ const SEZIONI = [
   {
     area: 'Conti e impostazioni',
     voci: [
-      ['Regole e prenotazioni', '/gestione/impostazioni', 'Quota annuale, stagione, prove dal sito, soglie dello stato dei clienti, sconti da proporre per più corsi e famiglie.'],
+      ['Regole e prenotazioni', '/gestione/impostazioni', 'Quota annuale, inizio e fine della stagione sportiva (le statistiche contano da lì), mese da cui parte l\'annuale, prove dal sito, soglie dello stato dei clienti, sconti da proporre per più corsi e famiglie.'],
       ['Funzioni attive', '/gestione/impostazioni/funzioni', 'Spegni lead, attese, affitti, eventi, bacheca, rate o promozioni se non li usi: spariscono dal menù.'],
       ['Area clienti', '/gestione/impostazioni/aspetto', 'Messaggio di benvenuto, avviso in evidenza e colore, con anteprima sul telefono.'],
       ['Email e notifiche', '/gestione/impostazioni/notifiche', 'Riepilogo del lunedì, email inviate e non partite, chi dello staff ha email e accesso.'],
@@ -82,15 +87,15 @@ const SEZIONI = [
       ['Sondaggi', '/gestione/crm/sondaggi', 'Domande a stelle, voto 0-10, scelta o testo, link personale, risultati con media e NPS.'],
       ['Ruoli e accessi', '/gestione/impostazioni/ruoli', 'Profili su misura che nascondono parti del gestionale, e chi ha quale profilo.'],
       ['Registro delle azioni', '/gestione/impostazioni/registro', 'Chi ha incassato, emesso, annullato, iscritto, modificato o cancellato cosa, e quando.'],
-      ['Pagamenti online', '/gestione/impostazioni/pagamenti', 'Stripe: prove, abbonamenti dall\'area clienti, rate, link di pagamento, rinnovo automatico, commissioni. Pronto, si accende con le chiavi.'],
-      ['Integrazioni', '/gestione/impostazioni/integrazioni', 'Cosa è collegato (email, cron, notifiche, dominio, dati fiscali, Stripe) e cosa manca.'],
-      ['Riepilogo dei conti', '/gestione/conti', 'Incassato oggi, nel mese e nell\'anno; da incassare; incassi senza ricevuta; rate in arrivo.'],
+      ['Pagamenti online', '/gestione/impostazioni/pagamenti', 'Stripe (carta: prove, abbonamenti dall\'area clienti, rate, link di pagamento, rinnovo automatico) e Satispay (si collega col codice di attivazione del negozio, commissioni più basse). Pronti, si accendono con le chiavi.'],
+      ['Integrazioni', '/gestione/impostazioni/integrazioni', 'Cosa è collegato (email, cron, notifiche, dominio, dati fiscali, Stripe, Satispay) e cosa manca.'],
+      ['Riepilogo dei conti', '/gestione/conti', 'Incassato oggi, nel mese e da inizio stagione; da incassare; incassi senza ricevuta; rate in arrivo.'],
       ['Rate', '/gestione/rate', 'Un importo diviso in più scadenze, incasso rata per rata con ricevuta subito.'],
       ['Note di credito', '/gestione/ricevute', 'Rimborsi totali o parziali legati alla ricevuta, con numerazione a parte.', 'note-credito'],
       ['Mandare la ricevuta al cliente', '/gestione/ricevute', 'Aprendo una ricevuta: logo, "Invia su WhatsApp", "Invia via email", copia il link, annulla. Il cliente la apre dal link e la trova nell\'app.', 'invia-ricevuta'],
       ['Rendiconto staff', '/gestione/rendiconto', 'Lezioni, ore, presenze e compenso stimato di ogni insegnante su un periodo libero.'],
       ['Per il commercialista', '/gestione/commercialista', 'Registro documenti, corrispettivi per giorno e aliquota, acquisti, incassi e compensi in un ZIP; aliquote IVA, numerazioni, attestati per la detrazione sportiva dei ragazzi.'],
-      ['Statistiche', '/gestione/statistiche', 'Panoramica, iscrizioni e rinnovi, frequenza, corsi, persone, prove e contatti, economia: grafici e numeri sul periodo che scegli.'],
+      ['Statistiche', '/gestione/statistiche', 'Panoramica, iscrizioni e rinnovi, frequenza, corsi, persone, prove e contatti, economia. Di base sulla stagione sportiva; si può scegliere la stagione scorsa, l\'anno solare o un periodo libero.'],
       ['Motivi di chi non si iscrive', '/gestione/statistiche/prove', 'Statistiche → Prove: le risposte del sondaggio mandato a chi ha provato senza poi iscriversi.'],
       ['Incassi', '/gestione/incassi', 'Quote, abbonamenti, prove e affitti incassati, totali per metodo e quello che resta da incassare.'],
       ['Ricevute', '/gestione/ricevute', 'Ricevute non fiscali con IVA a zero per quote e abbonamenti, numerate e stampabili.'],
@@ -101,7 +106,8 @@ const SEZIONI = [
       ['I miei compensi', '/gestione/miei-compensi', 'Per l\'insegnante: il cedolino del mese con le lezioni contate, da confermare o segnalare.'],
       ['Attività dello staff', '/gestione/attivita', 'Chi dello staff ha fatto cosa: appelli, incassi, iscrizioni, nel periodo.'],
       ['Costi e fornitori', '/gestione/costi', 'Spese fisse e variabili, fornitori, compensi orari, costo orario delle sale.'],
-      ['Abbonamenti, recuperi e sconti', '/gestione/abbonamenti', 'Tipi di abbonamento, quota annuale, regole dei recuperi (quanti al mese, fino a quando), preavvisi, corsi coperti da ogni abbonamento.'],
+      ['Abbonamenti, recuperi e sconti', '/gestione/abbonamenti', 'Tipi di abbonamento, gruppi di listino, regole dei recuperi (quanti al mese, fino a quando), preavvisi, corsi coperti da ogni abbonamento.'],
+      ['Controllo dei corsi coperti', '/gestione/abbonamenti?sezione=coperti', 'Corsi coperti in tre viste: modifica per abbonamento, ogni abbonamento con i suoi corsi, ogni corso con i suoi abbonamenti (anche da lì si aggiungono o tolgono). Per i controlli incrociati.', 'corsi-coperti'],
       ['Esportazione contabile', '/gestione/incassi', 'In fondo agli incassi: il CSV del periodo da girare al commercialista.', 'esportazione'],
       ['Messaggi automatici', '/gestione/messaggi', 'I testi di ogni email automatica, con segnaposto, anteprima dal vivo, invio di prova e coda di partenza.'],
     ],
@@ -111,6 +117,8 @@ const SEZIONI = [
 const PUBBLICHE = [
   ['Prenotazione della prova', '/prova', 'Il percorso per chi arriva dal sito: età, categoria, livello, orario, dati e conferma.'],
   ['Affitto sala e feste', '/spazi', 'Disponibilità in tempo reale e preventivo automatico dal listino.'],
+  ['Iscrizione dal telefono', '/area/iscriviti', 'Il cliente si registra (anche per i figli), sceglie corso, abbonamento e giorni, paga con carta o Satispay: iscrizione, posto a lezione e ricevuta per email arrivano da soli.'],
+  ['Registrazione del cliente', '/area/accedi/registrati', 'Il primo accesso all\'area clienti: dati di chi paga e di chi frequenta.'],
   ['Caricamento del certificato', '/certificato', 'Ogni persona ha il suo link personale: lo trovi nella sua scheda.'],
   ['Sondaggio post-prova', '/feedback', 'Arriva per email a chi ha provato senza poi iscriversi.'],
 ];

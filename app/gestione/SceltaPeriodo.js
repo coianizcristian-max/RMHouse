@@ -8,7 +8,7 @@ export default function SceltaPeriodo({ base, per, altri = {}, conOggi = true })
   return (
     <div className="periodo">
       <nav className="periodo-chip" aria-label="Periodo">
-        {periodiPronti(conOggi).map(([k, t]) => (
+        {periodiPronti(conOggi, per.mese || 9).map(([k, t]) => (
           <Link prefetch={false} key={k} href={`${base}?p=${k}${extra}`} aria-current={per.chiave === k ? 'true' : undefined}>{t}</Link>
         ))}
       </nav>

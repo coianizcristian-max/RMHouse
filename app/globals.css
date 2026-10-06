@@ -2067,6 +2067,27 @@ a.persona-nome:hover { text-decoration: underline; text-underline-offset: 3px; }
 .gruppo-nuovo { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 14px; }
 .gruppo-nuovo input { flex: 1 1 220px; max-width: 360px; }
 .coperti-scelta { display: grid; gap: 0 12px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); max-width: 760px; }
+.coperti-solo { align-items: center; }
+.coperti-tabella { border-top: 1px solid var(--linea); }
+.coperti-riga { display: grid; grid-template-columns: minmax(200px, 300px) 1fr; gap: 6px 16px; padding: 8px 0; border-bottom: 1px solid var(--linea); align-items: start; }
+.coperti-riga.aperta { background: var(--carta); padding: 10px; border-radius: 10px; }
+.coperti-intestazione { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--testo-2); padding: 6px 0; }
+.coperti-blocco { font-size: 13px; margin: 14px 0 0; padding-bottom: 6px; border-bottom: 2px solid var(--nero); }
+.coperti-nome { all: unset; cursor: pointer; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.coperti-nome strong { font-size: 14px; line-height: 1.25; }
+.coperti-nome:hover strong, .coperti-nome:focus-visible strong { color: var(--rosso); text-decoration: underline; }
+.coperti-nome:focus-visible { outline: 2px solid var(--rosso); outline-offset: 2px; border-radius: 4px; }
+.coperti-lista { display: flex; flex-wrap: wrap; gap: 4px 6px; align-items: center; }
+.coperti-chip { font: inherit; font-size: 13px; line-height: 1.2; padding: 4px 10px; border-radius: 999px; background: var(--carta); border: 1px solid transparent; color: inherit; }
+button.coperti-chip { cursor: pointer; }
+button.coperti-chip:hover { border-color: var(--rosso); }
+.coperti-tutti { font-size: 13px; padding: 4px 10px; border-radius: 999px; border: 1px dashed var(--testo-2); color: var(--testo-2); }
+.coperti-manca { font-size: 13px; color: var(--rosso); }
+.coperti-nota { margin: 8px 0 0; }
+@media (max-width: 700px) {
+  .coperti-riga { grid-template-columns: 1fr; }
+  .coperti-intestazione { display: none; }
+}
 
 /* recuperi e disdette */
 .regole-recupero { display: grid; gap: 0 16px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); align-items: end; }

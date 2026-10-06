@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation';
 import { staffCorrente } from '@/lib/staff';
+import { meseStagione } from '@/lib/stagione';
 import { leggiPeriodo } from '@/lib/periodo';
 import { Numero, Barre, Linea, BarreGruppi, Calore, Anello } from '@/lib/grafici';
 import { pct, meseDi, MESI, GIORNI, quota } from '@/lib/statistiche';
@@ -8,7 +9,7 @@ import Testa, { Blocco } from '../Testa';
 export const dynamic = 'force-dynamic';
 
 export default async function Frequenza({ searchParams }) {
-  const per = leggiPeriodo(await searchParams, 'stagione');
+  const per = leggiPeriodo(await searchParams, 'stagione', await meseStagione());
   const { supabase, staff } = await staffCorrente();
   if (staff.ruolo === 'insegnante') redirect('/gestione');
   const p = staff.palestra_id;

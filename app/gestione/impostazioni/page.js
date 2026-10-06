@@ -4,7 +4,7 @@ import Regole from './Regole';
 export const dynamic = 'force-dynamic';
 
 export default async function PaginaRegole() {
-  const { palestra } = await impostazioni('id, quota_iscrizione_cent, mese_inizio_stagione, giorni_prenotabili, preavviso_ore, google_review_url, soglie, sconti');
+  const { palestra } = await impostazioni('id, quota_iscrizione_cent, mese_inizio_stagione, mese_fine_stagione, mese_inizio_annuale, giorni_prenotabili, preavviso_ore, google_review_url, soglie, sconti');
   return (
     <>
       <div className="intestazione">

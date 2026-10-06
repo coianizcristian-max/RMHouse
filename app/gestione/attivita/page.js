@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { staffCorrente } from '@/lib/staff';
+import { meseStagione } from '@/lib/stagione';
 import { leggiPeriodo, qsPeriodo } from '@/lib/periodo';
 import { euro } from '@/lib/formato';
 import { Numero, Barre } from '@/lib/grafici';
@@ -40,7 +41,7 @@ const quando = (t) => (t ? new Date(t).toLocaleString('it-IT', { day: '2-digit',
 
 export default async function Attivita({ searchParams }) {
   const sp = await searchParams;
-  const per = leggiPeriodo(sp, 'mese');
+  const per = leggiPeriodo(sp, 'mese', await meseStagione());
   const qs = qsPeriodo(per);
   const { supabase, staff } = await staffCorrente();
   const p = staff.palestra_id;

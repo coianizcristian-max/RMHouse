@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation';
 import { staffCorrente } from '@/lib/staff';
+import { meseStagione } from '@/lib/stagione';
 import { leggiPeriodo } from '@/lib/periodo';
 import { BarraRiempimento, BarreOrizzontali, Numero } from '@/lib/grafici';
 import { eur, pct } from '@/lib/statistiche';
@@ -9,7 +10,7 @@ export const dynamic = 'force-dynamic';
 
 export default async function Corsi({ searchParams }) {
   const sp = await searchParams;
-  const per = leggiPeriodo(sp, 'stagione');
+  const per = leggiPeriodo(sp, 'stagione', await meseStagione());
   const ordina = ['riempimento', 'iscritti', 'margine', 'presenza'].includes(sp.ordina) ? sp.ordina : 'riempimento';
   const { supabase, staff } = await staffCorrente();
   if (staff.ruolo === 'insegnante') redirect('/gestione');

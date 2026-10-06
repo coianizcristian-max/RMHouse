@@ -1,14 +1,15 @@
 import { redirect } from 'next/navigation';
 import { staffCorrente } from '@/lib/staff';
+import { meseStagione } from '@/lib/stagione';
 import { leggiPeriodo } from '@/lib/periodo';
 import { Numero, BarreGruppi, Linee, Linea, BarreOrizzontali, Anello } from '@/lib/grafici';
-import { eur, pct, meseDi, MESI, MESI_STAGIONE, quota } from '@/lib/statistiche';
+import { eur, pct, meseDi, MESI, MESI_STAGIONE, mesiDellaStagione, quota } from '@/lib/statistiche';
 import Testa, { Blocco } from '../Testa';
 
 export const dynamic = 'force-dynamic';
 
 export default async function Iscrizioni({ searchParams }) {
-  const per = leggiPeriodo(await searchParams, 'stagione');
+  const per = leggiPeriodo(await searchParams, 'stagione', await meseStagione());
   const { supabase, staff } = await staffCorrente();
   if (staff.ruolo === 'insegnante') redirect('/gestione');
   const p = staff.palestra_id;
@@ -40,7 +41,7 @@ export default async function Iscrizioni({ searchParams }) {
 
       <div className="st-griglia">
         <Blocco titolo="Iscritti attivi: questa stagione e la scorsa" nota="al 15 di ogni mese">
-          <Linee etichette={MESI_STAGIONE} serie={[
+          <Linee etichette={mesiDellaStagione(per.mese)} serie={[
             { nome: 'Questa stagione', valori: stag.filter((x) => x.k === 0).map((x) => x.attivi) },
             { nome: 'Stagione scorsa', valori: stag.filter((x) => x.k === 1).map((x) => x.attivi), colore: '#9a9a9a', tratteggio: true },
           ]} />

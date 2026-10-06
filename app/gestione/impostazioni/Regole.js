@@ -23,6 +23,8 @@ export default function Regole({ palestra }) {
   const [f, setF] = useState({
     quota: ((palestra.quota_iscrizione_cent || 0) / 100).toString(),
     mese: palestra.mese_inizio_stagione || 9,
+    fine: palestra.mese_fine_stagione || 7,
+    annuale: palestra.mese_inizio_annuale || 10,
     giorni: palestra.giorni_prenotabili ?? 21,
     preavviso: palestra.preavviso_ore ?? 2,
     recensione: palestra.google_review_url || '',
@@ -36,6 +38,8 @@ export default function Regole({ palestra }) {
     salva({
       quota_iscrizione_cent: Math.round(parseFloat(String(f.quota).replace(',', '.') || '0') * 100),
       mese_inizio_stagione: parseInt(f.mese, 10),
+      mese_fine_stagione: parseInt(f.fine, 10),
+      mese_inizio_annuale: parseInt(f.annuale, 10),
       giorni_prenotabili: parseInt(f.giorni, 10),
       preavviso_ore: parseInt(f.preavviso, 10),
       google_review_url: f.recensione || null,
@@ -56,7 +60,18 @@ export default function Regole({ palestra }) {
             <div className="campo"><label htmlFor="mese">La stagione inizia a</label>
               <select id="mese" value={f.mese} onChange={set('mese')}>
                 {MESI.map((m, i) => <option key={m} value={i + 1}>{m}</option>)}
-              </select></div>
+              </select>
+              <span className="piccolo muto">Le statistiche contano da qui (stagione {MESI[f.mese - 1]} → {MESI[(Number(f.mese) + 10) % 12]}).</span></div>
+            <div className="campo"><label htmlFor="fine">La stagione finisce a fine</label>
+              <select id="fine" value={f.fine} onChange={set('fine')}>
+                {MESI.map((m, i) => <option key={m} value={i + 1}>{m}</option>)}
+              </select>
+              <span className="piccolo muto">Nessun abbonamento va oltre, nemmeno l&apos;annuale.</span></div>
+            <div className="campo"><label htmlFor="annuale">L&apos;abbonamento annuale parte da</label>
+              <select id="annuale" value={f.annuale} onChange={set('annuale')}>
+                {MESI.map((m, i) => <option key={m} value={i + 1}>{m}</option>)}
+              </select>
+              <span className="piccolo muto">Chi entra dopo paga l&apos;annuale ridotto dei mesi persi.</span></div>
           </div>
         </section>
         <section className="pannello">

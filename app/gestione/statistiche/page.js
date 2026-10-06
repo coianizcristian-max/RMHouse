@@ -1,16 +1,17 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { staffCorrente } from '@/lib/staff';
+import { meseStagione } from '@/lib/stagione';
 import { leggiPeriodo, qsPeriodo } from '@/lib/periodo';
 import { Numero, BarreGruppi, Linee, Barre, BarreOrizzontali } from '@/lib/grafici';
-import { eur, pct, meseDi, MESI_STAGIONE, quota } from '@/lib/statistiche';
+import { eur, pct, meseDi, MESI_STAGIONE, mesiDellaStagione, quota } from '@/lib/statistiche';
 import Testa, { Blocco } from './Testa';
 
 export const dynamic = 'force-dynamic';
 
 // Statistiche → Panoramica: i numeri che contano e quattro grafici, ognuno porta alla sua sezione
 export default async function Panoramica({ searchParams }) {
-  const per = leggiPeriodo(await searchParams, 'stagione');
+  const per = leggiPeriodo(await searchParams, 'stagione', await meseStagione());
   const { supabase, staff } = await staffCorrente();
   if (staff.ruolo === 'insegnante') redirect('/gestione');
   const p = staff.palestra_id;
@@ -63,7 +64,7 @@ export default async function Panoramica({ searchParams }) {
 
       <div className="st-griglia">
         <Blocco titolo="Iscritti attivi: questa stagione e la scorsa" link="iscrizioni" per={per}>
-          <Linee etichette={MESI_STAGIONE} serie={[
+          <Linee etichette={mesiDellaStagione(per.mese)} serie={[
             { nome: 'Questa stagione', valori: ora },
             { nome: 'Stagione scorsa', valori: prima, colore: '#9a9a9a', tratteggio: true },
           ]} />
