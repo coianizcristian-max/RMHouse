@@ -5,7 +5,7 @@ import { euro, oggiISO, dataBreve } from '@/lib/formato';
 
 export const dynamic = 'force-dynamic';
 
-const METODI = { contanti: 'Contanti', pos: 'POS', bonifico: 'Bonifico', online: 'Online', stripe: 'Online', assegno: 'Assegno', altro: 'Altro' };
+const METODI = { contanti: 'Contanti', pos: 'POS', bonifico: 'Bonifico', online: 'Online', stripe: 'Online', assegno: 'Assegno', satispay: 'Satispay', altro: 'Altro' };
 
 // Riepilogo dei conti: quanto è entrato, cosa manca da incassare, cosa manca da mettere in regola
 export default async function RiepilogoConti() {

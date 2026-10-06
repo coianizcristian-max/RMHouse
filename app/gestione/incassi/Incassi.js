@@ -13,7 +13,7 @@ const CAUSALI = [
   ['quota_iscrizione', 'Quota annuale'], ['abbonamento', 'Abbonamento'], ['prova', 'Lezione di prova'],
   ['evento', 'Evento o stage'], ['spazio', 'Affitto sala'], ['materiale', 'Materiale'], ['altro', 'Altro'],
 ];
-const METODI = [['contanti', 'Contanti'], ['bonifico', 'Bonifico'], ['pos', 'POS'], ['online', 'Online'], ['assegno', 'Assegno'], ['altro', 'Altro']];
+const METODI = [['contanti', 'Contanti'], ['bonifico', 'Bonifico'], ['pos', 'POS'], ['online', 'Online'], ['satispay', 'Satispay'], ['assegno', 'Assegno'], ['altro', 'Altro']];
 const NOME = (k) => (CAUSALI.find(([v]) => v === k) || [null, k])[1];
 
 export default function Incassi({ palestraId, righe, totali, dal, al, stato, online = false }) {

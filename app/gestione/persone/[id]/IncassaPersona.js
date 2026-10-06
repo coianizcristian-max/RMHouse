@@ -8,7 +8,7 @@ const CAUSALI = [
   ['quota_iscrizione', 'Quota annuale'], ['abbonamento', 'Abbonamento'], ['prova', 'Lezione di prova'],
   ['evento', 'Evento o stage'], ['spazio', 'Affitto sala'], ['materiale', 'Materiale'], ['altro', 'Altro'],
 ];
-const METODI = [['contanti', 'Contanti'], ['pos', 'POS'], ['bonifico', 'Bonifico'], ['assegno', 'Assegno'], ['altro', 'Altro']];
+const METODI = [['contanti', 'Contanti'], ['pos', 'POS'], ['bonifico', 'Bonifico'], ['satispay', 'Satispay'], ['assegno', 'Assegno'], ['altro', 'Altro']];
 
 // Incassa da questa persona, senza cercarla di nuovo: prima quello che deve già (rate, abbonamenti da
 // incassare), poi un incasso libero (quota annuale già proposta se manca). Poi la ricevuta è in Pagamenti.

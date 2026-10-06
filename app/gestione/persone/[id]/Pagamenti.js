@@ -9,7 +9,7 @@ import EmettiFattura from '../../EmettiFattura';
 import CorreggiIncasso from '../../CorreggiIncasso';
 import RimborsoCarta from '../../RimborsoCarta';
 
-const METODI = { contanti: 'contanti', pos: 'POS', bonifico: 'bonifico', online: 'online', stripe: 'online', assegno: 'assegno', altro: 'altro' };
+const METODI = { contanti: 'contanti', pos: 'POS', bonifico: 'bonifico', online: 'online', stripe: 'online', assegno: 'assegno', satispay: 'Satispay', altro: 'altro' };
 const STATI = { pagato: null, in_attesa: ['da incassare', 'tag-attenzione'], annullato: ['annullato', 'tag-neutro'], rimborsato: ['rimborsato', 'tag-neutro'] };
 
 // Tutti i pagamenti della persona (o della famiglia, se senza persona indicata), con la ricevuta

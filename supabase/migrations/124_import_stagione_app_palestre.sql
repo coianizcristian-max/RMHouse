@@ -569,7 +569,7 @@ begin
                         else 'altro' end;
       v_metodo := case testo_norm(r.metodo) when 'bancomat' then 'pos' when 'carta' then 'pos' when 'pos' then 'pos'
                                             when 'bonifico' then 'bonifico' when 'contanti' then 'contanti'
-                                            when 'assegno' then 'assegno' when 'stripe' then 'online' else 'altro' end;
+                                            when 'assegno' then 'assegno' when 'stripe' then 'online' when 'satispay' then 'satispay' else 'altro' end;
       insert into pagamenti (palestra_id, account_id, allievo_id, causale, descrizione, importo_cent, metodo, stato,
                              pagato_at, created_at, codice_esterno)
       values (v_pal, v_acc, v_all.id, v_causale,
@@ -1528,7 +1528,7 @@ begin
                            when r.tipo_documento = 'nota_credito' then 'NotaCredito' when r.tipo_documento = 'fattura' then 'Fattura' else 'Ricevuta' end,
       'Numero', coalesce(r.numero::text, ''), 'Serie', coalesce(r.serie, ''),
       'Metodo pagamento', case r.metodo when 'contanti' then 'Contanti' when 'pos' then 'Bancomat' when 'bonifico' then 'Bonifico'
-                                        when 'online' then 'Online' when 'stripe' then 'Stripe' when 'assegno' then 'Assegno'
+                                        when 'online' then 'Online' when 'stripe' then 'Stripe' when 'assegno' then 'Assegno' when 'satispay' then 'Satispay'
                                         else coalesce(initcap(r.metodo), '') end,
       'Data fattura/ricevuta', coalesce(data_it(r.data_doc), ''), 'Data pagamento', coalesce(data_it(r.quando), ''),
       'Importo', euro_it(r.importo_cent),

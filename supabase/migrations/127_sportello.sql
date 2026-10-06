@@ -27,7 +27,7 @@ begin
   select * into a from allievi where id = v_all and palestra_id = v_pal;
   if not found then raise exception 'allievo_non_trovato'; end if;
   select * into pa from palestre where id = v_pal;
-  if v_metodo not in ('contanti', 'pos', 'bonifico', 'assegno', 'altro') then raise exception 'metodo_non_valido'; end if;
+  if v_metodo not in ('contanti', 'pos', 'bonifico', 'assegno', 'satispay', 'altro') then raise exception 'metodo_non_valido'; end if;
 
   -- 1) certificato medico: nuova scadenza scritta dalla segreteria (ha visto il certificato)
   v_cert := nullif(p->>'certificato_scadenza', '')::date;
@@ -40,7 +40,7 @@ begin
     v_quota_cent := coalesce(nullif(p->>'quota_cent', '')::int, pa.quota_iscrizione_cent, 0);
     if exists (select 1 from quote_iscrizione q where q.allievo_id = v_all
                 and q.stagione = stagione_di(current_date, coalesce(pa.mese_inizio_stagione, 9))) then
-      v_avvisi := v_avvisi || 'quota di questa stagione già registrata: non incassata di nuovo';
+      v_avvisi := array_append(v_avvisi, 'quota di questa stagione già registrata: non incassata di nuovo');
     elsif v_quota_cent > 0 then
       v_pag := registra_incasso(jsonb_build_object('palestra_id', v_pal, 'allievo_id', v_all, 'causale', 'quota_iscrizione',
                  'descrizione', 'Quota associativa annuale · ' || trim(a.nome || ' ' || coalesce(a.cognome, '')),
@@ -90,7 +90,7 @@ begin
           v_email_a := invia_ricevuta_email(v_ric, v_email);
         end loop;
       exception when others then
-        v_avvisi := v_avvisi || 'ricevuta non inviata per email: manca un indirizzo email valido';
+        v_avvisi := array_append(v_avvisi, 'ricevuta non inviata per email: manca un indirizzo email valido');
         v_email_a := null;
       end;
     end if;

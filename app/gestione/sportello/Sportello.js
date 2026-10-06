@@ -11,7 +11,7 @@ import { Data, centDa, euroTesto, oggi, piuGiorni, giorniTra, eta } from './camp
 
 const GIORNI = ['', 'lun', 'mar', 'mer', 'gio', 'ven', 'sab', 'dom'];
 const FILTRI = [['tutti', 'Tutti'], ['attivi', 'Con abbonamento'], ['scaduti', 'Abbonamento finito'], ['certificato', 'Certificato da sistemare']];
-const METODI = [['contanti', 'Contanti'], ['pos', 'POS / carta'], ['bonifico', 'Bonifico'], ['assegno', 'Assegno']];
+const METODI = [['contanti', 'Contanti'], ['pos', 'POS / carta'], ['satispay', 'Satispay'], ['bonifico', 'Bonifico'], ['assegno', 'Assegno']];
 const ERRORI = {
   iscrizione_gia_attiva: 'Ha già un abbonamento a questo corso in quelle date: fai partire il nuovo dal giorno dopo la fine.',
   orario_non_attivo: 'Uno dei giorni scelti è sospeso: scegline un altro.',
@@ -236,7 +236,11 @@ export default function Sportello({ palestraId, corsi, tipi, orari, palestra, pe
     const { data: ric } = data.ricevute?.length
       ? await supabaseBrowser().from('ricevute').select('id, numero, anno, importo_cent, iva_cent, descrizione').in('id', data.ricevute)
       : { data: [] };
-    const fatto = { ...data, ricevuteDati: ric || [], totale, corso, tipo, metodo: v.metodo };
+    // il totale vero: quello che è stato incassato davvero (es. la quota già pagata non si incassa due volte)
+    const { data: pagati } = data.pagamenti?.length
+      ? await supabaseBrowser().from('pagamenti').select('importo_cent').in('id', data.pagamenti) : { data: [] };
+    const incassato = (pagati || []).reduce((t, x) => t + (x.importo_cent || 0), 0);
+    const fatto = { ...data, ricevuteDati: ric || [], totale: incassato, corso, tipo, metodo: v.metodo };
     const sit = await carica(personaId);
     preparaVendita(sit);
     setV((x) => ({ ...x, corso_id: corso?.id || x.corso_id, tipo_id: '', orari: [], prezzo: '', lezioni: [], quota: false }));
@@ -611,7 +615,7 @@ function Dopo({ esito, s, corso, palestra, palestraId, stagione, lezioni, onRica
     <div className="sp-dopo">
       {esito && (
         <div className="sp-fatto" role="status">
-          <div className="sp-fatto-titolo">✓ Registrato{esito.totale > 0 ? `: ${euro(esito.totale)} in ${METODI.find(([k]) => k === esito.metodo)?.[1].toLowerCase() || esito.metodo}` : ''}</div>
+          <div className="sp-fatto-titolo">✓ Registrato{esito.totale > 0 ? `: ${euro(esito.totale)} · ${METODI.find(([k]) => k === esito.metodo)?.[1] || esito.metodo}` : ' (niente da incassare)'}</div>
           <ul>
             {esito.iscrizione_id && <li>Abbonamento {esito.tipo?.nome} · {esito.corso?.nome}</li>}
             {esito.ricevuteDati.map((r) => (

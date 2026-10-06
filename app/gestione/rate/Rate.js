@@ -7,7 +7,7 @@ import { applicaRicerca } from '@/lib/ricerca';
 import { euro, dataBreve, oggiISO } from '@/lib/formato';
 import LinkPagamento from '../LinkPagamento';
 
-const METODI = [['contanti', 'Contanti'], ['pos', 'POS'], ['bonifico', 'Bonifico'], ['online', 'Online'], ['assegno', 'Assegno']];
+const METODI = [['contanti', 'Contanti'], ['pos', 'POS'], ['bonifico', 'Bonifico'], ['satispay', 'Satispay'], ['online', 'Online'], ['assegno', 'Assegno']];
 const quando = (g) => (g < 0 ? `scaduta da ${-g} giorni` : g === 0 ? 'scade oggi' : `tra ${g} giorni`);
 
 export default function Rate({ palestraId, rate, vista, conti, online = false }) {

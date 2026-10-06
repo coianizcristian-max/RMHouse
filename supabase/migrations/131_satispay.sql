@@ -1,24 +1,108 @@
 -- =====================================================================
--- RMHouse — 128 SPORTELLO: PAGAMENTO "A LEZIONI"
+-- RMHouse — 131 SATISPAY TRA I METODI DI PAGAMENTO
 --
--- Per chi parte a metà (es. a settembre si paga in base a quando si comincia):
---   conta_lezioni(orari, dal, al) conta le lezioni vere di quei giorni nel periodo (salta le chiusure),
---   e sportello_conferma accetta "data_fine" per far valere l'abbonamento fino a quel giorno.
--- Si può eseguire più volte. Va dopo la 127.
+--  • "satispay" diventa un metodo di pagamento come contanti, POS, bonifico, assegno
+--    (Sportello, Incassa, correzione incassi, rate, conti, esportazione, import da APP Palestre).
+--  • Gli incassi Satispay importati da APP Palestre finiti sotto "altro" con "(Satispay)" nella descrizione
+--    passano a Satispay (anche sulle loro ricevute).
+--  • Nel controllo con la banca Satispay sta con bonifici e POS (arriva sul conto).
+--  • Corretto anche "segna pagato" che non accettava l'assegno.
+-- In fondo: lo Sportello con Satispay (e corretto l'avviso "quota già registrata" che bloccava la conferma).
+-- Si può eseguire più volte. Va dopo la 130.
 -- =====================================================================
 
-create or replace function conta_lezioni(p_orari uuid[], p_dal date, p_al date)
-returns int language sql stable security definer set search_path = public as $$
-  select count(*)::int
-    from generate_series(p_dal, greatest(p_dal, p_al), interval '1 day') d
-    join orari o on o.id = any(coalesce(p_orari, '{}')) and o.giorno_settimana = extract(isodow from d)
-                and (o.valido_al is null or o.valido_al >= d::date)
-   where is_staff(o.palestra_id)
-     and not exists (select 1 from chiusure ch where ch.palestra_id = o.palestra_id and d::date between ch.dal and ch.al);
-$$;
-revoke execute on function conta_lezioni(uuid[], date, date) from public, anon;
-grant execute on function conta_lezioni(uuid[], date, date) to authenticated;
+alter table pagamenti drop constraint if exists pagamenti_metodo_check;
+alter table pagamenti add constraint pagamenti_metodo_check
+  check (metodo = any (array['stripe', 'online', 'contanti', 'pos', 'bonifico', 'assegno', 'satispay', 'altro']));
 
+CREATE OR REPLACE FUNCTION public.segna_pagato(p_pagamento uuid, p_metodo text DEFAULT 'contanti'::text, p_quando timestamp with time zone DEFAULT now())
+ RETURNS void
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+declare pg pagamenti;
+begin
+  select * into pg from pagamenti where id = p_pagamento;
+  if not found then raise exception 'pagamento_non_trovato'; end if;
+  if not is_gestione(pg.palestra_id) then raise exception 'non_autorizzato'; end if;
+  if p_metodo not in ('contanti', 'bonifico', 'pos', 'online', 'assegno', 'satispay', 'altro') then raise exception 'metodo_non_valido'; end if;
+
+  update pagamenti set stato = 'pagato'::stato_pagamento, metodo = p_metodo, pagato_at = p_quando
+   where id = p_pagamento;
+end $function$;
+
+CREATE OR REPLACE FUNCTION public.correggi_pagamento(p_pagamento uuid, p_metodo text DEFAULT NULL::text, p_pagato_at date DEFAULT NULL::date, p_descrizione text DEFAULT NULL::text)
+ RETURNS void
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+declare pg pagamenti; v_ric int;
+begin
+  select * into pg from pagamenti where id = p_pagamento for update;
+  if not found then raise exception 'pagamento_non_trovato'; end if;
+  if not is_gestione(pg.palestra_id) then raise exception 'non_autorizzato'; end if;
+  if pg.metodo in ('stripe', 'online') or pg.stripe_payment_intent is not null then raise exception 'pagamento_online'; end if;
+  if pg.stato <> 'pagato' then raise exception 'non_pagato'; end if;
+  if p_metodo is not null and p_metodo not in ('contanti', 'pos', 'bonifico', 'assegno', 'satispay', 'altro') then raise exception 'metodo_non_valido'; end if;
+  if p_pagato_at is not null and p_pagato_at > current_date then raise exception 'data_futura'; end if;
+
+  update pagamenti
+     set metodo = coalesce(p_metodo, metodo),
+         -- la data cambia, l'ora del giorno resta quella registrata (serve all'ordine nella giornata)
+         pagato_at = case when p_pagato_at is null then pagato_at
+                          else p_pagato_at + coalesce(pagato_at::time, '12:00'::time) end,
+         descrizione = coalesce(nullif(trim(p_descrizione), ''), descrizione)
+   where id = p_pagamento;
+
+  -- la ricevuta già emessa non cambia da sola: la data e il metodo sul documento restano quelli del momento
+  select count(*) into v_ric from ricevute where pagamento_id = p_pagamento and not annullata and tipo_documento in ('ricevuta', 'fattura');
+  if v_ric > 0 and (p_pagato_at is not null or p_metodo is not null) then
+    insert into promemoria (palestra_id, data, testo, creato_da)
+    values (pg.palestra_id, current_date,
+            'Incasso corretto (' || coalesce(p_metodo, pg.metodo) || coalesce(', ' || to_char(p_pagato_at, 'DD/MM/YYYY'), '') || ') ma la ricevuta era già emessa: '
+            || 'se serve, annullala e riemettila da Conti → Ricevute e fatture.', 'Sistema');
+  end if;
+end $function$;
+
+CREATE OR REPLACE FUNCTION public.differenze_banca(p_palestra uuid, p_dal date, p_al date)
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE
+AS $function$
+  select jsonb_build_object(
+    'movimenti_senza_incasso', coalesce((
+      select jsonb_agg(jsonb_build_object('id', m.id, 'data', m.data, 'importo_cent', m.importo_cent,
+                                          'descrizione', m.descrizione) order by m.data desc)
+      from movimenti_banca m
+      where m.palestra_id = p_palestra and m.data between p_dal and p_al
+        and m.stato = 'da_verificare' and m.importo_cent > 0), '[]'::jsonb),
+    'incassi_senza_movimento', coalesce((
+      select jsonb_agg(jsonb_build_object('id', pg.id, 'data', coalesce(pg.pagato_at::date, pg.created_at::date),
+                                          'importo_cent', pg.importo_cent, 'descrizione', pg.descrizione,
+                                          'metodo', pg.metodo) order by pg.pagato_at desc)
+      from pagamenti pg
+      where pg.palestra_id = p_palestra and pg.stato = 'pagato'
+        and coalesce(pg.pagato_at::date, pg.created_at::date) between p_dal and p_al
+        and coalesce(pg.metodo, '') in ('bonifico', 'pos', 'satispay')
+        and not exists (select 1 from abbinamenti a where a.pagamento_id = pg.id)), '[]'::jsonb),
+    'contanti_non_versati_cent', coalesce((
+      select sum(pg.importo_cent) from pagamenti pg
+      where pg.palestra_id = p_palestra and pg.stato = 'pagato' and pg.metodo = 'contanti'
+        and coalesce(pg.pagato_at::date, pg.created_at::date) between p_dal and p_al
+        and not exists (select 1 from abbinamenti a where a.pagamento_id = pg.id)), 0)
+  );
+$function$;
+
+-- gli incassi Satispay già importati
+with s as (
+  update pagamenti set metodo = 'satispay', descrizione = regexp_replace(descrizione, '\s*\(satispay\)\s*$', '', 'i')
+   where metodo = 'altro' and descrizione ~* '\(satispay\)\s*$'
+  returning id)
+update ricevute set metodo = 'satispay' where pagamento_id in (select id from s) and coalesce(metodo, 'altro') = 'altro';
+
+-- Sportello: Satispay tra i metodi
 create or replace function sportello_conferma(p jsonb)
 returns jsonb language plpgsql security definer set search_path = public as $$
 declare
@@ -120,6 +204,4 @@ begin
   return jsonb_build_object('iscrizione_id', v_iscr, 'pagamenti', to_jsonb(v_pagamenti), 'ricevute', to_jsonb(v_ricevute),
                             'email', v_email_a, 'lezioni', v_esiti, 'avvisi', to_jsonb(v_avvisi));
 end $$;
-revoke execute on function sportello_conferma(jsonb) from public, anon;
-grant execute on function sportello_conferma(jsonb) to authenticated;
 alter function sportello_conferma(jsonb) set jit = off;

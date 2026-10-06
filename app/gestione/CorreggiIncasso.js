@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabaseBrowser } from '@/lib/supabase/browser';
 
-const METODI = [['contanti', 'Contanti'], ['pos', 'POS / carta al banco'], ['bonifico', 'Bonifico'], ['assegno', 'Assegno'], ['altro', 'Altro']];
+const METODI = [['contanti', 'Contanti'], ['pos', 'POS / carta al banco'], ['bonifico', 'Bonifico'], ['satispay', 'Satispay'], ['assegno', 'Assegno'], ['altro', 'Altro']];
 const ERRORI = {
   pagamento_online: 'È un pagamento con la carta online: data e metodo li ha decisi Stripe, non si cambiano.',
   non_pagato: 'Si correggono solo gli incassi già registrati come pagati.',
