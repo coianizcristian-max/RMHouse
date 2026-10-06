@@ -1,5 +1,6 @@
 'use client';
 import Sostituzione from '../Sostituzione';
+import PrenotatiLezione from './PrenotatiLezione';
 import { useState } from 'react';
 import SceltaColore from '../SceltaColore';
 import Link from 'next/link';
@@ -13,7 +14,8 @@ const TIPI = { recupero: 'recupero', ingresso: 'ingresso', prova: 'in prova' };
 
 export default function FoglioLezione({ lezione, colore, gestione, onClose, aggiungiSubito = false, persone = [], coda = [] }) {
   const router = useRouter();
-  const [elenco, setElenco] = useState(false);
+  // lo staff di segreteria vede subito i prenotati con le azioni veloci; l'insegnante li apre toccando "Iscritti"
+  const [elenco, setElenco] = useState(gestione);
   const [vediCoda, setVediCoda] = useState(true);   // gli iscritti si vedono toccando "Iscritti" (sono già caricati col palinsesto)
   const ordinati = [...persone].sort((a, b) => `${a.cognome} ${a.nome}`.localeCompare(`${b.cognome} ${b.nome}`, 'it'));
   const [aggiungi, setAggiungi] = useState(aggiungiSubito);
@@ -74,7 +76,7 @@ export default function FoglioLezione({ lezione, colore, gestione, onClose, aggi
          onClick={onClose}>
       <div className="compare" onClick={(e) => e.stopPropagation()}
            style={{ background: 'var(--bianco)', borderRadius: '16px 16px 0 0', padding: 20, width: '100%',
-                    maxWidth: 560, margin: '0 auto', maxHeight: '86vh', overflowY: 'auto',
+                    maxWidth: gestione ? 860 : 560, margin: '0 auto', maxHeight: '90vh', overflowY: 'auto',
                     paddingBottom: 'calc(20px + env(safe-area-inset-bottom,0px))' }}>
         <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 2 }}>
           <span style={{ width: 14, height: 14, borderRadius: 4, background: colore, flex: 'none' }} />
@@ -85,7 +87,22 @@ export default function FoglioLezione({ lezione, colore, gestione, onClose, aggi
         </p>
         {errore && <div className="errore" role="alert">{errore}</div>}
 
+        {gestione && (
+          <div className="fl-numeri">
+            <button type="button" className="fl-numero prenotati" aria-expanded={elenco} onClick={() => setElenco(!elenco)}>
+              <strong>{lezione.iscritti + (lezione.prove || 0)}</strong><span>prenotati{lezione.prove > 0 ? ` (${lezione.prove} in prova)` : ''}</span>
+            </button>
+            <div className="fl-numero liberi"><strong>{lezione.capienza > 0 ? Math.max(lezione.capienza - lezione.iscritti - (lezione.prove || 0), 0) : '–'}</strong>
+              <span>{lezione.capienza > 0 ? `posti liberi su ${lezione.capienza}` : 'posti non impostati'}</span></div>
+            <div className={`fl-numero coda${coda.length ? ' piena' : ''}`}><strong>{coda.length}</strong><span>in coda</span></div>
+          </div>
+        )}
+        {gestione && elenco && (
+          <PrenotatiLezione lezione={lezione} persone={persone} corsoNome={lezione.corso_nome} onCambiato={() => router.refresh()} />
+        )}
+
         <ul className="elenco" style={{ marginBottom: 14 }}>
+          {!gestione && (
           <li className="persona fl-iscritti">
             <button type="button" className="fl-espandi" aria-expanded={elenco} disabled={!ordinati.length} onClick={() => setElenco(!elenco)}>
               <span>Iscritti {ordinati.length > 0 && <span className="fl-freccia" aria-hidden="true">{elenco ? '▾' : '▸'}</span>}
@@ -99,15 +116,14 @@ export default function FoglioLezione({ lezione, colore, gestione, onClose, aggi
                     {p.foto_url
                       ? <img src={p.foto_url} alt="" className={p.tipo === 'prova' ? 'pal-faccia prova' : 'pal-faccia'} />
                       : <span className={p.tipo === 'prova' ? 'pal-faccia prova' : 'pal-faccia'}>{((p.nome?.[0] || '') + (p.cognome?.[0] || '')).toUpperCase()}</span>}
-                    {gestione
-                      ? <Link prefetch={false} href={`/gestione/persone/${p.allievo_id}`}>{p.cognome} {p.nome}</Link>
-                      : <span>{p.cognome} {p.nome}</span>}
+                    <span>{p.cognome} {p.nome}</span>
                     {TIPI[p.tipo] && <span className={`tag ${p.tipo === 'prova' ? 'tag-tenue' : 'tag-neutro'}`}>{TIPI[p.tipo]}</span>}
                   </li>
                 ))}
               </ul>
             )}
           </li>
+          )}
           {coda.length > 0 && (
             <li className="persona fl-iscritti">
               <button type="button" className="fl-espandi" aria-expanded={vediCoda} onClick={() => setVediCoda(!vediCoda)}>
@@ -131,8 +147,8 @@ export default function FoglioLezione({ lezione, colore, gestione, onClose, aggi
               {gestione && <p className="piccolo muto" style={{ margin: '0 6px 8px' }}>Per farne entrare uno: "Aggiungi qualcuno" (o alza i posti qui sotto). Tutte le code: Persone → Liste d'attesa.</p>}
             </li>
           )}
-          {lezione.prove > 0 && <li className="persona"><span>In prova</span><strong>{lezione.prove}</strong></li>}
-          {lezione.capienza > 0 && <li className="persona"><span>Posti liberi</span><strong>{Math.max(lezione.capienza - lezione.iscritti - lezione.prove, 0)}</strong></li>}
+          {!gestione && lezione.prove > 0 && <li className="persona"><span>In prova</span><strong>{lezione.prove}</strong></li>}
+          {!gestione && lezione.capienza > 0 && <li className="persona"><span>Posti liberi</span><strong>{Math.max(lezione.capienza - lezione.iscritti - lezione.prove, 0)}</strong></li>}
           {lezione.presenti > 0 && <li className="persona"><span>Presenti</span><strong>{lezione.presenti}</strong></li>}
         </ul>
 

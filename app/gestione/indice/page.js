@@ -11,7 +11,7 @@ const SEZIONI = [
     area: 'Ogni giorno',
     voci: [
       ['Riepilogo di oggi', '/gestione', 'Lezioni, persone attese, prove in arrivo e l\'elenco "Da fare"; in alto la ricerca veloce di un cliente: bastano le prime lettere di cognome e nome attaccate ("mr", "ccri", "coiac").'],
-      ['Sportello', '/gestione/sportello', 'Il cliente al banco in una schermata: cerca o crea (con avviso doppioni e controllo del codice fiscale), quota, certificato e tessera, abbonamento, incasso, posto a lezione, ricevuta per email, gruppo WhatsApp e tessera ASI.'],
+      ['Sportello', '/gestione/sportello', 'Il cliente al banco in una schermata: cerca o crea (con avviso doppioni e controllo del codice fiscale), quota, certificato e tessera, la storia dei suoi abbonamenti, abbonamento, incasso, posto a lezione, ricevuta per email, gruppo WhatsApp e tessera ASI.'],
       ['Pagare solo le lezioni che restano', '/gestione/sportello', 'Allo Sportello, "a lezioni (calcola)": dal giorno in cui comincia conta le lezioni (saltando chiusure e festività) e propone l\'importo, che si può cambiare.', 'sportello-lezioni'],
       ['Pagamento con Satispay al banco', '/gestione/sportello', 'Allo Sportello il cliente riceve la richiesta sull\'app Satispay: quando accetta, abbonamento, incasso e ricevuta si registrano da soli.', 'sportello-satispay'],
       ['Agenda del giorno', '/gestione/oggi', 'Le lezioni una sotto l\'altra, con l\'appello a portata di dito.'],
@@ -30,7 +30,7 @@ const SEZIONI = [
       ['Agenda settimanale', '/gestione/agenda', 'La stessa settimana come griglia oraria, per ragionare a fasce.'],
       ['Giornata per sale', '/gestione/giornata', 'Un giorno, una colonna per sala: lezioni e affitti, con la linea dell\'ora attuale. Le colonne si allargano a tutto lo schermo.'],
       ['Giornata per insegnanti', '/gestione/giornata/staff', 'Un giorno, una colonna per insegnante, con lezioni e ore di ciascuno. Le colonne si allargano a tutto lo schermo.'],
-      ['Azioni rapide sulla lezione', '/gestione/calendario', 'Toccando una lezione: colore, posti solo per quella volta, blocco prenotazioni, annullamento, anche "da oggi in avanti".', 'azioni-lezione'],
+      ['Azioni rapide sulla lezione', '/gestione/calendario', 'Toccando una lezione: prenotati, posti liberi e coda; per ogni persona presente, "non viene" (con recupero), WhatsApp, togli; messaggio a tutti, lista da scaricare, cancellati da rimettere; colore, posti, blocco prenotazioni, annullamento, anche "da oggi in avanti".', 'azioni-lezione'],
       ['Affitto sale e feste', '/gestione/spazi', 'Richieste da confermare, agenda delle sale, incassi, blocco manuale di una sala.'],
       ['Listino degli affitti', '/gestione/spazi/listino', 'Tariffe orarie per sala e pacchetti festa: è quello che fa il preventivo automatico sul sito.'],
       ['Eventi', '/gestione/eventi', 'Open day, saggi, stage e campus con locandina, posti, iscrizioni e fino a tre in evidenza.'],

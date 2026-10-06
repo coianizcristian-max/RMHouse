@@ -73,15 +73,18 @@ export default function Sportello({ palestraId, corsi, tipi, orari, palestra, pe
   // ------------------------------------------------------------ situazione della persona
   async function carica(id) {
     const sb = supabaseBrowser();
-    const [{ data: persona }, { data: dati }, { data: iscrizioni }, { data: tess }] = await Promise.all([
+    const [{ data: persona }, { data: dati }, { data: iscrizioni }, { data: tess }, { data: storia }] = await Promise.all([
       sb.from('v_stato_clienti').select('id, nome, cognome, data_nascita, is_titolare, titolare_nome, titolare_cognome, email, telefono, attivo, fine_prossima, ultima_fine, certificato_scadenza, quota_valida_fino, consenso_whatsapp, account_id, stato')
         .eq('id', id).maybeSingle(),
       sb.from('allievi').select('id, codice_fiscale, sesso, luogo_nascita, tessera, account ( nome, cognome, indirizzo, cap, citta, provincia, codice_fiscale )').eq('id', id).maybeSingle(),
       sb.from('iscrizioni').select('id, corso_id, tipo_abbonamento_id, data_inizio, data_fine, stato, ingressi_residui, corsi ( nome ), tipi_abbonamento ( nome, modalita ), iscrizioni_orari ( orario_id )')
         .eq('allievo_id', id).order('data_inizio', { ascending: false }).limit(8),
       sb.from('tesseramenti').select('stagione, stato, numero').eq('allievo_id', id).order('stagione', { ascending: false }).limit(1),
+      // tutta la storia: abbonamenti fatti in RMHouse e quelli importati da APP Palestre, dal più recente
+      sb.from('v_periodi').select('iscrizione_id, dal, al, prezzo_cent, abbonamento, viva').eq('allievo_id', id)
+        .order('dal', { ascending: false }).order('al', { ascending: false }).limit(60),
     ]);
-    const nuovo = { persona, dati, iscrizioni: iscrizioni || [], tessera: (tess || [])[0] || null };
+    const nuovo = { persona, dati, iscrizioni: iscrizioni || [], tessera: (tess || [])[0] || null, storia: storia || [] };
     setS(nuovo);
     return nuovo;
   }
@@ -644,7 +647,11 @@ function Situazione({ s, v, setV, onCambia, onRinnova }) {
   if (!p) return <p className="muto">Persona non trovata. <button type="button" className="link-btn" onClick={onCambia}>Cerca di nuovo</button></p>;
   const o = oggi();
   const inCorso = s.iscrizioni.filter((i) => i.stato === 'attiva' && i.data_fine >= o);
-  const finite = s.iscrizioni.filter((i) => !inCorso.includes(i) && (i.stato === 'attiva' || i.stato === 'scaduta')).slice(0, 2);
+  // storia: tutti gli abbonamenti finiti (o futuri non ancora iniziati esclusi quelli in corso), dal più recente
+  const idInCorso = new Set(inCorso.map((i) => i.id));
+  const storia = (s.storia || []).filter((x) => !x.iscrizione_id || !idInCorso.has(x.iscrizione_id));
+  const iscrDi = Object.fromEntries(s.iscrizioni.map((i) => [i.id, i]));
+  const primaData = (s.storia || []).reduce((m, x) => (!m || x.dal < m ? x.dal : m), '');
   const fineAbb = inCorso.reduce((m, i) => (i.data_fine > m ? i.data_fine : m), '');
   const cert = p.certificato_scadenza;
   const certStato = !cert ? ['no', 'mancante'] : cert < o ? ['no', `scaduto il ${dataBreve(cert)}`]
@@ -678,21 +685,56 @@ function Situazione({ s, v, setV, onCambia, onRinnova }) {
         <div className={`sp-stato-riga ${p.consenso_whatsapp ? 'ok' : 'forse'}`}><dt>WhatsApp</dt><dd>{p.consenso_whatsapp ? 'sì ai gruppi' : p.consenso_whatsapp === false ? 'no ai gruppi' : 'non chiesto'}</dd></div>
       </dl>
       <div className="sp-abbonamenti">
-        <div className="sp-blocco-testa"><b>Abbonamenti</b></div>
-        {inCorso.length === 0 && finite.length === 0 && <p className="piccolo muto">Nessun abbonamento.</p>}
-        {[...inCorso, ...finite].map((i) => (
-          <div key={i.id} className={`sp-abb${inCorso.includes(i) ? '' : ' finito'}`}>
+        <div className="sp-blocco-testa"><b>Abbonamenti</b>
+          {primaData && <span className="piccolo muto"> · con noi dal {primaData.slice(0, 4)} · {(s.storia || []).length} in tutto</span>}</div>
+        {inCorso.length === 0 && storia.length === 0 && <p className="piccolo muto">Nessun abbonamento.</p>}
+        {inCorso.map((i) => (
+          <div key={i.id} className="sp-abb">
             <div>
               <b>{i.corsi?.nome}</b> <span className="muto">· {i.tipi_abbonamento?.nome}</span>
-              <div className="piccolo">{inCorso.includes(i) ? 'fino al' : 'finito il'} {dataBreve(i.data_fine)}
+              <div className="piccolo">fino al {dataBreve(i.data_fine)}
                 {i.tipi_abbonamento?.modalita === 'ingressi' && i.ingressi_residui != null && ` · ${i.ingressi_residui} lezioni rimaste`}
-                {inCorso.includes(i) && giorniTra(o, i.data_fine) <= 10 && <span className="sp-attenzione"> · sta per finire</span>}
+                {giorniTra(o, i.data_fine) <= 10 && <span className="sp-attenzione"> · sta per finire</span>}
               </div>
             </div>
             <button type="button" className="btn btn-piccolo" onClick={() => onRinnova(i)}>Rinnova</button>
           </div>
         ))}
+        {storia.length > 0 && <Storia righe={storia} iscrDi={iscrDi} oggi={o} onRinnova={onRinnova} />}
       </div>
+    </div>
+  );
+}
+
+// storia degli abbonamenti: i più recenti subito, gli altri a richiesta
+function Storia({ righe, iscrDi, oggi: o, onRinnova }) {
+  const [tutti, setTutti] = useState(false);
+  const mostra = tutti ? righe : righe.slice(0, 5);
+  const fa = (iso) => {
+    const m = Math.round(giorniTra(iso, o) / 30.4);
+    return m < 1 ? 'questo mese' : m < 12 ? `${m} ${m === 1 ? 'mese' : 'mesi'} fa` : `${Math.floor(m / 12)} ${Math.floor(m / 12) === 1 ? 'anno' : 'anni'} fa`;
+  };
+  return (
+    <div className="sp-storia">
+      <div className="piccolo muto sp-storia-testa">Storia{righe[0]?.al < o ? ` · l'ultimo è finito ${fa(righe[0].al)}` : ''}</div>
+      <ol>
+        {mostra.map((x, n) => {
+          const i = x.iscrizione_id ? iscrDi[x.iscrizione_id] : null;
+          const futuro = x.dal > o;
+          return (
+            <li key={`${x.iscrizione_id || 'st'}-${x.dal}-${n}`}>
+              <div className="sp-storia-nome">
+                <b>{i?.corsi?.nome ? `${i.corsi.nome} · ` : ''}{x.abbonamento}</b>
+                <span className="piccolo muto">{futuro ? 'parte il ' : ''}{dataBreve(x.dal)}{x.al !== x.dal ? ` → ${dataBreve(x.al)}` : ''}{x.prezzo_cent ? ` · ${euro(x.prezzo_cent)}` : ''}</span>
+              </div>
+              {i && (i.stato === 'attiva' || i.stato === 'scaduta') && <button type="button" className="link-btn piccolo" onClick={() => onRinnova(i)}>rifai</button>}
+            </li>
+          );
+        })}
+      </ol>
+      {righe.length > 5 && (
+        <button type="button" className="link-btn piccolo" onClick={() => setTutti(!tutti)}>{tutti ? 'mostra meno' : `mostra tutti (${righe.length})`}</button>
+      )}
     </div>
   );
 }

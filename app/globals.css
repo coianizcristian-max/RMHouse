@@ -3609,6 +3609,49 @@ form.periodo-date .btn { flex: none; width: auto; min-height: 36px; padding: 0 1
 .fl-persone li a, .fl-persone li > span:not(.pal-faccia):not(.tag) { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .fl-persone .pal-faccia { width: 28px; height: 28px; margin: 0; font-size: 10.5px; flex: none; }
 .fl-persone .tag { flex: none; }
+/* foglio della lezione (segreteria): tre numeri e prenotati con le azioni veloci */
+.fl-numeri { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 10px 0 10px; }
+.fl-numero { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; padding: 10px 6px;
+  border-radius: 12px; border: 0; font: inherit; color: inherit; text-align: center; background: var(--carta); }
+.fl-numero strong { font-size: 26px; line-height: 1; }
+.fl-numero span { font-size: 12.5px; color: var(--testo-2); }
+.fl-numero.prenotati { background: var(--ok-tenue); cursor: pointer; }
+.fl-numero.prenotati strong { color: var(--ok); }
+.fl-numero.liberi { background: var(--carta); }
+.fl-numero.liberi strong { color: var(--nero); }
+.fl-numero.coda.piena { background: var(--attenzione-tenue); }
+.fl-numero.coda.piena strong { color: var(--attenzione); }
+.pl { margin-bottom: 12px; }
+.pl-barra { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-bottom: 6px; }
+.pl-barra input[type=search] { flex: 1 1 160px; min-width: 0; min-height: 36px; padding: 6px 10px; border: 1px solid var(--linea); border-radius: 10px; font: inherit; font-size: 14.5px; }
+.pl-ok { color: var(--ok); margin: 4px 2px; }
+.pl-errore { color: var(--rosso-scuro); margin: 4px 2px; }
+.pl-elenco { list-style: none; margin: 0; padding: 0; }
+.pl-elenco > li { display: flex; align-items: center; gap: 10px; padding: 8px 2px; border-bottom: 1px solid var(--linea); min-width: 0; }
+.pl-elenco > li.occupato { opacity: .5; pointer-events: none; }
+.pl-elenco .pal-faccia { width: 32px; height: 32px; margin: 0; font-size: 11px; flex: none; }
+.pl-chi { flex: 1; min-width: 0; }
+.pl-nome { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; font-size: 15px; }
+.pl-nome a { font-weight: 700; color: var(--nero); text-decoration: none; }
+.pl-nome a:hover { color: var(--rosso); text-decoration: underline; }
+.pl-info { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pl-attenzione { font-size: 12.5px; color: var(--attenzione); }
+.pl-azioni { display: flex; gap: 6px; flex: none; align-items: center; }
+.pl-btn { width: 34px; height: 34px; border-radius: 50%; border: 1px solid var(--linea); background: var(--bianco); color: var(--testo-2);
+  display: inline-flex; align-items: center; justify-content: center; font: inherit; font-size: 17px; font-weight: 700; cursor: pointer; text-decoration: none; padding: 0; }
+.pl-btn:hover { border-color: var(--nero); color: var(--nero); }
+.pl-presente.si { background: var(--ok); border-color: var(--ok); color: #fff; }
+.pl-presente.no { background: var(--rosso-tenue); border-color: var(--rosso); color: var(--rosso-scuro); }
+.pl-nonviene { color: var(--attenzione); border-color: #f2c77c; background: var(--attenzione-tenue); }
+.pl-wa { color: #128c4b; }
+.pl-togli { color: var(--rosso-scuro); }
+.pl-cancellati { margin-top: 6px; border-top: 2px dashed var(--linea); }
+.pl-cancellati .pl-nome a { color: var(--testo-2); }
+@media (max-width: 560px) {
+  .pl-elenco > li { flex-wrap: wrap; }
+  .pl-azioni { width: 100%; justify-content: flex-end; }
+  .fl-numero strong { font-size: 22px; }
+}
 /* coda delle lezioni piene */
 .pal-cerchio.coda { background: #ffe8c7; color: #b25e00; }
 .pal-barra.piena span { background: var(--rosso); }
@@ -3969,3 +4012,12 @@ body:has(.sportello) .bottone-rapide { display: none; }
 .satispay-riga select { min-height: 40px; border: 1px solid var(--linea); border-radius: 10px; padding: 4px 8px; font: inherit; }
 .pal-chiuso { margin: 0 0 10px; padding: 10px 8px; border-radius: 10px; background: repeating-linear-gradient(135deg, #f4f4f6, #f4f4f6 8px, #ececf0 8px, #ececf0 16px);
   text-align: center; font-size: 13px; font-weight: 700; color: var(--testo-2); }
+/* Sportello: storia degli abbonamenti del cliente */
+.sp-storia { margin-top: 8px; }
+.sp-storia-testa { margin: 4px 0; }
+.sp-storia ol { list-style: none; margin: 0; padding: 0; border-left: 2px solid var(--linea); }
+.sp-storia li { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; padding: 5px 0 5px 10px; position: relative; }
+.sp-storia li::before { content: ''; position: absolute; left: -5px; top: 11px; width: 8px; height: 8px; border-radius: 50%; background: var(--linea); }
+.sp-storia li:first-child::before { background: var(--testo-2); }
+.sp-storia-nome { display: flex; flex-direction: column; min-width: 0; font-size: 13.5px; }
+.sp-storia-nome b { font-weight: 600; overflow-wrap: anywhere; }
