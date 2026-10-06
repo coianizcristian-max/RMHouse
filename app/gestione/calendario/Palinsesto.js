@@ -240,7 +240,7 @@ export default function Palinsesto({ giorniVisti = 7, inizio, lezioni, corsi = [
       </div>
 
       {scelta && (
-        <FoglioLezione lezione={scelta} colore={colore(scelta.corso_id)} gestione={gestione}
+        <FoglioLezione lezione={scelta} colore={colore(scelta.corso_id)} gestione={gestione} persone={facceDi(scelta.lezione_id)}
                        aggiungiSubito={apriAggiungi}
                        onClose={() => { setScelta(null); setApriAggiungi(false); }} />
       )}

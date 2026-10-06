@@ -9,8 +9,12 @@ import { ora, giornoLungo } from '@/lib/formato';
 
 
 // Pannello che si apre dal basso toccando una lezione
-export default function FoglioLezione({ lezione, colore, gestione, onClose, aggiungiSubito = false }) {
+const TIPI = { recupero: 'recupero', ingresso: 'ingresso', prova: 'in prova' };
+
+export default function FoglioLezione({ lezione, colore, gestione, onClose, aggiungiSubito = false, persone = [] }) {
   const router = useRouter();
+  const [elenco, setElenco] = useState(false);   // gli iscritti si vedono toccando "Iscritti" (sono già caricati col palinsesto)
+  const ordinati = [...persone].sort((a, b) => `${a.cognome} ${a.nome}`.localeCompare(`${b.cognome} ${b.nome}`, 'it'));
   const [aggiungi, setAggiungi] = useState(aggiungiSubito);
   const [testoCerca, setTestoCerca] = useState('');
   const [candidati, setCandidati] = useState(null);
@@ -81,7 +85,28 @@ export default function FoglioLezione({ lezione, colore, gestione, onClose, aggi
         {errore && <div className="errore" role="alert">{errore}</div>}
 
         <ul className="elenco" style={{ marginBottom: 14 }}>
-          <li className="persona"><span>Iscritti</span><strong>{lezione.iscritti}{lezione.capienza ? ` su ${lezione.capienza}` : ''}</strong></li>
+          <li className="persona fl-iscritti">
+            <button type="button" className="fl-espandi" aria-expanded={elenco} disabled={!ordinati.length} onClick={() => setElenco(!elenco)}>
+              <span>Iscritti {ordinati.length > 0 && <span className="fl-freccia" aria-hidden="true">{elenco ? '▾' : '▸'}</span>}
+                {ordinati.length > 0 && <span className="piccolo muto"> {elenco ? 'nascondi' : 'vedi chi sono'}</span>}</span>
+              <strong>{lezione.iscritti}{lezione.capienza ? ` su ${lezione.capienza}` : ''}</strong>
+            </button>
+            {elenco && (
+              <ul className="fl-persone">
+                {ordinati.map((p) => (
+                  <li key={p.allievo_id}>
+                    {p.foto_url
+                      ? <img src={p.foto_url} alt="" className={p.tipo === 'prova' ? 'pal-faccia prova' : 'pal-faccia'} />
+                      : <span className={p.tipo === 'prova' ? 'pal-faccia prova' : 'pal-faccia'}>{((p.nome?.[0] || '') + (p.cognome?.[0] || '')).toUpperCase()}</span>}
+                    {gestione
+                      ? <Link prefetch={false} href={`/gestione/persone/${p.allievo_id}`}>{p.cognome} {p.nome}</Link>
+                      : <span>{p.cognome} {p.nome}</span>}
+                    {TIPI[p.tipo] && <span className={`tag ${p.tipo === 'prova' ? 'tag-tenue' : 'tag-neutro'}`}>{TIPI[p.tipo]}</span>}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </li>
           {lezione.prove > 0 && <li className="persona"><span>In prova</span><strong>{lezione.prove}</strong></li>}
           {lezione.capienza > 0 && <li className="persona"><span>Posti liberi</span><strong>{Math.max(lezione.capienza - lezione.iscritti - lezione.prove, 0)}</strong></li>}
           {lezione.presenti > 0 && <li className="persona"><span>Presenti</span><strong>{lezione.presenti}</strong></li>}

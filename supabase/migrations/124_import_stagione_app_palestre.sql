@@ -42,6 +42,7 @@ create table if not exists import_prenotazioni (
   cancellata      boolean not null default false
 );
 create index if not exists import_prenotazioni_chiave on import_prenotazioni (importazione_id, chiave);
+alter table import_prenotazioni add column if not exists abb_al date;   -- la fine dell'abbonamento scritta nella prenotazione
 
 -- i pagamenti importati, con quello che serve per abbinarli agli abbonamenti
 create table if not exists import_pagamenti (
@@ -477,9 +478,9 @@ begin
   select palestra_id into v_pal from importazioni where id = p_imp;
   if v_pal is null then raise exception 'importazione_non_trovata'; end if;
   if auth.uid() is not null and not is_gestione(v_pal) then raise exception 'non_autorizzato'; end if;
-  insert into import_prenotazioni (importazione_id, palestra_id, chiave, giorno, corso, abbonamento, abb_dal, cancellata)
-  select p_imp, v_pal, x.chiave, x.giorno, x.corso, nullif(x.abbonamento, ''), x.abb_dal, coalesce(x.cancellata, false)
-    from jsonb_to_recordset(p_righe) as x(chiave text, giorno timestamp, corso text, abbonamento text, abb_dal date, cancellata boolean)
+  insert into import_prenotazioni (importazione_id, palestra_id, chiave, giorno, corso, abbonamento, abb_dal, abb_al, cancellata)
+  select p_imp, v_pal, x.chiave, x.giorno, x.corso, nullif(x.abbonamento, ''), x.abb_dal, x.abb_al, coalesce(x.cancellata, false)
+    from jsonb_to_recordset(p_righe) as x(chiave text, giorno timestamp, corso text, abbonamento text, abb_dal date, abb_al date, cancellata boolean)
    where x.chiave is not null and x.giorno is not null and coalesce(x.corso, '') <> '';
   get diagnostics n = row_count;
   return n;
@@ -757,6 +758,35 @@ begin
     set pagamento_id = coalesce(quote_iscrizione.pagamento_id, excluded.pagamento_id),
         importo_cent = case when quote_iscrizione.pagamento_id is null then excluded.importo_cent else quote_iscrizione.importo_cent end;
   get diagnostics n_quote = row_count;
+
+  -- 7.1b abbonamenti che non sono nella lista abbonamenti ma hanno prenotazioni future (APP Palestre a volte non li
+  --      esporta, es. annuali appena venduti): si prendono dalle prenotazioni, che hanno nome, inizio e fine
+  for s in
+    select b.chiave, min(b.abbonamento) as abbonamento, b.abb_dal, max(b.abb_al) as abb_al, count(*) as quante,
+           (select a.id from allievi a where a.palestra_id = v_pal and a.codice_esterno = b.chiave) as allievo_id
+      from import_prenotazioni b
+     where b.importazione_id = p_imp and not b.cancellata and b.abbonamento is not null and b.abb_dal is not null
+       and b.abb_al >= current_date and b.giorno::date >= current_date
+     group by b.chiave, testo_norm(b.abbonamento), b.abb_dal
+  loop
+    continue when s.allievo_id is null;
+    continue when exists (select 1 from storico_abbonamenti st where st.palestra_id = v_pal and st.fonte = 'app_palestre'
+                            and st.chiave = s.chiave and testo_norm(st.abbonamento) = testo_norm(s.abbonamento) and st.dal = s.abb_dal
+                            and st.stato = 'attivo');
+    update storico_abbonamenti st set stato = 'attivo', al = greatest(st.al, s.abb_al)
+     where st.palestra_id = v_pal and st.fonte = 'app_palestre' and st.chiave = s.chiave
+       and testo_norm(st.abbonamento) = testo_norm(s.abbonamento) and st.dal = s.abb_dal;
+    if not found then
+      insert into storico_abbonamenti (palestra_id, allievo_id, chiave, abbonamento, tipo_abbonamento_id, dal, al, stato)
+      values (v_pal, s.allievo_id, s.chiave, trim(s.abbonamento), tipo_da_nome(v_pal, s.abbonamento), s.abb_dal, s.abb_al, 'attivo');
+    end if;
+    perform anomalia_import(v_pal, p_imp, s.allievo_id, 'abbonamenti', 'da_verificare',
+      'Abbonamento preso dalle prenotazioni: ' || trim(s.abbonamento),
+      'Nella lista abbonamenti di APP Palestre non c''è (o non risulta attivo), ma ha ' || s.quante || ' prenotazioni future con ' ||
+      trim(s.abbonamento) || ' dal ' || to_char(s.abb_dal, 'DD/MM/YYYY') || ' al ' || to_char(s.abb_al, 'DD/MM/YYYY') ||
+      ': l''iscrizione l''ho fatta da lì. Controlla che sia giusto (per esempio se è stato pagato).',
+      'da_pren|' || s.chiave || '|' || testo_norm(s.abbonamento) || '|' || s.abb_dal);
+  end loop;
 
   -- 7.2 gli abbonamenti in corso
   for s in

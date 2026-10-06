@@ -3565,3 +3565,24 @@ form.periodo-date .btn { flex: none; width: auto; min-height: 36px; padding: 0 1
 .cf-controllo .cf-bene { color: var(--ok); font-weight: 700; }
 .cf-controllo .cf-male { color: var(--rosso-scuro); font-weight: 700; }
 .cf-controllo .link-btn { margin-left: 4px; }
+/* Nuovo cliente: avviso doppione, sempre visibile mentre si scrive */
+.doppione-avviso { position: sticky; top: 8px; z-index: 15; margin: 0 0 14px; padding: 12px 14px; border-radius: 14px;
+  background: #fff7e6; border: 1.5px solid var(--attenzione); box-shadow: 0 8px 22px rgba(0,0,0,.08); }
+.doppione-avviso.forte { border-color: var(--rosso); background: var(--rosso-tenue); }
+.doppione-avviso ul { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 6px; }
+.doppione-avviso li { display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center; justify-content: space-between; }
+.doppione-avviso .da-testo { min-width: 0; flex: 1 1 260px; }
+.doppione-avviso .da-azioni { display: flex; gap: 10px; align-items: center; flex: none; }
+@media (max-width: 899px) { .doppione-avviso { top: 64px; } }
+/* foglio della lezione: elenco degli iscritti che si apre toccando "Iscritti" */
+.elenco > li.fl-iscritti { display: block; padding: 0; }
+.fl-espandi { width: 100%; display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 12px 6px;
+  border: 0; background: none; font: inherit; color: inherit; text-align: left; cursor: pointer; }
+.fl-espandi:disabled { cursor: default; }
+.fl-freccia { display: inline-block; width: 1em; color: var(--testo-2); }
+.fl-persone { list-style: none; margin: 0 0 8px; padding: 0 6px 6px; display: grid; gap: 6px;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); }
+.fl-persone li { display: flex; align-items: center; gap: 8px; min-width: 0; font-size: 14.5px; }
+.fl-persone li a, .fl-persone li > span:not(.pal-faccia):not(.tag) { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fl-persone .pal-faccia { width: 28px; height: 28px; margin: 0; font-size: 10.5px; flex: none; }
+.fl-persone .tag { flex: none; }
