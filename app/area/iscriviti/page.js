@@ -5,6 +5,7 @@ import { supabaseAdmin } from '@/lib/supabase/admin';
 import { utenteCorrente } from '@/lib/utente';
 import { stripeAttivo } from '@/lib/stripe';
 import Iscriviti from './Iscriviti';
+import { satispayAttivo } from '@/lib/satispay';
 
 export const dynamic = 'force-dynamic';
 export const metadata = { title: 'Iscriviti · Ritmo Metropolitano' };
@@ -38,12 +39,14 @@ export default async function PaginaIscriviti({ searchParams }) {
   const stato = Object.fromEntries((corsi || []).map((c) => [c.id, c]));
   const elenco = (catalogo || []).filter((c) => stato[c.id]).map((c) => ({ ...c, iscrizioni_app: stato[c.id].iscrizioni_app || 'aperte', nota_iscrizioni: stato[c.id].nota_iscrizioni }));
 
+  const conSatispay = pal.stripe?.abbonamenti_online !== false && await satispayAttivo();
   return (
     <Iscriviti
       persone={(persone || []).map((p) => ({ id: p.id, nome: p.nome, nascita: p.nascita, quota: !!p.quota_mancante, certificatoOk: !!p.certificato_ok, inVerifica: !!p.certificato_in_verifica, token: p.token }))}
       corsi={elenco} tipi={tipi || []} orari={(orari || []).filter((o) => o.prenotabile !== false)} coperti={coperti || []}
       pieni={pieni || []} attivi={attivi || []} quotaCent={pal.quota_iscrizione_cent || 0}
-      carta={stripeAttivo() && pal.stripe?.abbonamenti_online !== false} rinnovo={!!pal.stripe?.rinnovo_automatico}
+      carta={stripeAttivo() && pal.stripe?.abbonamenti_online !== false}
+      satispay={conSatispay} rinnovo={!!pal.stripe?.rinnovo_automatico}
       bonifico={pal.area_cliente?.bonifico || null}
       corsoIniziale={typeof corso === 'string' ? corso : ''} perIniziale={typeof per === 'string' ? per : ''} annullato={!!annullato} />
   );

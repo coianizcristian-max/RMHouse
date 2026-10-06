@@ -3,6 +3,7 @@ import { impostazioni } from '../dati';
 import { stripeAttivo, stripeModo } from '@/lib/stripe';
 import { euro, dataBreve } from '@/lib/formato';
 import Opzioni from './Opzioni';
+import Satispay from './Satispay';
 
 export const dynamic = 'force-dynamic';
 
@@ -21,6 +22,7 @@ export default async function PaginaPagamenti() {
     supabase.from('abbonamenti_ricorrenti').select('id, stato').eq('palestra_id', staff.palestra_id),
     supabase.from('stripe_eventi').select('id, tipo, esito, ricevuto_at').order('ricevuto_at', { ascending: false }).limit(8),
   ]);
+  const { data: statoSatispay } = await supabase.rpc('satispay_stato', { p_palestra: staff.palestra_id });
   const env = (k) => !!process.env[k];
   const attivo = stripeAttivo();
   const modo = stripeModo();
@@ -66,6 +68,7 @@ export default async function PaginaPagamenti() {
       <div className="scheda-due">
         <div>
           <Opzioni palestra={palestra} />
+          <Satispay stato={statoSatispay} admin={staff.ruolo === 'admin'} />
           {(errori || []).length > 0 && (
             <section className="pannello" style={{ borderColor: 'var(--rosso)' }}>
               <h2>Pagati ma da sistemare</h2>

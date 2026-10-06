@@ -30,7 +30,7 @@ const IconaProva = () => (
 // bordo e banda nel colore del corso con l'orario, nome del corso, insegnante e sala con l'icona, i cerchietti dei prenotati
 // (o "Nessun prenotato"), i numeri (verde = prenotati, blu = posti liberi), il "+" per aggiungere qualcuno, la barra di riempimento
 // e in basso il cerchietto per selezionare più lezioni insieme (insegnante, sala, posti, prenotazioni, nota, annulla).
-export default function Palinsesto({ giorniVisti = 7, inizio, lezioni, corsi = [], note = [], facce = [], coda = [], sale = [], insegnanti = [], palestraId, gestione = true }) {
+export default function Palinsesto({ giorniVisti = 7, inizio, lezioni, corsi = [], note = [], facce = [], coda = [], sale = [], insegnanti = [], giorniChiusi = {}, palestraId, gestione = true }) {
   const [aggiorno, setAggiorno] = useState(false); // mentre la pagina si ricarica dopo un'azione di gruppo
   const [scelta, setScelta] = useState(null);
   const [apriAggiungi, setApriAggiungi] = useState(false);
@@ -179,7 +179,8 @@ export default function Palinsesto({ giorniVisti = 7, inizio, lezioni, corsi = [
                   <div key={n.id} className="nota-giorno">{n.testo}</div>
                 ))}
 
-                {delGiorno.length === 0 && <div className="pal-vuoto">Nessuna lezione</div>}
+                {giorniChiusi[g] && <div className="pal-chiuso">Chiuso · {giorniChiusi[g]}</div>}
+                {delGiorno.length === 0 && !giorniChiusi[g] && <div className="pal-vuoto">Nessuna lezione</div>}
 
                 <div className="pal-carte">
                 {delGiorno.map((l) => {

@@ -37,7 +37,7 @@ const VENDITA = {
   certificato: '', lezioni: [], metodo: 'contanti', ricevuta: true, inviaEmail: true, email: '',
 };
 
-export default function Sportello({ palestraId, corsi, tipi, orari, palestra, personaIniziale }) {
+export default function Sportello({ palestraId, corsi, tipi, orari, palestra, personaIniziale, satispay = false }) {
   const [modo, setModo] = useState(personaIniziale ? 'persona' : 'cerca');   // cerca | nuovo | persona
   const [personaId, setPersonaId] = useState(personaIniziale);
   const [s, setS] = useState(null);           // situazione della persona scelta
@@ -202,36 +202,39 @@ export default function Sportello({ palestraId, corsi, tipi, orari, palestra, pe
     && !(v.aLezioni && v.al && l.data > v.al);
 
   // ------------------------------------------------------------ conferma
-  async function conferma() {
+  // i controlli prima di confermare: restituisce i dati da mandare (o null, con l'errore a video)
+  function datiConferma() {
     setErrore('');
-    if (tipo && !v.corso_id) { setErrore('Scegli il corso.'); return; }
-    if (v.corso_id && !tipo && !v.lezioni.length) { setErrore('Scegli l\'abbonamento (o togli il corso).'); return; }
-    if (tipo?.modalita === 'orari_fissi' && !v.orari.length) { setErrore('Scegli almeno un giorno: è quello che la fa comparire in appello.'); return; }
-    if (tipo && v.aLezioni && (!v.al || v.al < v.data_inizio)) { setErrore('A lezioni: scegli fino a quando vale (la data "Al").'); return; }
-    if (tipo && v.aLezioni && nLezioni == null && !v.prezzoMano) { setErrore('A lezioni: conferma il numero di lezioni (scrivilo o tocca ✓).'); return; }
-    if (tipo && v.aLezioni && prezzoCent == null) { setErrore('A lezioni: scrivi quanto costa una lezione (o l\'importo).'); return; }
-    if (tipo && (prezzoCent == null || prezzoCent < 0)) { setErrore('Controlla il prezzo dell\'abbonamento.'); return; }
-    if (!v.quota && !tipo && !v.certificato && !v.lezioni.length) { setErrore('Non c\'è niente da confermare: scegli quota, abbonamento, certificato o una lezione.'); return; }
-    if (v.ricevuta && v.inviaEmail && totale > 0 && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v.email.trim())) { setErrore('Scrivi un\'email valida per la ricevuta (o togli "inviala per email").'); return; }
+    if (tipo && !v.corso_id) { setErrore('Scegli il corso.'); return null; }
+    if (v.corso_id && !tipo && !v.lezioni.length) { setErrore('Scegli l\'abbonamento (o togli il corso).'); return null; }
+    if (tipo?.modalita === 'orari_fissi' && !v.orari.length) { setErrore('Scegli almeno un giorno: è quello che la fa comparire in appello.'); return null; }
+    if (tipo && v.aLezioni && (!v.al || v.al < v.data_inizio)) { setErrore('A lezioni: scegli fino a quando vale (la data "Al").'); return null; }
+    if (tipo && v.aLezioni && nLezioni == null && !v.prezzoMano) { setErrore('A lezioni: conferma il numero di lezioni (scrivilo o tocca ✓).'); return null; }
+    if (tipo && v.aLezioni && prezzoCent == null) { setErrore('A lezioni: scrivi quanto costa una lezione (o l\'importo).'); return null; }
+    if (tipo && (prezzoCent == null || prezzoCent < 0)) { setErrore('Controlla il prezzo dell\'abbonamento.'); return null; }
+    if (!v.quota && !tipo && !v.certificato && !v.lezioni.length) { setErrore('Non c\'è niente da confermare: scegli quota, abbonamento, certificato o una lezione.'); return null; }
+    if (v.ricevuta && v.inviaEmail && totale > 0 && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v.email.trim())) { setErrore('Scrivi un\'email valida per la ricevuta (o togli "inviala per email").'); return null; }
+    return {
+      palestra_id: palestraId, allievo_id: personaId,
+      quota: v.quota, quota_cent: quotaImportoCent,
+      tipo_abbonamento_id: tipo ? tipo.id : null, corso_id: v.corso_id || null, data_inizio: v.data_inizio || oggi(),
+      orari: tipo?.modalita === 'orari_fissi' ? v.orari : [], prezzo_cent: tipo ? prezzoCent : null,
+      ingressi: tipo?.modalita === 'ingressi' && v.aLezioni && nLezioni != null ? nLezioni
+        : tipo?.modalita === 'ingressi' && v.ingressi !== '' && Number(v.ingressi) !== tipo.num_ingressi ? Number(v.ingressi) : null,
+      data_fine: tipo && v.aLezioni && v.al ? v.al : null,
+      note: v.note, certificato_scadenza: v.certificato || null, lezioni: v.lezioni,
+      metodo: v.metodo, ricevuta: v.ricevuta, invia_email: v.ricevuta && v.inviaEmail, email: v.email.trim(),
+    };
+  }
+
+  async function registra(dati) {
     setInvio(true);
-    const { data, error } = await supabaseBrowser().rpc('sportello_conferma', {
-      p: {
-        palestra_id: palestraId, allievo_id: personaId,
-        quota: v.quota, quota_cent: quotaImportoCent,
-        tipo_abbonamento_id: tipo ? tipo.id : null, corso_id: v.corso_id || null, data_inizio: v.data_inizio || oggi(),
-        orari: tipo?.modalita === 'orari_fissi' ? v.orari : [], prezzo_cent: tipo ? prezzoCent : null,
-        ingressi: tipo?.modalita === 'ingressi' && v.aLezioni && nLezioni != null ? nLezioni
-          : tipo?.modalita === 'ingressi' && v.ingressi !== '' && Number(v.ingressi) !== tipo.num_ingressi ? Number(v.ingressi) : null,
-        data_fine: tipo && v.aLezioni && v.al ? v.al : null,
-        note: v.note, certificato_scadenza: v.certificato || null, lezioni: v.lezioni,
-        metodo: v.metodo, ricevuta: v.ricevuta, invia_email: v.ricevuta && v.inviaEmail, email: v.email.trim(),
-      },
-    });
+    const { data, error } = await supabaseBrowser().rpc('sportello_conferma', { p: dati });
     setInvio(false);
     if (error) {
       const k = Object.keys(ERRORI).find((x) => error.message?.includes(x));
       setErrore(ERRORI[k] || `Non riuscito: ${error.message}`);
-      return;
+      return false;
     }
     const { data: ric } = data.ricevute?.length
       ? await supabaseBrowser().from('ricevute').select('id, numero, anno, importo_cent, iva_cent, descrizione').in('id', data.ricevute)
@@ -240,11 +243,74 @@ export default function Sportello({ palestraId, corsi, tipi, orari, palestra, pe
     const { data: pagati } = data.pagamenti?.length
       ? await supabaseBrowser().from('pagamenti').select('importo_cent').in('id', data.pagamenti) : { data: [] };
     const incassato = (pagati || []).reduce((t, x) => t + (x.importo_cent || 0), 0);
-    const fatto = { ...data, ricevuteDati: ric || [], totale: incassato, corso, tipo, metodo: v.metodo };
+    const fatto = { ...data, ricevuteDati: ric || [], totale: incassato, corso, tipo, metodo: dati.metodo };
     const sit = await carica(personaId);
     preparaVendita(sit);
     setV((x) => ({ ...x, corso_id: corso?.id || x.corso_id, tipo_id: '', orari: [], prezzo: '', lezioni: [], quota: false }));
+    setSp(null);
     setEsito(fatto); setVista3('dopo');
+    return true;
+  }
+
+  // ------------------------------------------------------------ Satispay collegato: richiesta sul telefono del cliente
+  const [sp, setSp] = useState(null);   // { id, stato, importo, dati, telefono }
+  const [spTel, setSpTel] = useState('');
+  const conSatispay = satispay && v.metodo === 'satispay' && totale > 0;
+  useEffect(() => { setSpTel(s?.persona?.telefono || ''); }, [s?.persona?.id]); // eslint-disable-line
+
+  async function chiediSatispay(dati) {
+    // 1) prima si controlla che la vendita vada a buon fine (senza salvare) e quanto si incassa davvero
+    setInvio(true);
+    const { error } = await supabaseBrowser().rpc('sportello_conferma', { p: { ...dati, prova: true } });
+    const m = error?.message?.match(/prova_ok:(\d+)/);
+    if (!m) {
+      setInvio(false);
+      const k = error && Object.keys(ERRORI).find((x) => error.message?.includes(x));
+      setErrore(k ? ERRORI[k] : `Non riuscito: ${error?.message || 'controllo non riuscito'}`);
+      return;
+    }
+    const importo = Number(m[1]);
+    if (importo === 0) { setInvio(false); await registra(dati); return; }   // niente da incassare
+    // 2) la richiesta sull'app del cliente
+    const r = await fetch('/api/satispay/richiesta', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ telefono: spTel, importo_cent: importo, allievo_id: personaId, descrizione: [tipo?.nome, v.quota && 'quota annuale'].filter(Boolean).join(' + ') || 'Ritmo Metropolitano' }) });
+    const d = await r.json().catch(() => ({}));
+    setInvio(false);
+    if (!r.ok) { setErrore(d.errore || 'Richiesta Satispay non inviata.'); return; }
+    setSp({ id: d.id, stato: d.stato || 'PENDING', importo, dati, telefono: spTel });
+  }
+  // 3) si aspetta che il cliente confermi sull'app (controllo ogni 2 secondi)
+  useEffect(() => {
+    if (!sp || sp.stato !== 'PENDING') return undefined;
+    const t = setTimeout(async () => {
+      const r = await fetch(`/api/satispay/richiesta?id=${encodeURIComponent(sp.id)}`);
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok) { setSp((x) => (x ? { ...x, giri: (x.giri || 0) + 1 } : x)); return; }
+      if (d.stato === 'ACCEPTED') {
+        setSp((x) => ({ ...x, stato: 'ACCEPTED' }));
+        const ok = await registra({ ...sp.dati, metodo: 'satispay', satispay_id: sp.id });
+        if (!ok) setErrore((e) => `Pagamento Satispay RICEVUTO (${euro(sp.importo)}), ma la registrazione non è riuscita: ${e} Correggi e premi "Registra: già pagato" (non richiedere di nuovo i soldi).`);
+      } else if (d.stato === 'CANCELED' || d.stato === 'EXPIRED') {
+        setSp(null);
+        setErrore(d.stato === 'EXPIRED' ? 'Il cliente non ha confermato in tempo: richiesta scaduta. Puoi riprovare.' : 'Il cliente ha rifiutato (o la richiesta è stata annullata).');
+      } else {
+        setSp((x) => (x ? { ...x, giri: (x.giri || 0) + 1 } : x));
+      }
+    }, 2000);
+    return () => clearTimeout(t);
+  }, [sp]); // eslint-disable-line
+  async function annullaSatispay() {
+    if (!sp) return;
+    await fetch(`/api/satispay/richiesta?id=${encodeURIComponent(sp.id)}`, { method: 'DELETE' });
+    setSp(null); setErrore('Richiesta Satispay annullata.');
+  }
+
+  async function conferma() {
+    const dati = datiConferma();
+    if (!dati) return;
+    if (sp?.stato === 'ACCEPTED') { await registra({ ...dati, metodo: 'satispay', satispay_id: sp.id }); return; }   // già pagato
+    if (conSatispay) { await chiediSatispay(dati); return; }
+    await registra(dati);
   }
 
   // ============================================================ colonne
@@ -454,6 +520,13 @@ export default function Sportello({ palestraId, corsi, tipi, orari, palestra, pe
                         <button type="button" key={k} role="radio" aria-checked={v.metodo === k} className={v.metodo === k ? 'attivo' : ''} onClick={() => setV((x) => ({ ...x, metodo: k }))}>{t}</button>
                       ))}
                     </div>
+                    {conSatispay && !sp && (
+                      <div className="sp-satispay">
+                        <label htmlFor="sp-tel-satispay">Cellulare Satispay del cliente</label>
+                        <input id="sp-tel-satispay" inputMode="tel" value={spTel} onChange={(e) => setSpTel(e.target.value)} placeholder="333 1234567" />
+                        <span className="piccolo muto">Gli arriva la richiesta sull&apos;app: appena conferma, qui si registra tutto da solo.</span>
+                      </div>
+                    )}
                     <label className="spunta"><input type="checkbox" checked={v.ricevuta} onChange={set('ricevuta')} /><span>Emetti la ricevuta</span></label>
                     {v.ricevuta && (
                       <div className="sp-email">
@@ -464,9 +537,19 @@ export default function Sportello({ palestraId, corsi, tipi, orari, palestra, pe
                   </>
                 )}
                 {errore && <div className="errore" role="alert">{errore}</div>}
-                <button type="button" className="btn btn-primario sp-conferma" disabled={invio} onClick={conferma}>
-                  {invio ? 'Registro…' : totale > 0 ? `Conferma e incassa ${euro(totale)}` : 'Conferma'}
-                </button>
+                {sp && sp.stato === 'PENDING' ? (
+                  <div className="sp-attesa-satispay" role="status">
+                    <span className="sp-rotella" aria-hidden="true" />
+                    <div><strong>Richiesta di {euro(sp.importo)} inviata a {sp.telefono}</strong>
+                      <span className="piccolo">Aspetto che confermi sull&apos;app Satispay…</span></div>
+                    <button type="button" className="link-btn piccolo" onClick={annullaSatispay}>annulla</button>
+                  </div>
+                ) : (
+                  <button type="button" className="btn btn-primario sp-conferma" disabled={invio} onClick={conferma}>
+                    {invio ? 'Un attimo…' : sp?.stato === 'ACCEPTED' ? 'Registra: già pagato con Satispay'
+                      : conSatispay ? `Chiedi ${euro(totale)} su Satispay` : totale > 0 ? `Conferma e incassa ${euro(totale)}` : 'Conferma'}
+                  </button>
+                )}
               </div>
             </div>
           ) : (

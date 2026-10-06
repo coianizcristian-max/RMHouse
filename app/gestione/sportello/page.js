@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation';
 import { staffCorrente } from '@/lib/staff';
 import Sportello from './Sportello';
+import { satispayAttivo } from '@/lib/satispay';
 
 export const dynamic = 'force-dynamic';
 export const metadata = { title: 'Sportello' };
@@ -23,9 +24,10 @@ export default async function PaginaSportello({ searchParams }) {
     supabase.from('palestre').select('nome, quota_iscrizione_cent, sconti, ente, mese_fine_stagione, mese_inizio_annuale, mese_inizio_stagione')
       .eq('id', p).maybeSingle(),
   ]);
+  const satispay = await satispayAttivo();
 
   return (
     <Sportello palestraId={p} corsi={corsi || []} tipi={tipi || []} orari={orari || []} palestra={palestra || {}}
-               personaIniziale={persona || null} />
+               personaIniziale={persona || null} satispay={satispay} />
   );
 }

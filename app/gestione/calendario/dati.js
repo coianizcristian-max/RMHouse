@@ -35,7 +35,7 @@ export async function settimana({ da, sala, insegnante, mie, sede, corso, giorni
   if (sede) q = q.eq('sede_id', sede);
   if (corso) q = q.eq('corso_id', corso);
 
-  const [{ data: lezioni }, { data: sale }, { data: insegnanti }, { data: corsi }, { data: note }, { data: sedi }] = await Promise.all([
+  const [{ data: tutte }, { data: sale }, { data: insegnanti }, { data: corsi }, { data: note }, { data: sedi }, { data: chiusure }] = await Promise.all([
     q,
     supabase.from('sale').select('id, nome').eq('palestra_id', staff.palestra_id).order('ordine', { nullsFirst: false }).order('nome'),
     supabase.from('staff').select('id, nome, cognome').eq('palestra_id', staff.palestra_id)
@@ -44,7 +44,18 @@ export async function settimana({ da, sala, insegnante, mie, sede, corso, giorni
     supabase.from('note_giorno').select('id, data, testo')
       .eq('palestra_id', staff.palestra_id).gte('data', inizio).lte('data', fine).order('created_at'),
     supabase.from('sedi').select('id, nome').eq('palestra_id', staff.palestra_id).eq('visibile', true).order('ordine'),
+    supabase.from('chiusure').select('dal, al, motivo').eq('palestra_id', staff.palestra_id).lte('dal', fine).gte('al', inizio),
   ]);
+  // feste e chiusure: le lezioni di quei giorni non si fanno e basta (niente recuperi, scadenze uguali),
+  // quindi nel palinsesto non si vedono; al loro posto il giorno dice "Chiuso · motivo"
+  const chiuso = (d) => (chiusure || []).find((c) => d >= c.dal && d <= c.al);
+  const lezioni = (tutte || []).filter((l) => !(l.stato === 'annullata' && chiuso(l.data)));
+  const giorniChiusi = {};
+  for (let i = 0; i < n; i++) {
+    const d = new Date(inizio + 'T12:00:00Z'); d.setUTCDate(d.getUTCDate() + i);
+    const g = d.toISOString().slice(0, 10); const c = chiuso(g);
+    if (c) giorniChiusi[g] = c.motivo || 'Chiusura';
+  }
 
   const idLezioni = (lezioni || []).map((l) => l.lezione_id);
   // chi è prenotato e chi è in coda (lezione piena), lette insieme
@@ -61,6 +72,6 @@ export async function settimana({ da, sala, insegnante, mie, sede, corso, giorni
   return {
     staff, inizio, fine, giorni: n,
     lezioni: lezioni || [], sale: sale || [], insegnanti: insegnanti || [],
-    corsi: corsi || [], note: note || [], facce: facce || [], coda: coda || [], sedi: sedi || [],
+    corsi: corsi || [], note: note || [], facce: facce || [], coda: coda || [], sedi: sedi || [], giorniChiusi,
   };
 }

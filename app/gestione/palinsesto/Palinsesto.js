@@ -178,9 +178,9 @@ export default function Palinsesto({ palestraId, dati }) {
           <p className="muto piccolo">
             Le lezioni comprese nel periodo vengono annullate subito e chi era iscritto riceve un avviso solo.
             Gli abbonamenti non si allungano e non si danno recuperi: i prezzi sono già calcolati al netto delle festività.
-            Se cancelli una chiusura (o ne cambi le date) le lezioni tornano in programma da sole.
+            Le lezioni di quei giorni semplicemente non si fanno: nel palinsesto il giorno risulta chiuso, non si danno recuperi e le scadenze non cambiano (es. 2 volte a settimana: quel mese 7 lezioni invece di 8). Se cancelli una chiusura (o ne cambi le date) le lezioni tornano in programma da sole.
           </p>
-          <Festivita palestraId={palestraId} />
+          <Festivita palestraId={palestraId} chiusure={dati.chiusure} />
           <Gestore
             tabella="chiusure" fissi={fissi} righe={dati.chiusure} etichettaNuovo="Aggiungi chiusura"
             campi={[

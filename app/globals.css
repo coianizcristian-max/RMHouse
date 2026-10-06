@@ -3923,5 +3923,28 @@ body:has(.sportello) .bottone-rapide { display: none; }
 .sp-proposta input::placeholder, #sp-prezzo::placeholder { color: #9a9a9a; font-weight: 600; }
 .sp-conferma-n { position: absolute; right: 5px; top: 50%; transform: translateY(-50%); width: 28px; height: 28px; border-radius: 50%; border: 0;
   background: var(--ok); color: #fff; font-weight: 800; cursor: pointer; }
-.festivita { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 4px 0 14px; padding: 10px 12px; background: var(--carta); border-radius: 12px; font-size: 13.5px; }
+.festivita { display: grid; gap: 8px; margin: 4px 0 14px; padding: 10px 12px; background: var(--carta); border-radius: 12px; font-size: 13.5px; }
+.festivita-testa { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.festivita-elenco { display: grid; gap: 4px; }
+.festivita-riga { display: grid; grid-template-columns: auto 150px 150px minmax(160px, 1fr) minmax(0, 1.2fr); gap: 6px; align-items: center; background: var(--bianco); border-radius: 8px; padding: 4px 8px; }
+.festivita-riga.no { opacity: .55; }
+.festivita-riga input[type=date], .festivita-riga input:not([type]) { min-height: 32px; border: 1px solid var(--linea); border-radius: 8px; padding: 2px 8px; font: inherit; min-width: 0; }
+.festivita-riga input[type=checkbox] { width: 18px; height: 18px; accent-color: var(--rosso); }
+.festivita-azioni { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+@media (max-width: 760px) { .festivita-riga { grid-template-columns: auto 1fr 1fr; } .festivita-riga input:not([type]), .festivita-riga > span { grid-column: 2 / -1; } }
 .festivita select { min-height: 32px; border: 1px solid var(--linea); border-radius: 8px; padding: 2px 8px; font: inherit; }
+/* Sportello: Satispay collegato */
+.sp-satispay { display: grid; gap: 4px; margin: 2px 0 8px; padding: 8px 10px; border-radius: 10px; background: #fff1f0; border: 1px solid #f7c6c1; }
+.sp-satispay label { font-size: 12.5px; font-weight: 700; }
+.sp-satispay input { min-height: 34px; padding: 4px 10px; border: 1px solid var(--linea); border-radius: 8px; font: inherit; font-size: 15px; }
+.sp-attesa-satispay { display: grid; grid-template-columns: auto 1fr auto; gap: 10px; align-items: center; padding: 12px; border-radius: 12px; background: #fff1f0; border: 1.5px solid #ef3b2d; margin-top: 4px; }
+.sp-attesa-satispay strong { display: block; }
+.sp-rotella { width: 26px; height: 26px; border-radius: 50%; border: 3px solid #f7c6c1; border-top-color: #ef3b2d; animation: isc-gira .9s linear infinite; }
+.btn-satispay { background: #ef3b2d; border-color: #ef3b2d; color: #fff; }
+.btn-satispay:hover { background: #d42f22; border-color: #d42f22; color: #fff; }
+.satispay-form ol { margin: 0 0 10px; padding-left: 18px; display: grid; gap: 3px; }
+.satispay-riga { display: flex; flex-wrap: wrap; gap: 8px; }
+.satispay-riga input { flex: 1 1 180px; min-height: 40px; padding: 6px 12px; border: 1px solid var(--linea); border-radius: 10px; font: inherit; font-size: 16px; letter-spacing: .08em; }
+.satispay-riga select { min-height: 40px; border: 1px solid var(--linea); border-radius: 10px; padding: 4px 8px; font: inherit; }
+.pal-chiuso { margin: 0 0 10px; padding: 10px 8px; border-radius: 10px; background: repeating-linear-gradient(135deg, #f4f4f6, #f4f4f6 8px, #ececf0 8px, #ececf0 16px);
+  text-align: center; font-size: 13px; font-weight: 700; color: var(--testo-2); }

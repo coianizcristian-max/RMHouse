@@ -17,7 +17,7 @@ export default async function PaginaPalinsesto({ searchParams }) {
   return (
     <>
       <Barra base="/gestione/calendario" inizio={d.inizio} fine={d.fine}
-             sale={d.sale} insegnanti={d.insegnanti} sedi={d.sedi} corsi={d.corsi}
+             sale={d.sale} insegnanti={d.insegnanti} giorniChiusi={d.giorniChiusi} sedi={d.sedi} corsi={d.corsi}
              sala={sala} insegnante={insegnante} mie={mie} sede={sede} corso={corso} giorni={d.giorni} fondo>
         <span className="bc-destra">
           <SceltaGiorni giorni={d.giorni} inizio={d.inizio} fine={d.fine} />
@@ -25,7 +25,7 @@ export default async function PaginaPalinsesto({ searchParams }) {
         </span>
       </Barra>
       <Palinsesto giorniVisti={d.giorni} inizio={d.inizio} lezioni={d.lezioni} corsi={d.corsi} note={d.note} facce={d.facce} coda={d.coda}
-                  sale={d.sale} insegnanti={d.insegnanti}
+                  sale={d.sale} insegnanti={d.insegnanti} giorniChiusi={d.giorniChiusi}
                   palestraId={d.staff.palestra_id} gestione={d.staff.ruolo !== 'insegnante'} />
     </>
   );

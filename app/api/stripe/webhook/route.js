@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase/admin';
 import { firmaValida, stripe, commissioneDi } from '@/lib/stripe';
+import { ricevutaAutomatica } from '@/lib/ricevute';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -36,18 +37,6 @@ async function rpc(db, nome, args) {
   const { data, error } = await db.rpc(nome, args);
   if (error) throw new Error(`${nome}: ${error.message}`);
   return data;
-}
-
-async function ricevutaAutomatica(db, pagamentoId) {
-  if (!pagamentoId) return;
-  const { data: pal } = await db.from('pagamenti').select('palestre ( stripe )').eq('id', pagamentoId).maybeSingle();
-  if (pal?.palestre?.stripe?.ricevuta_automatica === false) return;
-  // la ricevuta non blocca l'incasso: se non riesce si emette a mano dalla scheda
-  const { data: ricevuta, error } = await db.rpc('emetti_ricevuta', { p_pagamento: pagamentoId });
-  if (error) { console.error('Ricevuta automatica non emessa', pagamentoId, error.message); return; }
-  // e la manda per email al cliente (se ha un'email): se non riesce resta da scaricare nell'app
-  const { error: e2 } = await db.rpc('invia_ricevuta_email', { p_id: ricevuta });
-  if (e2) console.error('Ricevuta non inviata per email', ricevuta, e2.message);
 }
 
 async function segnaCommissione(db, intent) {

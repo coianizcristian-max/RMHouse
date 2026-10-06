@@ -46,7 +46,7 @@ const ERRORI = {
 };
 const PASSI = [['chi', 'Per chi'], ['corso', 'Corso'], ['abbonamento', 'Abbonamento'], ['giorni', 'Giorni'], ['paga', 'Riepilogo']];
 
-export default function Iscriviti({ persone, corsi, tipi, orari, coperti, pieni, attivi, quotaCent, carta, rinnovo, bonifico, corsoIniziale, perIniziale, annullato }) {
+export default function Iscriviti({ persone, corsi, tipi, orari, coperti, pieni, attivi, quotaCent, carta, satispay = false, rinnovo, bonifico, corsoIniziale, perIniziale, annullato }) {
   const unaPersona = persone.length === 1;
   const [passo, setPasso] = useState(unaPersona ? 'corso' : 'chi');
   const [chi, setChi] = useState(persone.find((p) => p.id === perIniziale)?.id || (unaPersona ? persone[0].id : ''));
@@ -96,7 +96,10 @@ export default function Iscriviti({ persone, corsi, tipi, orari, coperti, pieni,
     && (!sede || c.sede === sede) && (!livello || c.livello === livello)
     && (!giorniFiltro.length || (c.orari || []).some((o) => giorniFiltro.includes(o.giorno)))
     && (!testo || `${c.nome} ${c.disciplina} ${c.insegnanti || ''}`.toLowerCase().includes(testo)))
-    .sort((a, b) => (a.iscrizioni_app === 'aperte' ? 0 : 1) - (b.iscrizioni_app === 'aperte' ? 0 : 1) || a.nome.localeCompare(b.nome));
+    .sort((a, b) => {
+      const ok = (c) => (c.iscrizioni_app === 'aperte' && orari.some((o) => o.corso_id === c.id) ? 0 : 1);
+      return ok(a) - ok(b) || a.nome.localeCompare(b.nome);
+    });
 
   // ------------------------------------------------ abbonamenti del corso scelto
   // Pochissime scelte: prima quelli fatti apposta per questo corso (i più specifici, a giorni fissi);
@@ -134,7 +137,7 @@ export default function Iscriviti({ persone, corsi, tipi, orari, coperti, pieni,
   const quota = persona?.quota ? quotaCent : 0;
 
   function scegliCorso(c) {
-    if (c.iscrizioni_app !== 'aperte') return;
+    if (c.iscrizioni_app !== 'aperte' || !orari.some((o) => o.corso_id === c.id)) return;
     setCorsoId(c.id); setTipoId(''); setScelti([]); setVolte(0); setVediAltre(false);
     vai('abbonamento');
   }
@@ -154,6 +157,15 @@ export default function Iscriviti({ persone, corsi, tipi, orari, coperti, pieni,
     if (fissi && !scelti.length) { setErrore('Scegli i giorni in cui verrai.'); return false; }
     if (metaMese) { setErrore(ERRORI.inizio_meta_mese); return false; }
     setErrore(''); return true;
+  }
+  async function conSatispay() {
+    if (!controlla()) return;
+    setInvio(true);
+    const r = await fetch('/api/satispay/acquisto', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ allievo_id: chi, tipo_abbonamento_id: tipo.id, corso_id: corsoId, orari: scelti, data_inizio: inizio }) });
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok || !d.url) { setInvio(false); setErrore(d.errore || 'Non riusciamo ad aprire Satispay. Riprova.'); return; }
+    window.location.href = d.url;
   }
   async function conCarta() {
     if (!controlla()) return;
@@ -252,7 +264,9 @@ export default function Iscriviti({ persone, corsi, tipi, orari, coperti, pieni,
           )}
           <ul className="isc-corsi">
             {corsiVisti.map((c) => {
-              const aperto = c.iscrizioni_app === 'aperte';
+              // senza giorni prenotabili dall'app non si può scegliere: lo iscrive la segreteria
+              const senzaGiorni = !orari.some((o) => o.corso_id === c.id);
+              const aperto = c.iscrizioni_app === 'aperte' && !senzaGiorni;
               return (
                 <li key={c.id}>
                   <button type="button" className={`isc-corso${aperto ? '' : ' chiuso'}`} onClick={() => scegliCorso(c)} disabled={!aperto} style={{ '--colore': c.colore || '#e30613' }}>
@@ -262,7 +276,7 @@ export default function Iscriviti({ persone, corsi, tipi, orari, coperti, pieni,
                       {(c.orari || []).map((o, i) => <span key={i}>{GIORNI[o.giorno]} {o.ora}</span>)}
                     </span>
                     {(c.insegnanti || c.sede) && <span className="isc-corso-info">{[c.insegnanti && `con ${c.insegnanti}`, sedi.length > 1 && c.sede].filter(Boolean).join(' · ')}</span>}
-                    {!aperto && <span className="isc-corso-stato">{c.iscrizioni_app === 'attesa' ? 'In partenza' : 'Iscrizioni chiuse'}{c.nota_iscrizioni ? `: ${c.nota_iscrizioni}` : ''}</span>}
+                    {!aperto && <span className="isc-corso-stato">{senzaGiorni && c.iscrizioni_app === 'aperte' ? 'Iscrizione in segreteria' : c.iscrizioni_app === 'attesa' ? 'In partenza' : 'Iscrizioni chiuse'}{c.nota_iscrizioni ? `: ${c.nota_iscrizioni}` : ''}</span>}
                   </button>
                 </li>
               );
@@ -307,7 +321,7 @@ export default function Iscriviti({ persone, corsi, tipi, orari, coperti, pieni,
       {/* ---------------------------------------------- 4 · giorni */}
       {passo === 'giorni' && tipo && (
         <section>
-          <h2 className="isc-domanda">{max === 1 ? 'Che giorno vieni?' : `Scegli ${max} giorni`}</h2>
+          <h2 className="isc-domanda">{max === 1 ? 'Che giorno vieni?' : tipo.lezioni_settimanali ? `Scegli ${max} giorni` : 'Scegli i giorni'}</h2>
           {orariCorso.length === 0 && <div className="vuoto">Questo corso non ha giorni prenotabili: scrivi alla segreteria.</div>}
           <div className="isc-giorni">
             {orariCorso.map((o) => {
@@ -389,10 +403,15 @@ export default function Iscriviti({ persone, corsi, tipi, orari, coperti, pieni,
             <div className="isc-paga">
               {carta && rinnovo && tipo.rinnovo_automatico && (
                 <label className="spunta isc-rinnovo"><input type="checkbox" checked={ricorrente} onChange={(e) => setRicorrente(e.target.checked)} />
-                  <span><strong>Rinnovo automatico</strong> con la stessa carta alla scadenza (lo disdici quando vuoi da Pagamenti)</span></label>
+                  <span><strong>Rinnovo automatico</strong> con la stessa carta alla scadenza (solo pagando con carta; lo disdici quando vuoi da Pagamenti)</span></label>
               )}
               {carta && <button className="btn btn-primario btn-pieno btn-grande" disabled={invio || metaMese} onClick={conCarta}>{invio ? 'Un attimo…' : `Paga ${euro(prezzo + quota)} con carta`}</button>}
-              <button className={`btn btn-pieno ${carta ? '' : 'btn-primario btn-grande'}`} disabled={invio || metaMese} onClick={conBonifico}>{invio ? 'Un attimo…' : 'Paga con bonifico'}</button>
+              {satispay && (
+                <button className={`btn btn-pieno btn-satispay${carta ? '' : ' btn-grande'}`} disabled={invio || metaMese} onClick={conSatispay}>
+                  {invio ? 'Un attimo…' : `Paga ${euro(prezzo + quota)} con Satispay`}
+                </button>
+              )}
+              <button className={`btn btn-pieno ${carta || satispay ? '' : 'btn-primario btn-grande'}`} disabled={invio || metaMese} onClick={conBonifico}>{invio ? 'Un attimo…' : 'Paga con bonifico'}</button>
               <p className="isc-nota">Dopo il pagamento le lezioni ti compaiono da sole in &quot;Lezioni&quot; e la ricevuta arriva per email.</p>
             </div>
           )}
