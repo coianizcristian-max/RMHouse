@@ -21,6 +21,7 @@ const ERRORI = {
   numero_non_valido: 'Scrivi quante lezioni, da 1 a 50.',
   scadenza_passata: 'La data "valide fino al" è già passata.',
   accesso_libero: 'Con l\'accesso libero non servono lezioni in più.',
+  carnet_scaduto: 'Il carnet è scaduto: prima allunga la fine con Modifica.',
 };
 const messaggio = (e) => ERRORI[Object.keys(ERRORI).find((k) => e?.message?.includes(k))] || 'Operazione non riuscita. Riprova.';
 const inEuro = (cent) => ((cent || 0) / 100).toFixed(2).replace('.', ',');
@@ -42,6 +43,7 @@ function Modifica({ iscrizione, tipi, chiudi }) {
     tipo: iscrizione.tipo_abbonamento_id, inizio: iscrizione.data_inizio, fine: iscrizione.data_fine || '',
     prezzo: inEuro((iscrizione.tipi_abbonamento?.prezzo_cent || 0) - (iscrizione.sconto_cent || 0)),
     note: iscrizione.note || '',
+    restanti: iscrizione.ingressi_residui ?? '',
   });
   const [errore, setErrore] = useState('');
   const [invio, setInvio] = useState(false);
@@ -64,6 +66,9 @@ function Modifica({ iscrizione, tipi, chiudi }) {
     setInvio(true); setErrore('');
     const { error } = await supabaseBrowser().rpc('modifica_iscrizione', { p_iscrizione: iscrizione.id, p: {
       tipo_abbonamento_id: f.tipo, data_inizio: f.inizio, data_fine: f.fine || null, sconto_cent: sconto, note: f.note,
+      // carnet: gli ingressi restanti si correggono a mano (se il tipo non cambia)
+      ...(tipo?.modalita === 'ingressi' && f.tipo === iscrizione.tipo_abbonamento_id && String(f.restanti) !== String(iscrizione.ingressi_residui ?? '')
+        ? { ingressi_residui: f.restanti === '' ? null : Number(f.restanti) } : {}),
     } });
     setInvio(false);
     if (error) { setErrore(messaggio(error)); return; }
@@ -95,6 +100,14 @@ function Modifica({ iscrizione, tipi, chiudi }) {
           <span className="piccolo muto">{sconto > 0 ? `listino ${euro(listino)} · sconto ${euro(sconto)}` : `prezzo di listino`}</span>
         </div>
       </div>
+      {tipo?.modalita === 'ingressi' && f.tipo === iscrizione.tipo_abbonamento_id && (
+        <div className="campo">
+          <label htmlFor={`r-${iscrizione.id}`}>Ingressi restanti</label>
+          <input id={`r-${iscrizione.id}`} inputMode="numeric" style={{ maxWidth: 120 }} value={f.restanti}
+                 onChange={(e) => cambia('restanti', e.target.value.replace(/\D/g, ''))} />
+          <span className="piccolo muto">su {tipo.num_ingressi ?? '—'} del carnet</span>
+        </div>
+      )}
       <div className="campo">
         <label htmlFor={`n-${iscrizione.id}`}>Note</label>
         <input id={`n-${iscrizione.id}`} value={f.note} onChange={(e) => cambia('note', e.target.value)} />
@@ -115,7 +128,11 @@ function Modifica({ iscrizione, tipi, chiudi }) {
 export function AggiungiLezioni({ iscrizione, chiudi, onFatto }) {
   const router = useRouter();
   const ingressi = iscrizione.tipi_abbonamento?.modalita === 'ingressi';
-  const [f, setF] = useState({ quante: 1, fino: iscrizione.data_fine || '', nota: '' });
+  const oggi = oggiISO();
+  // abbonamento già finito: di solito valgono un mese da oggi
+  const fino0 = iscrizione.data_fine && iscrizione.data_fine >= oggi ? iscrizione.data_fine
+    : new Date(Date.now() + 30 * 864e5).toLocaleDateString('sv-SE', { timeZone: 'Europe/Rome' });
+  const [f, setF] = useState({ quante: 1, fino: fino0, nota: '' });
   const [errore, setErrore] = useState('');
   const [invio, setInvio] = useState(false);
   const n = Math.max(1, Math.min(50, parseInt(f.quante, 10) || 0));

@@ -4175,3 +4175,23 @@ body:has(.sportello) .bottone-rapide { display: none; }
 .sp-abb-azioni .btn[aria-pressed='true'] { border-color: var(--nero); background: var(--carta); }
 .sp-ok { color: var(--ok); font-weight: 700; }
 .sp-abb-blocco > .azione-iscrizione { margin: 0 0 8px; }
+/* Scheda persona → Iscrizioni: numeri e dettaglio di ogni abbonamento (come la scheda Abbonamenti di APP Palestre) */
+.isc-testa { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; }
+.isc-codice { display: inline-block; padding: 1px 7px; border-radius: 6px; background: var(--carta); border: 1px solid var(--linea);
+  font-size: 11.5px; font-weight: 700; color: var(--testo-2); letter-spacing: .02em; margin-left: 6px; vertical-align: middle; }
+.isc-testa .isc-codice { margin-left: 0; }
+.isc-numeri { display: flex; flex-wrap: wrap; gap: 4px 6px; margin-top: 6px; }
+.isc-numeri > span { padding: 2px 9px; border-radius: 999px; background: var(--carta); font-size: 12.5px; color: var(--testo-2); }
+.isc-numeri b { color: var(--nero); font-weight: 800; }
+.isc-numeri .isc-num-ok { background: var(--ok-tenue); color: var(--ok); }
+.isc-numeri .isc-num-ok b { color: var(--ok); }
+.isc-riga.finita .persona-nome { color: var(--testo-2); }
+.isc-finite { margin-top: 10px; border-top: 1px solid var(--linea); padding-top: 8px; }
+.isc-finite > summary { cursor: pointer; font-weight: 700; padding: 6px 0; list-style-position: inside; }
+.isc-dl { display: grid; gap: 4px; margin: 8px 0 10px; }
+.isc-dl > div { display: grid; grid-template-columns: 150px 1fr; gap: 10px; font-size: 13.5px; }
+.isc-dl dt { color: var(--testo-2); font-weight: 600; }
+.isc-dl dd { margin: 0; }
+@media (max-width: 520px) { .isc-dl > div { grid-template-columns: 1fr; gap: 0; } }
+.isc-corsi-testa { font-size: 13px; font-weight: 700; margin-bottom: 4px; }
+.isc-corsi { display: flex; flex-wrap: wrap; gap: 4px; }

@@ -21,7 +21,7 @@ const ERRORI = {
   allievo_non_trovato: 'Persona non trovata.',
 };
 
-export default function Iscrizioni({ allievoId, crediti = [], iscrizioni, corsi, tipi, orari, quotaCent, sconti = {}, famigliaIscritta = 0, apriSubito = false, meseFineStagione = 7, meseInizioAnnuale = 10 }) {
+export default function Iscrizioni({ allievoId, crediti = [], riepilogo = {}, iscrizioni, corsi, tipi, orari, quotaCent, sconti = {}, famigliaIscritta = 0, apriSubito = false, meseFineStagione = 7, meseInizioAnnuale = 10 }) {
   const router = useRouter();
   const [apri, setApri] = useState(apriSubito);
   const [errore, setErrore] = useState('');
@@ -134,22 +134,52 @@ export default function Iscrizioni({ allievoId, crediti = [], iscrizioni, corsi,
       {errore && <div className="errore" role="alert">{errore}</div>}
 
       {iscrizioni.length === 0 && !apri && <div className="vuoto">Nessuna iscrizione.</div>}
-      <ul className="elenco">
-        {iscrizioni.map((i) => (
-          <li key={i.id} className="persona" style={{ alignItems: 'start' }}>
+      {(() => {
+        const o = new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Rome' });
+        const inCorso = iscrizioni.filter((i) => (i.stato === 'attiva' || i.stato === 'sospesa') && (!i.data_fine || i.data_fine >= o));
+        const finite = iscrizioni.filter((i) => !inCorso.includes(i));
+        const riga = (i) => {
+          const r = riepilogo[i.id] || {};
+          const modo = i.tipi_abbonamento?.modalita;
+          const viva = inCorso.includes(i);
+          const esaurito = modo === 'ingressi' && r.ingressi_restanti === 0;
+          const statoTag = !viva && i.stato === 'attiva' ? 'scaduto' : i.stato === 'attiva' ? 'attivo' : i.stato === 'scaduta' ? 'scaduto' : i.stato === 'sospesa' ? 'sospeso' : 'annullato';
+          return (
+          <li key={i.id} className={`persona isc-riga${viva ? '' : ' finita'}`} style={{ alignItems: 'start' }}>
             <div style={{ minWidth: 0, flex: 1 }}>
-              <span className="persona-nome">{i.corsi?.nome}</span>
+              <div className="isc-testa">
+                {r.codice && <span className="isc-codice">{r.codice}</span>}
+                <span className="persona-nome">{i.corsi?.nome}</span>
+                <span className={`tag ${statoTag === 'attivo' ? 'tag-ok' : statoTag === 'sospeso' ? 'tag-attenzione' : 'tag-neutro'}`}>{statoTag}</span>
+                <span className="tag tag-neutro">{modo === 'ingressi' ? 'carnet' : modo === 'libero' ? 'accesso libero' : 'giorni fissi'}</span>
+                {esaurito && <span className="tag tag-attenzione">esaurito</span>}
+              </div>
               <div className="piccolo muto">
                 {i.tipi_abbonamento?.nome} · dal {dataBreve(i.data_inizio)} al {dataBreve(i.data_fine)}
                 {i.sconto_cent > 0 && ` · sconto ${euro(i.sconto_cent)}`}
                 {i.note && <span style={{ display: 'block' }}>{i.note}</span>}
               </div>
-              {(() => {
-                // lezioni in più ancora da prenotare (aggiunte dalla segreteria)
-                const libere = crediti.filter((c) => c.iscrizione_id === i.id && c.aggiunta && c.stato === 'disponibile').length;
-                return libere > 0 ? <div style={{ marginTop: 6 }}><span className="tag tag-ok">{libere} {libere === 1 ? 'lezione in più' : 'lezioni in più'} da prenotare</span></div> : null;
-              })()}
-              {i.stato === 'attiva' && i.tipi_abbonamento?.modalita === 'orari_fissi' && (
+              {/* i numeri a colpo d'occhio, come "Restanti / Futuri" di APP Palestre */}
+              <div className="isc-numeri">
+                {modo === 'ingressi' ? <>
+                  <span><b>{r.ingressi_restanti ?? i.ingressi_residui ?? '—'}</b>{r.totali ? ` di ${r.totali}` : ''} ingressi restanti</span>
+                  <span><b>{r.ingressi_prenotati || 0}</b> prenotati</span>
+                  <span><b>{r.fatte || 0}</b> fatti</span>
+                </> : modo === 'orari_fissi' ? <>
+                  {viva && <span><b>{r.da_fare ?? '—'}</b>{r.totali ? ` di ${r.totali}` : ''} lezioni da fare</span>}
+                  {!viva && r.totali > 0 && <span><b>{r.totali}</b> lezioni nel periodo</span>}
+                  <span><b>{r.fatte || 0}</b> fatte</span>
+                  {r.disdette > 0 && <span><b>{r.disdette}</b> disdette</span>}
+                </> : <span><b>{r.fatte || 0}</b> presenze</span>}
+                {(r.extra_disponibili > 0 || r.extra_usate > 0) && (
+                  <span className="isc-num-ok"><b>{r.extra_disponibili || 0}</b> {r.extra_disponibili === 1 ? 'lezione in più' : 'lezioni in più'} da prenotare{r.extra_usate ? ` (${r.extra_usate} usate)` : ''}</span>
+                )}
+                {(r.recuperi_disponibili > 0 || r.recuperi_usati > 0) && (
+                  <span><b>{r.recuperi_disponibili || 0}</b> recuperi{r.recuperi_usati ? ` (${r.recuperi_usati} fatti)` : ''}</span>
+                )}
+                {r.prenotate > 0 && modo !== 'ingressi' && <span><b>{r.prenotate}</b> {r.prenotate === 1 ? 'prenotata' : 'prenotate'} in arrivo</span>}
+              </div>
+              {i.stato === 'attiva' && viva && modo === 'orari_fissi' && (
                 <div style={{ marginTop: 6 }}>
                   {(i.iscrizioni_orari || []).length === 0 && <span className="tag tag-attenzione">giorni da assegnare</span>}
                   <AssegnaGiorni
@@ -162,25 +192,39 @@ export default function Iscrizioni({ allievoId, crediti = [], iscrizioni, corsi,
                 </div>
               )}
               <div className="azioni-riga">
-                {(i.stato === 'attiva' || i.stato === 'sospesa') && <>
+                <button className="link-btn piccolo" aria-pressed={azione?.id === i.id && azione.modo === 'dettagli'} onClick={() => apriAzione(i.id, 'dettagli')}>Dettagli</button>
+                {(i.stato === 'attiva' || i.stato === 'sospesa') && viva && <>
                   <button className="link-btn piccolo" aria-pressed={azione?.id === i.id && azione.modo === 'modifica'} onClick={() => apriAzione(i.id, 'modifica')}>Modifica</button>
                   <button className="link-btn piccolo" aria-pressed={azione?.id === i.id && azione.modo === 'sospendi'} onClick={() => apriAzione(i.id, 'sospendi')}>Sospendi</button>
                   <button className="link-btn piccolo" aria-pressed={azione?.id === i.id && azione.modo === 'annulla'} onClick={() => apriAzione(i.id, 'annulla')}>Annulla</button>
-                  {i.tipi_abbonamento?.modalita !== 'libero' && (
-                    <button className="link-btn piccolo" aria-pressed={azione?.id === i.id && azione.modo === 'lezioni'} onClick={() => apriAzione(i.id, 'lezioni')}
-                            title="Aggiunge lezioni che il cliente prenota da solo dall'app">+ Lezioni</button>
-                  )}
                 </>}
+                {i.stato !== 'annullata' && modo !== 'libero' && (viva || modo === 'orari_fissi') && (
+                  <button className="link-btn piccolo" aria-pressed={azione?.id === i.id && azione.modo === 'lezioni'} onClick={() => apriAzione(i.id, 'lezioni')}
+                          title="Aggiunge lezioni che il cliente prenota da solo dall'app">+ Lezioni</button>
+                )}
+                {!viva && i.stato !== 'annullata' && (
+                  <button className="link-btn piccolo" aria-pressed={azione?.id === i.id && azione.modo === 'modifica'} onClick={() => apriAzione(i.id, 'modifica')}>Modifica</button>
+                )}
                 <button className="link-btn piccolo pericolo" aria-pressed={azione?.id === i.id && azione.modo === 'elimina'} onClick={() => apriAzione(i.id, 'elimina')}>Elimina</button>
               </div>
-              {azione?.id === i.id && (
+              {azione?.id === i.id && azione.modo === 'dettagli' && <Dettagli i={i} r={r} />}
+              {azione?.id === i.id && azione.modo !== 'dettagli' && (
                 <AzioniIscrizione key={azione.modo} iscrizione={i} tipi={tipi} modo={azione.modo} chiudi={() => setAzione(null)} />
               )}
             </div>
-            <span className={`tag ${i.stato === 'attiva' ? 'tag-ok' : i.stato === 'sospesa' ? 'tag-attenzione' : 'tag-neutro'}`}>{i.stato}</span>
           </li>
-        ))}
-      </ul>
+          );
+        };
+        return <>
+          {inCorso.length > 0 && <ul className="elenco">{inCorso.map(riga)}</ul>}
+          {finite.length > 0 && (
+            <details className="isc-finite" open={inCorso.length === 0 || undefined}>
+              <summary>Abbonamenti terminati <span className="muto">({finite.length})</span></summary>
+              <ul className="elenco">{finite.map(riga)}</ul>
+            </details>
+          )}
+        </>;
+      })()}
 
       {apri ? (
         <form onSubmit={crea} style={{ marginTop: 16, scrollMarginTop: 80 }} id="modulo-iscrizione">
@@ -286,6 +330,36 @@ export default function Iscrizioni({ allievoId, crediti = [], iscrizioni, corsi,
       ) : (
         <button className="btn btn-piccolo" style={{ marginTop: 10 }} onClick={() => setApri(true)}>+ Nuova iscrizione</button>
       )}
+    </div>
+  );
+}
+
+// Il dettaglio di un abbonamento (come "Modifica abbonamento" di APP Palestre): prezzo, validità, corsi compresi, numeri
+function Dettagli({ i, r }) {
+  const listino = r.prezzo_cent ?? i.tipi_abbonamento?.prezzo_cent ?? 0;
+  const sconto = r.sconto_cent || 0;
+  const durata = r.durata_giorni ? `${r.durata_giorni} giorni` : r.durata_mesi ? `${r.durata_mesi} ${r.durata_mesi === 1 ? 'mese' : 'mesi'}` : '—';
+  const modo = r.modalita || i.tipi_abbonamento?.modalita;
+  const voci = [
+    ['Prezzo', sconto > 0 ? `${euro(listino - sconto)} (listino ${euro(listino)}, sconto ${euro(sconto)})` : euro(listino)],
+    ['Validità', `${durata} · dal ${dataBreve(i.data_inizio)} al ${dataBreve(i.data_fine)}`],
+    modo === 'orari_fissi' && ['Lezioni a settimana', r.lezioni_settimanali || '—'],
+    modo === 'orari_fissi' && ['Lezioni nel periodo', r.totali != null ? `${r.totali} (fatte ${r.fatte || 0}, da fare ${r.da_fare || 0}${r.disdette ? `, disdette ${r.disdette}` : ''}${r.assenze ? `, assente ${r.assenze}` : ''})` : '—'],
+    modo === 'ingressi' && ['Ingressi', `totali ${r.totali ?? '—'} · restanti ${r.ingressi_restanti ?? i.ingressi_residui ?? '—'} · prenotati ${r.ingressi_prenotati || 0} · fatti ${r.fatte || 0}`],
+    ['Lezioni in più', `${r.extra_disponibili || 0} da prenotare · ${r.extra_usate || 0} usate`],
+    ['Recuperi', `${r.recuperi_disponibili || 0} da usare · ${r.recuperi_usati || 0} fatti${r.recuperi_max != null ? ` · massimo ${r.recuperi_max}` : ''}`],
+    (r.sospensioni || []).length > 0 && ['Sospensioni', r.sospensioni.map((x) => `${dataBreve(x.dal)}–${dataBreve(x.al)}${x.motivo ? ` (${x.motivo})` : ''}`).join(' · ')],
+  ].filter(Boolean);
+  return (
+    <div className="azione-iscrizione isc-dettagli">
+      <strong className="ai-titolo">{i.tipi_abbonamento?.nome}{r.codice ? <span className="isc-codice">{r.codice}</span> : null}</strong>
+      <dl className="isc-dl">
+        {voci.map(([k, v]) => <div key={k}><dt>{k}</dt><dd>{v}</dd></div>)}
+      </dl>
+      <div className="isc-corsi-testa">Corsi compresi {(r.corsi || []).length > 0 && <span className="muto">({r.corsi.length})</span>}</div>
+      {(r.corsi || []).length > 0
+        ? <div className="isc-corsi">{r.corsi.map((c) => <span key={c} className="tag tag-neutro">{c}</span>)}</div>
+        : <p className="piccolo muto">Nessun corso abbinato (Abbonamenti → Corsi coperti).</p>}
     </div>
   );
 }

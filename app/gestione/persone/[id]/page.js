@@ -42,7 +42,7 @@ export default async function Persona({ params, searchParams }) {
   const [{ data: stato }, { data: iscrizioni }, { data: crediti }, { data: prove }, { data: certificati },
          { data: corsi }, { data: tipi }, { data: orari }, { data: palestra }, { data: storico, count: storicoTotale },
          { data: etichette }, { data: famiglia }, { data: famigliaIscritta }, { data: moduli }, { data: firme },
-         { data: pagamenti }, { data: rinnovi }] = await Promise.all([
+         { data: pagamenti }, { data: rinnovi }, { data: riepilogo }] = await Promise.all([
     supabase.from('v_stato_clienti').select('stato, attivo, fine_prossima, prima_data, ultima_fine, certificato_scaduto, quota_mancante, quota_valida_fino, senza_orari, etichette_id, giorni_al_compleanno, ultima_presenza')
       .eq('id', id).maybeSingle(),
     supabase.from('iscrizioni')
@@ -56,7 +56,7 @@ export default async function Persona({ params, searchParams }) {
       .order('caricato_at', { ascending: false }).limit(5),
     supabase.from('corsi').select('id, nome').eq('palestra_id', p).eq('attivo', true).order('nome'),
     supabase.from('tipi_abbonamento')
-      .select('id, nome, codice, famiglia, gruppo_id, modalita, durata_mesi, durata_giorni, scadenza_fine_mese, prezzo_cent, tipi_abbonamento_corsi ( corso_id )')
+      .select('id, nome, codice, famiglia, gruppo_id, modalita, durata_mesi, durata_giorni, scadenza_fine_mese, prezzo_cent, num_ingressi, tipi_abbonamento_corsi ( corso_id )')
       .eq('palestra_id', p).eq('attivo', true).eq('archiviato', false).order('famiglia').order('nome'),
     supabase.from('orari').select('id, corso_id, giorno_settimana, ora_inizio, gruppo').eq('palestra_id', p).eq('attivo', true)
       .order('giorno_settimana').order('ora_inizio'),
@@ -75,6 +75,8 @@ export default async function Persona({ params, searchParams }) {
       .order('created_at', { ascending: false }).limit(100),
     supabase.from('abbonamenti_ricorrenti').select('id, stato, importo_cent, tipi_abbonamento ( nome ), corsi ( nome )')
       .eq('allievo_id', id).neq('stato', 'annullato'),
+    // i numeri di ogni abbonamento (lezioni fatte, da fare, ingressi, lezioni in più, recuperi) e i corsi compresi
+    supabase.rpc('riepilogo_iscrizioni', { p_allievo: id })
   ]);
   const { data: ricevute } = (pagamenti || []).length
     ? await supabase.from('ricevute').select('id, pagamento_id, numero, anno, tipo_documento, annullata').in('pagamento_id', pagamenti.map((x) => x.id))
@@ -219,7 +221,7 @@ export default async function Persona({ params, searchParams }) {
           <section className="pannello" id="nuova-iscrizione">
             <h2>Iscrizioni {attive.length > 0 && <span className="piccolo muto">· {attive.length} in corso</span>}</h2>
             <Iscrizioni
-              allievoId={id} crediti={crediti || []} iscrizioni={iscrizioni || []} corsi={corsi || []} tipi={tipi || []} orari={orari || []}
+              allievoId={id} crediti={crediti || []} riepilogo={riepilogo || {}} iscrizioni={iscrizioni || []} corsi={corsi || []} tipi={tipi || []} orari={orari || []}
               quotaCent={palestra?.quota_iscrizione_cent || 0}
               sconti={palestra?.sconti || {}}
               meseFineStagione={palestra?.mese_fine_stagione || 7}
