@@ -14,20 +14,39 @@ const fine = (o) => {
   const t = h * 60 + m + (Number(o.durata_min) || 0);
   return `${String(Math.floor(t / 60) % 24).padStart(2, '0')}:${String(t % 60).padStart(2, '0')}`;
 };
+const minuti = (t) => { const [h, m] = hhmm(t).split(':').map(Number); return (h || 0) * 60 + (m || 0); };
+// due orari si pestano i piedi: stesso giorno, ore che si accavallano (anche solo in parte) e periodi di validità che si incrociano
+export const sovrapposti = (a, b) => Number(a.giorno_settimana) === Number(b.giorno_settimana)
+  && minuti(a.ora_inizio) < minuti(b.ora_inizio) + (Number(b.durata_min) || 0)
+  && minuti(b.ora_inizio) < minuti(a.ora_inizio) + (Number(a.durata_min) || 0)
+  && (a.valido_dal || '0000') <= (b.valido_al || '9999') && (b.valido_dal || '0000') <= (a.valido_al || '9999');
+// per ogni orario: con chi si scontra (stessa sala o stessa insegnante nello stesso momento)
+function scontriDi(orario, tutti, escludi) {
+  const r = [];
+  for (const x of tutti) {
+    if (x.id === escludi || x.id === orario.id || !sovrapposti(orario, x)) continue;
+    if (orario.sala_id && x.sala_id === orario.sala_id) r.push({ tipo: 'sala', o: x });
+    else if (orario.insegnante_id && x.insegnante_id === orario.insegnante_id) r.push({ tipo: 'insegnante', o: x });
+  }
+  return r;
+}
 const norm = (s) => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
 
 // Struttura → Orari dei corsi: tutti i corsi × i sette giorni. Si guarda, si cambia e si aggiunge da qui.
 // Le lezioni seguono da sole (trigger sugli orari): spostate con chi è prenotato, o tolte se l'orario si sospende.
-export default function OrariCorsi({ corsi, orari, sale, persone, palestraId }) {
+export default function OrariCorsi({ corsi, orari, sale, persone, palestraId, sedi = [] }) {
   const router = useRouter();
   const [cerca, setCerca] = useState('');
   const [filtro, setFiltro] = useState('tutti');   // tutti | senza | nonapp | temporanei
   const [vediSospesi, setVediSospesi] = useState(false);
+  const [salaF, setSalaF] = useState('');            // solo gli orari di questa sala (vista "occupazione della sala")
+  const [discF, setDiscF] = useState('');
+  const [sedeF, setSedeF] = useState('');
   const [modifica, setModifica] = useState(null);  // { corso, orario? , giorno }
   const [msg, setMsg] = useState({ t: '', errore: false });
   const o0 = oggi();
   const salaDi = useMemo(() => Object.fromEntries(sale.map((s) => [s.id, s.nome])), [sale]);
-  const persDi = useMemo(() => Object.fromEntries(persone.map((s) => [s.id, s.breve])), [persone]);
+  const persDi = useMemo(() => Object.fromEntries(persone.map((s) => [s.id, s.nome])), [persone]);   // nome e cognome: ci sono insegnanti con lo stesso nome
 
   const valido = (o) => o.attivo && (!o.valido_al || o.valido_al >= o0);
   const perCorso = useMemo(() => {
@@ -35,16 +54,32 @@ export default function OrariCorsi({ corsi, orari, sale, persone, palestraId }) 
     for (const o of orari) (m[o.corso_id] ||= []).push(o);
     return m;
   }, [orari]);
-  const righe = corsi.map((c) => {
+  const sedeSala = useMemo(() => Object.fromEntries(sale.map((x) => [x.id, x.sede_id])), [sale]);
+  const discipline = useMemo(() => [...new Set(corsi.map((c) => c.disciplina).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'it')), [corsi]);
+  const righe = corsi.filter((c) => !discF || c.disciplina === discF).map((c) => {
     const tutti = perCorso[c.id] || [];
     const vivi = tutti.filter(valido);
-    return { c, tutti, vivi, visti: vediSospesi ? tutti : vivi };
+    // la sede di un orario è quella della sua sala; senza sala, quella del corso
+    const sedeDi = (o) => sedeSala[o.sala_id] || c.sede_id || null;
+    const ok = (o) => (!salaF || o.sala_id === salaF) && (!sedeF || sedeDi(o) === sedeF);
+    const visti = (vediSospesi ? tutti : vivi).filter(ok);
+    return { c, tutti, vivi, visti, inSala: (!salaF && !sedeF) ? true : visti.length > 0 || (!salaF && !tutti.length && c.sede_id === sedeF) };
   });
+  // scontri fra gli orari validi oggi o in futuro (sospesi e scaduti non contano)
+  const nomeCorso = useMemo(() => Object.fromEntries(corsi.map((c) => [c.id, c.nome])), [corsi]);
+  const scontri = useMemo(() => {
+    const vivi = orari.filter(valido);
+    const m = {};
+    for (const o of vivi) { const sc = scontriDi(o, vivi); if (sc.length) m[o.id] = sc; }
+    return m;
+  }, [orari]); // eslint-disable-line react-hooks/exhaustive-deps
+  const descriviScontri = (sc) => sc.map(({ tipo, o }) => `${tipo === 'sala' ? 'stessa sala' : 'stessa insegnante'}: ${nomeCorso[o.corso_id] || 'altro corso'} ${hhmm(o.ora_inizio)}–${fine(o)}`).join('\n');
   const q = norm(cerca.trim());
   const temporaneo = (o) => o.valido_al || (o.valido_dal && o.valido_dal > o0);
-  const filtrate = righe.filter(({ c, vivi }) => (!q || norm(`${c.nome} ${c.disciplina}`).includes(q))
+  const filtrate = righe.filter(({ c, vivi, inSala }) => inSala && (!q || norm(`${c.nome} ${c.disciplina}`).includes(q))
     && (filtro === 'tutti' || (filtro === 'senza' && vivi.length === 0) || (filtro === 'nonapp' && vivi.some((o) => o.prenotabile === false))
-      || (filtro === 'temporanei' && vivi.some(temporaneo))));
+      || (filtro === 'temporanei' && vivi.some(temporaneo)) || (filtro === 'conflitti' && vivi.some((o) => scontri[o.id]))));
+  const nConflitti = righe.filter((r) => r.vivi.some((o) => scontri[o.id])).length;
   const nSenza = righe.filter((r) => r.vivi.length === 0).length;
   const nNonApp = righe.reduce((n, r) => n + r.vivi.filter((o) => o.prenotabile === false).length, 0);
   const nTemp = righe.filter((r) => r.vivi.some(temporaneo)).length;
@@ -70,10 +105,24 @@ export default function OrariCorsi({ corsi, orari, sale, persone, palestraId }) 
       <div className="oc-filtri">
         <input type="search" value={cerca} onChange={(e) => setCerca(e.target.value)} placeholder="Cerca un corso" aria-label="Cerca un corso" />
         <div className="segmenti segmenti-piccoli" role="group" aria-label="Mostra">
-          {[['tutti', `Tutti (${corsi.length})`], ['senza', `Senza giorni (${nSenza})`], ['nonapp', `Non scelti dall'app (${nNonApp})`], ['temporanei', `Con date (${nTemp})`]].map(([k, t]) => (
-            <button key={k} type="button" aria-pressed={filtro === k} onClick={() => setFiltro(k)}>{t}</button>
+          {[['tutti', `Tutti (${corsi.length})`], ['conflitti', `⚠ In conflitto (${nConflitti})`], ['senza', `Senza giorni (${nSenza})`], ['nonapp', `Non scelti dall'app (${nNonApp})`], ['temporanei', `Con date (${nTemp})`]].map(([k, t]) => (
+            <button key={k} type="button" aria-pressed={filtro === k} onClick={() => setFiltro(k)} className={k === 'conflitti' && nConflitti ? 'oc-filtro-rosso' : undefined}>{t}</button>
           ))}
         </div>
+        {sedi.length > 1 && (
+          <select value={sedeF} onChange={(e) => { setSedeF(e.target.value); setSalaF(''); }} aria-label="Sede" className={sedeF ? 'oc-sel attivo' : 'oc-sel'}>
+            <option value="">Tutte le sedi</option>
+            {sedi.map((x) => <option key={x.id} value={x.id}>{x.nome}</option>)}
+          </select>
+        )}
+        <select value={salaF} onChange={(e) => setSalaF(e.target.value)} aria-label="Sala" className={salaF ? 'oc-sel attivo' : 'oc-sel'}>
+          <option value="">Tutte le sale</option>
+          {sale.filter((x) => !sedeF || x.sede_id === sedeF).map((x) => <option key={x.id} value={x.id}>{x.nome}</option>)}
+        </select>
+        <select value={discF} onChange={(e) => setDiscF(e.target.value)} aria-label="Disciplina" className={discF ? 'oc-sel attivo' : 'oc-sel'}>
+          <option value="">Tutte le discipline</option>
+          {discipline.map((x) => <option key={x} value={x}>{x}</option>)}
+        </select>
         <label className="spunta piccolo" style={{ margin: 0 }}><input type="checkbox" checked={vediSospesi} onChange={(e) => setVediSospesi(e.target.checked)} /> anche sospesi o scaduti</label>
         <span className="oc-legenda piccolo muto">
           <span className="oc-pallino si" /> si sceglie dall&apos;app <span className="oc-pallino no" /> solo in segreteria
@@ -103,17 +152,21 @@ export default function OrariCorsi({ corsi, orari, sale, persone, palestraId }) 
                     <td key={g}>
                       {delGiorno.map((o) => {
                         const v = valido(o);
+                        const sc = v ? scontri[o.id] : null;
                         return (
                           <button key={o.id} type="button" onClick={() => apri(c, o)}
-                                  className={`oc-orario${!v ? ' spento' : ''}${o.prenotabile === false ? ' no-app' : ''}`}
-                                  title={[`${GIORNI_LUNGHI[g]} ${hhmm(o.ora_inizio)}–${fine(o)}`, salaDi[o.sala_id], persDi[o.insegnante_id],
-                                    o.prenotabile === false ? 'non si sceglie dall\'app' : 'si sceglie dall\'app'].filter(Boolean).join(' · ')}>
+                                  className={`oc-orario${!v ? ' spento' : ''}${o.prenotabile === false ? ' no-app' : ''}${sc ? ' conflitto' : ''}`}
+                                  title={[[`${GIORNI_LUNGHI[g]} ${hhmm(o.ora_inizio)}–${fine(o)}`, salaDi[o.sala_id], persDi[o.insegnante_id],
+                                    o.prenotabile === false ? 'non si sceglie dall\'app' : 'si sceglie dall\'app'].filter(Boolean).join(' · '),
+                                    sc ? `⚠ IN CONFLITTO\n${descriviScontri(sc)}` : null].filter(Boolean).join('\n')}>
                             <span className="oc-ora"><span className={`oc-pallino ${o.prenotabile === false ? 'no' : 'si'}`} />{hhmm(o.ora_inizio)}–{fine(o)}
                               {(!o.attivo || temporaneo(o)) && (
                                 <span className="oc-date">{!o.attivo ? 'sospeso' : o.valido_dal > o0 ? `dal ${it(o.valido_dal)}` : `al ${it(o.valido_al)}`}</span>
-                              )}</span>
-                            <span className="oc-riga">{salaDi[o.sala_id] || 'sala —'}</span>
-                            <span className="oc-riga">{persDi[o.insegnante_id] || 'insegnante —'}</span>
+                              )}
+                              {sc && <span className="oc-avviso-scontro" aria-label="In conflitto">
+                                <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M12 2 1 21h22L12 2Zm1 15h-2v2h2v-2Zm0-7h-2v5h2v-5Z"/></svg></span>}</span>
+                            <span className={`oc-riga${sc?.some((x) => x.tipo === 'sala') ? ' rosso' : ''}`}>{salaDi[o.sala_id] || 'sala —'}</span>
+                            <span className={`oc-riga${sc?.some((x) => x.tipo === 'insegnante') ? ' rosso' : ''}`}>{persDi[o.insegnante_id] || 'insegnante —'}</span>
                           </button>
                         );
                       })}
@@ -134,18 +187,27 @@ export default function OrariCorsi({ corsi, orari, sale, persone, palestraId }) 
 
       {modifica && (
         <Modifica m={modifica} sale={sale} persone={persone} palestraId={palestraId}
+                  orariVivi={orari.filter(valido)} nomeCorso={nomeCorso} salaDi={salaDi} persDi={persDi}
                   onChiudi={() => setModifica(null)} onFatto={fatto} />
       )}
     </div>
   );
 }
 
-function Modifica({ m, sale, persone, palestraId, onChiudi, onFatto }) {
+function Modifica({ m, sale, persone, palestraId, orariVivi, nomeCorso, salaDi, persDi, onChiudi, onFatto }) {
   const [d, setD] = useState(m.dati);
   const [errore, setErrore] = useState('');
   const [invio, setInvio] = useState(false);
   const set = (k) => (e) => setD((x) => ({ ...x, [k]: e.target.type === 'checkbox' ? e.target.checked : e.target.value }));
   const nuovo = !m.orario;
+  // mentre si scrive: chi occupa già quella sala quel giorno, e cosa si accavalla (anche l'insegnante)
+  const prova = { id: m.orario?.id || 'nuovo', giorno_settimana: Number(d.giorno_settimana), ora_inizio: d.ora_inizio || '00:00', durata_min: Number(d.durata_min) || 0,
+    sala_id: d.sala_id || null, insegnante_id: d.insegnante_id || null, valido_dal: d.valido_dal || oggi(), valido_al: d.valido_al || null };
+  const altri = orariVivi.filter((x) => x.id !== m.orario?.id);
+  const scontriOra = d.ora_inizio && Number(d.durata_min) > 0 ? scontriDi(prova, altri) : [];
+  const giornataSala = d.sala_id ? altri.filter((x) => x.sala_id === d.sala_id && Number(x.giorno_settimana) === prova.giorno_settimana
+    && (prova.valido_dal || '0000') <= (x.valido_al || '9999') && (x.valido_dal || '0000') <= (prova.valido_al || '9999'))
+    .sort((a, b) => hhmm(a.ora_inizio).localeCompare(hhmm(b.ora_inizio))) : [];
   const spostato = !nuovo && (Number(d.giorno_settimana) !== m.orario.giorno_settimana || d.ora_inizio !== hhmm(m.orario.ora_inizio) || Number(d.durata_min) !== m.orario.durata_min);
   useEffect(() => {
     const esc = (e) => { if (e.key === 'Escape') onChiudi(); };
@@ -157,6 +219,7 @@ function Modifica({ m, sale, persone, palestraId, onChiudi, onFatto }) {
     if (!d.ora_inizio) { setErrore('Scrivi l\'ora di inizio.'); return; }
     if (!(Number(d.durata_min) > 0)) { setErrore('Scrivi la durata in minuti.'); return; }
     if (d.valido_al && d.valido_dal && d.valido_al < d.valido_dal) { setErrore('"Fino al" è prima di "Dal".'); return; }
+    if (scontriOra.length && !confirm(`Attenzione: ${scontriOra.length === 1 ? 'si accavalla con' : `si accavalla con ${scontriOra.length} orari:`}\n\n${scontriOra.map(({ tipo, o }) => `• ${nomeCorso[o.corso_id] || 'altro corso'} ${hhmm(o.ora_inizio)}–${fine(o)} (${tipo === 'sala' ? `stessa sala: ${salaDi[o.sala_id] || ''}` : `stessa insegnante: ${persDi[o.insegnante_id] || ''}`})`).join('\n')}\n\nSalvare comunque?`)) return;
     setInvio(true); setErrore('');
     const dati = {
       giorno_settimana: Number(d.giorno_settimana), ora_inizio: d.ora_inizio, durata_min: Number(d.durata_min),
@@ -224,6 +287,27 @@ function Modifica({ m, sale, persone, palestraId, onChiudi, onFatto }) {
           <span>Si sceglie dall&apos;app <span className="piccolo muto">(iscrizioni, prove e recuperi dei clienti)</span></span></label>
         {!nuovo && !m.orario.attivo && (
           <label className="spunta"><input type="checkbox" checked={!!d.attivo} onChange={set('attivo')} /><span>Attivo (riattiva l&apos;orario)</span></label>
+        )}
+        {d.sala_id && (
+          <div className={`oc-occupazione${scontriOra.length ? ' scontro' : ''}`}>
+            <div className="oc-occ-testa">
+              {scontriOra.length
+                ? <><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M12 2 1 21h22L12 2Zm1 15h-2v2h2v-2Zm0-7h-2v5h2v-5Z"/></svg> Si accavalla con {scontriOra.length === 1 ? 'un altro orario' : `${scontriOra.length} orari`}</>
+                : d.ora_inizio ? '✓ Sala e insegnante libere in questo orario' : 'Scegli l\'ora per vedere se la sala è libera'}
+            </div>
+            <div className="piccolo muto">{salaDi[d.sala_id]} · {GIORNI_LUNGHI[prova.giorno_settimana]}: {giornataSala.length ? '' : 'nessun altro corso'}</div>
+            {giornataSala.length > 0 && (
+              <ul className="oc-occ-lista">
+                {giornataSala.map((x) => {
+                  const pesta = d.ora_inizio && sovrapposti(prova, x);
+                  return <li key={x.id} className={pesta ? 'pesta' : ''}><b>{hhmm(x.ora_inizio)}–{fine(x)}</b> {nomeCorso[x.corso_id] || 'altro corso'}{persDi[x.insegnante_id] ? ` · ${persDi[x.insegnante_id]}` : ''}{pesta ? ' ← si accavalla' : ''}</li>;
+                })}
+              </ul>
+            )}
+            {scontriOra.filter((x) => x.tipo === 'insegnante').map(({ o }) => (
+              <div key={o.id} className="oc-occ-ins">{persDi[o.insegnante_id]} è già a {nomeCorso[o.corso_id] || 'un altro corso'} {hhmm(o.ora_inizio)}–{fine(o)}{o.sala_id ? ` (${salaDi[o.sala_id]})` : ''}</div>
+            ))}
+          </div>
         )}
         {spostato && <p className="piccolo oc-avviso">Le lezioni future di questo orario si spostano al nuovo giorno/ora, con chi è prenotato.</p>}
         <div className="oc-mod-azioni">
