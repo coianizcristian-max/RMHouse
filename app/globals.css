@@ -2011,6 +2011,9 @@ a.persona-nome:hover { text-decoration: underline; text-underline-offset: 3px; }
 .azione-iscrizione .campo { margin-bottom: 4px; }
 .azione-iscrizione .errore { margin: 0; }
 .ai-titolo { color: var(--nero); font-size: 15px; }
+.ai-passi { display: flex; gap: 6px; align-items: center; }
+.ai-passi input { width: 64px; text-align: center; }
+.ai-passi .btn { min-width: 40px; font-size: 18px; font-weight: 700; }
 .ai-griglia { display: grid; gap: 0 10px; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
 .ai-conti { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 14px; color: var(--testo-2); }
 .ai-conti strong { color: var(--nero); }

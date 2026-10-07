@@ -25,7 +25,8 @@ export default async function PaginaPrenota() {
   const disdetteDi = (id) => (regole?.disdette || []).filter((d) => d.allievo_id === id).map((d) => d.lezione_id);
   const crediti = await Promise.all((data.crediti || []).map(async (c) => {
     const { data: lezioni } = await supabase.rpc('lezioni_per_recupero', { p_credito: c.id });
-    return { ...c, lezioni: (lezioni || []).filter((l) => !disdetteDi(c.allievo_id).includes(l.lezione_id) && !pieno(c.allievo_id, l.inizio)) };
+    // le lezioni date dalla scuola (lezioni in più, lezioni annullate) non hanno il limite del mese
+    return { ...c, lezioni: (lezioni || []).filter((l) => !disdetteDi(c.allievo_id).includes(l.lezione_id) && (c.dalla_scuola || !pieno(c.allievo_id, l.inizio))) };
   }));
   const pacchetti = await Promise.all((data.allievi || []).map(async (a) => {
     const [{ data: abb }, { data: lezioni }] = await Promise.all([

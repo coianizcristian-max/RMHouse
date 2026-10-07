@@ -21,7 +21,7 @@ const ERRORI = {
   allievo_non_trovato: 'Persona non trovata.',
 };
 
-export default function Iscrizioni({ allievoId, iscrizioni, corsi, tipi, orari, quotaCent, sconti = {}, famigliaIscritta = 0, apriSubito = false, meseFineStagione = 7, meseInizioAnnuale = 10 }) {
+export default function Iscrizioni({ allievoId, crediti = [], iscrizioni, corsi, tipi, orari, quotaCent, sconti = {}, famigliaIscritta = 0, apriSubito = false, meseFineStagione = 7, meseInizioAnnuale = 10 }) {
   const router = useRouter();
   const [apri, setApri] = useState(apriSubito);
   const [errore, setErrore] = useState('');
@@ -143,6 +143,11 @@ export default function Iscrizioni({ allievoId, iscrizioni, corsi, tipi, orari, 
                 {i.sconto_cent > 0 && ` · sconto ${euro(i.sconto_cent)}`}
                 {i.note && <span style={{ display: 'block' }}>{i.note}</span>}
               </div>
+              {(() => {
+                // lezioni in più ancora da prenotare (aggiunte dalla segreteria)
+                const libere = crediti.filter((c) => c.iscrizione_id === i.id && c.aggiunta && c.stato === 'disponibile').length;
+                return libere > 0 ? <div style={{ marginTop: 6 }}><span className="tag tag-ok">{libere} {libere === 1 ? 'lezione in più' : 'lezioni in più'} da prenotare</span></div> : null;
+              })()}
               {i.stato === 'attiva' && i.tipi_abbonamento?.modalita === 'orari_fissi' && (
                 <div style={{ marginTop: 6 }}>
                   {(i.iscrizioni_orari || []).length === 0 && <span className="tag tag-attenzione">giorni da assegnare</span>}
@@ -160,6 +165,10 @@ export default function Iscrizioni({ allievoId, iscrizioni, corsi, tipi, orari, 
                   <button className="link-btn piccolo" aria-pressed={azione?.id === i.id && azione.modo === 'modifica'} onClick={() => apriAzione(i.id, 'modifica')}>Modifica</button>
                   <button className="link-btn piccolo" aria-pressed={azione?.id === i.id && azione.modo === 'sospendi'} onClick={() => apriAzione(i.id, 'sospendi')}>Sospendi</button>
                   <button className="link-btn piccolo" aria-pressed={azione?.id === i.id && azione.modo === 'annulla'} onClick={() => apriAzione(i.id, 'annulla')}>Annulla</button>
+                  {i.tipi_abbonamento?.modalita !== 'libero' && (
+                    <button className="link-btn piccolo" aria-pressed={azione?.id === i.id && azione.modo === 'lezioni'} onClick={() => apriAzione(i.id, 'lezioni')}
+                            title="Aggiunge lezioni che il cliente prenota da solo dall'app">+ Lezioni</button>
+                  )}
                 </>}
                 <button className="link-btn piccolo pericolo" aria-pressed={azione?.id === i.id && azione.modo === 'elimina'} onClick={() => apriAzione(i.id, 'elimina')}>Elimina</button>
               </div>

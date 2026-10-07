@@ -90,10 +90,16 @@ export default function Recuperi({ crediti, pacchetti = [], allievi = [], piuAll
                   <span>{ab.nome} · fino al {dataBreve(ab.data_fine)}</span>
                 </span>
               ))}
-              {pe.suoi.length > 0 && (
+              {pe.suoi.filter((c) => c.aggiunta).length > 0 && (
                 <span className="ac-saldo verde">
-                  <strong>{pe.suoi.length} {pe.suoi.length === 1 ? 'recupero' : 'recuperi'}</strong>
-                  <span>entro il {dataBreve(pe.suoi[0].scadenza)}{massimo != null ? ` · questo mese ${usati[pe.id] || 0} di ${massimo}` : ''}</span>
+                  <strong>{pe.suoi.filter((c) => c.aggiunta).length} {pe.suoi.filter((c) => c.aggiunta).length === 1 ? 'lezione in più' : 'lezioni in più'} da prenotare</strong>
+                  <span>entro il {dataBreve(pe.suoi.find((c) => c.aggiunta).scadenza)}</span>
+                </span>
+              )}
+              {pe.suoi.filter((c) => !c.aggiunta).length > 0 && (
+                <span className="ac-saldo verde">
+                  <strong>{pe.suoi.filter((c) => !c.aggiunta).length} {pe.suoi.filter((c) => !c.aggiunta).length === 1 ? 'recupero' : 'recuperi'}</strong>
+                  <span>entro il {dataBreve(pe.suoi.find((c) => !c.aggiunta).scadenza)}{massimo != null ? ` · questo mese ${usati[pe.id] || 0} di ${massimo}` : ''}</span>
                 </span>
               )}
             </div>
@@ -122,7 +128,7 @@ export default function Recuperi({ crediti, pacchetti = [], allievi = [], piuAll
                         <span className="ac-quando"><strong>{ora(l.inizio)}</strong><span>{giornoCorto(l.inizio)}</span></span>
                         <span className="ac-cosa">
                           <strong>{l.corso}</strong>
-                          <span>{[l.sala, l.liberi > 0 ? `${l.liberi} posti` : 'al completo', l.credito ? 'con un recupero' : null].filter(Boolean).join(' · ')}</span>
+                          <span>{[l.sala, l.liberi > 0 ? `${l.liberi} posti` : 'al completo', l.credito ? (l.credito.aggiunta ? 'con una lezione in più' : 'con un recupero') : null].filter(Boolean).join(' · ')}</span>
                         </span>
                         <span className="ac-azione">
                           <button className="btn btn-piccolo btn-primario" disabled={invio || l.liberi === 0} onClick={() => setChiedo(k)}>Prenota</button>

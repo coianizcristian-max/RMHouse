@@ -97,7 +97,10 @@ export default function Riepilogo({ dati, materiali = [], inVerifica = [], aspet
   // recuperi raggruppati per persona: un riquadro e un pulsante solo
   const recuperiPer = dati.allievi.map((a) => {
     const c = dati.crediti.filter((x) => x.allievo_id === a.id);
-    return { allievo: a, n: c.length, scade: c.map((x) => x.scadenza).sort()[0] };
+    const extra = c.filter((x) => x.aggiunta).length, rec = c.length - extra;
+    // "2 lezioni in più · 1 recupero": le lezioni in più le aggiunge la segreteria
+    const testo = [extra && `${extra} ${extra === 1 ? 'lezione in più' : 'lezioni in più'}`, rec && `${rec} ${rec === 1 ? 'recupero' : 'recuperi'}`].filter(Boolean).join(' · ');
+    return { allievo: a, n: c.length, testo, scade: c.map((x) => x.scadenza).sort()[0] };
   }).filter((x) => x.n > 0);
 
   return (
@@ -223,11 +226,11 @@ export default function Riepilogo({ dati, materiali = [], inVerifica = [], aspet
 
       {recuperiPer.length > 0 && (
         <section className="ac-sezione">
-          <h2>Recuperi da usare</h2>
+          <h2>{dati.crediti.some((x) => x.aggiunta) ? 'Lezioni da prenotare' : 'Recuperi da usare'}</h2>
           {recuperiPer.map((r) => (
             <Link prefetch={false} key={r.allievo.id} href="/area/recuperi" className="ac-recupero">
               <span>
-                <strong>{r.n} {r.n === 1 ? 'recupero' : 'recuperi'}{piu ? ` · ${r.allievo.nome}` : ''}</strong>
+                <strong>{r.testo}{piu ? ` · ${r.allievo.nome}` : ''}</strong>
                 <span className="piccolo">entro il {dataBreve(r.scade)}</span>
               </span>
               <span className="btn btn-piccolo btn-primario">Prenota</span>

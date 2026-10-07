@@ -17,6 +17,10 @@ const ERRORI = {
   gia_annullata: 'È già annullata.',
   importo_non_valido: 'L\'importo della nota di credito supera quanto resta della ricevuta.',
   non_autorizzato: 'Non hai i permessi per questa operazione.',
+  iscrizione_non_attiva: 'L\'iscrizione non è attiva.',
+  numero_non_valido: 'Scrivi quante lezioni, da 1 a 50.',
+  scadenza_passata: 'La data "valide fino al" è già passata.',
+  accesso_libero: 'Con l\'accesso libero non servono lezioni in più.',
 };
 const messaggio = (e) => ERRORI[Object.keys(ERRORI).find((k) => e?.message?.includes(k))] || 'Operazione non riuscita. Riprova.';
 const inEuro = (cent) => ((cent || 0) / 100).toFixed(2).replace('.', ',');
@@ -26,6 +30,7 @@ const daEuro = (testo) => Math.round(parseFloat(String(testo || '0').replace(','
 export default function AzioniIscrizione({ iscrizione, tipi, modo, chiudi }) {
   if (modo === 'modifica') return <Modifica iscrizione={iscrizione} tipi={tipi} chiudi={chiudi} />;
   if (modo === 'sospendi') return <Sospendi iscrizione={iscrizione} chiudi={chiudi} />;
+  if (modo === 'lezioni') return <AggiungiLezioni iscrizione={iscrizione} chiudi={chiudi} />;
   return <AnnullaElimina iscrizione={iscrizione} elimina={modo === 'elimina'} chiudi={chiudi} />;
 }
 
@@ -100,6 +105,66 @@ function Modifica({ iscrizione, tipi, chiudi }) {
       <p className="piccolo muto">Se l'incasso era già registrato con un altro importo, correggilo da Incassi.</p>
       <div className="azioni">
         <button className="btn btn-primario btn-piccolo" disabled={invio} onClick={salva}>{invio ? 'Salvo…' : 'Salva le modifiche'}</button>
+        <button className="btn btn-piccolo" onClick={chiudi}>Chiudi</button>
+      </div>
+    </div>
+  );
+}
+
+// Lezioni in più: la segreteria aggiunge il numero, il cliente le prenota da solo dall'app (Prenota)
+function AggiungiLezioni({ iscrizione, chiudi }) {
+  const router = useRouter();
+  const ingressi = iscrizione.tipi_abbonamento?.modalita === 'ingressi';
+  const [f, setF] = useState({ quante: 1, fino: iscrizione.data_fine || '', nota: '' });
+  const [errore, setErrore] = useState('');
+  const [invio, setInvio] = useState(false);
+  const n = Math.max(1, Math.min(50, parseInt(f.quante, 10) || 0));
+
+  async function salva() {
+    if (!(parseInt(f.quante, 10) >= 1)) { setErrore('Scrivi quante lezioni, da 1 a 50.'); return; }
+    setInvio(true); setErrore('');
+    const { error } = await supabaseBrowser().rpc('aggiungi_lezioni', {
+      p_iscrizione: iscrizione.id, p_quante: n, p_scadenza: ingressi ? null : (f.fino || null), p_nota: f.nota || null,
+    });
+    setInvio(false);
+    if (error) { setErrore(messaggio(error)); return; }
+    chiudi(); router.refresh();
+  }
+
+  return (
+    <div className="azione-iscrizione">
+      <strong className="ai-titolo">{ingressi ? 'Aggiungi ingressi' : 'Aggiungi lezioni da prenotare'}</strong>
+      <p className="piccolo muto">
+        {ingressi
+          ? 'Gli ingressi si aggiungono al carnet: il cliente li prenota da solo dall\'app.'
+          : 'Non si prenota niente adesso: il cliente vede le lezioni in più nell\'app (Prenota) e sceglie lui quando venire, nei corsi dove si può recuperare. Non contano nel limite dei recuperi al mese.'}
+      </p>
+      {errore && <div className="errore" role="alert">{errore}</div>}
+      <div className="ai-griglia">
+        <div className="campo">
+          <label htmlFor={`lq-${iscrizione.id}`}>Quante</label>
+          <div className="ai-passi">
+            <button type="button" className="btn btn-piccolo" aria-label="Una in meno" disabled={n <= 1} onClick={() => setF({ ...f, quante: n - 1 })}>−</button>
+            <input id={`lq-${iscrizione.id}`} inputMode="numeric" value={f.quante} onChange={(e) => setF({ ...f, quante: e.target.value.replace(/\D/g, '') })} />
+            <button type="button" className="btn btn-piccolo" aria-label="Una in più" disabled={n >= 50} onClick={() => setF({ ...f, quante: n + 1 })}>+</button>
+          </div>
+        </div>
+        {!ingressi && (
+          <div className="campo">
+            <label htmlFor={`lf-${iscrizione.id}`}>Valide fino al</label>
+            <input id={`lf-${iscrizione.id}`} type="date" value={f.fino} min={oggiISO()} onChange={(e) => setF({ ...f, fino: e.target.value })} />
+            <span className="piccolo muto">{f.fino === iscrizione.data_fine ? 'fine dell\'abbonamento' : ''}</span>
+          </div>
+        )}
+        <div className="campo">
+          <label htmlFor={`ln-${iscrizione.id}`}>Nota (facoltativa)</label>
+          <input id={`ln-${iscrizione.id}`} placeholder="omaggio, pagate a parte…" value={f.nota} onChange={(e) => setF({ ...f, nota: e.target.value })} maxLength={120} />
+        </div>
+      </div>
+      <div className="azioni">
+        <button className="btn btn-primario btn-piccolo" disabled={invio} onClick={salva}>
+          {invio ? 'Un attimo…' : `Aggiungi ${n} ${ingressi ? (n === 1 ? 'ingresso' : 'ingressi') : (n === 1 ? 'lezione' : 'lezioni')}`}
+        </button>
         <button className="btn btn-piccolo" onClick={chiudi}>Chiudi</button>
       </div>
     </div>

@@ -51,6 +51,15 @@ export default function Recuperi({ allievoId, crediti }) {
     setApri(null); router.refresh();
   }
 
+  async function togli(c) {
+    if (!confirm('Togliere questa lezione in più? Il cliente non la vedrà più nell\'app.')) return;
+    setInvio(true); setErrore('');
+    const { error } = await supabaseBrowser().rpc('togli_lezione_in_piu', { p_credito: c.id });
+    setInvio(false);
+    if (error) { setErrore(error.message?.includes('credito_gia_usato') ? 'È già stata prenotata: disdici prima la prenotazione.' : 'Non riuscito. Riprova.'); return; }
+    router.refresh();
+  }
+
   if (!crediti.length) return <div className="vuoto">Nessun recupero maturato.</div>;
 
   return (
@@ -62,12 +71,15 @@ export default function Recuperi({ allievoId, crediti }) {
             <div style={{ width: '100%' }}>
               <span className="persona-nome">{c.corso_nome}</span>
               <div className="piccolo muto">
-                Assenza del {dataBreve(c.data_persa)} · valido fino al {dataBreve(c.scadenza)}
+                {c.aggiunta ? `Lezione in più aggiunta dalla segreteria il ${dataBreve(c.created_at)}${c.nota ? ` (${c.nota})` : ''}` : `Assenza del ${dataBreve(c.data_persa)}`} · valida fino al {dataBreve(c.scadenza)}
                 {c.data_recupero && ` · recuperato il ${dataBreve(c.data_recupero)} in ${c.corso_recupero}`}
               </div>
 
               {c.stato === 'disponibile' && apri !== c.id && (
-                <button className="link-btn piccolo" style={{ marginTop: 6 }} onClick={() => cerca(c)}>Prenota il recupero</button>
+                <span style={{ display: 'flex', gap: 14, marginTop: 6 }}>
+                  <button className="link-btn piccolo" onClick={() => cerca(c)}>{c.aggiunta ? 'Prenotala ora' : 'Prenota il recupero'}</button>
+                  {c.aggiunta && <button className="link-btn piccolo pericolo" disabled={invio} onClick={() => togli(c)}>Togli</button>}
+                </span>
               )}
 
               {apri === c.id && (

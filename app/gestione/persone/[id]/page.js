@@ -219,7 +219,7 @@ export default async function Persona({ params, searchParams }) {
           <section className="pannello" id="nuova-iscrizione">
             <h2>Iscrizioni {attive.length > 0 && <span className="piccolo muto">· {attive.length} in corso</span>}</h2>
             <Iscrizioni
-              allievoId={id} iscrizioni={iscrizioni || []} corsi={corsi || []} tipi={tipi || []} orari={orari || []}
+              allievoId={id} crediti={crediti || []} iscrizioni={iscrizioni || []} corsi={corsi || []} tipi={tipi || []} orari={orari || []}
               quotaCent={palestra?.quota_iscrizione_cent || 0}
               sconti={palestra?.sconti || {}}
               meseFineStagione={palestra?.mese_fine_stagione || 7}
@@ -237,7 +237,7 @@ export default async function Persona({ params, searchParams }) {
 
           {crediti?.length > 0 && (
             <section className="pannello">
-              <h2>Recuperi</h2>
+              <h2>{crediti.some((c) => c.aggiunta) ? (crediti.some((c) => !c.aggiunta) ? 'Recuperi e lezioni in più' : 'Lezioni in più') : 'Recuperi'}</h2>
               <Recuperi allievoId={id} crediti={crediti} />
             </section>
           )}
