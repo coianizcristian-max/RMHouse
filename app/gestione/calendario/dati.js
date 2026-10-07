@@ -23,6 +23,49 @@ export async function settimana({ da, sala, insegnante, mie, sede, corso, giorni
   const inizio = n === 7 ? lunedi(giorno) : giorno;
   const fine = spostaGiorni(inizio, n - 1);
 
+  // una chiamata sola per tutta la settimana (query 144); se la funzione manca, le letture una per una
+  const filtri = { p_sala: sala || null, p_insegnante: mie === '1' ? staff.id : (insegnante || null), p_sede: sede || null, p_corso: corso || null };
+  const { data: insieme, error: erroreInsieme } = await supabase.rpc('settimana_dati', { p_palestra: staff.palestra_id, p_inizio: inizio, p_fine: fine, ...filtri });
+  let tutte, sale, insegnanti, corsi, note, sedi, chiusure, facce, coda;
+  if (!erroreInsieme && insieme) {
+    ({ lezioni: tutte, sale, insegnanti, corsi, note, sedi, chiusure, facce, coda } = insieme);
+  } else {
+    ({ tutte, sale, insegnanti, corsi, note, sedi, chiusure } = await caricaSeparato(supabase, staff, { inizio, fine, sala, insegnante, mie, sede, corso }));
+  }
+  // feste e chiusure: le lezioni di quei giorni non si fanno e basta (niente recuperi, scadenze uguali),
+  // quindi nel palinsesto non si vedono; al loro posto il giorno dice "Chiuso · motivo"
+  const chiuso = (d) => (chiusure || []).find((c) => d >= c.dal && d <= c.al);
+  const lezioni = (tutte || []).filter((l) => !(l.stato === 'annullata' && chiuso(l.data)));
+  const giorniChiusi = {};
+  for (let i = 0; i < n; i++) {
+    const d = new Date(inizio + 'T12:00:00Z'); d.setUTCDate(d.getUTCDate() + i);
+    const g = d.toISOString().slice(0, 10); const c = chiuso(g);
+    if (c) giorniChiusi[g] = c.motivo || 'Chiusura';
+  }
+
+  if (!facce) {
+    const idLezioni = (lezioni || []).map((l) => l.lezione_id);
+    // chi è prenotato e chi è in coda (lezione piena), lette insieme
+    [{ data: facce }, { data: coda }] = idLezioni.length
+      ? await Promise.all([
+          supabase.from('v_facce_lezione')
+            .select('lezione_id, allievo_id, nome, cognome, foto_url, tipo').in('lezione_id', idLezioni),
+          supabase.from('liste_attesa')
+            .select('lezione_id, allievo_id, stato, tipo, created_at, allievi ( nome, cognome, foto_url )')
+            .in('lezione_id', idLezioni).in('stato', ['in_attesa', 'avvisato']).order('created_at'),
+        ])
+      : [{ data: [] }, { data: [] }];
+  }
+
+  return {
+    staff, inizio, fine, giorni: n,
+    lezioni: lezioni || [], sale: sale || [], insegnanti: insegnanti || [],
+    corsi: corsi || [], note: note || [], facce: facce || [], coda: coda || [], sedi: sedi || [], giorniChiusi,
+  };
+}
+
+// Riserva: le stesse letture una per una (se la funzione settimana_dati della query 144 non c'è ancora)
+async function caricaSeparato(supabase, staff, { inizio, fine, sala, insegnante, mie, sede, corso }) {
   let q = supabase
     .from('v_occupazione')
     .select('lezione_id, corso_id, corso_nome, data, inizio, fine, stato, capienza, iscritti, prove, presenti, sala_id, sala_nome, sede_id, sede_nome, insegnante_id, insegnante_nome, insegnante_foto, prenotabile, colore, note')
@@ -46,32 +89,5 @@ export async function settimana({ da, sala, insegnante, mie, sede, corso, giorni
     supabase.from('sedi').select('id, nome').eq('palestra_id', staff.palestra_id).eq('visibile', true).order('ordine'),
     supabase.from('chiusure').select('dal, al, motivo').eq('palestra_id', staff.palestra_id).lte('dal', fine).gte('al', inizio),
   ]);
-  // feste e chiusure: le lezioni di quei giorni non si fanno e basta (niente recuperi, scadenze uguali),
-  // quindi nel palinsesto non si vedono; al loro posto il giorno dice "Chiuso · motivo"
-  const chiuso = (d) => (chiusure || []).find((c) => d >= c.dal && d <= c.al);
-  const lezioni = (tutte || []).filter((l) => !(l.stato === 'annullata' && chiuso(l.data)));
-  const giorniChiusi = {};
-  for (let i = 0; i < n; i++) {
-    const d = new Date(inizio + 'T12:00:00Z'); d.setUTCDate(d.getUTCDate() + i);
-    const g = d.toISOString().slice(0, 10); const c = chiuso(g);
-    if (c) giorniChiusi[g] = c.motivo || 'Chiusura';
-  }
-
-  const idLezioni = (lezioni || []).map((l) => l.lezione_id);
-  // chi è prenotato e chi è in coda (lezione piena), lette insieme
-  const [{ data: facce }, { data: coda }] = idLezioni.length
-    ? await Promise.all([
-        supabase.from('v_facce_lezione')
-          .select('lezione_id, allievo_id, nome, cognome, foto_url, tipo').in('lezione_id', idLezioni),
-        supabase.from('liste_attesa')
-          .select('lezione_id, allievo_id, stato, tipo, created_at, allievi ( nome, cognome, foto_url )')
-          .in('lezione_id', idLezioni).in('stato', ['in_attesa', 'avvisato']).order('created_at'),
-      ])
-    : [{ data: [] }, { data: [] }];
-
-  return {
-    staff, inizio, fine, giorni: n,
-    lezioni: lezioni || [], sale: sale || [], insegnanti: insegnanti || [],
-    corsi: corsi || [], note: note || [], facce: facce || [], coda: coda || [], sedi: sedi || [], giorniChiusi,
-  };
+  return { tutte, sale, insegnanti, corsi, note, sedi, chiusure };
 }

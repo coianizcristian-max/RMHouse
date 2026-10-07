@@ -168,3 +168,41 @@ begin
 end $$;
 revoke all on function sportello_dati(uuid) from public, anon;
 grant execute on function sportello_dati(uuid) to authenticated;
+
+-- ------------------------------------------------------------------ Palinsesto e Agenda (una settimana o alcuni giorni)
+-- Prima: 7 richieste insieme + 2 in fila (prenotati e coda). Ora una sola.
+create or replace function settimana_dati(p_palestra uuid, p_inizio date, p_fine date, p_sala uuid default null, p_insegnante uuid default null,
+                                          p_sede uuid default null, p_corso uuid default null)
+returns jsonb language plpgsql stable security definer set search_path = public as $$
+declare v_lez uuid[];
+begin
+  if not is_staff(p_palestra) then raise exception 'non_autorizzato'; end if;
+  select coalesce(array_agg(o.lezione_id), '{}') into v_lez from v_occupazione o
+   where o.palestra_id = p_palestra and o.data between p_inizio and p_fine
+     and (p_sala is null or o.sala_id = p_sala) and (p_insegnante is null or o.insegnante_id = p_insegnante)
+     and (p_sede is null or o.sede_id = p_sede) and (p_corso is null or o.corso_id = p_corso);
+  return jsonb_build_object(
+    'lezioni', coalesce((select jsonb_agg(jsonb_build_object('lezione_id', o.lezione_id, 'corso_id', o.corso_id, 'corso_nome', o.corso_nome, 'data', o.data, 'inizio', o.inizio,
+                 'fine', o.fine, 'stato', o.stato, 'capienza', o.capienza, 'iscritti', o.iscritti, 'prove', o.prove, 'presenti', o.presenti, 'sala_id', o.sala_id,
+                 'sala_nome', o.sala_nome, 'sede_id', o.sede_id, 'sede_nome', o.sede_nome, 'insegnante_id', o.insegnante_id, 'insegnante_nome', o.insegnante_nome,
+                 'insegnante_foto', o.insegnante_foto, 'prenotabile', o.prenotabile, 'colore', o.colore, 'note', o.note) order by o.inizio, o.lezione_id)
+               from v_occupazione o where o.lezione_id = any (v_lez)), '[]'::jsonb),
+    'sale', coalesce((select jsonb_agg(jsonb_build_object('id', s.id, 'nome', s.nome) order by s.ordine nulls last, s.nome) from sale s where s.palestra_id = p_palestra), '[]'::jsonb),
+    'insegnanti', coalesce((select jsonb_agg(jsonb_build_object('id', x.id, 'nome', x.nome, 'cognome', x.cognome) order by x.nome)
+                    from staff x where x.palestra_id = p_palestra and x.ruolo = 'insegnante' and x.attivo and x.archiviato = false), '[]'::jsonb),
+    'corsi', coalesce((select jsonb_agg(jsonb_build_object('id', c.id, 'nome', c.nome, 'colore', c.colore, 'visibilita', c.visibilita, 'attivo', c.attivo) order by c.nome)
+               from corsi c where c.palestra_id = p_palestra), '[]'::jsonb),
+    'note', coalesce((select jsonb_agg(jsonb_build_object('id', n.id, 'data', n.data, 'testo', n.testo) order by n.created_at)
+               from note_giorno n where n.palestra_id = p_palestra and n.data between p_inizio and p_fine), '[]'::jsonb),
+    'sedi', coalesce((select jsonb_agg(jsonb_build_object('id', s.id, 'nome', s.nome) order by s.ordine) from sedi s where s.palestra_id = p_palestra and s.visibile), '[]'::jsonb),
+    'chiusure', coalesce((select jsonb_agg(jsonb_build_object('dal', ch.dal, 'al', ch.al, 'motivo', ch.motivo)) from chiusure ch
+                  where ch.palestra_id = p_palestra and ch.dal <= p_fine and ch.al >= p_inizio), '[]'::jsonb),
+    'facce', coalesce((select jsonb_agg(jsonb_build_object('lezione_id', f.lezione_id, 'allievo_id', f.allievo_id, 'nome', f.nome, 'cognome', f.cognome, 'foto_url', f.foto_url, 'tipo', f.tipo))
+               from v_facce_lezione f where f.lezione_id = any (v_lez)), '[]'::jsonb),
+    'coda', coalesce((select jsonb_agg(jsonb_build_object('lezione_id', la.lezione_id, 'allievo_id', la.allievo_id, 'stato', la.stato, 'tipo', la.tipo, 'created_at', la.created_at,
+                 'allievi', (select jsonb_build_object('nome', a.nome, 'cognome', a.cognome, 'foto_url', a.foto_url) from allievi a where a.id = la.allievo_id)) order by la.created_at)
+               from liste_attesa la where la.lezione_id = any (v_lez) and la.stato in ('in_attesa', 'avvisato')), '[]'::jsonb)
+  );
+end $$;
+revoke all on function settimana_dati(uuid, date, date, uuid, uuid, uuid, uuid) from public, anon;
+grant execute on function settimana_dati(uuid, date, date, uuid, uuid, uuid, uuid) to authenticated;

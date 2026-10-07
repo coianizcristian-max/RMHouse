@@ -37,6 +37,8 @@ const sicurezza = [
 
 const nextConfig = {
   poweredByHeader: false,
+  // undici (connessioni persistenti, instrumentation-node.js) resta un pacchetto esterno del server, non viene impacchettato
+  serverExternalPackages: ['undici'],
   // le pagine appena visitate restano nel browser per 30 secondi: tornare indietro (es. Sportello → Riepilogo → Sportello)
   // è immediato invece di aspettare di nuovo il server. Dopo ogni modifica (router.refresh) si ricaricano comunque.
   // "static" vale per le pagine preparate in anticipo dai link del menù (LinkVeloce): un minuto, poi si rileggono
