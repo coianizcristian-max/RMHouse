@@ -125,21 +125,40 @@ export default function Sportello({ palestraId, corsi, tipi, orari, palestra, pe
     try { window.history.replaceState(null, '', '/gestione/sportello'); } catch { /* niente */ }
   }
 
-  // ------------------------------------------------------------ lezioni del corso (prossimi 14 giorni)
+  // ------------------------------------------------------------ lezioni proposte (prossimi 14 giorni)
+  // abbonamento a giorni fissi: solo le lezioni dei giorni scelti (del gruppo scelto, anche di altri corsi compresi);
+  // finché i giorni non sono scelti non si propone niente. Senza abbonamento o con carnet: tutte le lezioni del corso.
+  const aGiorni = !!tipo && (tipo.modalita === 'orari_fissi' || v.aLezioni);
+  const chiaveOrari = [...v.orari].sort().join(',');
   useEffect(() => {
-    if (!v.corso_id) { setLezioni([]); return; }
+    if (!v.corso_id || (aGiorni && !v.orari.length)) { setLezioni([]); return; }
     let vivo = true;
     (async () => {
       const sb = supabaseBrowser();
-      const { data } = await sb.from('v_occupazione').select('lezione_id, data, inizio, fine, capienza, iscritti, prove, stato, sala_nome')
-        .eq('corso_id', v.corso_id).eq('stato', 'programmata').gte('data', oggi()).lte('data', piuGiorni(oggi(), 14))
-        .order('inizio').limit(10);
-      const ids = (data || []).map((l) => l.lezione_id);
-      const { data: lo } = ids.length ? await sb.from('lezioni').select('id, orario_id').in('id', ids) : { data: [] };
+      const dal = oggi(), al = piuGiorni(oggi(), 14);
+      let ids = null;
+      if (aGiorni) {
+        const { data: lz } = await sb.from('lezioni').select('id').in('orario_id', v.orari).gte('data', dal).lte('data', al);
+        ids = (lz || []).map((x) => x.id);
+        if (!ids.length) { if (vivo) setLezioni([]); return; }
+      }
+      let q = sb.from('v_occupazione').select('lezione_id, corso_id, corso_nome, data, inizio, fine, capienza, iscritti, prove, stato, sala_nome')
+        .eq('stato', 'programmata').gte('data', dal).lte('data', al).order('inizio').limit(aGiorni ? 20 : 10);
+      q = ids ? q.in('lezione_id', ids) : q.eq('corso_id', v.corso_id);
+      const { data } = await q;
+      const tutte = (data || []).map((l) => l.lezione_id);
+      const { data: lo } = tutte.length ? await sb.from('lezioni').select('id, orario_id').in('id', tutte) : { data: [] };
       if (vivo) setLezioni((data || []).map((l) => ({ ...l, orario_id: lo?.find((x) => x.id === l.lezione_id)?.orario_id })));
     })();
     return () => { vivo = false; };
-  }, [v.corso_id]);
+  }, [v.corso_id, aGiorni, chiaveOrari]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // cambiando giorni o gruppo, le lezioni spuntate che non c'entrano più si tolgono
+  useEffect(() => {
+    if (!v.lezioni.length) return;
+    const restano = v.lezioni.filter((id) => lezioni.some((l) => l.lezione_id === id));
+    if (restano.length !== v.lezioni.length) setV((x) => ({ ...x, lezioni: restano }));
+  }, [lezioni]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ------------------------------------------------------------ prezzo proposto
   const dopoIlPrimo = aMese(tipo) && /^\d{4}-\d{2}-\d{2}$/.test(v.data_inizio) && !v.data_inizio.endsWith('-01');
@@ -529,9 +548,14 @@ export default function Sportello({ palestraId, corsi, tipi, orari, palestra, pe
           {modo !== 'persona' ? <p className="muto">Prima scegli il cliente.</p> : vista3 === 'incassa' ? (
             <div className="sp-incassa">
               <div className="sp-blocco">
-                <div className="sp-blocco-testa"><b>Prenota il posto</b>{corso && <span className="piccolo muto">{corso.nome} · prossimi 14 giorni</span>}</div>
+                <div className="sp-blocco-testa"><b>Prenota il posto</b>{corso && <span className="piccolo muto">{aGiorni && v.orari.length ? 'i giorni scelti' : corso.nome} · prossimi 14 giorni</span>}</div>
                 {!v.corso_id && <p className="piccolo muto">Scegli un corso per vedere le lezioni.</p>}
-                {v.corso_id && lezioni.length === 0 && <p className="piccolo muto">Nessuna lezione nei prossimi 14 giorni.</p>}
+                {v.corso_id && aGiorni && !v.orari.length && (
+                  <p className="piccolo muto">{gruppiDi(orari.filter((o) => o.corso_id === v.corso_id)).length
+                    ? 'Scegli prima il gruppo e i giorni (in 2): qui compaiono solo le sue lezioni.'
+                    : 'Scegli prima i giorni (in 2): qui compaiono solo le sue lezioni.'}</p>
+                )}
+                {v.corso_id && !(aGiorni && !v.orari.length) && lezioni.length === 0 && <p className="piccolo muto">Nessuna lezione nei prossimi 14 giorni.</p>}
                 <ul className="sp-lezioni">
                   {lezioni.map((l) => {
                     const posti = l.capienza ? Math.max(l.capienza - l.iscritti - l.prove, 0) : null;
@@ -542,7 +566,8 @@ export default function Sportello({ palestraId, corsi, tipi, orari, palestra, pe
                         <label className={`sp-lezione${scelta || auto ? ' scelta' : ''}${posti === 0 ? ' piena' : ''}`}>
                           <input type="checkbox" disabled={auto} checked={scelta || auto}
                                  onChange={() => setV((x) => ({ ...x, lezioni: x.lezioni.includes(l.lezione_id) ? x.lezioni.filter((y) => y !== l.lezione_id) : [...x.lezioni, l.lezione_id] }))} />
-                          <span className="sp-lez-quando">{nomeGiorno(l.data)} {Number(l.data.slice(8, 10))}/{Number(l.data.slice(5, 7))} · {ora(l.inizio)}</span>
+                          <span className="sp-lez-quando">{nomeGiorno(l.data)} {Number(l.data.slice(8, 10))}/{Number(l.data.slice(5, 7))} · {ora(l.inizio)}
+                            {l.corso_id && l.corso_id !== v.corso_id && <small className="muto"> · {l.corso_nome}</small>}</span>
                           <span className="sp-lez-posti">{auto ? 'nei suoi giorni' : tipo && v.data_inizio && l.data < v.data_inizio ? 'prima dell\'inizio' : posti === null ? `${l.iscritti} iscritti` : posti === 0 ? 'piena' : `${posti} ${posti === 1 ? 'posto' : 'posti'}`}</span>
                         </label>
                       </li>
