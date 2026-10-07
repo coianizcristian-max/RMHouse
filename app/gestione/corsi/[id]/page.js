@@ -7,6 +7,7 @@ import { dataBreve, etaAl } from '@/lib/formato';
 import Orari from './Orari';
 import InsegnantiCorso from './InsegnantiCorso';
 import AssegnaGiorni from '../../AssegnaGiorni';
+import { gruppiDi, gruppoDiOrari } from '@/lib/gruppi';
 import GruppoWhatsApp from './GruppoWhatsApp';
 
 export const dynamic = 'force-dynamic';
@@ -15,7 +16,7 @@ export const dynamic = 'force-dynamic';
 // a destra come è fatto il corso (orari, insegnanti, materiali)
 export default async function Corso({ params, searchParams }) {
   const { id } = await params;
-  const { vista = '' } = await searchParams;
+  const { vista = '', gruppo: gruppoF = '' } = await searchParams;
   const { supabase, staff } = await staffCorrente();
   if (staff.ruolo === 'insegnante') redirect('/gestione');
   const p = staff.palestra_id;
@@ -48,7 +49,11 @@ export default async function Corso({ params, searchParams }) {
     const x = infoIscrizione[i.iscrizione_id];
     return x && x.tipi_abbonamento?.modalita === 'orari_fissi' && (x.iscrizioni_orari || []).length === 0;
   });
-  const elenco = vista === 'senza_giorni' ? senzaGiorni : (iscritti || []);
+  // gruppi del corso (orari.gruppo): il gruppo di ogni iscritto viene dai suoi giorni
+  const gruppi = gruppiDi(orariAttivi);
+  const gruppoIscr = (iscrId) => gruppoDiOrari((infoIscrizione[iscrId]?.iscrizioni_orari || []).map((x) => orariAttivi.find((o) => o.id === x.orario_id)).filter(Boolean));
+  const elenco = (vista === 'senza_giorni' ? senzaGiorni : (iscritti || []))
+    .filter((i) => !gruppoF || gruppoIscr(i.iscrizione_id) === gruppoF);
   const certificati = (iscritti || []).filter((i) => i.stato === 'attiva' && i.bloccato).length;
 
   return (
@@ -113,6 +118,15 @@ export default async function Corso({ params, searchParams }) {
               <Link prefetch={false} className="stato-pillola" aria-current={vista === 'tutti' ? 'true' : undefined} href={`/gestione/corsi/${id}?vista=tutti`}>Anche scaduti</Link>
               <Link prefetch={false} className="stato-pillola" aria-current={vista === 'whatsapp' ? 'true' : undefined} href={`/gestione/corsi/${id}?vista=whatsapp`}>Per il gruppo WhatsApp</Link>
             </div>
+            {gruppi.length > 0 && vista !== 'whatsapp' && (
+              <div className="pastiglie" style={{ margin: '6px 0 0' }} aria-label="Gruppo">
+                <Link prefetch={false} className="stato-pillola" aria-current={!gruppoF ? 'true' : undefined} href={`/gestione/corsi/${id}${vista ? `?vista=${vista}` : ''}`}>Tutti i gruppi</Link>
+                {gruppi.filter((g) => g.chiave).map((g) => (
+                  <Link prefetch={false} key={g.chiave} className="stato-pillola" aria-current={gruppoF === g.chiave ? 'true' : undefined}
+                        href={`/gestione/corsi/${id}?${new URLSearchParams({ ...(vista ? { vista } : {}), gruppo: g.chiave })}`}>{g.chiave}</Link>
+                ))}
+              </div>
+            )}
           </div>
 
           {vista === 'whatsapp' && <GruppoWhatsApp iscritti={iscritti || []} />}
@@ -129,6 +143,7 @@ export default async function Corso({ params, searchParams }) {
                       <Link prefetch={false} className="persona-nome" href={`/gestione/persone/${i.allievo_id}`}>{i.cognome} {i.nome}</Link>
                       {i.data_nascita && <span className="piccolo muto"> · {etaAl(i.data_nascita)} anni</span>}
                       <div className="piccolo muto">
+                        {gruppoIscr(i.iscrizione_id) && <span className="tag tag-neutro" style={{ marginRight: 6 }}>{gruppoIscr(i.iscrizione_id)}</span>}
                         {i.abbonamento} · {i.stato === 'attiva' ? `fino al ${dataBreve(i.data_fine)}` : i.stato}
                         {i.titolare_nome !== i.nome && ` · paga ${i.titolare_nome} ${i.titolare_cognome || ''}`}
                       </div>

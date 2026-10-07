@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabaseBrowser } from '@/lib/supabase/browser';
+import { gruppoDiOrari } from '@/lib/gruppi';
 
 const GIORNI = ['', 'Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab', 'Dom'];
 
@@ -21,7 +22,8 @@ export default function AssegnaGiorni({ iscrizioneId, orari, scelti = [], quanti
     return (
       <span className="assegna-chiuso">
         {attuali.length > 0 && (
-          <span className="piccolo">{attuali.map((o) => `${GIORNI[o.giorno_settimana]} ${String(o.ora_inizio).slice(0, 5)}`).join(' · ')}</span>
+          <span className="piccolo">{attuali.map((o) => `${GIORNI[o.giorno_settimana]} ${String(o.ora_inizio).slice(0, 5)}`).join(' · ')}
+            {gruppoDiOrari(attuali) && <span className="tag tag-neutro" style={{ marginLeft: 6 }}>{gruppoDiOrari(attuali)}</span>}</span>
         )}
         <button type="button" className={`btn btn-piccolo${attuali.length ? '' : ' btn-primario'}`} onClick={() => setAperto(true)}>
           {attuali.length ? 'Cambia giorni' : 'Assegna i giorni'}
@@ -49,7 +51,7 @@ export default function AssegnaGiorni({ iscrizioneId, orari, scelti = [], quanti
       <div className="pastiglie" style={{ margin: 0 }}>
         {orari.map((o) => (
           <button key={o.id} type="button" aria-pressed={sel.has(o.id)} onClick={() => toggle(o.id)} style={{ paddingLeft: 12 }}>
-            {GIORNI[o.giorno_settimana]} {String(o.ora_inizio).slice(0, 5)}
+            {GIORNI[o.giorno_settimana]} {String(o.ora_inizio).slice(0, 5)}{o.gruppo ? <span className="muto"> · {o.gruppo}</span> : null}
           </button>
         ))}
       </div>

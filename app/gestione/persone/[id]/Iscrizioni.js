@@ -203,7 +203,7 @@ export default function Iscrizioni({ allievoId, iscrizioni, corsi, tipi, orari, 
               {orariCorso.map((o) => (
                 <label className="spunta" key={o.id}>
                   <input type="checkbox" checked={f.orari.includes(o.id)} onChange={() => toggleOrario(o.id)} />
-                  <span>{GIORNI[o.giorno_settimana]} {String(o.ora_inizio).slice(0, 5)}</span>
+                  <span>{GIORNI[o.giorno_settimana]} {String(o.ora_inizio).slice(0, 5)}{o.gruppo ? <span className="muto"> · {o.gruppo}</span> : null}</span>
                 </label>
               ))}
             </fieldset>

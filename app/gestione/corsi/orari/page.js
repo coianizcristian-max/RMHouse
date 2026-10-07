@@ -11,7 +11,7 @@ export default async function PaginaOrariCorsi() {
   const p = staff.palestra_id;
   const [{ data: corsi }, { data: orari }, { data: sale }, { data: persone }, { data: sedi }] = await Promise.all([
     supabase.from('corsi').select('id, nome, colore, attivo, iscrizioni_app, sede_id, discipline ( nome )').eq('palestra_id', p).eq('attivo', true).order('nome'),
-    supabase.from('orari').select('id, corso_id, giorno_settimana, ora_inizio, durata_min, sala_id, insegnante_id, valido_dal, valido_al, prenotabile, attivo')
+    supabase.from('orari').select('id, corso_id, giorno_settimana, ora_inizio, durata_min, sala_id, insegnante_id, valido_dal, valido_al, prenotabile, attivo, gruppo')
       .eq('palestra_id', p).order('ora_inizio'),
     supabase.from('sale').select('id, nome, sede_id').eq('palestra_id', p).order('nome'),
     supabase.from('staff').select('id, nome, cognome, attivo, archiviato').eq('palestra_id', p).order('nome'),

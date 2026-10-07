@@ -4114,3 +4114,24 @@ body:has(.sportello) .bottone-rapide { display: none; }
 .oc-occ-ins { margin-top: 4px; font-size: 13px; font-weight: 700; color: var(--rosso-scuro); }
 .oc-sel { min-height: 36px; padding: 6px 10px; border: 1px solid var(--linea); border-radius: 10px; font: inherit; font-size: 14px; background: var(--bianco); color: var(--testo); max-width: 230px; }
 .oc-sel.attivo { border-color: var(--nero); font-weight: 700; }
+.oc-gruppo { margin-left: auto; max-width: 48%; padding: 0 6px; border-radius: 999px; background: var(--carta); border: 1px solid var(--linea);
+  font-size: 10.5px; font-weight: 700; color: var(--testo); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.oc-gruppo + .oc-date, .oc-date + .oc-gruppo { margin-left: 4px; }
+.oc-campi .oc-campo-gruppo { grid-column: 1 / -1 !important; }
+.oc-gruppo + .oc-avviso-scontro { margin-left: 4px; }
+/* Iscriviti: gruppi dentro un corso e insegnante su ogni giorno */
+.isc-gruppi { display: grid; gap: 8px; margin-bottom: 10px; }
+.isc-gruppo { display: grid; gap: 3px; text-align: left; padding: 14px; border: 1.5px solid var(--linea); border-radius: 14px; background: var(--bianco); color: var(--testo); font: inherit; cursor: pointer; }
+.isc-gruppo:hover, .isc-gruppo:focus-visible { border-color: var(--nero); }
+.isc-gruppo strong { font-size: 16px; }
+.isc-gruppo-giorni { font-weight: 600; }
+.isc-gruppo-ins, .isc-ins { font-size: 13px; color: var(--testo-2); }
+.isc-giorni button[aria-pressed='true'] .isc-ins { color: inherit; opacity: .85; }
+.isc-gruppo-scelto { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; padding: 8px 12px; margin-bottom: 8px; border-radius: 12px; background: var(--carta); font-size: 14px; }
+/* Sportello: gruppi dentro un corso */
+.sp-chip-ins { margin-left: 4px; font-size: 11px; opacity: .75; font-weight: 600; }
+.sp-gruppo { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 4px; padding: 3px 4px 3px 3px; border: 1px dashed var(--linea); border-radius: 12px; }
+.sp-gruppo-nome { border: 0; background: var(--carta); color: var(--testo); border-radius: 999px; padding: 4px 10px; font: inherit; font-size: 12.5px; font-weight: 700; cursor: pointer; }
+.sp-gruppo-nome small { font-weight: 500; color: var(--testo-2); }
+.sp-gruppo-nome.attivo { background: var(--nero); color: var(--bianco); }
+.sp-gruppo-nome.attivo small { color: inherit; opacity: .8; }

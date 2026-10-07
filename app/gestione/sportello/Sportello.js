@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { supabaseBrowser } from '@/lib/supabase/browser';
 import { cercaPersone } from '@/lib/ricerca';
+import { gruppiDi } from '@/lib/gruppi';
 import { euro, dataBreve, ora } from '@/lib/formato';
 import CampoCerca from '../CampoCerca';
 import NuovoCliente from './NuovoCliente';
@@ -380,12 +381,37 @@ export default function Sportello({ palestraId, corsi, tipi, orari, palestra, pe
                   <div className="sp-chip-riga" role="group" aria-label="Giorni">
                     <span className="piccolo muto">Giorni:</span>
                     {orariCorso.length === 0 && <span className="piccolo muto">il corso non ha orari</span>}
-                    {orariCorso.map((o) => (
-                      <button type="button" key={o.id} aria-pressed={v.orari.includes(o.id)} className={`sp-chip${v.orari.includes(o.id) ? ' attivo' : ''}`}
-                              onClick={() => setV((x) => ({ ...x, orari: x.orari.includes(o.id) ? x.orari.filter((y) => y !== o.id) : [...x.orari, o.id] }))}>
-                        {GIORNI[o.giorno_settimana]} {String(o.ora_inizio).slice(0, 5)}
-                      </button>
-                    ))}
+                    {(() => {
+                      const chip = (o) => (
+                        <button type="button" key={o.id} aria-pressed={v.orari.includes(o.id)} className={`sp-chip${v.orari.includes(o.id) ? ' attivo' : ''}`}
+                                title={o.insegnante ? `con ${o.insegnante}` : undefined}
+                                onClick={() => setV((x) => ({ ...x, orari: x.orari.includes(o.id) ? x.orari.filter((y) => y !== o.id) : [...x.orari, o.id] }))}>
+                          {GIORNI[o.giorno_settimana]} {String(o.ora_inizio).slice(0, 5)}
+                          {o.insegnante && <small className="sp-chip-ins">{o.insegnante.split(' ')[0]}</small>}
+                        </button>
+                      );
+                      const gruppi = gruppiDi(orariCorso);
+                      if (!gruppi.length) return orariCorso.map(chip);
+                      // corso con più gruppi: un tocco sul nome prende tutti i giorni del gruppo (si possono comunque mescolare)
+                      return gruppi.map((g) => {
+                        const ids = g.orari.map((o) => o.id);
+                        const tutti = ids.every((id) => v.orari.includes(id));
+                        const ins = [...new Set(g.orari.map((o) => o.insegnante).filter(Boolean))].join(', ');
+                        return (
+                          <span key={g.chiave || 'altri'} className="sp-gruppo">
+                            <button type="button" className={`sp-gruppo-nome${tutti ? ' attivo' : ''}`} title={ins ? `con ${ins}` : undefined}
+                                    onClick={() => setV((x) => {
+                                      // i giorni di questo corso diventano quelli del gruppo (restano quelli di altri corsi)
+                                      const resto = x.orari.filter((id) => !orariCorso.some((o) => o.id === id));
+                                      return { ...x, orari: tutti ? resto : [...resto, ...ids.slice(0, tipo?.lezioni_settimanali || ids.length)] };
+                                    })}>
+                              {g.nome}{ins ? <small> · {ins}</small> : null}
+                            </button>
+                            {g.orari.map(chip)}
+                          </span>
+                        );
+                      });
+                    })()}
                   </div>
                 )}
                 {tipo && (

@@ -23,12 +23,13 @@ export default function Orari({ palestraId, corsoId, orari, sale, insegnanti, ab
         { k: 'insegnante_id', etichetta: 'Insegnante', tipo: 'select', opzioni: scelta.map((i) => ({ v: i.id, l: `${i.nome} ${i.cognome || ''}`.trim() + (abilitati.length && !abilitati.includes(i.id) ? ' · non sul corso' : '') })) },
         { k: 'valido_dal', etichetta: 'Valido dal', tipo: 'data', aiuto: 'Vuoto = da oggi' },
         { k: 'valido_al', etichetta: 'Valido fino al', tipo: 'data', aiuto: 'Vuoto = senza scadenza' },
+        { k: 'gruppo', etichetta: 'Gruppo', tipo: 'testo', aiuto: 'Solo se il corso ha più gruppi (es. "Serale Eloise", "Pausa pranzo Liuda"): chi si iscrive dall\'app sceglie il gruppo e poi i suoi giorni' },
         { k: 'prenotabile', etichetta: 'Prenotabile online', tipo: 'check',
           aiuto: 'Tolto: le lezioni di questo orario non si prenotano dal sito né dall\'area cliente' },
         { k: 'attivo', etichetta: 'Attivo', tipo: 'check' },
       ]}
       riassunto={(o) => ({
-        titolo: `${GIORNI.find(([v]) => v === o.giorno_settimana)?.[1] || ''} ${String(o.ora_inizio).slice(0, 5)}`,
+        titolo: `${GIORNI.find(([v]) => v === o.giorno_settimana)?.[1] || ''} ${String(o.ora_inizio).slice(0, 5)}${o.gruppo ? ` · ${o.gruppo}` : ''}`,
         dettaglio: [
           `${o.durata_min} minuti`,
           sale.find((s) => s.id === o.sala_id)?.nome,
