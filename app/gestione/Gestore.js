@@ -6,7 +6,8 @@ import SceltaColore from './SceltaColore';
 
 // Editor generico: elenco di righe con aggiunta, modifica ed eliminazione.
 // campi: [{ k, etichetta, tipo: 'testo'|'numero'|'euro'|'select'|'check'|'ora'|'data'|'testolungo',
-//           opzioni?: [{v,l}], obbligatorio?, aiuto?, meta?, suggerimenti?: [{nome, colore}], nessuno?, segnaposto? }]
+//           opzioni?: [{v,l}], obbligatorio?, aiuto?, meta?, suggerimenti?: [{nome, colore}], nessuno?, segnaposto?,
+//           gruppo? (titolo di sezione: modulo compatto a 4 colonne), larghezza? 1-4, se?(bozza) → mostrarlo o no, righe? }]
 // fissi: valori sempre applicati (es. { palestra_id, corso_id })
 // riassunto(riga) -> { titolo, dettaglio, tag?, colore? }
 // sezione(riga) -> { chiave, titolo }: se c'è, le righe (già in ordine) sono divise da un titoletto
@@ -152,7 +153,11 @@ export default function Gestore({ tabella, campi, righe, fissi = {}, riassunto, 
             {apri === r.id ? (
               <Modulo campi={campi} bozza={bozza} setBozza={setBozza} salva={salva} annulla={() => { setApri(null); setErrore(''); }} invio={invio} errore={errore} />
             ) : (
-              <div className="persona" style={{ alignItems: 'start' }}>
+              // un clic su qualunque punto della riga apre la modifica (i pulsanti fanno la loro azione)
+              <div className="persona gestore-riga" style={{ alignItems: 'start' }} role="button" tabIndex={0}
+                   title="Clic per modificare"
+                   onClick={(e) => { if (!e.target.closest('button, a, input, select, textarea')) apriModifica(r); }}
+                   onKeyDown={(e) => { if ((e.key === 'Enter' || e.key === ' ') && e.target === e.currentTarget) { e.preventDefault(); apriModifica(r); } }}>
                 <div>
                   {riassunto(r).colore && (
                     <span aria-hidden="true" style={{
@@ -189,24 +194,29 @@ export default function Gestore({ tabella, campi, righe, fissi = {}, riassunto, 
 }
 
 function Modulo({ campi, bozza, setBozza, salva, annulla, invio, errore }) {
+  const aGruppi = campi.some((c) => c.gruppo);
   const set = (k, v) => setBozza((b) => ({ ...b, [k]: v }));
   const rifErrore = useRef(null);
   // l'errore compare accanto a "Salva" e lo si porta in vista
   useEffect(() => { if (errore) rifErrore.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }); }, [errore]);
   return (
-    <form onSubmit={salva} style={{ padding: '14px 0' }}>
-      {campi.map((c) => {
+    <form onSubmit={salva} style={{ padding: '14px 0' }} className={aGruppi ? 'gestore-modulo a-gruppi' : undefined}>
+      {campi.filter((c) => !c.se || c.se(bozza)).map((c, i, vis) => {
         const id = `c-${c.k}`;
+        // modulo a sezioni (campo.gruppo): un titoletto quando cambia la sezione, campi stretti in 4 colonne
+        const testa = aGruppi && c.gruppo && (i === 0 || vis[i - 1].gruppo !== c.gruppo)
+          ? <div key={`g-${c.gruppo}`} className="gm-sezione">{c.gruppo}</div> : null;
+        const largo = aGruppi ? ` gm-l${c.larghezza || (c.tipo === 'testolungo' ? 4 : 1)}` : '';
         if (c.tipo === 'check') {
-          return (
-            <label className="spunta" key={c.k}>
+          return [testa,
+            <label className={`spunta${aGruppi ? ` gm-check${largo}` : ''}`} key={c.k}>
               <input type="checkbox" checked={!!bozza[c.k]} onChange={(e) => set(c.k, e.target.checked)} />
               <span>{c.etichetta}{c.aiuto && <span className="piccolo muto" style={{ display: 'block' }}>{c.aiuto}</span>}</span>
-            </label>
-          );
+            </label>,
+          ];
         }
-        return (
-          <div className="campo" key={c.k}>
+        return [testa,
+          <div className={`campo${largo}`} key={c.k}>
             <label htmlFor={id}>{c.etichetta}</label>
             {c.tipo === 'select' ? (
               <select id={id} value={bozza[c.k] ?? ''} onChange={(e) => set(c.k, e.target.value)}>
@@ -216,7 +226,7 @@ function Modulo({ campi, bozza, setBozza, salva, annulla, invio, errore }) {
             ) : c.tipo === 'colore' ? (
               <SceltaColore valore={bozza[c.k] || ''} onChange={(v) => setBozza((b) => ({ ...b, [c.k]: v }))} />
             ) : c.tipo === 'testolungo' ? (
-              <textarea id={id} value={bozza[c.k] ?? ''} onChange={(e) => set(c.k, e.target.value)} />
+              <textarea id={id} value={bozza[c.k] ?? ''} onChange={(e) => set(c.k, e.target.value)} rows={c.righe || undefined} />
             ) : (
               <>
               {c.suggerimenti?.length > 0 && (
@@ -241,11 +251,11 @@ function Modulo({ campi, bozza, setBozza, salva, annulla, invio, errore }) {
               </>
             )}
             {c.aiuto && <span className="piccolo muto">{c.aiuto}</span>}
-          </div>
-        );
+          </div>,
+        ];
       })}
       {errore && <div className="errore" role="alert" ref={rifErrore}>{errore}</div>}
-      <div style={{ display: 'flex', gap: 10 }}>
+      <div style={{ display: 'flex', gap: 10 }} className={aGruppi ? 'gm-azioni' : undefined}>
         <button className="btn btn-primario" disabled={invio}>{invio ? 'Salvo…' : 'Salva'}</button>
         <button type="button" className="btn" onClick={annulla}>Annulla</button>
       </div>

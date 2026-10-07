@@ -13,7 +13,7 @@ const ERRORI = {
   lezione_non_disponibile: 'Lezione non più disponibile.',
   non_autorizzato: 'Non hai i permessi per questa operazione.',
   lezione_disdetta: 'È la lezione che è stata disdetta: scegline un\'altra.',
-  limite_recuperi_mese: 'Ha già fatto tutti i recuperi ammessi in quel mese (vedi Impostazioni → Abbonamenti → Recuperi e disdette).',
+  limite_recuperi_mese: 'Ha già fatto tutti i recuperi ammessi in quel mese (vedi Struttura → Abbonamenti e recuperi → Recuperi e disdette).',
 };
 
 export default function Recuperi({ allievoId, crediti }) {

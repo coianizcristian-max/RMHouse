@@ -41,6 +41,8 @@ const SEZIONI = [
     voci: [
       ['Modifica veloce dei corsi', '/gestione/corsi/veloce', 'Tutti i corsi in una tabella: posti, prova, prezzo della prova, prenotazioni e stato. Si salva da sola; per cambiarne tanti insieme si spuntano e si usa la barra in basso.'],
       ['Orari dei corsi', '/gestione/corsi/orari', 'Tutti i corsi in una tabella con i giorni della settimana (ora, sala, insegnante, date); corsi senza giorni in rosso, pallino arancione = non si sceglie dall\'app. Tocchi un orario e lo cambi (giorno, ora, durata, sala, insegnante, date, app) o lo sospendi; "+" aggiunge un giorno.'],
+      ['Abbonamenti e recuperi', '/gestione/abbonamenti', 'Tipi di abbonamento, gruppi di listino, regole dei recuperi (quanti al mese, fino a quando), preavvisi, corsi coperti da ogni abbonamento.'],
+      ['Controllo dei corsi coperti', '/gestione/abbonamenti?sezione=coperti', 'Corsi coperti in tre viste: modifica per abbonamento, ogni abbonamento con i suoi corsi, ogni corso con i suoi abbonamenti (anche da lì si aggiungono o tolgono). Per i controlli incrociati.', 'corsi-coperti'],
       ['Corsi', '/gestione/corsi', 'Anagrafica del corso, foto, colore, capienza, orari settimanali, insegnanti, iscritti e lista d\'attesa.'],
       ['Gruppo WhatsApp del corso', '/gestione/corsi', 'Nella scheda del corso: "Per il gruppo WhatsApp" copia i numeri di chi ha dato il consenso, da incollare nel gruppo.', 'gruppo-whatsapp'],
       ['Pagina pubblica del corso', '/gestione/corsi', 'Dentro ogni corso, accanto a "modifica": il link con foto e orari da usare nelle campagne.', 'pagina-pubblica-corso'],
@@ -107,8 +109,6 @@ const SEZIONI = [
       ['I miei compensi', '/gestione/miei-compensi', 'Per l\'insegnante: il cedolino del mese con le lezioni contate, da confermare o segnalare.'],
       ['Attività dello staff', '/gestione/attivita', 'Chi dello staff ha fatto cosa: appelli, incassi, iscrizioni, nel periodo.'],
       ['Costi e fornitori', '/gestione/costi', 'Spese fisse e variabili, fornitori, compensi orari, costo orario delle sale.'],
-      ['Abbonamenti, recuperi e sconti', '/gestione/abbonamenti', 'Tipi di abbonamento, gruppi di listino, regole dei recuperi (quanti al mese, fino a quando), preavvisi, corsi coperti da ogni abbonamento.'],
-      ['Controllo dei corsi coperti', '/gestione/abbonamenti?sezione=coperti', 'Corsi coperti in tre viste: modifica per abbonamento, ogni abbonamento con i suoi corsi, ogni corso con i suoi abbonamenti (anche da lì si aggiungono o tolgono). Per i controlli incrociati.', 'corsi-coperti'],
       ['Esportazione contabile', '/gestione/incassi', 'In fondo agli incassi: il CSV del periodo da girare al commercialista.', 'esportazione'],
       ['Messaggi automatici', '/gestione/messaggi', 'I testi di ogni email automatica, con segnaposto, anteprima dal vivo, invio di prova e coda di partenza.'],
     ],

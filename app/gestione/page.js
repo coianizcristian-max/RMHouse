@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import CercaVeloce from './CercaVeloce';
 import Promemoria from './Promemoria';
+import PannelloNotizie from './PannelloNotizie';
 import { staffCorrente } from '@/lib/staff';
 import { ora, oggiISO, euro, dataBreve } from '@/lib/formato';
 import { STATI_CLIENTE, TIPI_SCADENZA } from '@/lib/stati';
@@ -120,7 +121,8 @@ export default async function Home({ searchParams }) {
     .sort((a, b) => a[1].ordine - b[1].ordine);
 
   return (
-    <>
+    <div className={gestione ? 'home-con-notizie' : undefined}>
+    <div className="home-principale">
       <div className="cruscotto-testa">
         <div>
           <div className="occhiello">
@@ -329,6 +331,9 @@ export default async function Home({ searchParams }) {
           </section>
         </div>
       )}
-    </>
+    </div>
+    {/* schermi larghi: a destra le notizie (prenotazioni, disdette, prove, certificati da verificare, richieste, notifiche) */}
+    {gestione && <PannelloNotizie palestraId={p} />}
+    </div>
   );
 }
