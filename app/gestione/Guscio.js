@@ -1,4 +1,5 @@
 'use client';
+import { erroreDiVersione } from '../ErroreCaricamento';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import Cronologia from './Cronologia';
@@ -76,6 +77,21 @@ export default function Guscio({ gestione, nome, ruolo, palestraId, funzioni = {
   const [cassetto, setCassetto] = useState(false);
   const [aperta, setAperta] = useState(null);
   useEffect(() => { setCassetto(false); }, [path]);
+  // versione vecchia rimasta aperta dopo un aggiornamento: un pezzo di pagina non si trova più → si ricarica da sola
+  useEffect(() => {
+    const controlla = (e) => {
+      const err = e?.reason || e?.error || e;
+      if (!erroreDiVersione(err)) return;
+      let ultima = 0;
+      try { ultima = Number(sessionStorage.getItem('rm-ricaricata-per-versione') || 0); } catch { /* niente */ }
+      if (Date.now() - ultima < 30000) return;
+      try { sessionStorage.setItem('rm-ricaricata-per-versione', String(Date.now())); } catch { /* niente */ }
+      window.location.reload();
+    };
+    window.addEventListener('unhandledrejection', controlla);
+    window.addEventListener('error', controlla);
+    return () => { window.removeEventListener('unhandledrejection', controlla); window.removeEventListener('error', controlla); };
+  }, []);
   useEffect(() => {
     document.body.classList.toggle('cassetto-aperto', cassetto);
     if (cassetto) setAperta(null);
