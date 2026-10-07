@@ -5,6 +5,7 @@ import { supabaseBrowser } from '@/lib/supabase/browser';
 import Gestore from '../Gestore';
 import CorsiCoperti from './CorsiCoperti';
 import GruppiListino from './GruppiListino';
+import Famiglie from './Famiglie';
 import DoveSiRecupera from './DoveSiRecupera';
 import { euro } from '@/lib/formato';
 
@@ -20,7 +21,7 @@ const CATEGORIE_VOCI = [
 ];
 
 const SEZIONI = [
-  ['tipi', 'Tipi di abbonamento'], ['gruppi', 'Gruppi di listino'], ['coperti', 'Corsi coperti'],
+  ['tipi', 'Tipi di abbonamento'], ['gruppi', 'Gruppi di listino'], ['famiglie', 'Famiglie'], ['coperti', 'Corsi coperti'],
   ['recuperi', 'Recuperi e disdette'], ['listino', 'Altre voci a listino'],
 ];
 
@@ -66,6 +67,8 @@ export default function Abbonamenti({ palestraId, sezioneIniziale = 'tipi', tipi
 
   const nelGruppo = (t) => !gruppo || (gruppo === 'nessuno' ? !t.gruppo_id : t.gruppo_id === gruppo);
   const quanti = (g) => tipi.filter((t) => !t.archiviato && (g === 'nessuno' ? !t.gruppo_id : t.gruppo_id === g)).length;
+  // tutte le famiglie in uso (per sceglierle nella scheda dell'abbonamento, invece di riscriverle)
+  const tutteFamiglie = [...new Set(tipi.map((t) => t.famiglia).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'it'));
   const famiglie = [...new Set(tipi.filter((t) => !t.archiviato && nelGruppo(t)).map((t) => t.famiglia).filter(Boolean))].sort();
   // parola per parola, senza accenti né spazi doppi: "attrezzi 90" trova anche "ATTREZZI  90 min…"
   const sempl = (x) => String(x || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
@@ -98,7 +101,7 @@ export default function Abbonamenti({ palestraId, sezioneIniziale = 'tipi', tipi
   return (
     <>
       <div className="intestazione">
-        <div className="occhiello">Impostazioni</div>
+        <div className="occhiello">Struttura</div>
         <h1>Abbonamenti e recuperi</h1>
         <p>Listino diviso per gruppi, corsi coperti, regole dei recuperi e delle disdette.</p>
       </div>
@@ -153,28 +156,29 @@ export default function Abbonamenti({ palestraId, sezioneIniziale = 'tipi', tipi
             sezione={ordine === 'durata' ? fascia : undefined}
             campi={[
               // modulo compatto a sezioni: tutto in una schermata
-              { k: 'nome', etichetta: 'Nome', tipo: 'testo', obbligatorio: true, gruppo: 'Abbonamento', larghezza: 2 },
-              { k: 'codice', etichetta: 'Codice', tipo: 'testo', gruppo: 'Abbonamento', aiuto: 'Breve, es. "P 24 lez"' },
+              { k: 'nome', etichetta: 'Nome', tipo: 'testo', obbligatorio: true, gruppo: 'Abbonamento', larghezza: 3 },
+              { k: 'codice', etichetta: 'Codice', tipo: 'testo', gruppo: 'Abbonamento', aiuto: 'es. P 24 lez' },
               { k: 'gruppo_id', etichetta: 'Gruppo di listino', tipo: 'select', opzioni: opzioniGruppo, vuotoTesto: '— nessuno —',
                 predefinito: gruppo && gruppo !== 'nessuno' ? gruppo : '', gruppo: 'Abbonamento' },
-              { k: 'famiglia', etichetta: 'Famiglia', tipo: 'testo', gruppo: 'Abbonamento', larghezza: 2, aiuto: 'Raggruppa i simili: Aerea adulti, Street Kids e Teen…' },
               { k: 'modalita', etichetta: 'Tipo', tipo: 'select', opzioni: MODALITA, obbligatorio: true, predefinito: 'orari_fissi', gruppo: 'Abbonamento' },
-              { k: 'aliquota_id', etichetta: 'Aliquota IVA', tipo: 'select', opzioni: opzioniAliquota, vuotoTesto: '— la predefinita —', gruppo: 'Abbonamento' },
-              { k: 'descrizione', etichetta: 'Descrizione per il cliente', tipo: 'testolungo', righe: 2, gruppo: 'Abbonamento', aiuto: 'Si legge nel negozio dell\'app: cosa comprende, validità, regole.' },
+              { k: 'famiglia', etichetta: 'Famiglia', tipo: 'scelta', gruppo: 'Abbonamento', larghezza: 2, aiuto: 'raggruppa i simili',
+                opzioni: tutteFamiglie.map((f) => ({ v: f, l: f })), vuotoTesto: '— nessuna —', nuovaTesto: '+ Nuova famiglia…' },
+              { k: 'aliquota_id', etichetta: 'IVA', tipo: 'select', opzioni: opzioniAliquota, vuotoTesto: '— predefinita —', gruppo: 'Abbonamento' },
+              { k: 'descrizione', etichetta: 'Descrizione per il cliente', tipo: 'testolungo', righe: 1, gruppo: 'Abbonamento', larghezza: 3, aiuto: 'nel negozio dell\'app' },
 
               { k: 'prezzo_cent', etichetta: 'Prezzo segreteria (€)', tipo: 'euro', obbligatorio: true, gruppo: 'Prezzo e durata' },
-              { k: 'prezzo_web_cent', etichetta: 'Prezzo online (€)', tipo: 'euro', gruppo: 'Prezzo e durata', aiuto: 'Vuoto = come in segreteria' },
+              { k: 'prezzo_web_cent', etichetta: 'Prezzo online (€)', tipo: 'euro', gruppo: 'Prezzo e durata', aiuto: 'vuoto = uguale' },
               { k: 'durata_mesi', etichetta: 'Durata (mesi)', tipo: 'numero', obbligatorio: true, predefinito: '1', gruppo: 'Prezzo e durata' },
-              { k: 'durata_giorni', etichetta: 'Oppure in giorni', tipo: 'numero', gruppo: 'Prezzo e durata', aiuto: 'Se c\'è vale questa: 1 = singola, 28 = 4 settimane' },
-              { k: 'scadenza_fine_mese', etichetta: 'Scade a fine mese solare', tipo: 'check', gruppo: 'Prezzo e durata', larghezza: 4,
-                aiuto: 'Chi paga il 10 scade a fine mese (trimestrale: a fine del terzo mese). Vale anche con la durata in giorni da 28 in su.' },
+              { k: 'durata_giorni', etichetta: 'Oppure giorni', tipo: 'numero', gruppo: 'Prezzo e durata', aiuto: '1 = singola, 28 = 4 sett.' },
+              { k: 'scadenza_fine_mese', etichetta: 'Scade a fine mese solare', tipo: 'check', gruppo: 'Prezzo e durata', larghezza: 2,
+                aiuto: 'chi paga il 10 scade a fine mese (trimestrale: fine del 3° mese)' },
 
               { k: 'lezioni_settimanali', etichetta: 'Lezioni a settimana', tipo: 'numero', gruppo: 'Lezioni e recuperi', se: (b) => b.modalita !== 'ingressi' && b.modalita !== 'libero' },
               { k: 'num_ingressi', etichetta: 'Ingressi del pacchetto', tipo: 'numero', gruppo: 'Lezioni e recuperi', se: (b) => b.modalita === 'ingressi' },
-              { k: 'recuperi_max', etichetta: 'Recuperi massimi', tipo: 'numero', gruppo: 'Lezioni e recuperi', aiuto: 'In tutto. Vuoto = illimitati, 0 = nessuno' },
+              { k: 'recuperi_max', etichetta: 'Recuperi massimi', tipo: 'numero', gruppo: 'Lezioni e recuperi', aiuto: 'vuoto = illimitati, 0 = nessuno', larghezza: 2 },
               // con i recuperi validi fino a fine abbonamento i giorni non servono
               ...(palestra.scadenza_recupero === 'abbonamento' ? [] : [
-                { k: 'giorni_validita_recupero', etichetta: 'Validità recupero (giorni)', tipo: 'numero', predefinito: '30', gruppo: 'Lezioni e recuperi', aiuto: 'Dalla lezione persa. Vuoto = 30' },
+                { k: 'giorni_validita_recupero', etichetta: 'Validità recupero (giorni)', tipo: 'numero', predefinito: '30', gruppo: 'Lezioni e recuperi', aiuto: 'dalla lezione persa', larghezza: 2 },
               ]),
 
               { k: 'acquistabile_online', etichetta: 'Si compra dall\'app', tipo: 'check', gruppo: 'Vendita' },
@@ -199,6 +203,8 @@ export default function Abbonamenti({ palestraId, sezioneIniziale = 'tipi', tipi
           />
         </>
       )}
+
+      {sezione === 'famiglie' && <Famiglie palestraId={palestraId} tipi={tipi.filter((t) => !t.archiviato)} />}
 
       {sezione === 'gruppi' && <GruppiListino palestraId={palestraId} gruppi={gruppi} tipi={tipi.filter((t) => !t.archiviato)} />}
 

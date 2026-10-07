@@ -7,6 +7,7 @@ import SceltaColore from './SceltaColore';
 // Editor generico: elenco di righe con aggiunta, modifica ed eliminazione.
 // campi: [{ k, etichetta, tipo: 'testo'|'numero'|'euro'|'select'|'check'|'ora'|'data'|'testolungo',
 //           opzioni?: [{v,l}], obbligatorio?, aiuto?, meta?, suggerimenti?: [{nome, colore}], nessuno?, segnaposto?,
+//           tipo 'scelta': opzioni [{v,l}] + "+ Nuova…" (nuovaTesto), niente testo libero sbagliato
 //           gruppo? (titolo di sezione: modulo compatto a 4 colonne), larghezza? 1-4, se?(bozza) → mostrarlo o no, righe? }]
 // fissi: valori sempre applicati (es. { palestra_id, corso_id })
 // riassunto(riga) -> { titolo, dettaglio, tag?, colore? }
@@ -199,67 +200,105 @@ function Modulo({ campi, bozza, setBozza, salva, annulla, invio, errore }) {
   const rifErrore = useRef(null);
   // l'errore compare accanto a "Salva" e lo si porta in vista
   useEffect(() => { if (errore) rifErrore.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }); }, [errore]);
-  return (
-    <form onSubmit={salva} style={{ padding: '14px 0' }} className={aGruppi ? 'gestore-modulo a-gruppi' : undefined}>
-      {campi.filter((c) => !c.se || c.se(bozza)).map((c, i, vis) => {
-        const id = `c-${c.k}`;
-        // modulo a sezioni (campo.gruppo): un titoletto quando cambia la sezione, campi stretti in 4 colonne
-        const testa = aGruppi && c.gruppo && (i === 0 || vis[i - 1].gruppo !== c.gruppo)
-          ? <div key={`g-${c.gruppo}`} className="gm-sezione">{c.gruppo}</div> : null;
-        const largo = aGruppi ? ` gm-l${c.larghezza || (c.tipo === 'testolungo' ? 4 : 1)}` : '';
-        if (c.tipo === 'check') {
-          return [testa,
-            <label className={`spunta${aGruppi ? ` gm-check${largo}` : ''}`} key={c.k}>
-              <input type="checkbox" checked={!!bozza[c.k]} onChange={(e) => set(c.k, e.target.checked)} />
-              <span>{c.etichetta}{c.aiuto && <span className="piccolo muto" style={{ display: 'block' }}>{c.aiuto}</span>}</span>
-            </label>,
-          ];
-        }
-        return [testa,
-          <div className={`campo${largo}`} key={c.k}>
-            <label htmlFor={id}>{c.etichetta}</label>
-            {c.tipo === 'select' ? (
-              <select id={id} value={bozza[c.k] ?? ''} onChange={(e) => set(c.k, e.target.value)}>
-                <option value="">{c.vuotoTesto || '— nessuno —'}</option>
-                {c.opzioni.map((o) => <option key={o.v} value={o.v}>{o.l}</option>)}
-              </select>
-            ) : c.tipo === 'colore' ? (
-              <SceltaColore valore={bozza[c.k] || ''} onChange={(v) => setBozza((b) => ({ ...b, [c.k]: v }))} />
-            ) : c.tipo === 'testolungo' ? (
-              <textarea id={id} value={bozza[c.k] ?? ''} onChange={(e) => set(c.k, e.target.value)} rows={c.righe || undefined} />
-            ) : (
-              <>
-              {c.suggerimenti?.length > 0 && (
-                // valori già usati (es. i gruppi del corso): un tocco e il campo è compilato
-                <div className="oc-gruppi-scelta" role="group" aria-label={`${c.etichetta}: quelli già usati`}>
-                  {c.suggerimenti.map((x) => (
-                    <button key={x.nome} type="button" className="oc-gruppo-chip" style={{ '--g': x.colore || 'var(--testo-2)' }}
-                            aria-pressed={String(bozza[c.k] ?? '').trim().toLowerCase() === x.nome.toLowerCase()}
-                            onClick={() => set(c.k, x.nome)}>{x.nome}</button>
-                  ))}
-                  {c.nessuno && (
-                    <button type="button" className="oc-gruppo-chip nessuno" aria-pressed={!String(bozza[c.k] ?? '').trim()}
-                            onClick={() => set(c.k, '')}>{c.nessuno}</button>
-                  )}
-                </div>
+  const visibili = campi.filter((c) => !c.se || c.se(bozza));
+
+  // un campo; nel modulo a sezioni la nota sta accanto all'etichetta (niente righe in più)
+  const campo = (c) => {
+    const id = `c-${c.k}`;
+    const largo = aGruppi ? ` gm-l${c.larghezza || (c.tipo === 'testolungo' ? 6 : 1)}` : '';
+    if (c.tipo === 'check') {
+      return (
+        <label className={`spunta${aGruppi ? ` gm-check${largo}` : ''}`} key={c.k} title={aGruppi ? c.aiuto : undefined}>
+          <input type="checkbox" checked={!!bozza[c.k]} onChange={(e) => set(c.k, e.target.checked)} />
+          <span>{c.etichetta}{c.aiuto && !aGruppi && <span className="piccolo muto" style={{ display: 'block' }}>{c.aiuto}</span>}
+            {c.aiuto && aGruppi && <span className="gm-aiuto"> {c.aiuto}</span>}</span>
+        </label>
+      );
+    }
+    return (
+      <div className={`campo${largo}`} key={c.k}>
+        <label htmlFor={id}>{c.etichetta}{aGruppi && c.aiuto && <span className="gm-aiuto" title={c.aiuto}> · {c.aiuto}</span>}</label>
+        {c.tipo === 'select' ? (
+          <select id={id} value={bozza[c.k] ?? ''} onChange={(e) => set(c.k, e.target.value)}>
+            <option value="">{c.vuotoTesto || '— nessuno —'}</option>
+            {c.opzioni.map((o) => <option key={o.v} value={o.v}>{o.l}</option>)}
+          </select>
+        ) : c.tipo === 'scelta' ? (
+          <SceltaONuova id={id} valore={bozza[c.k] ?? ''} opzioni={c.opzioni} vuotoTesto={c.vuotoTesto} nuovaTesto={c.nuovaTesto}
+                        onChange={(v) => set(c.k, v)} />
+        ) : c.tipo === 'colore' ? (
+          <SceltaColore valore={bozza[c.k] || ''} onChange={(v) => setBozza((b) => ({ ...b, [c.k]: v }))} />
+        ) : c.tipo === 'testolungo' ? (
+          <textarea id={id} value={bozza[c.k] ?? ''} onChange={(e) => set(c.k, e.target.value)} rows={c.righe || undefined} />
+        ) : (
+          <>
+          {c.suggerimenti?.length > 0 && (
+            // valori già usati (es. i gruppi del corso): un tocco e il campo è compilato
+            <div className="oc-gruppi-scelta" role="group" aria-label={`${c.etichetta}: quelli già usati`}>
+              {c.suggerimenti.map((x) => (
+                <button key={x.nome} type="button" className="oc-gruppo-chip" style={{ '--g': x.colore || 'var(--testo-2)' }}
+                        aria-pressed={String(bozza[c.k] ?? '').trim().toLowerCase() === x.nome.toLowerCase()}
+                        onClick={() => set(c.k, x.nome)}>{x.nome}</button>
+              ))}
+              {c.nessuno && (
+                <button type="button" className="oc-gruppo-chip nessuno" aria-pressed={!String(bozza[c.k] ?? '').trim()}
+                        onClick={() => set(c.k, '')}>{c.nessuno}</button>
               )}
-              <input id={id} value={bozza[c.k] ?? ''} onChange={(e) => set(c.k, e.target.value)}
-                     autoComplete={c.suggerimenti ? 'off' : undefined}
-                     placeholder={c.suggerimenti?.length ? (c.segnaposto || 'oppure scrivi') : c.tipo === 'euro' ? '0 = gratis' : c.segnaposto}
-                     type={c.tipo === 'ora' ? 'time' : c.tipo === 'data' ? 'date' : 'text'}
-                     inputMode={c.tipo === 'euro' ? 'decimal' : c.tipo === 'numero' ? 'numeric' : undefined} />
-              </>
-            )}
-            {c.aiuto && <span className="piccolo muto">{c.aiuto}</span>}
-          </div>,
-        ];
-      })}
+            </div>
+          )}
+          <input id={id} value={bozza[c.k] ?? ''} onChange={(e) => set(c.k, e.target.value)}
+                 autoComplete={c.suggerimenti ? 'off' : undefined}
+                 placeholder={c.suggerimenti?.length ? (c.segnaposto || 'oppure scrivi') : c.tipo === 'euro' ? '0 = gratis' : c.segnaposto}
+                 type={c.tipo === 'ora' ? 'time' : c.tipo === 'data' ? 'date' : 'text'}
+                 inputMode={c.tipo === 'euro' ? 'decimal' : c.tipo === 'numero' ? 'numeric' : undefined} />
+          </>
+        )}
+        {c.aiuto && !aGruppi && <span className="piccolo muto">{c.aiuto}</span>}
+      </div>
+    );
+  };
+
+  // modulo a sezioni: a sinistra il nome della sezione, a destra i suoi campi su 6 colonne
+  const sezioni = [];
+  if (aGruppi) for (const c of visibili) {
+    const ultima = sezioni[sezioni.length - 1];
+    if (ultima && ultima.nome === (c.gruppo || '')) ultima.campi.push(c); else sezioni.push({ nome: c.gruppo || '', campi: [c] });
+  }
+
+  return (
+    <form onSubmit={salva} style={aGruppi ? undefined : { padding: '14px 0' }} className={aGruppi ? 'gestore-modulo a-gruppi' : undefined}>
+      {aGruppi ? sezioni.map((z) => (
+        <div key={z.nome} className="gm-sez">
+          <div className="gm-sezione">{z.nome}</div>
+          <div className={`gm-campi${z.campi.every((c) => c.tipo === 'check') ? ' solo-spunte' : ''}`}>{z.campi.map(campo)}</div>
+        </div>
+      )) : visibili.map(campo)}
       {errore && <div className="errore" role="alert" ref={rifErrore}>{errore}</div>}
       <div style={{ display: 'flex', gap: 10 }} className={aGruppi ? 'gm-azioni' : undefined}>
         <button className="btn btn-primario" disabled={invio}>{invio ? 'Salvo…' : 'Salva'}</button>
         <button type="button" className="btn" onClick={annulla}>Annulla</button>
       </div>
     </form>
+  );
+}
+
+// Si sceglie un valore già usato; uno nuovo solo con "+ Nuova…" (es. la famiglia di un abbonamento): niente doppioni scritti male
+function SceltaONuova({ id, valore, opzioni = [], onChange, vuotoTesto = '— nessuna —', nuovaTesto = '+ Nuova…' }) {
+  const [nuova, setNuova] = useState(!!valore && !opzioni.some((o) => o.v === valore));
+  if (nuova) {
+    return (
+      <span className="scelta-nuova">
+        <input id={id} value={valore} onChange={(e) => onChange(e.target.value)} placeholder="Scrivi il nome nuovo" autoComplete="off" autoFocus={!valore} />
+        <button type="button" className="link-btn piccolo" onClick={() => { onChange(''); setNuova(false); }} title="Torna all'elenco">elenco</button>
+      </span>
+    );
+  }
+  return (
+    <select id={id} value={valore} onChange={(e) => { if (e.target.value === '__nuova__') { setNuova(true); onChange(''); } else onChange(e.target.value); }}>
+      <option value="">{vuotoTesto}</option>
+      {opzioni.map((o) => <option key={o.v} value={o.v}>{o.l}</option>)}
+      <option value="__nuova__">{nuovaTesto}</option>
+    </select>
   );
 }
 
