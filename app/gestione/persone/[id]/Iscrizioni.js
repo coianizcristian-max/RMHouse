@@ -27,6 +27,7 @@ export default function Iscrizioni({ allievoId, crediti = [], iscrizioni, corsi,
   const [errore, setErrore] = useState('');
   const [invio, setInvio] = useState(false);
   const [azione, setAzione] = useState(null);   // { id, modo }
+  const [tuttiTipi, setTuttiTipi] = useState(false);   // scelto un corso: solo gli abbonamenti che lo coprono
   const [f, setF] = useState({
     corso_id: '', tipo_abbonamento_id: '', data_inizio: new Date().toISOString().slice(0, 10),
     orari: [], sconto: '', importo: '', quota: false, note: '',
@@ -185,7 +186,7 @@ export default function Iscrizioni({ allievoId, crediti = [], iscrizioni, corsi,
         <form onSubmit={crea} style={{ marginTop: 16, scrollMarginTop: 80 }} id="modulo-iscrizione">
           <div className="campo">
             <label htmlFor="corso">Corso</label>
-            <CampoCerca id="corso" valore={f.corso_id} onChange={(v) => setF({ ...f, corso_id: v, orari: [] })}
+            <CampoCerca id="corso" valore={f.corso_id} onChange={(v) => { setTuttiTipi(false); setF({ ...f, corso_id: v, orari: [] }); }}
                         placeholder="Scrivi il corso… (es. pole 1)"
                         opzioni={corsi.map((c) => ({ value: c.id, label: c.nome }))} />
           </div>
@@ -197,12 +198,20 @@ export default function Iscrizioni({ allievoId, crediti = [], iscrizioni, corsi,
               const altri = tipi.filter((t) => !adatti.includes(t));
               const voce = (t, gruppo) => ({ value: t.id, label: t.nome, extra: euro(t.prezzo_cent), gruppo });
               const famiglie = [...new Set(altri.map((t) => t.famiglia || 'Altri'))];
+              const soloAdatti = adatti.length > 0 && !tuttiTipi && !altri.some((t) => t.id === f.tipo_abbonamento_id);
               const opzioni = [
                 ...adatti.map((t) => voce(t, 'Valgono per questo corso')),
-                ...famiglie.flatMap((fam) => altri.filter((t) => (t.famiglia || 'Altri') === fam).map((t) => voce(t, adatti.length ? `Altri · ${fam}` : fam))),
+                ...(soloAdatti ? [] : famiglie.flatMap((fam) => altri.filter((t) => (t.famiglia || 'Altri') === fam).map((t) => voce(t, adatti.length ? `Altri · ${fam}` : fam)))),
               ];
-              return <CampoCerca id="tipo" valore={f.tipo_abbonamento_id} onChange={(v) => setF({ ...f, tipo_abbonamento_id: v })}
-                                 placeholder="Scrivi l'abbonamento… (es. pole 2 trim)" opzioni={opzioni} />;
+              return <>
+                <CampoCerca id="tipo" valore={f.tipo_abbonamento_id} onChange={(v) => setF({ ...f, tipo_abbonamento_id: v })}
+                            placeholder="Scrivi l'abbonamento… (es. pole 2 trim)" opzioni={opzioni} />
+                {f.corso_id && adatti.length > 0 && (
+                  <button type="button" className="link-btn piccolo sp-altri-tipi" onClick={() => setTuttiTipi((x) => !x)}>
+                    {soloAdatti ? `${adatti.length} per questo corso · vedi anche gli altri (${altri.length})` : 'solo quelli di questo corso'}
+                  </button>
+                )}
+              </>;
             })()}
           </div>
           {f.corso_id && tipo?.modalita === 'orari_fissi' && (

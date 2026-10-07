@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { supabaseBrowser } from '@/lib/supabase/browser';
 import { cercaPersone } from '@/lib/ricerca';
 import { gruppiDi } from '@/lib/gruppi';
+import { AggiungiLezioni } from '../persone/[id]/AzioniIscrizione';
 import { euro, dataBreve, ora } from '@/lib/formato';
 import CampoCerca from '../CampoCerca';
 import NuovoCliente from './NuovoCliente';
@@ -43,6 +44,7 @@ export default function Sportello({ palestraId, corsi, tipi, orari, palestra, pe
   const [personaId, setPersonaId] = useState(personaIniziale);
   const [s, setS] = useState(null);           // situazione della persona scelta
   const [v, setV] = useState(VENDITA);
+  const [tuttiTipi, setTuttiTipi] = useState(false);   // scelto un corso: solo gli abbonamenti che lo coprono, salvo "vedi anche gli altri"
   const [lezioni, setLezioni] = useState([]);
   const [rimaste, setRimaste] = useState(null);
   const [contate, setContate] = useState(null);   // { n, stima }: lezioni proposte per il pagamento "a lezioni"
@@ -74,7 +76,7 @@ export default function Sportello({ palestraId, corsi, tipi, orari, palestra, pe
   // ------------------------------------------------------------ situazione della persona
   async function carica(id) {
     const sb = supabaseBrowser();
-    const [{ data: persona }, { data: dati }, { data: iscrizioni }, { data: tess }, { data: storia }] = await Promise.all([
+    const [{ data: persona }, { data: dati }, { data: iscrizioni }, { data: tess }, { data: storia }, { data: crediti }] = await Promise.all([
       sb.from('v_stato_clienti').select('id, nome, cognome, data_nascita, is_titolare, titolare_nome, titolare_cognome, email, telefono, attivo, fine_prossima, ultima_fine, certificato_scadenza, quota_valida_fino, consenso_whatsapp, account_id, stato')
         .eq('id', id).maybeSingle(),
       sb.from('allievi').select('id, codice_fiscale, sesso, luogo_nascita, tessera, account ( nome, cognome, indirizzo, cap, citta, provincia, codice_fiscale )').eq('id', id).maybeSingle(),
@@ -84,8 +86,10 @@ export default function Sportello({ palestraId, corsi, tipi, orari, palestra, pe
       // tutta la storia: abbonamenti fatti in RMHouse e quelli importati da APP Palestre, dal più recente
       sb.from('v_periodi').select('iscrizione_id, dal, al, prezzo_cent, abbonamento, viva').eq('allievo_id', id)
         .order('dal', { ascending: false }).order('al', { ascending: false }).limit(60),
+      // recuperi e lezioni in più ancora da prenotare
+      sb.from('v_crediti').select('iscrizione_id, aggiunta').eq('allievo_id', id).eq('stato', 'disponibile'),
     ]);
-    const nuovo = { persona, dati, iscrizioni: iscrizioni || [], tessera: (tess || [])[0] || null, storia: storia || [] };
+    const nuovo = { persona, dati, iscrizioni: iscrizioni || [], tessera: (tess || [])[0] || null, storia: storia || [], crediti: crediti || [] };
     setS(nuovo);
     return nuovo;
   }
@@ -330,7 +334,7 @@ export default function Sportello({ palestraId, corsi, tipi, orari, palestra, pe
           <div className="sp-col-titolo"><span className="sp-num">1</span>Cliente</div>
           {modo === 'cerca' && <Cerca palestraId={palestraId} testo={testo} setTesto={setTesto} onScegli={scegli} onNuovo={() => setModo('nuovo')} />}
           {modo === 'nuovo' && <NuovoCliente palestraId={palestraId} testoIniziale={testo} onCreato={scegli} onUsa={scegli} onAnnulla={() => setModo('cerca')} />}
-          {modo === 'persona' && (s ? <Situazione s={s} v={v} setV={setV} onCambia={nuovaRicerca} onRinnova={(i) => {
+          {modo === 'persona' && (s ? <Situazione s={s} v={v} setV={setV} onCambia={nuovaRicerca} onRicarica={() => carica(personaId)} onRinnova={(i) => {
             const t = tipi.find((x) => x.id === i.tipo_abbonamento_id);
             setV((x) => ({ ...x, corso_id: i.corso_id, tipo_id: t?.id || '', prezzo: t ? euroTesto(t.prezzo_cent) : '',
               orari: (i.iscrizioni_orari || []).map((o) => o.orario_id).filter((oid) => orari.some((o) => o.id === oid)),
@@ -361,8 +365,8 @@ export default function Sportello({ palestraId, corsi, tipi, orari, palestra, pe
                 <div className="sp-corso-tipo">
                   <div className="campo"><label htmlFor="sp-corso">Corso</label>
                     <CampoCerca id="sp-corso" valore={v.corso_id} placeholder="Scrivi il corso… (es. pole 1)"
-                                onChange={(id) => setV((x) => ({ ...x, corso_id: id, orari: [], lezioni: [], data_inizio: inizioPer(id),
-                                  tipo_id: x.tipo_id && tipi.find((t) => t.id === x.tipo_id)?.tipi_abbonamento_corsi?.some((c) => c.corso_id === id) ? x.tipo_id : '' }))}
+                                onChange={(id) => { setTuttiTipi(false); setV((x) => ({ ...x, corso_id: id, orari: [], lezioni: [], data_inizio: inizioPer(id),
+                                  tipo_id: x.tipo_id && tipi.find((t) => t.id === x.tipo_id)?.tipi_abbonamento_corsi?.some((c) => c.corso_id === id) ? x.tipo_id : '' })); }}
                                 opzioni={corsi.map((c) => ({ value: c.id, label: c.nome }))} />
                   </div>
                   <div className="campo"><label htmlFor="sp-tipo">Tipo</label>
@@ -370,10 +374,23 @@ export default function Sportello({ palestraId, corsi, tipi, orari, palestra, pe
                       const adatti = v.corso_id ? tipi.filter((t) => t.tipi_abbonamento_corsi?.some((x) => x.corso_id === v.corso_id)) : [];
                       const altri = tipi.filter((t) => !adatti.includes(t));
                       const voce = (t, gruppo) => ({ value: t.id, label: t.nome, extra: euro(t.prezzo_cent), gruppo });
-                      const opzioni = [...adatti.map((t) => voce(t, 'Valgono per questo corso')), ...altri.map((t) => voce(t, adatti.length ? `Altri · ${t.famiglia || 'altri'}` : t.famiglia || 'Altri'))];
-                      return <CampoCerca id="sp-tipo" valore={v.tipo_id} placeholder="es. mensile 1 volta"
+                      // con un corso scelto si vedono solo gli abbonamenti che lo coprono (Corsi coperti); gli altri a richiesta
+                      const soloAdatti = adatti.length > 0 && !tuttiTipi && !altri.some((t) => t.id === v.tipo_id);
+                      const opzioni = [...adatti.map((t) => voce(t, 'Valgono per questo corso')),
+                        ...(soloAdatti ? [] : altri.map((t) => voce(t, adatti.length ? `Altri · ${t.famiglia || 'altri'}` : t.famiglia || 'Altri')))];
+                      return <>
+                      <CampoCerca id="sp-tipo" valore={v.tipo_id} placeholder="es. mensile 1 volta"
                                          onChange={(id) => { const t = tipi.find((x) => x.id === id); setV((x) => ({ ...x, tipo_id: id, prezzo: t ? euroTesto(t.prezzo_cent) : '', ingressi: t?.modalita === 'ingressi' ? String(t.num_ingressi || '') : '', nLez: '', euroLez: '', prezzoMano: false })); }}
-                                         opzioni={opzioni} />;
+                                         opzioni={opzioni} />
+                      {v.corso_id && adatti.length > 0 && (
+                        <button type="button" className="link-btn piccolo sp-altri-tipi" onClick={() => setTuttiTipi((x) => !x)}>
+                          {soloAdatti ? `${adatti.length} per questo corso · vedi anche gli altri (${altri.length})` : 'solo quelli di questo corso'}
+                        </button>
+                      )}
+                      {v.corso_id && adatti.length === 0 && (
+                        <span className="piccolo muto">Nessun abbonamento copre questo corso (Abbonamenti → Corsi coperti): li vedi tutti.</span>
+                      )}
+                      </>;
                     })()}
                   </div>
                 </div>
@@ -668,7 +685,9 @@ function Cerca({ palestraId, testo, setTesto, onScegli, onNuovo }) {
 }
 
 // ---------------------------------------------------------------- 1 · situazione del cliente scelto
-function Situazione({ s, v, setV, onCambia, onRinnova }) {
+function Situazione({ s, v, setV, onCambia, onRinnova, onRicarica }) {
+  const [piuLezioni, setPiuLezioni] = useState(null);   // iscrizione a cui si aggiungono lezioni
+  const [fatto, setFatto] = useState('');
   const p = s.persona;
   if (!p) return <p className="muto">Persona non trovata. <button type="button" className="link-btn" onClick={onCambia}>Cerca di nuovo</button></p>;
   const o = oggi();
@@ -714,18 +733,37 @@ function Situazione({ s, v, setV, onCambia, onRinnova }) {
         <div className="sp-blocco-testa"><b>Abbonamenti</b>
           {primaData && <span className="piccolo muto"> · con noi dal {primaData.slice(0, 4)} · {(s.storia || []).length} in tutto</span>}</div>
         {inCorso.length === 0 && storia.length === 0 && <p className="piccolo muto">Nessun abbonamento.</p>}
-        {inCorso.map((i) => (
-          <div key={i.id} className="sp-abb">
+        {fatto && <p className="piccolo pl-ok" role="status">{fatto}</p>}
+        {inCorso.map((i) => {
+          const extra = (s.crediti || []).filter((c) => c.iscrizione_id === i.id && c.aggiunta).length;
+          const rec = (s.crediti || []).filter((c) => c.iscrizione_id === i.id && !c.aggiunta).length;
+          return (
+          <div key={i.id} className="sp-abb-blocco">
+          <div className="sp-abb">
             <div>
               <b>{i.corsi?.nome}</b> <span className="muto">· {i.tipi_abbonamento?.nome}</span>
               <div className="piccolo">fino al {dataBreve(i.data_fine)}
                 {i.tipi_abbonamento?.modalita === 'ingressi' && i.ingressi_residui != null && ` · ${i.ingressi_residui} lezioni rimaste`}
+                {extra > 0 && <span className="sp-ok"> · {extra} {extra === 1 ? 'lezione in più' : 'lezioni in più'} da prenotare</span>}
+                {rec > 0 && ` · ${rec} ${rec === 1 ? 'recupero' : 'recuperi'}`}
                 {giorniTra(o, i.data_fine) <= 10 && <span className="sp-attenzione"> · sta per finire</span>}
               </div>
             </div>
-            <button type="button" className="btn btn-piccolo" onClick={() => onRinnova(i)}>Rinnova</button>
+            <span className="sp-abb-azioni">
+              {i.tipi_abbonamento?.modalita !== 'libero' && (
+                <button type="button" className="btn btn-piccolo" aria-pressed={piuLezioni === i.id} title="Lezioni che il cliente prenota da solo dall'app"
+                        onClick={() => { setFatto(''); setPiuLezioni((x) => (x === i.id ? null : i.id)); }}>+ Lezioni</button>
+              )}
+              <button type="button" className="btn btn-piccolo" onClick={() => onRinnova(i)}>Rinnova</button>
+            </span>
           </div>
-        ))}
+          {piuLezioni === i.id && (
+            <AggiungiLezioni iscrizione={i} chiudi={() => setPiuLezioni(null)}
+                             onFatto={(n, ing) => { setFatto(`${i.corsi?.nome}: aggiunt${n === 1 ? 'a' : 'e'} ${n} ${ing ? (n === 1 ? 'ingresso' : 'ingressi') : (n === 1 ? 'lezione' : 'lezioni')} da prenotare.`); onRicarica?.(); }} />
+          )}
+          </div>
+          );
+        })}
         {storia.length > 0 && <Storia righe={storia} iscrDi={iscrDi} oggi={o} onRinnova={onRinnova} />}
       </div>
     </div>

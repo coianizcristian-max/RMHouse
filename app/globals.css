@@ -4167,3 +4167,11 @@ body:has(.sportello) .bottone-rapide { display: none; }
 .sp-gruppo[style] { border: 1.5px solid var(--g); border-left-width: 5px; background: color-mix(in srgb, var(--g) 5%, transparent); }
 .sp-gruppo[style] .sp-gruppo-nome { background: color-mix(in srgb, var(--g) 14%, var(--bianco)); color: var(--testo); }
 .sp-gruppo[style] .sp-gruppo-nome.attivo { background: var(--g); color: #fff; }
+
+/* Sportello e scheda persona: abbonamenti del corso scelto, gli altri a richiesta */
+.sp-altri-tipi { display: inline-block; margin-top: 4px; }
+/* Sportello: "+ Lezioni" accanto a Rinnova */
+.sp-abb-azioni { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; flex: none; }
+.sp-abb-azioni .btn[aria-pressed='true'] { border-color: var(--nero); background: var(--carta); }
+.sp-ok { color: var(--ok); font-weight: 700; }
+.sp-abb-blocco > .azione-iscrizione { margin: 0 0 8px; }

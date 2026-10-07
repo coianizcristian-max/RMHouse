@@ -112,7 +112,7 @@ function Modifica({ iscrizione, tipi, chiudi }) {
 }
 
 // Lezioni in più: la segreteria aggiunge il numero, il cliente le prenota da solo dall'app (Prenota)
-function AggiungiLezioni({ iscrizione, chiudi }) {
+export function AggiungiLezioni({ iscrizione, chiudi, onFatto }) {
   const router = useRouter();
   const ingressi = iscrizione.tipi_abbonamento?.modalita === 'ingressi';
   const [f, setF] = useState({ quante: 1, fino: iscrizione.data_fine || '', nota: '' });
@@ -128,7 +128,8 @@ function AggiungiLezioni({ iscrizione, chiudi }) {
     });
     setInvio(false);
     if (error) { setErrore(messaggio(error)); return; }
-    chiudi(); router.refresh();
+    chiudi();
+    if (onFatto) onFatto(n, ingressi); else router.refresh();
   }
 
   return (
