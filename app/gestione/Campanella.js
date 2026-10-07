@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
@@ -23,7 +23,12 @@ export default function Campanella() {
   const [aperta, setAperta] = useState(false);
   const [elenco, setElenco] = useState(null);
 
+  // il numero si rilegge al massimo una volta al minuto (non a ogni pagina): una richiesta in meno al database
+  // per ogni cambio di pagina, che su un database piccolo si sente
+  const ultimoControllo = useRef(0);
   useEffect(() => {
+    if (Date.now() - ultimoControllo.current < 60_000) return;
+    ultimoControllo.current = Date.now();
     const db = supabaseBrowser();
     db.auth.getSession().then(async ({ data }) => {
       const uid = data?.session?.user?.id; if (!uid) return;

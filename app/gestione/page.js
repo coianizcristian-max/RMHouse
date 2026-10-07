@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import LinkVeloce from './LinkVeloce';
 import CercaVeloce from './CercaVeloce';
 import Promemoria from './Promemoria';
 import PannelloNotizie from './PannelloNotizie';
@@ -43,49 +44,14 @@ export default async function Home({ searchParams }) {
   const p = staff.palestra_id;
   const gestione = staff.ruolo !== 'insegnante';
 
-  let lezioniQ = supabase
-    .from('v_occupazione')
-    .select('lezione_id, corso_id, corso_nome, inizio, fine, stato, capienza, iscritti, prove, presenti, assenti, insegnante_id, insegnante_nome, sala_nome')
-    .eq('palestra_id', p).eq('data', oggiISO()).order('inizio');
-  if (!gestione) lezioniQ = lezioniQ.eq('insegnante_id', staff.id);
-
-  const fra14 = new Date(Date.now() + 14 * 86400000).toLocaleDateString('sv-SE', { timeZone: 'Europe/Rome' });
-  const [{ data: k }, { data: lezioni }, { data: corsi }, { data: scadenze }, { count: rateScadute }, { count: richieste }, { data: promemoria },
-         { data: staffRighe }, { data: sostituzioni }, { data: prossime }, { count: daSistemare }, { count: daVerificare }] = await Promise.all([
-    gestione ? supabase.rpc('cruscotto', { p_palestra: p }) : Promise.resolve({ data: null }),
-    lezioniQ,
-    supabase.from('corsi').select('id, colore').eq('palestra_id', p),
-    gestione
-      ? supabase.from('v_scadenze').select('tipo, allievo_id, nome, cognome, data, giorni, dettaglio, importo_cent')
-          .eq('palestra_id', p).eq('gestito', false).in('tipo', ['abbonamento', 'ingressi', 'rata'])
-          .gte('giorni', -3).lte('giorni', 7).order('data').limit(9)
-      : Promise.resolve({ data: [] }),
-    gestione
-      ? supabase.from('v_rate').select('id', { count: 'exact', head: true }).eq('palestra_id', p).eq('scaduta', true)
-      : Promise.resolve({ count: 0 }),
-    // richieste fatte dai clienti dall'app (abbonamenti con bonifico, lezioni private)
-    supabase.from('richieste_cliente').select('id', { count: 'exact', head: true }).eq('palestra_id', p).eq('stato', 'da_confermare'),
-    // promemoria di oggi, quelli rimasti indietro non fatti, e quelli fatti oggi (per chi è collegato)
-    supabase.rpc('promemoria_miei', { p_palestra: p }),
-    // a chi si può assegnare una cosa da fare
-    gestione ? supabase.from('staff').select('id, nome, cognome')
-      .eq('palestra_id', p).eq('attivo', true).not('archiviato', 'is', true).order('nome') : Promise.resolve({ data: [] }),
-    // sostituzioni dei prossimi 14 giorni (lezioni passate a un'altra insegnante)
-    gestione ? supabase.from('lezioni')
-      .select('id, data, inizio, insegnante_id, insegnante_titolare, sostituzione_da, corsi ( nome )')
-      .eq('palestra_id', p).not('insegnante_titolare', 'is', null).neq('stato', 'annullata')
-      .gte('data', oggiISO()).lte('data', fra14).order('inizio').limit(30) : Promise.resolve({ data: [] }),
-    // per l'insegnante: le sue prossime lezioni dei giorni seguenti
-    gestione ? Promise.resolve({ data: null }) : supabase.from('v_occupazione')
-      .select('lezione_id, corso_id, corso_nome, inizio, capienza, iscritti, sala_nome')
-      .eq('palestra_id', p).eq('insegnante_id', staff.id).gt('data', oggiISO()).neq('stato', 'annullata')
-      .order('inizio').limit(6),
-    // quello che non torna dopo l'import da APP Palestre
-    gestione ? supabase.from('anomalie_import').select('id', { count: 'exact', head: true })
-      .eq('palestra_id', p).eq('risolta', false).eq('gravita', 'da_sistemare') : Promise.resolve({ count: 0 }),
-    gestione ? supabase.from('anomalie_import').select('id', { count: 'exact', head: true })
-      .eq('palestra_id', p).eq('risolta', false).eq('gravita', 'da_verificare') : Promise.resolve({ count: 0 }),
-  ]);
+  // tutto il Riepilogo con una chiamata sola (query 144); se la funzione manca, le letture una per una
+  const { data: insieme, error: erroreInsieme } = await supabase.rpc('home_dati', { p_palestra: p });
+  const d = !erroreInsieme && insieme ? {
+    k: insieme.k, lezioni: insieme.lezioni, corsi: insieme.corsi, scadenze: insieme.scadenze, rateScadute: insieme.rate_scadute,
+    richieste: insieme.richieste, promemoria: insieme.promemoria, staffRighe: insieme.staff, sostituzioni: insieme.sostituzioni,
+    prossime: insieme.prossime, daSistemare: insieme.da_sistemare, daVerificare: insieme.da_verificare,
+  } : await caricaSeparato(supabase, staff, p, gestione);
+  const { k, lezioni, corsi, scadenze, rateScadute, richieste, promemoria, staffRighe, sostituzioni, prossime, daSistemare, daVerificare } = d;
 
   const colore = (id) => corsi?.find((c) => c.id === id)?.colore || 'var(--rosso)';
   const elencoStaff = (staffRighe || []).map((s) => ({ id: s.id, nome: `${s.nome} ${s.cognome || ''}`.trim() }));
@@ -132,14 +98,14 @@ export default async function Home({ searchParams }) {
         </div>
         {gestione && (
           <div className="azioni">
-            <Link prefetch={false} className="btn btn-primario btn-sportello" href="/gestione/sportello">
+            <LinkVeloce className="btn btn-primario btn-sportello" href="/gestione/sportello">
               <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="9" cy="8" r="3.2" /><path d="M3 20c0-3.3 2.7-5.5 6-5.5s6 2.2 6 5.5" /><path d="M18.5 7v6M15.5 10h6" /></svg>
               Sportello
-            </Link>
-            <Link prefetch={false} className="btn" href="/gestione/persone/nuova">Nuovo cliente</Link>
-            <Link prefetch={false} className="btn" href="/gestione?scegli=incassa">Incassa</Link>
-            <Link prefetch={false} className="btn" href="/gestione/scadenze">Scadenze</Link>
-            <Link prefetch={false} className="btn" href="/gestione/prenotazioni">Prenotazioni</Link>
+            </LinkVeloce>
+            <LinkVeloce className="btn" href="/gestione/persone/nuova">Nuovo cliente</LinkVeloce>
+            <LinkVeloce className="btn" href="/gestione?scegli=incassa">Incassa</LinkVeloce>
+            <LinkVeloce className="btn" href="/gestione/scadenze">Scadenze</LinkVeloce>
+            <LinkVeloce className="btn" href="/gestione/prenotazioni">Prenotazioni</LinkVeloce>
           </div>
         )}
       </div>
@@ -148,36 +114,36 @@ export default async function Home({ searchParams }) {
 
       {gestione && k && (
         <div className="kpi">
-          <Link prefetch={false} className="tessera tessera-rossa" href="/gestione/persone?stato=attivi">
+          <LinkVeloce className="tessera tessera-rossa" href="/gestione/persone?stato=attivi">
             <div className="etichetta">Iscritti attivi</div>
             <div className="cifra">{k.attivi}</div>
             <div className="sotto"><Delta adesso={k.attivi} prima={k.attivi_mese_scorso} suffisso=" su un mese fa" /></div>
-          </Link>
-          <Link prefetch={false} className="tessera" href="/gestione/statistiche">
+          </LinkVeloce>
+          <LinkVeloce className="tessera" href="/gestione/statistiche">
             <div className="etichetta">Venduto nel mese</div>
             <div className="cifra">{euro(k.venduto_mese)}</div>
             <div className="sotto"><Delta adesso={k.venduto_mese} prima={k.venduto_mese_scorso} suffisso=" sul mese scorso" /></div>
-          </Link>
-          <Link prefetch={false} className="tessera" href="/gestione/scadenze?tipo=abbonamento">
+          </LinkVeloce>
+          <LinkVeloce className="tessera" href="/gestione/scadenze?tipo=abbonamento">
             <div className="etichetta">Da rinnovare in 14 giorni</div>
             <div className="cifra">{k.da_rinnovare_14?.quanti ?? 0}</div>
             <div className="sotto">valgono {euro(k.da_rinnovare_14?.valore || 0)}</div>
-          </Link>
-          <Link prefetch={false} className="tessera" href="/gestione/persone?stato=nuovi">
+          </LinkVeloce>
+          <LinkVeloce className="tessera" href="/gestione/persone?stato=nuovi">
             <div className="etichetta">Nuovi nel mese</div>
             <div className="cifra">{k.nuovi_mese}</div>
             <div className="sotto">{k.prove_settimana} prove questa settimana</div>
-          </Link>
-          <Link prefetch={false} className="tessera" href="/gestione/calendario">
+          </LinkVeloce>
+          <LinkVeloce className="tessera" href="/gestione/calendario">
             <div className="etichetta">Posti occupati, settimana</div>
             <div className="cifra">{k.occupazione_settimana != null ? `${k.occupazione_settimana}%` : '—'}</div>
             <div className="sotto">sui posti disponibili nelle sale</div>
-          </Link>
-          <Link prefetch={false} className="tessera tessera-nera" href="/gestione/oggi">
+          </LinkVeloce>
+          <LinkVeloce className="tessera tessera-nera" href="/gestione/oggi">
             <div className="etichetta">Oggi</div>
             <div className="cifra">{k.lezioni_oggi}<small> lezioni</small></div>
             <div className="sotto">{k.attesi_oggi} persone attese{prossima ? ` · prossima alle ${ora(prossima.inizio)}` : ''}</div>
-          </Link>
+          </LinkVeloce>
         </div>
       )}
 
@@ -336,4 +302,53 @@ export default async function Home({ searchParams }) {
     {gestione && <PannelloNotizie palestraId={p} />}
     </div>
   );
+}
+
+// Riserva: le stesse letture una per una (se la funzione home_dati della query 144 non c'è ancora)
+async function caricaSeparato(supabase, staff, p, gestione) {
+  let lezioniQ = supabase
+    .from('v_occupazione')
+    .select('lezione_id, corso_id, corso_nome, inizio, fine, stato, capienza, iscritti, prove, presenti, assenti, insegnante_id, insegnante_nome, sala_nome')
+    .eq('palestra_id', p).eq('data', oggiISO()).order('inizio');
+  if (!gestione) lezioniQ = lezioniQ.eq('insegnante_id', staff.id);
+
+  const fra14 = new Date(Date.now() + 14 * 86400000).toLocaleDateString('sv-SE', { timeZone: 'Europe/Rome' });
+  const [{ data: k }, { data: lezioni }, { data: corsi }, { data: scadenze }, { count: rateScadute }, { count: richieste }, { data: promemoria },
+         { data: staffRighe }, { data: sostituzioni }, { data: prossime }, { count: daSistemare }, { count: daVerificare }] = await Promise.all([
+    gestione ? supabase.rpc('cruscotto', { p_palestra: p }) : Promise.resolve({ data: null }),
+    lezioniQ,
+    supabase.from('corsi').select('id, colore').eq('palestra_id', p),
+    gestione
+      ? supabase.from('v_scadenze').select('tipo, allievo_id, nome, cognome, data, giorni, dettaglio, importo_cent')
+          .eq('palestra_id', p).eq('gestito', false).in('tipo', ['abbonamento', 'ingressi', 'rata'])
+          .gte('giorni', -3).lte('giorni', 7).order('data').limit(9)
+      : Promise.resolve({ data: [] }),
+    gestione
+      ? supabase.from('v_rate').select('id', { count: 'exact', head: true }).eq('palestra_id', p).eq('scaduta', true)
+      : Promise.resolve({ count: 0 }),
+    // richieste fatte dai clienti dall'app (abbonamenti con bonifico, lezioni private)
+    supabase.from('richieste_cliente').select('id', { count: 'exact', head: true }).eq('palestra_id', p).eq('stato', 'da_confermare'),
+    // promemoria di oggi, quelli rimasti indietro non fatti, e quelli fatti oggi (per chi è collegato)
+    supabase.rpc('promemoria_miei', { p_palestra: p }),
+    // a chi si può assegnare una cosa da fare
+    gestione ? supabase.from('staff').select('id, nome, cognome')
+      .eq('palestra_id', p).eq('attivo', true).not('archiviato', 'is', true).order('nome') : Promise.resolve({ data: [] }),
+    // sostituzioni dei prossimi 14 giorni (lezioni passate a un'altra insegnante)
+    gestione ? supabase.from('lezioni')
+      .select('id, data, inizio, insegnante_id, insegnante_titolare, sostituzione_da, corsi ( nome )')
+      .eq('palestra_id', p).not('insegnante_titolare', 'is', null).neq('stato', 'annullata')
+      .gte('data', oggiISO()).lte('data', fra14).order('inizio').limit(30) : Promise.resolve({ data: [] }),
+    // per l'insegnante: le sue prossime lezioni dei giorni seguenti
+    gestione ? Promise.resolve({ data: null }) : supabase.from('v_occupazione')
+      .select('lezione_id, corso_id, corso_nome, inizio, capienza, iscritti, sala_nome')
+      .eq('palestra_id', p).eq('insegnante_id', staff.id).gt('data', oggiISO()).neq('stato', 'annullata')
+      .order('inizio').limit(6),
+    // quello che non torna dopo l'import da APP Palestre
+    gestione ? supabase.from('anomalie_import').select('id', { count: 'exact', head: true })
+      .eq('palestra_id', p).eq('risolta', false).eq('gravita', 'da_sistemare') : Promise.resolve({ count: 0 }),
+    gestione ? supabase.from('anomalie_import').select('id', { count: 'exact', head: true })
+      .eq('palestra_id', p).eq('risolta', false).eq('gravita', 'da_verificare') : Promise.resolve({ count: 0 }),
+  ]);
+
+  return { k, lezioni, corsi, scadenze, rateScadute, richieste, promemoria, staffRighe, sostituzioni, prossime, daSistemare, daVerificare };
 }

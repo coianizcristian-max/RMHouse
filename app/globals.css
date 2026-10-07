@@ -4276,3 +4276,28 @@ body:has(.sportello) .bottone-rapide { display: none; }
 .fam-simili { margin-top: 4px; font-size: 13px; color: var(--attenzione); }
 .contenuto form.fam-modifica, .fam-modifica { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 8px; }
 .fam-modifica input { min-height: 36px; padding: 5px 10px; border: 1px solid var(--linea); border-radius: 10px; font: inherit; min-width: 260px; }
+
+/* scheletro delle pagine in arrivo (loading.js) */
+@keyframes sk-pulsa { 0%, 100% { opacity: .55; } 50% { opacity: 1; } }
+.sk { animation: sk-pulsa 1.3s ease-in-out infinite; }
+.sk-riga { height: 12px; border-radius: 6px; background: var(--carta); }
+.sk-occhiello { width: 90px; margin: 14px 0 10px; }
+.sk-titolo { width: 260px; height: 28px; border-radius: 8px; margin-bottom: 16px; }
+.sk-barra { display: flex; gap: 8px; margin-bottom: 18px; }
+.sk-barra span { display: block; height: 38px; width: 140px; border-radius: 10px; background: var(--carta); }
+.sk-barra span:first-child { flex: 1; max-width: 420px; }
+.sk-blocchi { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-bottom: 12px; }
+.sk-blocco { height: 92px; border-radius: 14px; background: var(--carta); }
+.sk-lungo { height: 260px; }
+@media (max-width: 640px) { .sk-blocchi { grid-template-columns: 1fr 1fr; } .sk-barra span:nth-child(n+3) { display: none; } }
+
+/* Impostazioni → Velocità */
+.vel-testa { display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: center; margin-bottom: 12px; }
+.vel-tabella { width: 100%; border-collapse: collapse; font-size: 14px; }
+.vel-tabella th, .vel-tabella td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--linea); vertical-align: top; white-space: normal; }
+.vel-tabella th { font-size: 12px; text-transform: uppercase; letter-spacing: .05em; color: var(--testo-2); }
+.vel-ms { font-weight: 800; white-space: nowrap !important; font-variant-numeric: tabular-nums; }
+.vel-verdetto { margin: 16px 0 10px; padding: 12px 16px; border: 1px solid var(--linea); border-left: 4px solid var(--rosso); border-radius: 12px; background: var(--bianco); }
+.vel-verdetto ul { margin: 6px 0 0; padding-left: 18px; }
+.vel-verdetto li { margin: 4px 0; font-size: 14px; }
+@media (max-width: 640px) { .vel-tabella td:last-child, .vel-tabella th:last-child { display: none; } }

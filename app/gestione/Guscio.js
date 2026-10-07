@@ -1,6 +1,6 @@
 'use client';
 import { erroreDiVersione } from '../ErroreCaricamento';
-import Link from 'next/link';
+import LinkVeloce from './LinkVeloce';
 import { usePathname, useRouter } from 'next/navigation';
 import Cronologia from './Cronologia';
 import Campanella from './Campanella';
@@ -169,17 +169,17 @@ export default function Guscio({ gestione, nome, ruolo, palestraId, funzioni = {
       <Suspense fallback={null}><BarraCaricamento /></Suspense>
       {/* colonna delle aree: solo su desktop */}
       <nav className="aree" aria-label="Aree">
-        <Link prefetch={false} href="/gestione" className="aree-logo" aria-label="Riepilogo di oggi" title="Riepilogo di oggi">
+        <LinkVeloce href="/gestione" className="aree-logo" aria-label="Riepilogo di oggi" title="Riepilogo di oggi">
           <img src="/logo-marchio.png" alt="Ritmo Metropolitano" width="64" height="41" />
-        </Link>
+        </LinkVeloce>
         {aree.map((a) => (
-          <Link prefetch={false} key={a.k} href={a.voci.find(visibile)?.href || a.href} aria-current={a.k === attiva ? 'page' : undefined}
+          <LinkVeloce key={a.k} href={a.voci.find(visibile)?.href || a.href} aria-current={a.k === attiva ? 'page' : undefined}
                 onClick={(e) => cliccaArea(e, a)} onPointerEnter={(e) => entraArea(e, a)} onPointerLeave={esce}
                 aria-expanded={!fisso ? menuAperto === a.k : undefined}
                 className={menuAperto === a.k ? 'area-aperta' : undefined}>
             <Icona nome={a.icona} />
             {a.titolo}
-          </Link>
+          </LinkVeloce>
         ))}
         <button onClick={esci}><Icona nome="esci" />Esci</button>
       </nav>
@@ -187,9 +187,9 @@ export default function Guscio({ gestione, nome, ruolo, palestraId, funzioni = {
       {/* barra in basso del telefono */}
       <nav className="barra-mobile" aria-label="Scorciatoie">
         {scorciatoie.map(([href, testo, icona]) => (
-          <Link prefetch={false} key={href} href={href} aria-current={scorciatoiaAttiva === href ? 'page' : undefined}>
+          <LinkVeloce key={href} href={href} aria-current={scorciatoiaAttiva === href ? 'page' : undefined}>
             <Icona nome={icona} /><span>{testo}</span>
-          </Link>
+          </LinkVeloce>
         ))}
         <button type="button" onClick={() => setCassetto(true)} aria-expanded={cassetto} aria-controls="cassetto">
           <Icona nome="menu" /><span>Menù</span>
@@ -200,7 +200,7 @@ export default function Guscio({ gestione, nome, ruolo, palestraId, funzioni = {
       <div className={`velo${cassetto ? ' visibile' : ''}`} onClick={() => setCassetto(false)} aria-hidden="true" />
       <aside id="cassetto" className={`cassetto${cassetto ? ' aperto' : ''}`} aria-hidden={!cassetto} aria-label="Menù">
         <div className="cassetto-testa">
-          <Link prefetch={false} href="/gestione" onClick={() => setCassetto(false)} aria-label="Torna al Riepilogo"><img src="/logo-marchio.png" alt="" width="58" height="37" /></Link>
+          <LinkVeloce href="/gestione" onClick={() => setCassetto(false)} aria-label="Torna al Riepilogo"><img src="/logo-marchio.png" alt="" width="58" height="37" /></LinkVeloce>
           <div className="ct-testo">
             <strong>Ritmo Metropolitano</strong>
             <span>{nome} · {ruolo}</span>
@@ -217,7 +217,7 @@ export default function Guscio({ gestione, nome, ruolo, palestraId, funzioni = {
                   </button>
                 </li>
               ))}
-              <li><Link prefetch={false} href="/gestione/indice"><Icona nome="menu" /><span>Tutte le funzioni</span></Link></li>
+              <li><LinkVeloce href="/gestione/indice"><Icona nome="menu" /><span>Tutte le funzioni</span></LinkVeloce></li>
             </ul>
           ) : (
             <>
@@ -227,7 +227,7 @@ export default function Guscio({ gestione, nome, ruolo, palestraId, funzioni = {
               <ul className="cassetto-voci">
                 {areaAperta.voci.filter(visibile).map((v) => (
                   <li key={v.href}>
-                    <Link prefetch={false} href={v.href} aria-current={scelta === v ? 'page' : undefined}>{v.testo}</Link>
+                    <LinkVeloce href={v.href} aria-current={scelta === v ? 'page' : undefined}>{v.testo}</LinkVeloce>
                   </li>
                 ))}
               </ul>
@@ -266,8 +266,8 @@ export default function Guscio({ gestione, nome, ruolo, palestraId, funzioni = {
               </button>
             </div>
             {vociMenu.map((v) => (
-              <Link prefetch={false} key={v.href} href={v.href} aria-current={voceAttiva(v) ? 'page' : undefined}
-                    onClick={() => setMenuAperto(null)}>{v.testo}</Link>
+              <LinkVeloce key={v.href} href={v.href} aria-current={voceAttiva(v) ? 'page' : undefined}
+                    onClick={() => setMenuAperto(null)}>{v.testo}</LinkVeloce>
             ))}
           </nav>
         )}
@@ -279,7 +279,7 @@ export default function Guscio({ gestione, nome, ruolo, palestraId, funzioni = {
           {!fisso && voci.length > 1 && (
             <nav className="schede-area solo-desktop" aria-label={`Pagine di ${area?.titolo}`}>
               {voci.map((v) => (
-                <Link prefetch={false} key={v.href} href={v.href} aria-current={voceAttiva(v) ? 'page' : undefined}>{v.testo}</Link>
+                <LinkVeloce key={v.href} href={v.href} aria-current={voceAttiva(v) ? 'page' : undefined}>{v.testo}</LinkVeloce>
               ))}
             </nav>
           )}

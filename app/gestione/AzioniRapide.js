@@ -1,6 +1,6 @@
 'use client';
 import { useState } from 'react';
-import Link from 'next/link';
+import LinkVeloce from './LinkVeloce';
 import { useRouter } from 'next/navigation';
 import { supabaseBrowser } from '@/lib/supabase/browser';
 
@@ -42,7 +42,7 @@ export default function AzioniRapide({ palestraId }) {
             <div className="piccolo muto" style={{ padding: '0 4px 8px' }}>Azioni rapide</div>
             <button className="voce-rapida" onClick={notaOggi}>Aggiungi una nota a oggi</button>
             {voci.map(([testo, href]) => (
-              <Link prefetch={false} key={href} className="voce-rapida" href={href} onClick={() => setApri(false)}>{testo}</Link>
+              <LinkVeloce key={href} className="voce-rapida" href={href} onClick={() => setApri(false)}>{testo}</LinkVeloce>
             ))}
           </div>
         </div>

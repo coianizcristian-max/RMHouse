@@ -90,6 +90,7 @@ const SEZIONI = [
       ['Sondaggi', '/gestione/crm/sondaggi', 'Domande a stelle, voto 0-10, scelta o testo, link personale, risultati con media e NPS.'],
       ['Ruoli e accessi', '/gestione/impostazioni/ruoli', 'Profili su misura che nascondono parti del gestionale, e chi ha quale profilo.'],
       ['Registro delle azioni', '/gestione/impostazioni/registro', 'Chi ha incassato, emesso, annullato, iscritto, modificato o cancellato cosa, e quando.'],
+      ['Velocità', '/gestione/impostazioni/velocita', 'Misura dal browser e dal server quanto ci mettono rete, server e database, con il giudizio e cosa fare.'],
       ['Pagamenti online', '/gestione/impostazioni/pagamenti', 'Stripe (carta: prove, abbonamenti dall\'area clienti, rate, link di pagamento, rinnovo automatico) e Satispay (si collega col codice di attivazione del negozio, commissioni più basse). Pronti, si accendono con le chiavi.'],
       ['Integrazioni', '/gestione/impostazioni/integrazioni', 'Cosa è collegato (email, cron, notifiche, dominio, dati fiscali, Stripe, Satispay) e cosa manca.'],
       ['Riepilogo dei conti', '/gestione/conti', 'Incassato oggi, nel mese e da inizio stagione; da incassare; incassi senza ricevuta; rate in arrivo.'],

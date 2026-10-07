@@ -33,67 +33,20 @@ export default async function Persona({ params, searchParams }) {
   if (staff.ruolo === 'insegnante') redirect('/gestione');
   const p = staff.palestra_id;
 
-  const { data: allievo } = await supabase
-    .from('allievi')
-    .select('*, account ( id, nome, cognome, email, telefono, codice_fiscale, consenso_marketing, consenso_privacy_at )')
-    .eq('id', id).maybeSingle();
-  if (!allievo) notFound();
-
-  const [{ data: stato }, { data: iscrizioni }, { data: crediti }, { data: prove }, { data: certificati },
-         { data: corsi }, { data: tipi }, { data: orari }, { data: palestra }, { data: storico, count: storicoTotale },
-         { data: etichette }, { data: famiglia }, { data: famigliaIscritta }, { data: moduli }, { data: firme },
-         { data: pagamenti }, { data: rinnovi }, { data: riepilogo }] = await Promise.all([
-    supabase.from('v_stato_clienti').select('stato, attivo, fine_prossima, prima_data, ultima_fine, certificato_scaduto, quota_mancante, quota_valida_fino, senza_orari, etichette_id, giorni_al_compleanno, ultima_presenza')
-      .eq('id', id).maybeSingle(),
-    supabase.from('iscrizioni')
-      .select('id, palestra_id, tipo_abbonamento_id, data_inizio, data_fine, stato, sconto_cent, note, ingressi_residui, corsi ( id, nome ), tipi_abbonamento ( nome, modalita, lezioni_settimanali, prezzo_cent ), iscrizioni_orari ( orario_id )')
-      .eq('allievo_id', id).order('data_inizio', { ascending: false }),
-    supabase.from('v_crediti').select('*').eq('allievo_id', id).order('scadenza', { ascending: false }),
-    supabase.from('prove')
-      .select('id, stato, prezzo_cent, corsi ( nome ), lezioni ( inizio )')
-      .eq('allievo_id', id).order('created_at', { ascending: false }).limit(10),
-    supabase.from('certificati').select('id, scadenza, stato, caricato_at').eq('allievo_id', id)
-      .order('caricato_at', { ascending: false }).limit(5),
-    supabase.from('corsi').select('id, nome').eq('palestra_id', p).eq('attivo', true).order('nome'),
-    supabase.from('tipi_abbonamento')
-      .select('id, nome, codice, famiglia, gruppo_id, modalita, durata_mesi, durata_giorni, scadenza_fine_mese, prezzo_cent, num_ingressi, tipi_abbonamento_corsi ( corso_id )')
-      .eq('palestra_id', p).eq('attivo', true).eq('archiviato', false).order('famiglia').order('nome'),
-    supabase.from('orari').select('id, corso_id, giorno_settimana, ora_inizio, gruppo').eq('palestra_id', p).eq('attivo', true)
-      .order('giorno_settimana').order('ora_inizio'),
-    supabase.from('palestre').select('base_url, quota_iscrizione_cent, sconti, ente, mese_fine_stagione, mese_inizio_annuale').eq('id', p).maybeSingle(),
-    supabase.from('storico_abbonamenti').select('id, abbonamento, dal, al, stato, valore_cent', { count: 'exact' })
-      .eq('allievo_id', id).order('dal', { ascending: false }).limit(60),
-    supabase.from('etichette').select('id, nome').eq('palestra_id', p).order('nome'),
-    supabase.from('allievi').select('id, nome, cognome').eq('account_id', allievo.account_id).neq('id', id),
-    supabase.from('iscrizioni').select('allievo_id, allievi!inner ( account_id )').eq('allievi.account_id', allievo.account_id)
-      .eq('stato', 'attiva').neq('allievo_id', id),
-    supabase.rpc('moduli_da_firmare', { p_allievo: id }),
-    supabase.from('firme').select('id, modulo_id, versione, titolo, firmato_at').eq('allievo_id', id).order('firmato_at', { ascending: false }),
-    // i suoi pagamenti, più quelli della famiglia che non dicono per chi sono
-    supabase.from('pagamenti').select('*')
-      .eq('palestra_id', p).or(`allievo_id.eq.${id},and(account_id.eq.${allievo.account_id},allievo_id.is.null)`)
-      .order('created_at', { ascending: false }).limit(100),
-    supabase.from('abbonamenti_ricorrenti').select('id, stato, importo_cent, tipi_abbonamento ( nome ), corsi ( nome )')
-      .eq('allievo_id', id).neq('stato', 'annullato'),
-    // i numeri di ogni abbonamento (lezioni fatte, da fare, ingressi, lezioni in più, recuperi) e i corsi compresi
-    supabase.rpc('riepilogo_iscrizioni', { p_allievo: id })
-  ]);
-  const { data: ricevute } = (pagamenti || []).length
-    ? await supabase.from('ricevute').select('id, pagamento_id, numero, anno, tipo_documento, annullata').in('pagamento_id', pagamenti.map((x) => x.id))
-    : { data: [] };
-  // le sue prossime lezioni (fisse, prenotate, recuperi, prove) nei prossimi 30 giorni, e le disdette già fatte
-  const fra30 = new Date(Date.now() + 30 * 86400000).toLocaleDateString('sv-SE');
-  const { data: partecipa } = await supabase.from('v_partecipanti_lezione').select('lezione_id, tipo, riferimento_id').eq('allievo_id', id);
-  const idLez = (partecipa || []).map((x) => x.lezione_id);
-  const [{ data: lezProssime }, { data: disdette }] = idLez.length
-    ? await Promise.all([
-        supabase.from('v_lezioni').select('id, corso_nome, inizio, sala_nome, insegnante_nome').in('id', idLez).eq('stato', 'programmata')
-          .gt('inizio', new Date().toISOString()).lte('data', fra30).order('inizio').limit(40),
-        supabase.from('assenze_avvisate').select('lezione_id').eq('allievo_id', id).in('lezione_id', idLez),
-      ])
-    : [{ data: [] }, { data: [] }];
-  const partDi = Object.fromEntries((partecipa || []).map((x) => [x.lezione_id, x]));
-  const prossime = (lezProssime || []).map((l) => ({ ...l, tipo: partDi[l.id]?.tipo, riferimento_id: partDi[l.id]?.riferimento_id }));
+  // una sola chiamata al database per tutta la scheda (query 144); se manca, le letture una per una
+  let dati = null;
+  const { data: insieme, error: erroreInsieme } = await supabase.rpc('scheda_persona', { p_allievo: id });
+  if (!erroreInsieme) {
+    if (!insieme) notFound();
+    const partDi = Object.fromEntries((insieme.partecipa || []).map((x) => [x.lezione_id, x]));
+    dati = { ...insieme, storicoTotale: insieme.storico_totale, famigliaIscritta: insieme.famiglia_iscritta,
+      prossime: (insieme.prossime || []).map((l) => ({ ...l, tipo: partDi[l.id]?.tipo, riferimento_id: partDi[l.id]?.riferimento_id })) };
+  } else {
+    dati = await caricaSeparato(supabase, id, p);
+    if (!dati) notFound();
+  }
+  const { allievo, stato, iscrizioni, crediti, prove, certificati, corsi, tipi, orari, palestra, storico, storicoTotale, etichette, famiglia,
+    famigliaIscritta, moduli, firme, pagamenti, rinnovi, riepilogo, ricevute, prossime, disdette } = dati;
 
   const linkCertificato = `${palestra?.base_url || ''}/certificato?t=${allievo.token}`;
   // aveva solo abbonamenti annullati: non è un "lead" né "mai iscritto", ha lasciato
@@ -226,7 +179,7 @@ export default async function Persona({ params, searchParams }) {
               sconti={palestra?.sconti || {}}
               meseFineStagione={palestra?.mese_fine_stagione || 7}
               meseInizioAnnuale={palestra?.mese_inizio_annuale || 10}
-              famigliaIscritta={new Set((famigliaIscritta || []).map((x) => x.allievo_id)).size}
+              famigliaIscritta={famigliaIscritta || 0}
               apriSubito={iscrivi === '1'}
             />
             <RinnoviAutomatici rinnovi={rinnovi || []} />
@@ -328,4 +281,71 @@ export default async function Persona({ params, searchParams }) {
       </div>
     </div>
   );
+}
+
+// Riserva: le stesse letture una per una (se la funzione scheda_persona della query 144 non c'è ancora)
+async function caricaSeparato(supabase, id, p) {
+  const { data: allievo } = await supabase
+    .from('allievi')
+    .select('*, account ( id, nome, cognome, email, telefono, codice_fiscale, consenso_marketing, consenso_privacy_at )')
+    .eq('id', id).maybeSingle();
+  if (!allievo) return null;
+
+  const [{ data: stato }, { data: iscrizioni }, { data: crediti }, { data: prove }, { data: certificati },
+         { data: corsi }, { data: tipi }, { data: orari }, { data: palestra }, { data: storico, count: storicoTotale },
+         { data: etichette }, { data: famiglia }, { data: famigliaIscritta }, { data: moduli }, { data: firme },
+         { data: pagamenti }, { data: rinnovi }, { data: riepilogo }] = await Promise.all([
+    supabase.from('v_stato_clienti').select('stato, attivo, fine_prossima, prima_data, ultima_fine, certificato_scaduto, quota_mancante, quota_valida_fino, senza_orari, etichette_id, giorni_al_compleanno, ultima_presenza')
+      .eq('id', id).maybeSingle(),
+    supabase.from('iscrizioni')
+      .select('id, palestra_id, tipo_abbonamento_id, data_inizio, data_fine, stato, sconto_cent, note, ingressi_residui, corsi ( id, nome ), tipi_abbonamento ( nome, modalita, lezioni_settimanali, prezzo_cent ), iscrizioni_orari ( orario_id )')
+      .eq('allievo_id', id).order('data_inizio', { ascending: false }),
+    supabase.from('v_crediti').select('*').eq('allievo_id', id).order('scadenza', { ascending: false }),
+    supabase.from('prove')
+      .select('id, stato, prezzo_cent, corsi ( nome ), lezioni ( inizio )')
+      .eq('allievo_id', id).order('created_at', { ascending: false }).limit(10),
+    supabase.from('certificati').select('id, scadenza, stato, caricato_at').eq('allievo_id', id)
+      .order('caricato_at', { ascending: false }).limit(5),
+    supabase.from('corsi').select('id, nome').eq('palestra_id', p).eq('attivo', true).order('nome'),
+    supabase.from('tipi_abbonamento')
+      .select('id, nome, codice, famiglia, gruppo_id, modalita, durata_mesi, durata_giorni, scadenza_fine_mese, prezzo_cent, num_ingressi, tipi_abbonamento_corsi ( corso_id )')
+      .eq('palestra_id', p).eq('attivo', true).eq('archiviato', false).order('famiglia').order('nome'),
+    supabase.from('orari').select('id, corso_id, giorno_settimana, ora_inizio, gruppo').eq('palestra_id', p).eq('attivo', true)
+      .order('giorno_settimana').order('ora_inizio'),
+    supabase.from('palestre').select('base_url, quota_iscrizione_cent, sconti, ente, mese_fine_stagione, mese_inizio_annuale').eq('id', p).maybeSingle(),
+    supabase.from('storico_abbonamenti').select('id, abbonamento, dal, al, stato, valore_cent', { count: 'exact' })
+      .eq('allievo_id', id).order('dal', { ascending: false }).limit(60),
+    supabase.from('etichette').select('id, nome').eq('palestra_id', p).order('nome'),
+    supabase.from('allievi').select('id, nome, cognome').eq('account_id', allievo.account_id).neq('id', id),
+    supabase.from('iscrizioni').select('allievo_id, allievi!inner ( account_id )').eq('allievi.account_id', allievo.account_id)
+      .eq('stato', 'attiva').neq('allievo_id', id),
+    supabase.rpc('moduli_da_firmare', { p_allievo: id }),
+    supabase.from('firme').select('id, modulo_id, versione, titolo, firmato_at').eq('allievo_id', id).order('firmato_at', { ascending: false }),
+    // i suoi pagamenti, più quelli della famiglia che non dicono per chi sono
+    supabase.from('pagamenti').select('*')
+      .eq('palestra_id', p).or(`allievo_id.eq.${id},and(account_id.eq.${allievo.account_id},allievo_id.is.null)`)
+      .order('created_at', { ascending: false }).limit(100),
+    supabase.from('abbonamenti_ricorrenti').select('id, stato, importo_cent, tipi_abbonamento ( nome ), corsi ( nome )')
+      .eq('allievo_id', id).neq('stato', 'annullato'),
+    // i numeri di ogni abbonamento (lezioni fatte, da fare, ingressi, lezioni in più, recuperi) e i corsi compresi
+    supabase.rpc('riepilogo_iscrizioni', { p_allievo: id })
+  ]);
+  const { data: ricevute } = (pagamenti || []).length
+    ? await supabase.from('ricevute').select('id, pagamento_id, numero, anno, tipo_documento, annullata').in('pagamento_id', pagamenti.map((x) => x.id))
+    : { data: [] };
+  // le sue prossime lezioni (fisse, prenotate, recuperi, prove) nei prossimi 30 giorni, e le disdette già fatte
+  const fra30 = new Date(Date.now() + 30 * 86400000).toLocaleDateString('sv-SE');
+  const { data: partecipa } = await supabase.from('v_partecipanti_lezione').select('lezione_id, tipo, riferimento_id').eq('allievo_id', id);
+  const idLez = (partecipa || []).map((x) => x.lezione_id);
+  const [{ data: lezProssime }, { data: disdette }] = idLez.length
+    ? await Promise.all([
+        supabase.from('v_lezioni').select('id, corso_nome, inizio, sala_nome, insegnante_nome').in('id', idLez).eq('stato', 'programmata')
+          .gt('inizio', new Date().toISOString()).lte('data', fra30).order('inizio').limit(40),
+        supabase.from('assenze_avvisate').select('lezione_id').eq('allievo_id', id).in('lezione_id', idLez),
+      ])
+    : [{ data: [] }, { data: [] }];
+  const partDi = Object.fromEntries((partecipa || []).map((x) => [x.lezione_id, x]));
+  const prossime = (lezProssime || []).map((l) => ({ ...l, tipo: partDi[l.id]?.tipo, riferimento_id: partDi[l.id]?.riferimento_id }));
+  return { allievo, stato, iscrizioni, crediti, prove, certificati, corsi, tipi, orari, palestra, storico, storicoTotale, etichette, famiglia,
+    famigliaIscritta: new Set((famigliaIscritta || []).map((x) => x.allievo_id)).size, moduli, firme, pagamenti, rinnovi, riepilogo, ricevute, prossime, disdette };
 }

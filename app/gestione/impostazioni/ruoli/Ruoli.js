@@ -69,20 +69,20 @@ export default function Ruoli({ ruoli, persone, admin, palestraId }) {
   const router = useRouter();
   const [apri, setApri] = useState(null);     // id del profilo, 'nuovo' o null
   const [errore, setErrore] = useState('');
-  const fatto = () => { setApri(null); router.refresh(); };
+  const fatto = () => { setApri(null); fetch('/api/salute?dimentica=staff', { cache: 'no-store' }).catch(() => null); router.refresh(); };
 
   async function assegna(p, ruoloId) {
     setErrore('');
     const { error } = await supabaseBrowser().from('staff').update({ ruolo_id: ruoloId || null }).eq('id', p.id);
     if (error) { setErrore('Assegnazione non riuscita.'); return; }
-    router.refresh();
+    fetch('/api/salute?dimentica=staff', { cache: 'no-store' }).catch(() => null); router.refresh();
   }
 
   async function elimina(r) {
     if (!confirm(`Eliminare il profilo "${r.nome}"? Chi lo aveva torna a vedere quello del suo ruolo di base.`)) return;
     const { error } = await supabaseBrowser().from('ruoli').delete().eq('id', r.id);
     if (error) { setErrore('Eliminazione non riuscita.'); return; }
-    router.refresh();
+    fetch('/api/salute?dimentica=staff', { cache: 'no-store' }).catch(() => null); router.refresh();
   }
 
   if (!admin) return <div className="vuoto">Ruoli e accessi li gestisce solo l'amministrazione.</div>;

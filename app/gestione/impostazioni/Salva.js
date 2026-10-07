@@ -12,6 +12,8 @@ export function useSalva(palestraId) {
     const { error } = await supabaseBrowser().from('palestre').update(dati).eq('id', palestraId);
     if (error) { setStato('errore'); return false; }
     setStato('fatto'); setTimeout(() => setStato(''), 2500);
+    // il menù (funzioni attive…) è tenuto in memoria dal server: glielo si fa rileggere
+    if (dati.funzioni) { try { await fetch('/api/salute?dimentica=guscio', { cache: 'no-store' }); } catch { /* niente */ } }
     router.refresh();
     return true;
   }
