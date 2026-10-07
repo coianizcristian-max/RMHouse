@@ -1,5 +1,6 @@
 'use client';
 import Gestore from '../../Gestore';
+import { gruppiUsati, mappaGruppi, chiaveGruppo } from '@/lib/gruppi';
 
 const GIORNI = [[1, 'Lunedì'], [2, 'Martedì'], [3, 'Mercoledì'], [4, 'Giovedì'], [5, 'Venerdì'], [6, 'Sabato'], [7, 'Domenica']];
 
@@ -7,6 +8,10 @@ export default function Orari({ palestraId, corsoId, orari, sale, insegnanti, ab
   // prima chi è abilitato sul corso, poi tutti gli altri
   const scelta = [...insegnanti].sort((a, b) =>
     (abilitati.includes(b.id) - abilitati.includes(a.id)) || a.nome.localeCompare(b.nome));
+  // gruppi già usati nel corso, con il loro colore: si scelgono con un tocco
+  const vivi = orari.filter((o) => o.attivo);
+  const gruppi = gruppiUsati(vivi.length ? vivi : orari);
+  const colori = mappaGruppi(vivi.length ? vivi : orari);
   return (
     <Gestore
       tabella="orari"
@@ -23,7 +28,9 @@ export default function Orari({ palestraId, corsoId, orari, sale, insegnanti, ab
         { k: 'insegnante_id', etichetta: 'Insegnante', tipo: 'select', opzioni: scelta.map((i) => ({ v: i.id, l: `${i.nome} ${i.cognome || ''}`.trim() + (abilitati.length && !abilitati.includes(i.id) ? ' · non sul corso' : '') })) },
         { k: 'valido_dal', etichetta: 'Valido dal', tipo: 'data', aiuto: 'Vuoto = da oggi' },
         { k: 'valido_al', etichetta: 'Valido fino al', tipo: 'data', aiuto: 'Vuoto = senza scadenza' },
-        { k: 'gruppo', etichetta: 'Gruppo', tipo: 'testo', aiuto: 'Solo se il corso ha più gruppi (es. "Serale Eloise", "Pausa pranzo Liuda"): chi si iscrive dall\'app sceglie il gruppo e poi i suoi giorni' },
+        { k: 'gruppo', etichetta: 'Gruppo', tipo: 'testo', suggerimenti: gruppi, nessuno: gruppi.length ? 'nessun gruppo' : null,
+          segnaposto: gruppi.length ? 'oppure scrivi un gruppo nuovo' : 'es. Serale Eloise',
+          aiuto: 'Solo se il corso ha più gruppi (es. "Serale Eloise", "Pausa pranzo Liuda"): chi si iscrive dall\'app sceglie il gruppo e poi i suoi giorni' },
         { k: 'prenotabile', etichetta: 'Prenotabile online', tipo: 'check',
           aiuto: 'Tolto: le lezioni di questo orario non si prenotano dal sito né dall\'area cliente' },
         { k: 'attivo', etichetta: 'Attivo', tipo: 'check' },
@@ -36,6 +43,7 @@ export default function Orari({ palestraId, corsoId, orari, sale, insegnanti, ab
           insegnanti.find((i) => i.id === o.insegnante_id)?.nome,
         ].filter(Boolean).join(' · '),
         tag: !o.attivo ? 'sospeso' : o.prenotabile === false ? 'non prenotabile' : null,
+        colore: colori[chiaveGruppo(o.gruppo)]?.colore,
       })}
     />
   );

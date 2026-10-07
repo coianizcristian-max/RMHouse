@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { gruppoDiOrari } from '@/lib/gruppi';
+import { gruppoColorato } from '@/lib/gruppi';
 import { stripeAttivo } from '@/lib/stripe';
 import { notFound, redirect } from 'next/navigation';
 import { staffCorrente } from '@/lib/staff';
@@ -158,10 +158,10 @@ export default async function Persona({ params, searchParams }) {
                     const suoi = (i.iscrizioni_orari || []).map((x) => (orari || []).find((o) => o.id === x.orario_id)).filter(Boolean)
                       .sort((a, b) => a.giorno_settimana - b.giorno_settimana);
                     const giorni = suoi.map((o) => `${GG[o.giorno_settimana]} ${String(o.ora_inizio).slice(0, 5)}`);
-                    const gruppo = gruppoDiOrari(suoi.filter((o) => o.corso_id === i.corsi?.id));
+                    const gruppo = gruppoColorato(suoi.filter((o) => o.corso_id === i.corsi?.id), (orari || []).filter((o) => o.corso_id === i.corsi?.id));
                     return (
                       <span key={i.id} className="sp-corso">
-                        <strong>{i.corsi?.nome}{gruppo ? <span className="tag tag-neutro" style={{ marginLeft: 6 }}>{gruppo}</span> : null}</strong>
+                        <strong>{i.corsi?.nome}{gruppo ? <span className="tag-gruppo" style={{ '--g': gruppo.colore, marginLeft: 6 }}>{gruppo.nome}</span> : null}</strong>
                         {giorni.length > 0 && <span>{giorni.join(' · ')}</span>}
                         <span className="muto">fino al {dataBreve(i.data_fine)}</span>
                       </span>

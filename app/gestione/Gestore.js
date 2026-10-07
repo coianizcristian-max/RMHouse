@@ -6,7 +6,7 @@ import SceltaColore from './SceltaColore';
 
 // Editor generico: elenco di righe con aggiunta, modifica ed eliminazione.
 // campi: [{ k, etichetta, tipo: 'testo'|'numero'|'euro'|'select'|'check'|'ora'|'data'|'testolungo',
-//           opzioni?: [{v,l}], obbligatorio?, aiuto?, meta? }]
+//           opzioni?: [{v,l}], obbligatorio?, aiuto?, meta?, suggerimenti?: [{nome, colore}], nessuno?, segnaposto? }]
 // fissi: valori sempre applicati (es. { palestra_id, corso_id })
 // riassunto(riga) -> { titolo, dettaglio, tag?, colore? }
 // sezione(riga) -> { chiave, titolo }: se c'è, le righe (già in ordine) sono divise da un titoletto
@@ -218,10 +218,27 @@ function Modulo({ campi, bozza, setBozza, salva, annulla, invio, errore }) {
             ) : c.tipo === 'testolungo' ? (
               <textarea id={id} value={bozza[c.k] ?? ''} onChange={(e) => set(c.k, e.target.value)} />
             ) : (
+              <>
+              {c.suggerimenti?.length > 0 && (
+                // valori già usati (es. i gruppi del corso): un tocco e il campo è compilato
+                <div className="oc-gruppi-scelta" role="group" aria-label={`${c.etichetta}: quelli già usati`}>
+                  {c.suggerimenti.map((x) => (
+                    <button key={x.nome} type="button" className="oc-gruppo-chip" style={{ '--g': x.colore || 'var(--testo-2)' }}
+                            aria-pressed={String(bozza[c.k] ?? '').trim().toLowerCase() === x.nome.toLowerCase()}
+                            onClick={() => set(c.k, x.nome)}>{x.nome}</button>
+                  ))}
+                  {c.nessuno && (
+                    <button type="button" className="oc-gruppo-chip nessuno" aria-pressed={!String(bozza[c.k] ?? '').trim()}
+                            onClick={() => set(c.k, '')}>{c.nessuno}</button>
+                  )}
+                </div>
+              )}
               <input id={id} value={bozza[c.k] ?? ''} onChange={(e) => set(c.k, e.target.value)}
+                     autoComplete={c.suggerimenti ? 'off' : undefined}
+                     placeholder={c.suggerimenti?.length ? (c.segnaposto || 'oppure scrivi') : c.tipo === 'euro' ? '0 = gratis' : c.segnaposto}
                      type={c.tipo === 'ora' ? 'time' : c.tipo === 'data' ? 'date' : 'text'}
-                     inputMode={c.tipo === 'euro' ? 'decimal' : c.tipo === 'numero' ? 'numeric' : undefined}
-                     placeholder={c.tipo === 'euro' ? '0 = gratis' : undefined} />
+                     inputMode={c.tipo === 'euro' ? 'decimal' : c.tipo === 'numero' ? 'numeric' : undefined} />
+              </>
             )}
             {c.aiuto && <span className="piccolo muto">{c.aiuto}</span>}
           </div>

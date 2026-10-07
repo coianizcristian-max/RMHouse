@@ -1210,6 +1210,10 @@ a.tessera:hover, .scheda-corso:hover {
 .stato-pillola.eti { border-style: dashed; }
 .stato-pillola[aria-current='true'] { background: var(--nero); border-color: var(--nero); color: var(--bianco); }
 .stato-pillola[aria-current='true'] strong { color: var(--bianco); }
+.stato-pillola.pillola-gruppo { border-color: var(--g); background: color-mix(in srgb, var(--g) 10%, var(--bianco)); }
+.stato-pillola.pillola-gruppo::before { content: ''; width: 9px; height: 9px; border-radius: 50%; background: var(--g); }
+.stato-pillola.pillola-gruppo[aria-current='true'] { background: var(--g); border-color: var(--g); color: #fff; }
+.stato-pillola.pillola-gruppo[aria-current='true']::before { background: #fff; }
 
 /* Elenchi con selezione multipla */
 .elenco-testa { display: flex; flex-wrap: wrap; align-items: center; gap: 14px; margin: 6px 0 10px; }
@@ -4114,15 +4118,37 @@ body:has(.sportello) .bottone-rapide { display: none; }
 .oc-occ-ins { margin-top: 4px; font-size: 13px; font-weight: 700; color: var(--rosso-scuro); }
 .oc-sel { min-height: 36px; padding: 6px 10px; border: 1px solid var(--linea); border-radius: 10px; font: inherit; font-size: 14px; background: var(--bianco); color: var(--testo); max-width: 230px; }
 .oc-sel.attivo { border-color: var(--nero); font-weight: 700; }
-.oc-gruppo { margin-left: auto; max-width: 48%; padding: 0 6px; border-radius: 999px; background: var(--carta); border: 1px solid var(--linea);
-  font-size: 10.5px; font-weight: 700; color: var(--testo); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.oc-gruppo + .oc-date, .oc-date + .oc-gruppo { margin-left: 4px; }
+/* gruppi dentro un corso: ogni gruppo ha il suo colore (lib/gruppi.js), --g sull'elemento */
+.oc-orario.con-gruppo { height: auto; min-height: 88px; border-left: 5px solid var(--g); background: color-mix(in srgb, var(--g) 8%, var(--bianco)); }
+.oc-orario.con-gruppo:hover, .oc-orario.con-gruppo:focus-visible, .oc-orario.con-gruppo.no-app { border-left-color: var(--g); }
+.oc-orario.con-gruppo.conflitto { border-left-color: var(--g); background: var(--rosso-tenue); }
+.oc-gruppo { display: block; margin: -1px 0 2px; padding: 1px 7px; border-radius: 5px; background: var(--g); color: #fff;
+  font-size: 11.5px; font-weight: 700; line-height: 1.35; white-space: normal; overflow-wrap: anywhere; }
+.oc-gruppi-legenda { display: flex; flex-wrap: wrap; gap: 4px; margin: 5px 0 0 17px; }
+.oc-gruppo-chip { display: inline-flex; align-items: center; gap: 5px; padding: 1px 8px 1px 6px; border-radius: 999px; border: 1px solid var(--g);
+  background: color-mix(in srgb, var(--g) 12%, var(--bianco)); color: var(--testo); font: inherit; font-size: 11.5px; font-weight: 700; line-height: 1.5; white-space: nowrap; }
+.oc-gruppo-chip::before { content: ''; width: 8px; height: 8px; border-radius: 50%; background: var(--g); flex: none; }
+.oc-gruppo-chip b { font-weight: 600; color: var(--testo-2); }
 .oc-campi .oc-campo-gruppo { grid-column: 1 / -1 !important; }
-.oc-gruppo + .oc-avviso-scontro { margin-left: 4px; }
+.oc-gruppi-scelta { display: flex; flex-wrap: wrap; gap: 6px; margin: 2px 0 8px; }
+.oc-gruppi-scelta .oc-gruppo-chip { padding: 6px 12px 6px 10px; font-size: 13.5px; cursor: pointer; }
+.oc-gruppi-scelta .oc-gruppo-chip[aria-pressed='true'] { background: var(--g); color: #fff; }
+.oc-gruppi-scelta .oc-gruppo-chip[aria-pressed='true']::before { background: #fff; }
+.oc-gruppi-scelta .oc-gruppo-chip.nessuno { --g: var(--testo-2); border-style: dashed; background: var(--bianco); font-weight: 600; }
+.oc-gruppi-scelta .oc-gruppo-chip.nessuno::before { display: none; }
+.oc-gruppi-scelta .oc-gruppo-chip.nessuno[aria-pressed='true'] { background: var(--testo-2); color: var(--bianco); }
+/* lo stesso colore nelle altre pagine: etichetta del gruppo */
+.tag-gruppo { display: inline-flex; align-items: center; gap: 5px; padding: 1px 9px 1px 7px; border-radius: 999px; border: 1px solid var(--g);
+  background: color-mix(in srgb, var(--g) 12%, var(--bianco)); color: var(--testo); font-size: 12px; font-weight: 700; line-height: 1.5; white-space: nowrap; vertical-align: middle; }
+.tag-gruppo::before { content: ''; width: 8px; height: 8px; border-radius: 50%; background: var(--g); flex: none; }
 /* Iscriviti: gruppi dentro un corso e insegnante su ogni giorno */
 .isc-gruppi { display: grid; gap: 8px; margin-bottom: 10px; }
 .isc-gruppo { display: grid; gap: 3px; text-align: left; padding: 14px; border: 1.5px solid var(--linea); border-radius: 14px; background: var(--bianco); color: var(--testo); font: inherit; cursor: pointer; }
 .isc-gruppo:hover, .isc-gruppo:focus-visible { border-color: var(--nero); }
+.isc-gruppo[style] { border-left: 6px solid var(--g); }
+.isc-gruppo[style]:hover, .isc-gruppo[style]:focus-visible { border-color: var(--g); background: color-mix(in srgb, var(--g) 6%, var(--bianco)); }
+.isc-gruppo[style] strong { color: var(--g); }
+.isc-gruppo-scelto[style] { border-left: 5px solid var(--g); }
 .isc-gruppo strong { font-size: 16px; }
 .isc-gruppo-giorni { font-weight: 600; }
 .isc-gruppo-ins, .isc-ins { font-size: 13px; color: var(--testo-2); }
@@ -4135,3 +4161,6 @@ body:has(.sportello) .bottone-rapide { display: none; }
 .sp-gruppo-nome small { font-weight: 500; color: var(--testo-2); }
 .sp-gruppo-nome.attivo { background: var(--nero); color: var(--bianco); }
 .sp-gruppo-nome.attivo small { color: inherit; opacity: .8; }
+.sp-gruppo[style] { border: 1.5px solid var(--g); border-left-width: 5px; background: color-mix(in srgb, var(--g) 5%, transparent); }
+.sp-gruppo[style] .sp-gruppo-nome { background: color-mix(in srgb, var(--g) 14%, var(--bianco)); color: var(--testo); }
+.sp-gruppo[style] .sp-gruppo-nome.attivo { background: var(--g); color: #fff; }

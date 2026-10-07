@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabaseBrowser } from '@/lib/supabase/browser';
-import { gruppoDiOrari } from '@/lib/gruppi';
+import { gruppoColorato, mappaGruppi, chiaveGruppo } from '@/lib/gruppi';
 
 const GIORNI = ['', 'Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab', 'Dom'];
 
@@ -14,6 +14,7 @@ export default function AssegnaGiorni({ iscrizioneId, orari, scelti = [], quanti
   const [sel, setSel] = useState(new Set(scelti));
   const [invio, setInvio] = useState(false);
   const [errore, setErrore] = useState('');
+  const colori = mappaGruppi(orari);   // colore di ogni gruppo del corso
   const cambiato = sel.size !== scelti.length || scelti.some((s) => !sel.has(s));
 
   if (!orari.length) return <span className="piccolo muto">Il corso non ha orari.</span>;
@@ -23,7 +24,7 @@ export default function AssegnaGiorni({ iscrizioneId, orari, scelti = [], quanti
       <span className="assegna-chiuso">
         {attuali.length > 0 && (
           <span className="piccolo">{attuali.map((o) => `${GIORNI[o.giorno_settimana]} ${String(o.ora_inizio).slice(0, 5)}`).join(' · ')}
-            {gruppoDiOrari(attuali) && <span className="tag tag-neutro" style={{ marginLeft: 6 }}>{gruppoDiOrari(attuali)}</span>}</span>
+            {gruppoColorato(attuali, orari) && <span className="tag-gruppo" style={{ '--g': gruppoColorato(attuali, orari).colore, marginLeft: 6 }}>{gruppoColorato(attuali, orari).nome}</span>}</span>
         )}
         <button type="button" className={`btn btn-piccolo${attuali.length ? '' : ' btn-primario'}`} onClick={() => setAperto(true)}>
           {attuali.length ? 'Cambia giorni' : 'Assegna i giorni'}
@@ -50,8 +51,9 @@ export default function AssegnaGiorni({ iscrizioneId, orari, scelti = [], quanti
     <div className="assegna-giorni">
       <div className="pastiglie" style={{ margin: 0 }}>
         {orari.map((o) => (
-          <button key={o.id} type="button" aria-pressed={sel.has(o.id)} onClick={() => toggle(o.id)} style={{ paddingLeft: 12 }}>
-            {GIORNI[o.giorno_settimana]} {String(o.ora_inizio).slice(0, 5)}{o.gruppo ? <span className="muto"> · {o.gruppo}</span> : null}
+          <button key={o.id} type="button" aria-pressed={sel.has(o.id)} onClick={() => toggle(o.id)}
+                  style={{ paddingLeft: 12, ...(colori[chiaveGruppo(o.gruppo)] ? { borderLeft: `5px solid ${colori[chiaveGruppo(o.gruppo)].colore}` } : {}) }}>
+            {GIORNI[o.giorno_settimana]} {String(o.ora_inizio).slice(0, 5)}{o.gruppo ? <span className="muto"> · {colori[chiaveGruppo(o.gruppo)]?.nome || o.gruppo}</span> : null}
           </button>
         ))}
       </div>

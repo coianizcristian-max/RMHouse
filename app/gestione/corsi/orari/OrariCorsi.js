@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { supabaseBrowser } from '@/lib/supabase/browser';
-import { gruppiDi, nomeGruppo } from '@/lib/gruppi';
+import { gruppiDi, mappaGruppi, chiaveGruppo, gruppiUsati, nomeDaSalvare, COLORE_SENZA, SENZA_GRUPPO } from '@/lib/gruppi';
 
 const GIORNI = ['', 'Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab', 'Dom'];
 const GIORNI_LUNGHI = ['', 'Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato', 'Domenica'];
@@ -149,25 +149,38 @@ export default function OrariCorsi({ corsi, orari, sale, persone, palestraId, se
                   <span className="oc-sotto">{vivi.length === 0 ? 'nessun giorno' : `${vivi.length} ${vivi.length === 1 ? 'giorno' : 'giorni'}`}
                     {gruppiDi(vivi).length ? ` · ${gruppiDi(vivi).length} gruppi` : ''}
                     {c.iscrizioni_app !== 'aperte' ? ' · iscrizioni app chiuse' : ''}</span>
+                  {gruppiDi(vivi).length > 0 && (
+                    <span className="oc-gruppi-legenda">
+                      {gruppiDi(vivi).map((g) => (
+                        <span key={g.chiave || 'altri'} className="oc-gruppo-chip" style={{ '--g': g.colore }} title={`${g.nome}: ${g.orari.length} ${g.orari.length === 1 ? 'giorno' : 'giorni'}`}>
+                          {g.nome} <b>{g.orari.length}</b></span>
+                      ))}
+                    </span>
+                  )}
                 </th>
                 {[1, 2, 3, 4, 5, 6, 7].map((g) => {
+                  // colori dei gruppi: presi da tutti gli orari validi del corso, così non cambiano filtrando
+                  const colori = mappaGruppi(vivi);
+                  const conGruppi = gruppiDi(vivi).length > 0;
                   const delGiorno = visti.filter((o) => o.giorno_settimana === g).sort((a, b) => hhmm(a.ora_inizio).localeCompare(hhmm(b.ora_inizio)));
                   return (
                     <td key={g}>
                       {delGiorno.map((o) => {
                         const v = valido(o);
                         const sc = v ? scontri[o.id] : null;
+                        const gr = colori[chiaveGruppo(o.gruppo)] || (chiaveGruppo(o.gruppo) ? { nome: String(o.gruppo).trim(), colore: COLORE_SENZA } : null);
                         return (
                           <button key={o.id} type="button" onClick={() => apri(c, o)}
-                                  className={`oc-orario${!v ? ' spento' : ''}${o.prenotabile === false ? ' no-app' : ''}${sc ? ' conflitto' : ''}`}
-                                  title={[[`${GIORNI_LUNGHI[g]} ${hhmm(o.ora_inizio)}–${fine(o)}`, salaDi[o.sala_id], persDi[o.insegnante_id],
+                                  style={gr || conGruppi ? { '--g': gr?.colore || COLORE_SENZA } : undefined}
+                                  className={`oc-orario${!v ? ' spento' : ''}${o.prenotabile === false ? ' no-app' : ''}${sc ? ' conflitto' : ''}${gr || conGruppi ? ' con-gruppo' : ''}`}
+                                  title={[gr ? `Gruppo: ${gr.nome}` : null, [`${GIORNI_LUNGHI[g]} ${hhmm(o.ora_inizio)}–${fine(o)}`, salaDi[o.sala_id], persDi[o.insegnante_id],
                                     o.prenotabile === false ? 'non si sceglie dall\'app' : 'si sceglie dall\'app'].filter(Boolean).join(' · '),
                                     sc ? `⚠ IN CONFLITTO\n${descriviScontri(sc)}` : null].filter(Boolean).join('\n')}>
+                            {(gr || conGruppi) && <span className="oc-gruppo">{gr?.nome || SENZA_GRUPPO}</span>}
                             <span className="oc-ora"><span className={`oc-pallino ${o.prenotabile === false ? 'no' : 'si'}`} />{hhmm(o.ora_inizio)}–{fine(o)}
                               {(!o.attivo || temporaneo(o)) && (
                                 <span className="oc-date">{!o.attivo ? 'sospeso' : o.valido_dal > o0 ? `dal ${it(o.valido_dal)}` : `al ${it(o.valido_al)}`}</span>
                               )}
-                              {nomeGruppo(o) && <span className="oc-gruppo" title={`Gruppo: ${nomeGruppo(o)}`}>{nomeGruppo(o)}</span>}
                               {sc && <span className="oc-avviso-scontro" aria-label="In conflitto">
                                 <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M12 2 1 21h22L12 2Zm1 15h-2v2h2v-2Zm0-7h-2v5h2v-5Z"/></svg></span>}</span>
                             <span className={`oc-riga${sc?.some((x) => x.tipo === 'sala') ? ' rosso' : ''}`}>{salaDi[o.sala_id] || 'sala —'}</span>
@@ -209,7 +222,9 @@ function Modifica({ m, sale, persone, palestraId, orariVivi, nomeCorso, salaDi, 
   const prova = { id: m.orario?.id || 'nuovo', giorno_settimana: Number(d.giorno_settimana), ora_inizio: d.ora_inizio || '00:00', durata_min: Number(d.durata_min) || 0,
     sala_id: d.sala_id || null, insegnante_id: d.insegnante_id || null, valido_dal: d.valido_dal || oggi(), valido_al: d.valido_al || null };
   const altri = orariVivi.filter((x) => x.id !== m.orario?.id);
-  const gruppiCorso = [...new Set(orariVivi.filter((x) => x.corso_id === m.corso.id).map(nomeGruppo).filter(Boolean))].sort();
+  const orariCorso = orariVivi.filter((x) => x.corso_id === m.corso.id);
+  const gruppiCorso = gruppiUsati(orariCorso);   // [{ nome, colore }]
+  const gruppoScelto = gruppiCorso.find((g) => g.nome.toLowerCase() === chiaveGruppo(d.gruppo));
   const scontriOra = d.ora_inizio && Number(d.durata_min) > 0 ? scontriDi(prova, altri) : [];
   const giornataSala = d.sala_id ? altri.filter((x) => x.sala_id === d.sala_id && Number(x.giorno_settimana) === prova.giorno_settimana
     && (prova.valido_dal || '0000') <= (x.valido_al || '9999') && (x.valido_dal || '0000') <= (prova.valido_al || '9999'))
@@ -230,7 +245,7 @@ function Modifica({ m, sale, persone, palestraId, orariVivi, nomeCorso, salaDi, 
     const dati = {
       giorno_settimana: Number(d.giorno_settimana), ora_inizio: d.ora_inizio, durata_min: Number(d.durata_min),
       sala_id: d.sala_id || null, insegnante_id: d.insegnante_id || null, valido_dal: d.valido_dal || m.orario?.valido_dal || oggi(), valido_al: d.valido_al || null,
-      prenotabile: !!d.prenotabile, attivo: !!d.attivo, gruppo: String(d.gruppo || '').trim() || null,
+      prenotabile: !!d.prenotabile, attivo: !!d.attivo, gruppo: nomeDaSalvare(d.gruppo, orariCorso),
     };
     const db = supabaseBrowser();
     const { error } = nuovo
@@ -289,9 +304,21 @@ function Modifica({ m, sale, persone, palestraId, orariVivi, nomeCorso, salaDi, 
             <input id="oc-al" type="date" value={d.valido_al} min={d.valido_dal || undefined} onChange={set('valido_al')} />
             <span className="piccolo muto">vuoto = sempre</span></div>
           <div className="campo oc-campo-gruppo"><label htmlFor="oc-gr">Gruppo <span className="piccolo muto">(se il corso ha più gruppi)</span></label>
-            <input id="oc-gr" list="oc-gruppi" value={d.gruppo} onChange={set('gruppo')} placeholder="es. Serale Eloise" maxLength={40} />
-            <datalist id="oc-gruppi">{gruppiCorso.map((g) => <option key={g} value={g} />)}</datalist>
-            <span className="piccolo muto">Chi si iscrive dall&apos;app sceglie prima il gruppo e poi solo i suoi giorni.</span></div>
+            {gruppiCorso.length > 0 && (
+              <div className="oc-gruppi-scelta" role="group" aria-label="Gruppi del corso">
+                {gruppiCorso.map((g) => (
+                  <button key={g.nome} type="button" className="oc-gruppo-chip" style={{ '--g': g.colore }} aria-pressed={gruppoScelto?.nome === g.nome}
+                          onClick={() => setD((x) => ({ ...x, gruppo: g.nome }))}>{g.nome}</button>
+                ))}
+                <button type="button" className="oc-gruppo-chip nessuno" aria-pressed={!String(d.gruppo || '').trim()}
+                        onClick={() => setD((x) => ({ ...x, gruppo: '' }))}>nessun gruppo</button>
+              </div>
+            )}
+            <input id="oc-gr" value={d.gruppo} onChange={set('gruppo')} autoComplete="off" maxLength={40}
+                   placeholder={gruppiCorso.length ? 'oppure scrivi un gruppo nuovo' : 'es. Serale Eloise'} />
+            <span className="piccolo muto">{String(d.gruppo || '').trim() && !gruppoScelto && gruppiCorso.length
+              ? `Gruppo nuovo: "${String(d.gruppo).trim()}". `
+              : ''}Chi si iscrive dall&apos;app sceglie prima il gruppo e poi solo i suoi giorni.</span></div>
         </div>
         <label className="spunta"><input type="checkbox" checked={!!d.prenotabile} onChange={set('prenotabile')} />
           <span>Si sceglie dall&apos;app <span className="piccolo muto">(iscrizioni, prove e recuperi dei clienti)</span></span></label>

@@ -392,7 +392,7 @@ export default function Iscriviti({ persone, corsi, tipi, orari, coperti, pieni,
               <p className="isc-nota">{corso?.nome} ha {gruppiCorso.length} gruppi con giorni e insegnanti diversi: scegli il tuo.</p>
               <div className="isc-gruppi">
                 {gruppiCorso.map((g) => (
-                  <button key={g.chiave || 'altri'} type="button" className="isc-gruppo" onClick={() => { setGruppo(g.chiave); setScelti([]); }}>
+                  <button key={g.chiave || 'altri'} type="button" className="isc-gruppo" style={{ '--g': g.colore }} onClick={() => { setGruppo(g.chiave); setScelti([]); }}>
                     <strong>{g.nome}</strong>
                     <span className="isc-gruppo-giorni">{g.orari.map((o) => `${GIORNI[o.giorno_settimana]} ${String(o.ora_inizio).slice(0, 5)}`).join(' · ')}</span>
                     {insegnantiDi(g.orari).length > 0 && <span className="isc-gruppo-ins">con {insegnantiDi(g.orari).join(', ')}</span>}
@@ -402,8 +402,8 @@ export default function Iscriviti({ persone, corsi, tipi, orari, coperti, pieni,
             </>
           )}
           {gruppoScelto && (
-            <div className="isc-gruppo-scelto">
-              <span>Gruppo <strong>{gruppoScelto.nome}</strong>{insegnantiDi(gruppoScelto.orari).length ? ` · con ${insegnantiDi(gruppoScelto.orari).join(', ')}` : ''}</span>
+            <div className="isc-gruppo-scelto" style={{ '--g': gruppoScelto.colore }}>
+              <span>Gruppo <strong className="tag-gruppo">{gruppoScelto.nome}</strong>{insegnantiDi(gruppoScelto.orari).length ? ` · con ${insegnantiDi(gruppoScelto.orari).join(', ')}` : ''}</span>
               <button type="button" className="link-btn" onClick={() => { setGruppo(null); setScelti([]); }}>cambia gruppo</button>
             </div>
           )}

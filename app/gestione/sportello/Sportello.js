@@ -398,7 +398,7 @@ export default function Sportello({ palestraId, corsi, tipi, orari, palestra, pe
                         const tutti = ids.every((id) => v.orari.includes(id));
                         const ins = [...new Set(g.orari.map((o) => o.insegnante).filter(Boolean))].join(', ');
                         return (
-                          <span key={g.chiave || 'altri'} className="sp-gruppo">
+                          <span key={g.chiave || 'altri'} className="sp-gruppo" style={{ '--g': g.colore }}>
                             <button type="button" className={`sp-gruppo-nome${tutti ? ' attivo' : ''}`} title={ins ? `con ${ins}` : undefined}
                                     onClick={() => setV((x) => {
                                       // i giorni di questo corso diventano quelli del gruppo (restano quelli di altri corsi)
