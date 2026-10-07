@@ -4077,3 +4077,23 @@ body:has(.sportello) .bottone-rapide { display: none; }
 .oc-avviso { color: var(--attenzione); margin: 4px 0 8px; }
 .oc-mod-azioni { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 10px; }
 .oc-sospendi { margin-left: auto; color: var(--rosso-scuro); }
+/* Iscriviti → Che corso?: filtri compatti, i corsi si vedono subito */
+.isc-scorri { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; margin: 8px -16px 4px; padding: 0 16px 2px; }
+.isc-scorri::-webkit-scrollbar { display: none; }
+.isc-scorri button { flex: none; border: 1.5px solid var(--linea); background: var(--bianco); color: var(--testo); border-radius: 999px;
+  padding: 7px 14px; font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; white-space: nowrap; }
+.isc-scorri.piccoli { margin: 0; padding: 0 0 2px; }
+.isc-scorri.piccoli button { padding: 5px 11px; font-size: 13px; }
+.isc-scorri button[aria-pressed='true'] { background: var(--nero); border-color: var(--nero); color: var(--bianco); }
+.isc-filtri-riga { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; margin: 6px 0 2px; }
+.isc-filtri-btn { display: inline-flex; align-items: center; gap: 6px; border: 1.5px solid var(--linea); background: var(--bianco); color: var(--testo);
+  border-radius: 999px; padding: 6px 12px; font: inherit; font-size: 13.5px; font-weight: 700; cursor: pointer; }
+.isc-filtri-btn.attivi, .isc-filtri-btn[aria-expanded='true'] { border-color: var(--nero); }
+.isc-tolto { border: 0; background: var(--carta); color: var(--testo); border-radius: 999px; padding: 6px 10px; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.isc-filtri { border: 1px solid var(--linea); border-radius: 14px; padding: 10px 12px; margin: 6px 0 4px; display: grid; gap: 10px; background: var(--bianco); }
+.isc-filtro { display: grid; gap: 4px; min-width: 0; }
+.isc-filtro > span { font-size: 12px; font-weight: 700; color: var(--testo-2); text-transform: uppercase; letter-spacing: .04em; }
+.isc-filtro-eta { display: flex; gap: 8px; align-items: center; font-size: 13.5px; }
+.isc-filtri-azioni { display: flex; justify-content: flex-end; align-items: center; gap: 12px; }
+@keyframes isc-lampo { from { color: var(--rosso); } to { color: var(--testo-2); } }
+.isc-conta { animation: isc-lampo .6s ease-out; font-weight: 600; }

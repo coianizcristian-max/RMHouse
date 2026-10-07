@@ -69,6 +69,7 @@ export default function Iscriviti({ persone, corsi, tipi, orari, coperti, pieni,
   const [cerca, setCerca] = useState('');
   const [livello, setLivello] = useState('');
   const [volte, setVolte] = useState(0);
+  const [vediFiltri, setVediFiltri] = useState(false);
 
   const persona = persone.find((p) => p.id === chi);
   const anni = eta(persona?.nascita);
@@ -92,6 +93,7 @@ export default function Iscriviti({ persone, corsi, tipi, orari, coperti, pieni,
   const sedi = [...new Set(corsi.map((c) => c.sede).filter(Boolean))].sort();
   const livelli = [...new Set(perEta.filter((c) => !categoria || c.categoria === categoria).map((c) => c.livello).filter(Boolean))];
   const testo = cerca.trim().toLowerCase();
+  const nFiltri = giorniFiltro.length + (sede ? 1 : 0) + (livello ? 1 : 0) + (tutteEta ? 1 : 0);
   const corsiVisti = perEta.filter((c) => (!categoria || c.categoria === categoria)
     && (!sede || c.sede === sede) && (!livello || c.livello === livello)
     && (!giorniFiltro.length || (c.orari || []).some((o) => giorniFiltro.includes(o.giorno)))
@@ -257,36 +259,58 @@ export default function Iscriviti({ persone, corsi, tipi, orari, coperti, pieni,
       {passo === 'corso' && (
         <section>
           <h2 className="isc-domanda">Che corso{persona && !unaPersona ? ` per ${persona.nome}` : ''}?</h2>
-          {anni != null && (
-            <p className="isc-nota">{tutteEta ? 'Stai vedendo i corsi di tutte le età.' : `Ti mostriamo solo i corsi adatti a ${anni} anni.`}{' '}
-              <button type="button" className="link-btn" onClick={() => setTutteEta(!tutteEta)}>{tutteEta ? 'solo quelli adatti' : 'vedi tutte le età'}</button></p>
-          )}
+          {/* in alto: cerca e "cosa ti piace"; giorni, sede e livello in "Filtri" (chiusi), così i corsi si vedono subito */}
+          <input className="isc-cerca" type="search" value={cerca} onChange={(e) => setCerca(e.target.value)} placeholder="Cerca per nome (es. hip hop, pole)" aria-label="Cerca un corso" />
           {categorie.length > 1 && (
-            <div className="isc-chips" role="group" aria-label="Cosa ti piace">
+            <div className="isc-scorri" role="group" aria-label="Cosa ti piace">
               <button type="button" aria-pressed={!categoria} onClick={() => { setCategoria(''); setLivello(''); }}>Tutto</button>
               {categorie.map((k) => <button key={k} type="button" aria-pressed={categoria === k} onClick={() => { setCategoria(categoria === k ? '' : k); setLivello(''); }}>{k}</button>)}
             </div>
           )}
-          <div className="isc-chips piccoli" role="group" aria-label="Che giorni puoi">
-            <span>Giorni:</span>
-            {[1, 2, 3, 4, 5, 6].map((g) => (
-              <button key={g} type="button" aria-pressed={giorniFiltro.includes(g)} onClick={() => setGiorniFiltro((v) => (v.includes(g) ? v.filter((x) => x !== g) : [...v, g]))}>{GIORNI[g]}</button>
-            ))}
+          <div className="isc-filtri-riga">
+            <button type="button" className={`isc-filtri-btn${nFiltri ? ' attivi' : ''}`} aria-expanded={vediFiltri} onClick={() => setVediFiltri(!vediFiltri)}>
+              <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" d="M4 6h16M7 12h10M10 18h4" /></svg>
+              Filtri{nFiltri ? ` · ${nFiltri}` : ''}
+            </button>
+            {/* i filtri scelti restano visibili anche a pannello chiuso, e si tolgono con × */}
+            {!vediFiltri && giorniFiltro.map((g) => <button key={`g${g}`} type="button" className="isc-tolto" onClick={() => setGiorniFiltro((v) => v.filter((x) => x !== g))}>{GIORNI[g]} ×</button>)}
+            {!vediFiltri && sede && <button type="button" className="isc-tolto" onClick={() => setSede('')}>{sede} ×</button>}
+            {!vediFiltri && livello && <button type="button" className="isc-tolto" onClick={() => setLivello('')}>{livello} ×</button>}
+            {!vediFiltri && tutteEta && <button type="button" className="isc-tolto" onClick={() => setTutteEta(false)}>tutte le età ×</button>}
           </div>
-          {(sedi.length > 1 || livelli.length > 1) && (
-            <div className="isc-chips piccoli">
-              {sedi.length > 1 && <>
-                <span>Sede:</span>
-                {sedi.map((s) => <button key={s} type="button" aria-pressed={sede === s} onClick={() => setSede(sede === s ? '' : s)}>{s}</button>)}
-              </>}
-              {livelli.length > 1 && <>
-                <span>Livello:</span>
-                {livelli.map((l) => <button key={l} type="button" aria-pressed={livello === l} onClick={() => setLivello(livello === l ? '' : l)}>{l}</button>)}
-              </>}
+          {vediFiltri && (
+            <div className="isc-filtri">
+              <div className="isc-filtro"><span>Giorni</span>
+                <div className="isc-scorri piccoli">
+                  {[1, 2, 3, 4, 5, 6].map((g) => (
+                    <button key={g} type="button" aria-pressed={giorniFiltro.includes(g)} onClick={() => setGiorniFiltro((v) => (v.includes(g) ? v.filter((x) => x !== g) : [...v, g]))}>{GIORNI[g]}</button>
+                  ))}
+                </div></div>
+              {livelli.length > 1 && (
+                <div className="isc-filtro"><span>Livello</span>
+                  <div className="isc-scorri piccoli">
+                    {livelli.map((l) => <button key={l} type="button" aria-pressed={livello === l} onClick={() => setLivello(livello === l ? '' : l)}>{l}</button>)}
+                  </div></div>
+              )}
+              {sedi.length > 1 && (
+                <div className="isc-filtro"><span>Sede</span>
+                  <div className="isc-scorri piccoli">
+                    {sedi.map((x) => <button key={x} type="button" aria-pressed={sede === x} onClick={() => setSede(sede === x ? '' : x)}>{x}</button>)}
+                  </div></div>
+              )}
+              {anni != null && (
+                <label className="isc-filtro-eta"><input type="checkbox" checked={tutteEta} onChange={(e) => setTutteEta(e.target.checked)} /> anche i corsi non adatti a {anni} anni</label>
+              )}
+              <div className="isc-filtri-azioni">
+                {nFiltri > 0 && <button type="button" className="link-btn" onClick={() => { setGiorniFiltro([]); setSede(''); setLivello(''); setTutteEta(false); }}>Togli i filtri</button>}
+                <button type="button" className="btn btn-piccolo btn-primario" onClick={() => setVediFiltri(false)}>Mostra {corsiVisti.length === 1 ? '1 corso' : `${corsiVisti.length} corsi`}</button>
+              </div>
             </div>
           )}
-          <input className="isc-cerca" type="search" value={cerca} onChange={(e) => setCerca(e.target.value)} placeholder="Cerca per nome (es. hip hop, pole)" aria-label="Cerca un corso" />
-          <p className="isc-conta">{corsiVisti.length === 1 ? '1 corso' : `${corsiVisti.length} corsi`}</p>
+          <p className="isc-conta" key={`${corsiVisti.length}-${categoria}-${nFiltri}-${cerca}`}>
+            {corsiVisti.length === 1 ? '1 corso' : `${corsiVisti.length} corsi`}
+            {anni != null && !tutteEta && <span className="muto"> · adatti a {anni} anni</span>}
+          </p>
           {corsiVisti.length === 0 && (
             <div className="vuoto">Nessun corso con queste scelte.{' '}
               <button type="button" className="link-btn" onClick={() => { setCategoria(''); setGiorniFiltro([]); setSede(''); setLivello(''); setCerca(''); }}>Togli i filtri</button></div>
