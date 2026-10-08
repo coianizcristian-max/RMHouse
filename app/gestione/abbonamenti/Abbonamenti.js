@@ -8,12 +8,7 @@ import GruppiListino from './GruppiListino';
 import Famiglie from './Famiglie';
 import DoveSiRecupera from './DoveSiRecupera';
 import { euro } from '@/lib/formato';
-
-const MODALITA = [
-  { v: 'orari_fissi', l: 'Giorni e orari fissi' },
-  { v: 'ingressi', l: 'Pacchetto a ingressi' },
-  { v: 'libero', l: 'Accesso libero' },
-];
+import { MODALITA, famiglieDi, solare, durata, opzioniAliquota as aliquoteOpzioni, campiTipoAbbonamento } from './campiTipo';
 
 const CATEGORIE_VOCI = [
   { v: 'contributo', l: 'Contributo' }, { v: 'rimborso', l: 'Rimborso spese' },
@@ -24,15 +19,6 @@ const SEZIONI = [
   ['tipi', 'Tipi di abbonamento'], ['gruppi', 'Gruppi di listino'], ['famiglie', 'Famiglie'], ['coperti', 'Corsi coperti'],
   ['recuperi', 'Recuperi e disdette'], ['listino', 'Altre voci a listino'],
 ];
-
-// Durata come la calcola il database: il mese solare vince sui "28 giorni"
-const solare = (t) => t.scadenza_fine_mese && !(t.durata_giorni && t.durata_giorni < 28);
-const durata = (t) => {
-  if (t.durata_giorni && !solare(t)) return `${t.durata_giorni} ${t.durata_giorni === 1 ? 'giorno' : 'giorni'}`;
-  const m = t.durata_mesi || 1;
-  if (solare(t)) return m === 1 ? 'mese solare' : `${m} mesi solari`;
-  return `${m} ${m === 1 ? 'mese' : 'mesi'} dal giorno d'inizio`;
-};
 
 // Per l'ordine "per durata": singole, mensili, trimestrali, annuali…, poi i pacchetti a ingressi
 const NOMI_MESI = { 1: 'Mensili', 2: 'Bimestrali', 3: 'Trimestrali', 4: 'Quadrimestrali', 6: 'Semestrali' };
@@ -50,13 +36,7 @@ const perNome = (a, b) => a.nome.localeCompare(b.nome, 'it', { numeric: true, se
 
 export default function Abbonamenti({ palestraId, sezioneIniziale = 'tipi', tipi, corsi, regole, palestra, voci = [], coperti = [], aliquote = [], gruppi = [] }) {
   const router = useRouter();
-  // nel menù si vede sempre la percentuale: "Esente IVA · 0% N4"
-  const opzioniAliquota = aliquote.map((a) => {
-    const perc = `${Number(a.percentuale || 0)}%${a.natura ? ` ${a.natura}` : ''}`;
-    const nome = a.nome.includes('%') ? a.nome : `${a.nome} · ${perc}`;
-    return { v: a.id, l: a.predefinita ? `${nome} (predefinita)` : nome };
-  });
-  const opzioniGruppo = gruppi.map((g) => ({ v: g.id, l: g.nome }));
+  const opzioniAliquota = aliquoteOpzioni(aliquote);
   const [sezione, setSezione] = useState(SEZIONI.some(([k]) => k === sezioneIniziale) ? sezioneIniziale : 'tipi');
   const [cerca, setCerca] = useState('');
   const [gruppo, setGruppo] = useState('');         // '' = tutti, 'nessuno' = senza gruppo
@@ -68,7 +48,6 @@ export default function Abbonamenti({ palestraId, sezioneIniziale = 'tipi', tipi
   const nelGruppo = (t) => !gruppo || (gruppo === 'nessuno' ? !t.gruppo_id : t.gruppo_id === gruppo);
   const quanti = (g) => tipi.filter((t) => !t.archiviato && (g === 'nessuno' ? !t.gruppo_id : t.gruppo_id === g)).length;
   // tutte le famiglie in uso (per sceglierle nella scheda dell'abbonamento, invece di riscriverle)
-  const famiglieDi = (t) => (Array.isArray(t.famiglie) && t.famiglie.length ? t.famiglie : (t.famiglia ? [t.famiglia] : []));
   const tutteFamiglie = [...new Set(tipi.flatMap(famiglieDi))].sort((a, b) => a.localeCompare(b, 'it'));
   const famiglie = [...new Set(tipi.filter((t) => !t.archiviato && nelGruppo(t)).flatMap(famiglieDi))].sort();
   // parola per parola, senza accenti né spazi doppi: "attrezzi 90" trova anche "ATTREZZI  90 min…"
@@ -84,7 +63,6 @@ export default function Abbonamenti({ palestraId, sezioneIniziale = 'tipi', tipi
   const corsiDi = {};
   for (const c of coperti) (corsiDi[c.tipo_abbonamento_id] ||= []).push(c.corso_id);
   const quantiCorsi = (id) => corsiDi[id]?.length || 0;
-  const opzioniCorsi = corsi.map((c) => ({ v: c.id, l: c.nome, g: c.disciplina }));
   // nella finestra si toccano solo i corsi attivi: un abbinamento a un corso chiuso resta com'è (si salva solo la differenza)
   const attivi = new Set(corsi.map((c) => c.id));
   const conCorsi = (t) => ({ ...t, corsi_compresi: (corsiDi[t.id] || []).filter((id) => attivi.has(id)) });
@@ -163,44 +141,8 @@ export default function Abbonamenti({ palestraId, sezioneIniziale = 'tipi', tipi
             finestra titoloNuovo="Nuovo abbonamento"
             vuoto="Nessun abbonamento con questi filtri." onElimina={eliminaTipo}
             sezione={ordine === 'durata' ? fascia : undefined}
-            campi={[
-              // modulo compatto a sezioni: tutto in una schermata
-              { k: 'nome', etichetta: 'Nome', tipo: 'testo', obbligatorio: true, gruppo: 'Abbonamento', larghezza: 3 },
-              { k: 'codice', etichetta: 'Codice', tipo: 'testo', gruppo: 'Abbonamento', aiuto: 'es. P 24 lez' },
-              { k: 'gruppo_id', etichetta: 'Gruppo di listino', tipo: 'select', opzioni: opzioniGruppo, vuotoTesto: '— nessuno —',
-                predefinito: gruppo && gruppo !== 'nessuno' ? gruppo : '', gruppo: 'Abbonamento' },
-              { k: 'modalita', etichetta: 'Tipo', tipo: 'select', opzioni: MODALITA, obbligatorio: true, predefinito: 'orari_fissi', gruppo: 'Abbonamento' },
-              { k: 'famiglie', etichetta: 'Famiglie', tipo: 'etichette', gruppo: 'Abbonamento', larghezza: 6, aiuto: 'una o più: raggruppano i simili',
-                opzioni: tutteFamiglie, nuovaTesto: '+ Nuova famiglia…' },
-              { k: 'descrizione', etichetta: 'Descrizione per il cliente', tipo: 'testolungo', righe: 1, gruppo: 'Abbonamento', larghezza: 5, aiuto: 'nel negozio dell\'app' },
-              { k: 'aliquota_id', etichetta: 'IVA', tipo: 'select', opzioni: opzioniAliquota, vuotoTesto: '— predefinita —', gruppo: 'Abbonamento' },
-
-              { k: 'prezzo_cent', etichetta: 'Prezzo segreteria (€)', tipo: 'euro', obbligatorio: true, gruppo: 'Prezzo e durata' },
-              { k: 'prezzo_web_cent', etichetta: 'Prezzo online (€)', tipo: 'euro', gruppo: 'Prezzo e durata', aiuto: 'vuoto = uguale' },
-              { k: 'durata_mesi', etichetta: 'Durata (mesi)', tipo: 'numero', obbligatorio: true, predefinito: '1', gruppo: 'Prezzo e durata' },
-              { k: 'durata_giorni', etichetta: 'Oppure giorni', tipo: 'numero', gruppo: 'Prezzo e durata', aiuto: '1 = singola, 28 = 4 sett.' },
-              { k: 'scadenza_fine_mese', etichetta: 'Scade a fine mese solare', tipo: 'check', gruppo: 'Prezzo e durata', larghezza: 2,
-                aiuto: 'chi paga il 10 scade a fine mese (trimestrale: fine del 3° mese)' },
-
-              { k: 'lezioni_settimanali', etichetta: 'Lezioni a settimana', tipo: 'numero', gruppo: 'Lezioni e recuperi', se: (b) => b.modalita !== 'ingressi' && b.modalita !== 'libero' },
-              { k: 'num_ingressi', etichetta: 'Ingressi del pacchetto', tipo: 'numero', gruppo: 'Lezioni e recuperi', se: (b) => b.modalita === 'ingressi' },
-              { k: 'recuperi_max', etichetta: 'Recuperi massimi', tipo: 'numero', gruppo: 'Lezioni e recuperi', aiuto: 'vuoto = illimitati, 0 = nessuno', larghezza: 2 },
-              // con i recuperi validi fino a fine abbonamento i giorni non servono
-              ...(palestra.scadenza_recupero === 'abbonamento' ? [] : [
-                { k: 'giorni_validita_recupero', etichetta: 'Validità recupero (giorni)', tipo: 'numero', predefinito: '30', gruppo: 'Lezioni e recuperi', aiuto: 'dalla lezione persa', larghezza: 2 },
-              ]),
-
-              { k: 'acquistabile_online', etichetta: 'Si compra dall\'app', tipo: 'check', gruppo: 'Vendita' },
-              { k: 'rinnovo_automatico', etichetta: 'Rinnovo automatico mensile online', tipo: 'check', predefinito: false, gruppo: 'Vendita' },
-              { k: 'attivo', etichetta: 'Attivo', tipo: 'check', gruppo: 'Vendita' },
-              { k: 'archiviato', etichetta: 'Archiviato (resta nello storico)', tipo: 'check', predefinito: false, gruppo: 'Vendita' },
-
-              // in fondo: i corsi che l'abbonamento fa frequentare (gli stessi di "Corsi coperti")
-              { k: 'corsi_compresi', etichetta: 'Corsi compresi', tipo: 'molti', gruppo: 'Corsi compresi', larghezza: 6,
-                aiuto: 'nessuno = tutti i corsi; servono a proporre l\'abbonamento giusto e a cosa si prenota dall\'app',
-                nessunoTesto: 'Nessuno scelto: vale per tutti i corsi', opzioni: opzioniCorsi,
-                collegati: { tabella: 'tipi_abbonamento_corsi', mia: 'tipo_abbonamento_id', altra: 'corso_id' } },
-            ]}
+            campi={campiTipoAbbonamento({ gruppi, aliquote, famiglie: tutteFamiglie, corsi, scadenzaRecupero: palestra.scadenza_recupero,
+              gruppoPredefinito: gruppo && gruppo !== 'nessuno' ? gruppo : '' })}
             riassunto={(t) => ({
               titolo: t.codice ? `${t.nome} · ${t.codice}` : t.nome,
               dettaglio: [

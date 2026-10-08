@@ -1959,7 +1959,7 @@ a.persona-nome:hover { text-decoration: underline; text-underline-offset: 3px; }
   border-radius: 12px; background: var(--bianco); color: var(--nero); max-width: 100%;
 }
 .filtri-persone select, .bc-filtri select { flex: 0 1 auto; cursor: pointer; }
-.filtri-persone select.scelto, .bc-filtri select.scelto { border-color: var(--nero); background: var(--carta); font-weight: 700; }
+.filtri-persone select.scelto, .bc-filtri select.scelto, .coperti-scelta select.scelto { border-color: var(--nero); background: var(--carta); font-weight: 700; }
 .filtri-persone .btn { min-height: 42px; }
 .pastiglie.scorciatoie { margin-bottom: 10px; }
 
@@ -2074,6 +2074,14 @@ a.persona-nome:hover { text-decoration: underline; text-underline-offset: 3px; }
 .gruppo-nuovo { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 14px; }
 .gruppo-nuovo input { flex: 1 1 220px; max-width: 360px; }
 .coperti-scelta { display: grid; gap: 0 12px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); max-width: 760px; }
+/* Corsi coperti: gruppo, famiglia e abbonamento (o ricerca) su una riga; l'abbonamento ha i nomi lunghi e prende più spazio */
+.coperti-scelta.coperti-tre { max-width: 1120px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.coperti-scelta.coperti-tre .coperti-abb { grid-column: 1 / -1; }
+@media (min-width: 900px) {
+  .coperti-scelta.coperti-tre { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 2fr); }
+  .coperti-scelta.coperti-tre .coperti-abb { grid-column: auto; }
+}
+@media (max-width: 480px) { .coperti-scelta.coperti-tre { grid-template-columns: 1fr; } }
 .coperti-solo { align-items: center; }
 .coperti-tabella { border-top: 1px solid var(--linea); }
 .coperti-riga { display: grid; grid-template-columns: minmax(200px, 300px) 1fr; gap: 6px 16px; padding: 8px 0; border-bottom: 1px solid var(--linea); align-items: start; }
@@ -4373,3 +4381,42 @@ body:has(.sportello) .bottone-rapide { display: none; }
 .molti-voci .oc-gruppo-chip[aria-pressed='false'] { background: var(--bianco); color: var(--testo-2); border-color: var(--linea); }
 .molti-voci .oc-gruppo-chip[aria-pressed='false']::before { background: var(--linea); }
 .molti-voci .oc-gruppo-chip:hover { border-color: var(--nero); }
+/* filtro per titoletto (es. discipline) nei "Corsi compresi": uno o più insieme */
+.molti-filtro { display: flex; flex-wrap: wrap; align-items: center; gap: 5px; padding: 6px 0 8px; border-bottom: 1px dashed var(--linea); }
+.molti-filtro-nome { font-size: 11px; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; color: var(--testo-2); margin-right: 4px; }
+.molti-filtro-chip { display: inline-flex; align-items: center; gap: 5px; padding: 3px 10px; border-radius: 999px; border: 1px solid var(--linea);
+  background: var(--carta); color: var(--testo); font: inherit; font-size: 12.5px; font-weight: 600; cursor: pointer; line-height: 1.4; }
+.molti-filtro-chip:hover { border-color: var(--nero); }
+.molti-filtro-chip[aria-pressed='true'] { background: var(--rosso-tenue); border-color: var(--rosso); color: var(--nero); }
+.molti-filtro-chip.tutte[aria-pressed='true'] { background: var(--nero); border-color: var(--nero); color: var(--bianco); }
+.molti-filtro-n { min-width: 18px; padding: 0 5px; border-radius: 999px; background: var(--nero); color: var(--bianco); font-size: 11px; text-align: center; }
+/* Palinsesto → lezione: il corso e i suoi abbonamenti in finestra, senza cambiare pagina */
+.fl-corso { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: -4px 0 14px; padding: 10px 12px; border: 1px dashed var(--linea); border-radius: 12px; }
+.fl-corso-nome { font-size: 11px; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; color: var(--testo-2); margin-right: 4px; }
+.fc-schede { display: flex; gap: 4px; flex-wrap: wrap; position: sticky; top: 0; z-index: 3; background: var(--bianco); padding: 10px 0 8px;
+  margin-bottom: 10px; border-bottom: 1px solid var(--linea); }
+.fc-schede button { border: 1.5px solid var(--linea); background: var(--bianco); border-radius: 999px; padding: 7px 14px; font: inherit;
+  font-size: 14px; font-weight: 700; color: var(--testo-2); cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
+.fc-schede button[aria-selected='true'] { background: var(--nero); border-color: var(--nero); color: var(--bianco); }
+.fc-schede .conta-mini { background: var(--carta); color: var(--nero); }
+.fc-scheda { padding-bottom: 14px; }
+.gf-corpo .cf-barra-salva { bottom: 0; }
+.fc-barra { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 8px 0 4px; }
+.fc-barra input[type=search] { flex: 1 1 260px; max-width: 420px; min-height: 38px; padding: 6px 12px; border: 1px solid var(--linea); border-radius: 10px; font: inherit; }
+.fc-titolo { margin: 16px 0 6px; font-size: 12px; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; color: var(--testo-2); }
+.fc-lista { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--linea); }
+.fc-lista li { border-bottom: 1px solid var(--linea); }
+.fc-abb { width: 100%; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 12px; padding: 10px 6px; border: 0; background: none;
+  font: inherit; text-align: left; cursor: pointer; color: var(--testo); }
+.fc-abb:hover, .fc-abb:focus-visible { background: var(--carta); }
+.fc-abb-nome { font-weight: 700; color: var(--nero); }
+.fc-abb > .piccolo { grid-column: 1; }
+.fc-abb-segni { grid-column: 2; grid-row: 1 / span 2; display: flex; align-items: center; gap: 6px; }
+.fc-abb-apri { font-size: 13px; font-weight: 700; color: var(--rosso); white-space: nowrap; }
+@media (max-width: 640px) {
+  .fc-abb { grid-template-columns: 1fr; }
+  .fc-abb-segni { grid-column: 1; grid-row: auto; }
+  .fl-corso .btn { flex: 1 1 auto; }
+}
+.coperti-molti { margin-top: 12px; padding: 12px 14px; border: 1px solid var(--linea); border-radius: 12px; background: var(--bianco); }
+.fl-corso-nome { flex-basis: 100%; }

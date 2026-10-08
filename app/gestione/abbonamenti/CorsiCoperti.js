@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabaseBrowser } from '@/lib/supabase/browser';
 import { euro } from '@/lib/formato';
+import { SceltaMolti } from '../Gestore';
 
 const VISTE = [['modifica', 'Modifica per abbonamento'], ['abbonamenti', 'Abbonamento → corsi'], ['corsi', 'Corso → abbonamenti']];
 const chiave = (t, c) => `${t}|${c}`;
@@ -18,6 +19,8 @@ const infoTipo = (t) => [t.codice, durataBreve(t), t.lezioni_settimanali ? `${t.
   t.prezzo_cent != null ? euro(t.prezzo_cent) : null,
   t.prezzo_web_cent != null && t.prezzo_web_cent !== t.prezzo_cent ? `${euro(t.prezzo_web_cent)} web` : null,
   t.attivo === false ? 'non attivo' : null].filter(Boolean).join(' · ');
+// un abbonamento può stare in più famiglie (query 146)
+const famiglieDi = (t) => (Array.isArray(t.famiglie) && t.famiglie.length ? t.famiglie : (t.famiglia ? [t.famiglia] : []));
 const minuscolo = (s) => (s || '').toLocaleLowerCase('it').normalize('NFD').replace(/[̀-ͯ]/g, '');
 
 // Quali corsi dà diritto a frequentare ogni abbonamento. Nessun corso = tutti.
@@ -26,8 +29,20 @@ export default function CorsiCoperti({ tipi: tutti, corsi, coperti, gruppi = [] 
   const router = useRouter();
   const [vista, setVista] = useState('modifica');
   const [gruppo, setGruppo] = useState('');
-  const tipi = gruppo ? tutti.filter((t) => t.gruppo_id === gruppo) : tutti;
+  const [famiglia, setFamiglia] = useState('');
+  const filtra = (g, f) => tutti.filter((t) => (!g || t.gruppo_id === g) && (!f || famiglieDi(t).includes(f)));
+  const tipi = filtra(gruppo, famiglia);
   const [tipoId, setTipoId] = useState(tipi[0]?.id || '');
+  // le famiglie che ci sono nel gruppo scelto, con quanti abbonamenti
+  const contaFam = {};
+  for (const t of filtra(gruppo, '')) for (const f of famiglieDi(t)) contaFam[f] = (contaFam[f] || 0) + 1;
+  const elencoFam = Object.keys(contaFam).sort((a, b) => a.localeCompare(b, 'it'));
+  // cambiando gruppo o famiglia resta scelto lo stesso abbonamento, se c'è ancora; altrimenti il primo
+  function cambiaFiltri(g, f) {
+    const lista = filtra(g, f);
+    setGruppo(g); setFamiglia(f);
+    if (!lista.some((t) => t.id === tipoId)) setTipoId(lista[0]?.id || '');
+  }
   const [errore, setErrore] = useState('');
   const [cerca, setCerca] = useState('');
   const [soloDaVedere, setSoloDaVedere] = useState(false);
@@ -44,7 +59,10 @@ export default function CorsiCoperti({ tipi: tutti, corsi, coperti, gruppi = [] 
     return m;
   }, [coppie]);
   const nomeCorso = useMemo(() => Object.fromEntries(corsi.map((c) => [c.id, c.nome])), [corsi]);
-  const scelti = corsiDi[tipoId] || new Set();
+  // si toccano solo i corsi attivi (quelli dell'elenco): un abbinamento a un corso chiuso resta com'è
+  const attivi = useMemo(() => new Set(corsi.map((c) => c.id)), [corsi]);
+  const scelti = new Set([...(corsiDi[tipoId] || [])].filter((id) => attivi.has(id)));
+  const opzioniCorsi = useMemo(() => corsi.map((c) => ({ v: c.id, l: c.nome, g: c.disciplina || 'Altri corsi' })), [corsi]);
   const famiglie = [...new Set(tipi.map((t) => t.famiglia || 'Altri'))];
   const nomeGruppo = Object.fromEntries(gruppi.map((g) => [g.id, g.nome]));
 
@@ -66,9 +84,33 @@ export default function CorsiCoperti({ tipi: tutti, corsi, coperti, gruppi = [] 
     router.refresh();
   }
 
+  // dalla scelta a blocchi (uno o tanti insieme con "scegli questi"): si scrive solo la differenza
+  async function cambiaInsieme(tId, nuovi) {
+    setErrore('');
+    const prima = new Set([...(corsiDi[tId] || [])].filter((id) => attivi.has(id)));
+    const dopo = new Set(nuovi);
+    const messi = [...dopo].filter((c) => !prima.has(c));
+    const tolti = [...prima].filter((c) => !dopo.has(c));
+    if (!messi.length && !tolti.length) return;
+    const vecchie = coppie;
+    const prossimo = new Set(coppie);
+    tolti.forEach((c) => prossimo.delete(chiave(tId, c)));
+    messi.forEach((c) => prossimo.add(chiave(tId, c)));
+    setCoppie(prossimo);
+    const db = supabaseBrowser();
+    const [r1, r2] = await Promise.all([
+      tolti.length ? db.from('tipi_abbonamento_corsi').delete().eq('tipo_abbonamento_id', tId).in('corso_id', tolti) : { error: null },
+      messi.length ? db.from('tipi_abbonamento_corsi').upsert(messi.map((c) => ({ tipo_abbonamento_id: tId, corso_id: c })),
+        { onConflict: 'tipo_abbonamento_id,corso_id', ignoreDuplicates: true }) : { error: null },
+    ]);
+    if (r1.error || r2.error) { setCoppie(vecchie); setErrore('Modifica non riuscita.'); return; }
+    router.refresh();
+  }
+
   function apriAbbonamento(id) {
     const t = tutti.find((x) => x.id === id);
     if (gruppo && t?.gruppo_id !== gruppo) setGruppo('');
+    if (famiglia && t && !famiglieDi(t).includes(famiglia)) setFamiglia('');
     setTipoId(id); setVista('modifica'); setCerca('');
     if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' });
   }
@@ -95,12 +137,22 @@ export default function CorsiCoperti({ tipi: tutti, corsi, coperti, gruppi = [] 
   const sceltaGruppo = gruppi.length > 0 && (
     <div className="campo">
       <label htmlFor="gruppo-coperti">Gruppo</label>
-      <select id="gruppo-coperti" value={gruppo} onChange={(e) => {
-        const g = e.target.value; setGruppo(g);
-        setTipoId((g ? tutti.filter((t) => t.gruppo_id === g) : tutti)[0]?.id || '');
+      <select id="gruppo-coperti" value={gruppo} className={gruppo ? 'scelto' : ''} onChange={(e) => {
+        const g = e.target.value;
+        // la famiglia resta se c'è anche nel gruppo nuovo
+        cambiaFiltri(g, famiglia && filtra(g, famiglia).length ? famiglia : '');
       }}>
         <option value="">Tutti i gruppi</option>
         {gruppi.map((g) => <option key={g.id} value={g.id}>{g.nome}</option>)}
+      </select>
+    </div>
+  );
+  const sceltaFamiglia = elencoFam.length > 0 && (
+    <div className="campo">
+      <label htmlFor="famiglia-coperti">Famiglia</label>
+      <select id="famiglia-coperti" value={famiglia} className={famiglia ? 'scelto' : ''} onChange={(e) => cambiaFiltri(gruppo, e.target.value)}>
+        <option value="">Tutte le famiglie ({elencoFam.length})</option>
+        {elencoFam.map((f) => <option key={f} value={f}>{f} · {contaFam[f]}</option>)}
       </select>
     </div>
   );
@@ -120,11 +172,13 @@ export default function CorsiCoperti({ tipi: tutti, corsi, coperti, gruppi = [] 
             Scegli un abbonamento e tocca i corsi che copre. Servono a proporre l'abbonamento giusto quando iscrivi
             qualcuno a un corso. Se non ne tocchi nessuno, l'abbonamento vale per tutti i corsi.
           </p>
-          <div className="coperti-scelta">
+          <div className="coperti-scelta coperti-tre">
             {sceltaGruppo}
-            <div className="campo">
-              <label htmlFor="tipo-coperti">Abbonamento</label>
-              <select id="tipo-coperti" value={tipoId} onChange={(e) => setTipoId(e.target.value)}>
+            {sceltaFamiglia}
+            <div className="campo coperti-abb">
+              <label htmlFor="tipo-coperti">Abbonamento <span className="muto">· {tipi.length}</span></label>
+              <select id="tipo-coperti" value={tipoId} onChange={(e) => setTipoId(e.target.value)} disabled={!tipi.length}>
+                {!tipi.length && <option value="">Nessun abbonamento con questi filtri</option>}
                 {famiglie.map((f) => (
                   <optgroup key={f} label={f}>
                     {tipi.filter((t) => (t.famiglia || 'Altri') === f).map((t) => (
@@ -135,13 +189,14 @@ export default function CorsiCoperti({ tipi: tutti, corsi, coperti, gruppi = [] 
               </select>
             </div>
           </div>
-          <p className="piccolo muto">{scelti.size ? `${scelti.size} corsi coperti` : 'Vale per tutti i corsi'}</p>
-          <div className="pastiglie">
-            {[...corsi].sort((a, b) => (scelti.has(b.id) - scelti.has(a.id)) || a.nome.localeCompare(b.nome)).map((c) => (
-              <button key={c.id} type="button" aria-pressed={scelti.has(c.id)} onClick={() => cambia(tipoId, c.id)}
-                      style={{ paddingLeft: 14 }}>{c.nome}</button>
-            ))}
-          </div>
+          {tipoId && (
+            // come in fondo alla finestra dell'abbonamento: corsi per disciplina, ricerca, filtro per disciplina, "scegli questi";
+            // ogni tocco si salva subito
+            <div className="coperti-molti">
+              <SceltaMolti id="coperti-corsi" valore={[...scelti]} opzioni={opzioniCorsi} etichettaGruppi="Discipline"
+                           nessunoTesto="Nessun corso scelto: vale per tutti i corsi" onChange={(v) => cambiaInsieme(tipoId, v)} />
+            </div>
+          )}
         </>
       )}
 
@@ -152,9 +207,10 @@ export default function CorsiCoperti({ tipi: tutti, corsi, coperti, gruppi = [] 
               ? 'Ogni abbonamento con i corsi che copre. Tocca il nome per cambiarli.'
               : 'Ogni corso con gli abbonamenti che lo coprono. Tocca il corso per aggiungere o togliere abbonamenti.'}
           </p>
-          <div className="coperti-scelta coperti-filtri">
+          <div className="coperti-scelta coperti-filtri coperti-tre">
             {sceltaGruppo}
-            <div className="campo">
+            {sceltaFamiglia}
+            <div className="campo coperti-abb">
               <label htmlFor="cerca-coperti">Cerca</label>
               <input id="cerca-coperti" type="search" value={cerca} onChange={(e) => setCerca(e.target.value)}
                      placeholder={vista === 'abbonamenti' ? 'nome o codice abbonamento' : 'nome del corso'} />

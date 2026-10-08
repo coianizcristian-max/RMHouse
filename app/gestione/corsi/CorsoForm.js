@@ -1,12 +1,14 @@
 'use client';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabaseBrowser } from '@/lib/supabase/browser';
 import Immagine from '../Immagine';
 import { gradazioni, testoSu, TAVOLOZZA_BASE } from '@/lib/colori';
 
 
-export default function CorsoForm({ palestraId, corso, discipline, fasce, livelli, sedi = [], tavolozza = [] }) {
+// Nella pagina del corso, dopo Salva si va alla scheda; nella finestra del Palinsesto (onSalvato/onAnnulla) si resta dove si è.
+// onModificato(sì/no): avvisa se ci sono cambiamenti non salvati (per chiedere prima di chiudere la finestra)
+export default function CorsoForm({ palestraId, corso, discipline, fasce, livelli, sedi = [], tavolozza = [], onSalvato, onAnnulla, onModificato }) {
   const router = useRouter();
   const [f, setF] = useState({
     nome: corso?.nome || '',
@@ -32,6 +34,8 @@ export default function CorsoForm({ palestraId, corso, discipline, fasce, livell
   });
   const [errore, setErrore] = useState('');
   const [invio, setInvio] = useState(false);
+  const partenza = useRef(JSON.stringify(f));
+  useEffect(() => { onModificato?.(JSON.stringify(f) !== partenza.current); }, [f]); // eslint-disable-line react-hooks/exhaustive-deps
   const disciplinaScelta = discipline.find((d) => d.id === f.disciplina_id);
   const baseColore = disciplinaScelta?.colore || null;
   const nomeDisciplina = disciplinaScelta?.nome || '';
@@ -72,6 +76,7 @@ export default function CorsoForm({ palestraId, corso, discipline, fasce, livell
       : await db.from('corsi').insert({ ...dati, palestra_id: palestraId }).select('id').single();
     setInvio(false);
     if (error) { setErrore('Salvataggio non riuscito. Controlla i dati e riprova.'); return; }
+    if (onSalvato) { partenza.current = JSON.stringify(f); onModificato?.(false); router.refresh(); onSalvato(data.id); return; }
     router.push(`/gestione/corsi/${data.id}`);
     router.refresh();
   }
@@ -210,7 +215,7 @@ export default function CorsoForm({ palestraId, corso, discipline, fasce, livell
       {errore && <div className="errore" role="alert">{errore}</div>}
       <div className="cf-barra-salva">
         <button className="btn btn-primario" disabled={invio}>{invio ? 'Salvo…' : 'Salva il corso'}</button>
-        <button type="button" className="btn" onClick={() => router.back()}>Annulla</button>
+        <button type="button" className="btn" onClick={() => (onAnnulla ? onAnnulla() : router.back())}>Annulla</button>
       </div>
     </form>
   );

@@ -12,7 +12,8 @@ import { ora, giornoLungo } from '@/lib/formato';
 // Pannello che si apre dal basso toccando una lezione
 const TIPI = { recupero: 'recupero', ingresso: 'ingresso', prova: 'in prova' };
 
-export default function FoglioLezione({ lezione, colore, gestione, onClose, aggiungiSubito = false, persone = [], coda = [] }) {
+// onApriCorso(scheda): apre sopra la finestra del corso ('corso' | 'orari' | 'abbonamenti') senza lasciare il Palinsesto
+export default function FoglioLezione({ lezione, colore, gestione, onClose, aggiungiSubito = false, persone = [], coda = [], onApriCorso }) {
   const router = useRouter();
   // lo staff di segreteria vede subito i prenotati con le azioni veloci; l'insegnante li apre toccando "Iscritti"
   const [elenco, setElenco] = useState(gestione);
@@ -163,6 +164,16 @@ export default function FoglioLezione({ lezione, colore, gestione, onClose, aggi
           )}
           <Link prefetch={false} className="btn" href={`/gestione/corsi/${lezione.corso_id}`}>Scheda del corso</Link>
         </div>
+
+        {gestione && onApriCorso && (
+          // il corso e i suoi abbonamenti si modificano in una finestra sopra: il Palinsesto resta dov'è
+          <div className="fl-corso">
+            <span className="fl-corso-nome">Senza lasciare il palinsesto</span>
+            <button type="button" className="btn btn-piccolo" onClick={() => onApriCorso('corso')}>Modifica corso</button>
+            <button type="button" className="btn btn-piccolo" onClick={() => onApriCorso('orari')}>Orari del corso</button>
+            <button type="button" className="btn btn-piccolo" onClick={() => onApriCorso('abbonamenti')}>Modifica abbonamento</button>
+          </div>
+        )}
 
         {aggiungi && (
           <div className="scheda" style={{ marginBottom: 14 }}>

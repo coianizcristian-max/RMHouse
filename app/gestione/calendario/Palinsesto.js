@@ -3,6 +3,7 @@ import { useState, useRef, useEffect } from 'react';
 import { supabaseBrowser } from '@/lib/supabase/browser';
 import FoglioLezione from './FoglioLezione';
 import AzioniGruppo from './AzioniGruppo';
+import FinestraCorso from './FinestraCorso';
 import { ora } from '@/lib/formato';
 import { testoSu } from '@/lib/colori';
 
@@ -33,6 +34,7 @@ const IconaProva = () => (
 export default function Palinsesto({ giorniVisti = 7, inizio, lezioni, corsi = [], note = [], facce = [], coda = [], sale = [], insegnanti = [], giorniChiusi = {}, palestraId, gestione = true }) {
   const [aggiorno, setAggiorno] = useState(false); // mentre la pagina si ricarica dopo un'azione di gruppo
   const [scelta, setScelta] = useState(null);
+  const [finestraCorso, setFinestraCorso] = useState(null);   // { corsoId, nome, scheda }: la finestra del corso sopra il palinsesto
   const [apriAggiungi, setApriAggiungi] = useState(false);
   const [giorno, setGiorno] = useState(null);
   const [dati, setDati] = useState(null);
@@ -119,6 +121,8 @@ export default function Palinsesto({ giorniVisti = 7, inizio, lezioni, corsi = [
     setSelezione((s) => Array.from(new Set([...s, ...ids])));
   };
   const selezionate = lezioni.filter((l) => selezione.includes(l.lezione_id));
+  // la lezione aperta segue i dati nuovi dopo un salvataggio (nome o colore del corso cambiati dalla finestra)
+  const sceltaViva = scelta ? (lezioni.find((l) => l.lezione_id === scelta.lezione_id) || scelta) : null;
 
   return (
     <>
@@ -266,10 +270,16 @@ export default function Palinsesto({ giorniVisti = 7, inizio, lezioni, corsi = [
         </div>
       </div>
 
-      {scelta && (
-        <FoglioLezione lezione={scelta} colore={colore(scelta.corso_id)} gestione={gestione} persone={facceDi(scelta.lezione_id)} coda={codaDi(scelta.lezione_id)}
+      {sceltaViva && (
+        <FoglioLezione lezione={sceltaViva} colore={colore(sceltaViva.corso_id)} gestione={gestione} persone={facceDi(sceltaViva.lezione_id)} coda={codaDi(sceltaViva.lezione_id)}
                        aggiungiSubito={apriAggiungi}
+                       onApriCorso={(scheda) => setFinestraCorso({ corsoId: sceltaViva.corso_id, nome: sceltaViva.corso_nome, scheda })}
                        onClose={() => { setScelta(null); setApriAggiungi(false); }} />
+      )}
+
+      {gestione && finestraCorso && (
+        <FinestraCorso key={`${finestraCorso.corsoId}-${finestraCorso.scheda}`} corsoId={finestraCorso.corsoId} nome={finestraCorso.nome}
+                       palestraId={palestraId} schedaIniziale={finestraCorso.scheda} onChiudi={() => setFinestraCorso(null)} />
       )}
 
       {giorno && (

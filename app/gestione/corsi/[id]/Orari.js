@@ -4,7 +4,8 @@ import { gruppiUsati, mappaGruppi, chiaveGruppo } from '@/lib/gruppi';
 
 const GIORNI = [[1, 'Lunedì'], [2, 'Martedì'], [3, 'Mercoledì'], [4, 'Giovedì'], [5, 'Venerdì'], [6, 'Sabato'], [7, 'Domenica']];
 
-export default function Orari({ palestraId, corsoId, orari, sale, insegnanti, abilitati = [] }) {
+// onSalvato: dopo ogni modifica (la finestra del Palinsesto rilegge gli orari)
+export default function Orari({ palestraId, corsoId, orari, sale, insegnanti, abilitati = [], onSalvato }) {
   // prima chi è abilitato sul corso, poi tutti gli altri
   const scelta = [...insegnanti].sort((a, b) =>
     (abilitati.includes(b.id) - abilitati.includes(a.id)) || a.nome.localeCompare(b.nome));
@@ -15,6 +16,7 @@ export default function Orari({ palestraId, corsoId, orari, sale, insegnanti, ab
   return (
     <Gestore
       tabella="orari"
+      onSalvato={onSalvato}
       fissi={{ palestra_id: palestraId, corso_id: corsoId }}
       righe={orari}
       etichettaNuovo="Aggiungi orario"

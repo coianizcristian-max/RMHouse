@@ -9,7 +9,8 @@ import SceltaColore from './SceltaColore';
 //           opzioni?: [{v,l}], obbligatorio?, aiuto?, meta?, suggerimenti?: [{nome, colore}], nessuno?, segnaposto?,
 //           tipo 'scelta': opzioni [{v,l}] + "+ Nuova…" (nuovaTesto), niente testo libero sbagliato
 //           tipo 'etichette': più valori (array di testi) da opzioni [testo] + "+ Nuova…"
-//           tipo 'molti': più valori da opzioni [{v,l,g}] (g = titoletto), con ricerca; nessunoTesto = cosa vuol dire nessuno scelto
+//           tipo 'molti': più valori da opzioni [{v,l,g}] (g = titoletto), con ricerca e filtro per titoletto (etichettaGruppi, es. 'Discipline');
+//                         nessunoTesto = cosa vuol dire nessuno scelto
 //           collegati?: { tabella, mia, altra } → il campo non è una colonna: sono le righe di una tabella di collegamento
 //                       (es. tipi_abbonamento_corsi: tipo_abbonamento_id + corso_id), scritte dopo la riga principale
 //           gruppo? (titolo di sezione: modulo compatto a 4 colonne), larghezza? 1-4, se?(bozza) → mostrarlo o no, righe? }]
@@ -19,16 +20,15 @@ import SceltaColore from './SceltaColore';
 // ordinabile: elenco di nomi (discipline, categorie, sale…) → con più di 6 righe compaiono la ricerca e l'ordine per nome
 // finestra: la modifica si apre in una finestra grande sopra l'elenco (si chiude e si resta dov'eri), non sotto la riga;
 //           il pulsante per aggiungere compare anche in cima all'elenco. titoloNuovo = titolo della finestra per una riga nuova
+// onSalvato(id?): dopo ogni salvataggio o eliminazione (per chi tiene i dati in una finestra e deve rileggerli)
 export default function Gestore({ tabella, campi, righe, fissi = {}, riassunto, etichettaNuovo = 'Aggiungi', vuoto = 'Ancora niente qui.', onElimina, sezione, ordinabile = false,
-  finestra = false, titoloNuovo }) {
+  finestra = false, titoloNuovo, onSalvato }) {
   const router = useRouter();
-  const [apri, setApri] = useState(null);       // id della riga in modifica, oppure 'nuovo'
-  const [bozza, setBozza] = useState({});
-  const partenza = useRef('');                  // la bozza com'era all'apertura: per chiedere prima di buttare le modifiche
-  const originali = useRef({});                 // valori dei campi "collegati" all'apertura: si scrive solo la differenza
-  const [errore, setErrore] = useState('');
-  const [invio, setInvio] = useState(false);
   const [salvato, setSalvato] = useState(null);  // riga appena salvata, per mostrarlo
+  const m = useModifica({ tabella, campi, fissi, dopoSalvato: (chi, id) => {
+    setSalvato(chi); setTimeout(() => setSalvato(null), 4000); onSalvato?.(id);
+  } });
+  const { apri, bozza, setBozza, errore, setErrore, invio, chiudi, chiudiSeVuoi, salva } = m;
   // elenchi lunghi: ricerca mentre si scrive e ordine per nome (o per il campo "Ordine", quello che vede il cliente)
   const [cerca, setCerca] = useState('');
   const conOrdine = campi.some((c) => c.k === 'ordine');
@@ -37,17 +37,140 @@ export default function Gestore({ tabella, campi, righe, fissi = {}, riassunto, 
   const cambiaOrdine = (v) => { setOrdina(v); try { localStorage.setItem(`rm-ordina-${tabella}`, v); } catch { /* niente */ } };
   const lungo = ordinabile && righe.length > 6;
 
+  function apriNuovo() { m.apriNuovo(campi.find((c) => c.k === 'ordine') ? { ordine: righe.length + 1 } : {}); }
+  function apriModifica(r) { setSalvato(null); m.apriModifica(r); }
+
+  async function elimina(r) {
+    if (onElimina) { await onElimina(r, setErrore); router.refresh(); onSalvato?.(); return; }
+    const { titolo } = riassunto(r);
+    if (!confirm(`Eliminare "${titolo}"? L'operazione non si può annullare.`)) return;
+    const { error } = await supabaseBrowser().from(tabella).delete().eq('id', r.id);
+    if (error) { setErrore(messaggio(error)); return; }
+    router.refresh(); onSalvato?.();
+  }
+
+  const norm = (t) => String(t ?? '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  const parole = norm(cerca).split(/\s+/).filter(Boolean);
+  const testoDi = (r) => { const x = riassunto(r); return norm(`${x.titolo} ${x.dettaglio || ''} ${x.tag || ''}`); };
+  let mostrate = parole.length ? righe.filter((r) => { const t = testoDi(r); return parole.every((p) => t.includes(p)); }) : righe;
+  // con le sezioni l'ordine lo decide chi chiama; altrimenti per nome (A→Z) o per il campo "Ordine"
+  if (!sezione && lungo) {
+    mostrate = [...mostrate].sort(ordina === 'ordine' && conOrdine
+      ? (a, b) => ((a.ordine ?? 9999) - (b.ordine ?? 9999)) || String(riassunto(a).titolo).localeCompare(String(riassunto(b).titolo), 'it')
+      : (a, b) => String(riassunto(a).titolo).localeCompare(String(riassunto(b).titolo), 'it', { sensitivity: 'base' }));
+  }
+
+  const rigaAperta = apri && apri !== 'nuovo' ? righe.find((r) => r.id === apri) : null;
+
+  return (
+    <div>
+      {errore && !apri && <div className="errore" role="alert">{errore}</div>}
+      {salvato === 'nuovo' && <div className="avviso-ok" role="status">Aggiunto ✓</div>}
+
+      {lungo && (
+        <div className="gestore-barra">
+          <input type="search" value={cerca} onChange={(e) => setCerca(e.target.value)} placeholder="Cerca…" aria-label="Cerca nell'elenco" />
+          {!sezione && conOrdine && (
+            <select value={ordina} onChange={(e) => cambiaOrdine(e.target.value)} aria-label="Ordina">
+              <option value="nome">Per nome (A→Z)</option>
+              <option value="ordine">Come li vede il cliente (campo Ordine)</option>
+            </select>
+          )}
+          <span className="piccolo muto">{parole.length ? `${mostrate.length} su ${righe.length}` : `${righe.length}`}</span>
+        </div>
+      )}
+
+      {finestra && righe.length > 6 && (
+        <div className="gestore-nuovo-alto"><button type="button" className="btn btn-piccolo" onClick={apriNuovo}>+ {etichettaNuovo}</button></div>
+      )}
+
+      {righe.length === 0 && (apri !== 'nuovo' || finestra) && <div className="vuoto">{vuoto}</div>}
+      {righe.length > 0 && mostrate.length === 0 && <div className="vuoto">Niente con «{cerca}».</div>}
+
+      <ul className="elenco">
+        {mostrate.map((r, i) => {
+          const sez = sezione?.(r);
+          const nuovaSezione = sez && (i === 0 || sezione(mostrate[i - 1]).chiave !== sez.chiave);
+          return [
+          nuovaSezione && (
+            <li key={`sez-${sez.chiave}`} className="gestore-sezione">
+              {sez.titolo} <span>{mostrate.filter((x) => sezione(x).chiave === sez.chiave).length}</span>
+            </li>
+          ),
+          <li key={r.id}>
+            {apri === r.id && !finestra ? (
+              <Modulo campi={campi} bozza={bozza} setBozza={setBozza} salva={salva} annulla={chiudi} invio={invio} errore={errore} />
+            ) : (
+              // un clic su qualunque punto della riga apre la modifica (i pulsanti fanno la loro azione)
+              <div className={`persona gestore-riga${apri === r.id ? ' aperta' : ''}`} style={{ alignItems: 'start' }} role="button" tabIndex={0}
+                   title="Clic per modificare"
+                   onClick={(e) => { if (!e.target.closest('button, a, input, select, textarea')) apriModifica(r); }}
+                   onKeyDown={(e) => { if ((e.key === 'Enter' || e.key === ' ') && e.target === e.currentTarget) { e.preventDefault(); apriModifica(r); } }}>
+                <div>
+                  {riassunto(r).colore && (
+                    <span aria-hidden="true" style={{
+                      display: 'inline-block', width: 12, height: 12, borderRadius: 3,
+                      background: riassunto(r).colore, marginRight: 8,
+                    }} />
+                  )}
+                  <span className="persona-nome">{riassunto(r).titolo}</span>
+                  {salvato === r.id && <> <span className="tag tag-ok">salvato ✓</span></>}
+                  {riassunto(r).tag && <> <span className="tag tag-neutro">{riassunto(r).tag}</span></>}
+                  {riassunto(r).dettaglio && <div className="piccolo muto">{riassunto(r).dettaglio}</div>}
+                  {ordina === 'ordine' && conOrdine && lungo && !sezione && <div className="piccolo muto">ordine {r.ordine ?? '—'}</div>}
+                </div>
+                <div className="gestore-azioni">
+                  <button className="link-btn" onClick={() => apriModifica(r)}>Modifica</button>
+                  <button className="link-btn pericolo" onClick={() => elimina(r)}>Elimina</button>
+                </div>
+              </div>
+            )}
+          </li>,
+          ];
+        })}
+      </ul>
+
+      {finestra && apri && (
+        <Finestra titolo={rigaAperta ? riassunto(rigaAperta).titolo : apri === 'nuovo' ? (titoloNuovo || etichettaNuovo) : (bozza.nome || '')}
+                  sotto={rigaAperta ? riassunto(rigaAperta).dettaglio : ''}
+                  larga={campi.some((c) => c.gruppo)} chiudi={chiudiSeVuoi} nuovo={apri === 'nuovo'}>
+          <Modulo campi={campi} bozza={bozza} setBozza={setBozza} salva={salva} annulla={chiudi} invio={invio} errore={errore} finestra />
+        </Finestra>
+      )}
+
+      {apri === 'nuovo' && !finestra ? (
+        <div style={{ marginTop: 16 }}>
+          <Modulo campi={campi} bozza={bozza} setBozza={setBozza} salva={salva} annulla={chiudi} invio={invio} errore={errore} />
+        </div>
+      ) : (
+        <button className="btn" style={{ marginTop: 16 }} onClick={apriNuovo}>{etichettaNuovo}</button>
+      )}
+    </div>
+  );
+}
+
+// La modifica di una riga (bozza, controlli, salvataggio, righe collegate): la usano l'elenco (Gestore)
+// e la finestra di una riga sola (ModificaRiga, es. un abbonamento aperto dal Palinsesto).
+// dopoSalvato(chi, id): chi = 'nuovo' o l'id della riga modificata
+function useModifica({ tabella, campi, fissi = {}, dopoSalvato }) {
+  const router = useRouter();
+  const [apri, setApri] = useState(null);       // id della riga in modifica, oppure 'nuovo'
+  const [bozza, setBozza] = useState({});
+  const partenza = useRef('');                  // la bozza com'era all'apertura: per chiedere prima di buttare le modifiche
+  const originali = useRef({});                 // valori dei campi "collegati" all'apertura: si scrive solo la differenza
+  const [errore, setErrore] = useState('');
+  const [invio, setInvio] = useState(false);
+
   // valori di partenza delle righe nuove: le caselle spuntate, salvo "predefinito" diverso
   const multiplo = (c) => c.tipo === 'etichette' || c.tipo === 'molti';
   const vuota = Object.fromEntries(campi.map((c) => [c.k, c.predefinito ?? (c.tipo === 'check' ? true : multiplo(c) ? [] : '')]));
 
-  function apriNuovo() {
-    const b = { ...vuota, ...(campi.find((c) => c.k === 'ordine') ? { ordine: righe.length + 1 } : {}) };
+  function apriNuovo(extra = {}) {
+    const b = { ...vuota, ...extra };
     partenza.current = JSON.stringify(b); originali.current = {};
     setBozza(b); setErrore(''); setApri('nuovo');
   }
   function apriModifica(r) {
-    setSalvato(null);
     const b = {};
     campi.forEach((c) => {
       const v = r[c.k];
@@ -59,10 +182,12 @@ export default function Gestore({ tabella, campi, righe, fissi = {}, riassunto, 
   }
   const chiudi = () => { setApri(null); setErrore(''); };
   // chiusura con ×, Esc o clic fuori: se qualcosa è cambiato si chiede prima
+  // dice se ha chiuso davvero
   const chiudiSeVuoi = () => {
-    if (invio) return;
-    if (JSON.stringify(bozza) !== partenza.current && !confirm('Hai cambiato qualcosa: chiudere senza salvare?')) return;
+    if (invio) return false;
+    if (JSON.stringify(bozza) !== partenza.current && !confirm('Hai cambiato qualcosa: chiudere senza salvare?')) return false;
     chiudi();
+    return true;
   };
 
   function valore(c) {
@@ -136,123 +261,37 @@ export default function Gestore({ tabella, campi, righe, fissi = {}, riassunto, 
       }
     }
     setInvio(false);
-    setSalvato(apri === 'nuovo' ? 'nuovo' : apri);
-    setTimeout(() => setSalvato(null), 4000);
+    const chi = apri === 'nuovo' ? 'nuovo' : apri;
     setApri(null); router.refresh();
+    dopoSalvato?.(chi, id);
   }
 
-  async function elimina(r) {
-    if (onElimina) { await onElimina(r, setErrore); router.refresh(); return; }
-    const { titolo } = riassunto(r);
-    if (!confirm(`Eliminare "${titolo}"? L'operazione non si può annullare.`)) return;
-    const { error } = await supabaseBrowser().from(tabella).delete().eq('id', r.id);
-    if (error) { setErrore(messaggio(error)); return; }
-    router.refresh();
-  }
+  return { apri, setApri, bozza, setBozza, errore, setErrore, invio, apriNuovo, apriModifica, chiudi, chiudiSeVuoi, salva };
+}
 
-  const norm = (t) => String(t ?? '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-  const parole = norm(cerca).split(/\s+/).filter(Boolean);
-  const testoDi = (r) => { const x = riassunto(r); return norm(`${x.titolo} ${x.dettaglio || ''} ${x.tag || ''}`); };
-  let mostrate = parole.length ? righe.filter((r) => { const t = testoDi(r); return parole.every((p) => t.includes(p)); }) : righe;
-  // con le sezioni l'ordine lo decide chi chiama; altrimenti per nome (A→Z) o per il campo "Ordine"
-  if (!sezione && lungo) {
-    mostrate = [...mostrate].sort(ordina === 'ordine' && conOrdine
-      ? (a, b) => ((a.ordine ?? 9999) - (b.ordine ?? 9999)) || String(riassunto(a).titolo).localeCompare(String(riassunto(b).titolo), 'it')
-      : (a, b) => String(riassunto(a).titolo).localeCompare(String(riassunto(b).titolo), 'it', { sensitivity: 'base' }));
-  }
 
-  const rigaAperta = apri && apri !== 'nuovo' ? righe.find((r) => r.id === apri) : null;
 
+// Una riga sola in finestra, senza elenco (es. dal Palinsesto: l'abbonamento di un corso).
+// riga = la riga da modificare (null = nuova); onChiudi quando si chiude; onSalvato(id) dopo il salvataggio;
+// iniziali: valori di partenza di una riga nuova (es. i corsi compresi già con il corso da cui si parte)
+export function ModificaRiga({ tabella, campi, fissi = {}, riga = null, iniziali = {}, titolo, sotto, larga, onChiudi, onSalvato }) {
+  const m = useModifica({ tabella, campi, fissi, dopoSalvato: (chi, id) => { onSalvato?.(id); onChiudi?.(); } });
+  useEffect(() => { if (riga) m.apriModifica(riga); else m.apriNuovo(iniziali); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  if (!m.apri) return null;
   return (
-    <div>
-      {errore && !apri && <div className="errore" role="alert">{errore}</div>}
-      {salvato === 'nuovo' && <div className="avviso-ok" role="status">Aggiunto ✓</div>}
-
-      {lungo && (
-        <div className="gestore-barra">
-          <input type="search" value={cerca} onChange={(e) => setCerca(e.target.value)} placeholder="Cerca…" aria-label="Cerca nell'elenco" />
-          {!sezione && conOrdine && (
-            <select value={ordina} onChange={(e) => cambiaOrdine(e.target.value)} aria-label="Ordina">
-              <option value="nome">Per nome (A→Z)</option>
-              <option value="ordine">Come li vede il cliente (campo Ordine)</option>
-            </select>
-          )}
-          <span className="piccolo muto">{parole.length ? `${mostrate.length} su ${righe.length}` : `${righe.length}`}</span>
-        </div>
-      )}
-
-      {finestra && righe.length > 6 && (
-        <div className="gestore-nuovo-alto"><button type="button" className="btn btn-piccolo" onClick={apriNuovo}>+ {etichettaNuovo}</button></div>
-      )}
-
-      {righe.length === 0 && (apri !== 'nuovo' || finestra) && <div className="vuoto">{vuoto}</div>}
-      {righe.length > 0 && mostrate.length === 0 && <div className="vuoto">Niente con «{cerca}».</div>}
-
-      <ul className="elenco">
-        {mostrate.map((r, i) => {
-          const sez = sezione?.(r);
-          const nuovaSezione = sez && (i === 0 || sezione(mostrate[i - 1]).chiave !== sez.chiave);
-          return [
-          nuovaSezione && (
-            <li key={`sez-${sez.chiave}`} className="gestore-sezione">
-              {sez.titolo} <span>{mostrate.filter((x) => sezione(x).chiave === sez.chiave).length}</span>
-            </li>
-          ),
-          <li key={r.id}>
-            {apri === r.id && !finestra ? (
-              <Modulo campi={campi} bozza={bozza} setBozza={setBozza} salva={salva} annulla={() => { setApri(null); setErrore(''); }} invio={invio} errore={errore} />
-            ) : (
-              // un clic su qualunque punto della riga apre la modifica (i pulsanti fanno la loro azione)
-              <div className={`persona gestore-riga${apri === r.id ? ' aperta' : ''}`} style={{ alignItems: 'start' }} role="button" tabIndex={0}
-                   title="Clic per modificare"
-                   onClick={(e) => { if (!e.target.closest('button, a, input, select, textarea')) apriModifica(r); }}
-                   onKeyDown={(e) => { if ((e.key === 'Enter' || e.key === ' ') && e.target === e.currentTarget) { e.preventDefault(); apriModifica(r); } }}>
-                <div>
-                  {riassunto(r).colore && (
-                    <span aria-hidden="true" style={{
-                      display: 'inline-block', width: 12, height: 12, borderRadius: 3,
-                      background: riassunto(r).colore, marginRight: 8,
-                    }} />
-                  )}
-                  <span className="persona-nome">{riassunto(r).titolo}</span>
-                  {salvato === r.id && <> <span className="tag tag-ok">salvato ✓</span></>}
-                  {riassunto(r).tag && <> <span className="tag tag-neutro">{riassunto(r).tag}</span></>}
-                  {riassunto(r).dettaglio && <div className="piccolo muto">{riassunto(r).dettaglio}</div>}
-                  {ordina === 'ordine' && conOrdine && lungo && !sezione && <div className="piccolo muto">ordine {r.ordine ?? '—'}</div>}
-                </div>
-                <div className="gestore-azioni">
-                  <button className="link-btn" onClick={() => apriModifica(r)}>Modifica</button>
-                  <button className="link-btn pericolo" onClick={() => elimina(r)}>Elimina</button>
-                </div>
-              </div>
-            )}
-          </li>,
-          ];
-        })}
-      </ul>
-
-      {finestra && apri && (
-        <Finestra titolo={rigaAperta ? riassunto(rigaAperta).titolo : apri === 'nuovo' ? (titoloNuovo || etichettaNuovo) : (bozza.nome || '')}
-                  sotto={rigaAperta ? riassunto(rigaAperta).dettaglio : ''}
-                  larga={campi.some((c) => c.gruppo)} chiudi={chiudiSeVuoi} nuovo={apri === 'nuovo'}>
-          <Modulo campi={campi} bozza={bozza} setBozza={setBozza} salva={salva} annulla={chiudi} invio={invio} errore={errore} finestra />
-        </Finestra>
-      )}
-
-      {apri === 'nuovo' && !finestra ? (
-        <div style={{ marginTop: 16 }}>
-          <Modulo campi={campi} bozza={bozza} setBozza={setBozza} salva={salva} annulla={() => { setApri(null); setErrore(''); }} invio={invio} errore={errore} />
-        </div>
-      ) : (
-        <button className="btn" style={{ marginTop: 16 }} onClick={apriNuovo}>{etichettaNuovo}</button>
-      )}
-    </div>
+    <Finestra titolo={titolo} sotto={sotto} larga={larga ?? campi.some((c) => c.gruppo)} nuovo={!riga}
+              chiudi={() => { if (m.chiudiSeVuoi()) onChiudi?.(); }}>
+      <Modulo campi={campi} bozza={m.bozza} setBozza={m.setBozza} salva={m.salva} annulla={() => { m.chiudi(); onChiudi?.(); }}
+              invio={m.invio} errore={m.errore} finestra />
+    </Finestra>
   );
 }
 
 // La finestra grande sopra l'elenco: titolo in alto, i campi in mezzo (scorrono se non ci stanno), Salva sempre in vista.
 // Si chiude con ×, con Esc o cliccando fuori; la pagina sotto resta ferma dov'era.
-function Finestra({ titolo, sotto, larga, chiudi, nuovo, children }) {
+// Più finestre una sopra l'altra (es. corso → abbonamento): Esc chiude solo quella in cima.
+const pilaFinestre = [];
+export function Finestra({ titolo, sotto, larga, chiudi, nuovo, children, piede }) {
   const rif = useRef(null);
   const chiudiRif = useRef(chiudi);
   chiudiRif.current = chiudi;
@@ -262,9 +301,17 @@ function Finestra({ titolo, sotto, larga, chiudi, nuovo, children }) {
     // riga nuova: si comincia a scrivere dal primo campo; modifica: si guarda prima
     const primo = nuovo ? rif.current?.querySelector('input:not([type=checkbox]), select, textarea') : null;
     (primo || rif.current)?.focus({ preventScroll: true });
-    const tasto = (e) => { if (e.key === 'Escape' && !e.defaultPrevented) { e.preventDefault(); chiudiRif.current(); } };
+    const io = {};
+    pilaFinestre.push(io);
+    const tasto = (e) => {
+      if (e.key !== 'Escape' || e.defaultPrevented || pilaFinestre[pilaFinestre.length - 1] !== io) return;
+      e.preventDefault(); chiudiRif.current();
+    };
     window.addEventListener('keydown', tasto);
-    return () => { document.body.style.overflow = prima; window.removeEventListener('keydown', tasto); };
+    return () => {
+      document.body.style.overflow = prima; window.removeEventListener('keydown', tasto);
+      const i = pilaFinestre.indexOf(io); if (i >= 0) pilaFinestre.splice(i, 1);
+    };
   }, [nuovo]);
   // clic fuori: solo se il clic comincia e finisce sul fondo (selezionare un testo trascinando fuori non chiude)
   const giuSulFondo = useRef(false);
@@ -281,6 +328,7 @@ function Finestra({ titolo, sotto, larga, chiudi, nuovo, children }) {
           <button type="button" className="gf-chiudi" onClick={chiudi} aria-label="Chiudi" title="Chiudi (Esc)">×</button>
         </header>
         <section className="gf-corpo">{children}</section>
+        {piede}
       </div>
     </div>
   );
@@ -316,7 +364,7 @@ function Modulo({ campi, bozza, setBozza, salva, annulla, invio, errore, finestr
             {c.opzioni.map((o) => <option key={o.v} value={o.v}>{o.l}</option>)}
           </select>
         ) : c.tipo === 'molti' ? (
-          <SceltaMolti id={id} valore={Array.isArray(bozza[c.k]) ? bozza[c.k] : []} opzioni={c.opzioni || []} nessunoTesto={c.nessunoTesto}
+          <SceltaMolti id={id} valore={Array.isArray(bozza[c.k]) ? bozza[c.k] : []} opzioni={c.opzioni || []} nessunoTesto={c.nessunoTesto} etichettaGruppi={c.etichettaGruppi}
                        onChange={(v) => set(c.k, v)} />
         ) : c.tipo === 'etichette' ? (
           <Etichette id={id} valore={Array.isArray(bozza[c.k]) ? bozza[c.k] : []} opzioni={c.opzioni || []} nuovaTesto={c.nuovaTesto}
@@ -416,17 +464,26 @@ function Etichette({ id, valore, opzioni = [], onChange, nuovaTesto = '+ Nuova�
 }
 
 // Più valori da un elenco lungo (es. i corsi compresi in un abbonamento): a gruppi (g), in ordine fisso, con la ricerca
-function SceltaMolti({ id, valore, opzioni = [], onChange, nessunoTesto = 'Nessuno scelto' }) {
+export function SceltaMolti({ id, valore, opzioni = [], onChange, nessunoTesto = 'Nessuno scelto', etichettaGruppi = 'Gruppi' }) {
   const [cerca, setCerca] = useState('');
   const [soloScelti, setSoloScelti] = useState(false);
+  const [gruppiScelti, setGruppiScelti] = useState([]);   // filtro sui titoletti (es. le discipline): più d'uno insieme
   const scelti = new Set(valore);
   const norm = (t) => String(t ?? '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
   const parole = norm(cerca).split(/\s+/).filter(Boolean);
-  const mostrate = opzioni.filter((o) => (!soloScelti || scelti.has(o.v)) && parole.every((p) => norm(`${o.l} ${o.g || ''}`).includes(p)));
-  const blocchi = [...new Set(mostrate.map((o) => o.g || ''))].sort((a, b) => a.localeCompare(b, 'it'))
-    .map((g) => ({ g, voci: mostrate.filter((o) => (o.g || '') === g).sort((a, b) => a.l.localeCompare(b.l, 'it', { numeric: true })) }));
+  const perNome = (a, b) => a.localeCompare(b, 'it', { numeric: true });
+  const tuttiGruppi = [...new Set(opzioni.map((o) => o.g || ''))].filter(Boolean).sort(perNome);
+  const contaGruppo = (g) => opzioni.filter((o) => (o.g || '') === g).length;
+  const sceltiNelGruppo = (g) => opzioni.filter((o) => (o.g || '') === g && scelti.has(o.v)).length;
+  const conFiltro = parole.length > 0 || gruppiScelti.length > 0;
+  const mostrate = opzioni.filter((o) => (!soloScelti || scelti.has(o.v))
+    && (!gruppiScelti.length || gruppiScelti.includes(o.g || ''))
+    && parole.every((p) => norm(`${o.l} ${o.g || ''}`).includes(p)));
+  const blocchi = [...new Set(mostrate.map((o) => o.g || ''))].sort(perNome)
+    .map((g) => ({ g, voci: mostrate.filter((o) => (o.g || '') === g).sort((a, b) => perNome(a.l, b.l)) }));
   const toggle = (v) => onChange(scelti.has(v) ? valore.filter((x) => x !== v) : [...valore, v]);
-  // con la ricerca: "tutti questi" sceglie (o toglie) quelli che si vedono
+  const toggleGruppo = (g) => setGruppiScelti((x) => (x.includes(g) ? x.filter((y) => y !== g) : [...x, g]));
+  // con la ricerca o il filtro: "scegli questi" sceglie (o toglie) quelli che si vedono
   const tuttiVisti = mostrate.length > 0 && mostrate.every((o) => scelti.has(o.v));
   const tuttiQuesti = () => onChange(tuttiVisti ? valore.filter((v) => !mostrate.some((o) => o.v === v)) : [...new Set([...valore, ...mostrate.map((o) => o.v)])]);
   return (
@@ -440,14 +497,27 @@ function SceltaMolti({ id, valore, opzioni = [], onChange, nessunoTesto = 'Nessu
         {valore.length > 0 && (
           <label className="spunta piccolo"><input type="checkbox" checked={soloScelti} onChange={(e) => setSoloScelti(e.target.checked)} /> solo quelli scelti</label>
         )}
-        {parole.length > 0 && mostrate.length > 0 && (
-          <button type="button" className="link-btn piccolo" onClick={tuttiQuesti}>{tuttiVisti ? 'togli questi' : `scegli questi ${mostrate.length}`}</button>
+        {conFiltro && mostrate.length > 0 && (
+          <button type="button" className="link-btn piccolo" onClick={tuttiQuesti}>{tuttiVisti ? `togli questi ${mostrate.length}` : `scegli questi ${mostrate.length}`}</button>
         )}
-        {valore.length > 0 && !parole.length && (
+        {valore.length > 0 && !conFiltro && (
           <button type="button" className="link-btn piccolo pericolo" onClick={() => { if (confirm('Togliere tutti quelli scelti?')) onChange([]); }}>togli tutti</button>
         )}
       </div>
-      {mostrate.length === 0 && <div className="piccolo muto">Niente{cerca ? ` con «${cerca}»` : ''}.</div>}
+      {tuttiGruppi.length > 3 && (
+        // filtro per titoletto (es. disciplina): se ne toccano uno o più, si vedono solo quelli
+        <div className="molti-filtro" role="group" aria-label={`Filtra per ${etichettaGruppi.toLowerCase()}`}>
+          <span className="molti-filtro-nome">{etichettaGruppi}</span>
+          <button type="button" className="molti-filtro-chip tutte" aria-pressed={!gruppiScelti.length} onClick={() => setGruppiScelti([])}>tutte</button>
+          {tuttiGruppi.map((g) => (
+            <button key={g} type="button" className="molti-filtro-chip" aria-pressed={gruppiScelti.includes(g)} onClick={() => toggleGruppo(g)}
+                    title={`${contaGruppo(g)} in tutto${sceltiNelGruppo(g) ? `, ${sceltiNelGruppo(g)} scelti` : ''}`}>
+              {g}{sceltiNelGruppo(g) > 0 && <span className="molti-filtro-n">{sceltiNelGruppo(g)}</span>}
+            </button>
+          ))}
+        </div>
+      )}
+      {mostrate.length === 0 && <div className="piccolo muto">Niente{cerca ? ` con «${cerca}»` : ''}{gruppiScelti.length ? ` in ${gruppiScelti.join(', ')}` : ''}.</div>}
       {blocchi.map(({ g, voci }) => (
         <div key={g} className="molti-blocco">
           {g && <div className="molti-titolo">{g}</div>}
