@@ -988,11 +988,18 @@ a.tessera:hover, .scheda-corso:hover {
 .zona-foto .zona-testo { display: grid; gap: 2px; flex: 1; min-width: 0; }
 .zona-foto .zona-testo strong { font-size: 15px; color: var(--nero); }
 .zona-foto .segnaposto svg { stroke: var(--testo-2); }
-/* Importa da APP Palestre: sotto ogni riquadro dove si scarica il file */
-.imp-file { display: grid; gap: 6px; align-content: start; min-width: 0; }
-.imp-dove { margin: 0 6px; font-size: 13px; line-height: 1.55; color: var(--testo-2); }
-.imp-dove-et { font-weight: 700; color: var(--nero); }
-.imp-dove i { font-style: normal; font-weight: 700; color: var(--rosso); margin: 0 6px; }
+/* Importa da APP Palestre: ogni file è una scheda con la zona di caricamento e, in fondo, dove si scarica.
+   Le colonne non si allargano mai per un nome di file lungo (minmax(0, 1fr) e a capo anche dentro le parole). */
+.imp-file-griglia { grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); }
+.imp-file { display: grid; grid-template-columns: minmax(0, 1fr); align-content: space-between; min-width: 0;
+  border: 1.5px dashed var(--linea); border-radius: 14px; background: var(--bianco); overflow: hidden; }
+.imp-file:hover { border-color: var(--rosso); }
+.imp-file .zona-foto { border: 0; border-radius: 0; min-width: 0; }
+.imp-file .zona-file, .imp-file .zona-testo strong { overflow-wrap: anywhere; }
+.imp-dove { margin: 0; padding: 8px 14px 10px; border-top: 1px solid var(--linea); background: var(--carta);
+  font-size: 13px; line-height: 1.55; color: var(--testo-2); }
+.imp-dove-et { display: block; font-weight: 700; color: var(--nero); }
+.imp-dove i { font-style: normal; font-weight: 700; color: var(--rosso); margin: 0 2px; }
 .imp-passo { white-space: nowrap; }
 .imp-tessere { grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); }
 .imp-tessere .cifra { font-size: 26px; overflow-wrap: anywhere; }
@@ -1172,26 +1179,25 @@ a.tessera:hover, .scheda-corso:hover {
 .delta { font-weight: 700; }
 .delta.su { color: var(--ok); }
 .delta.giu { color: var(--rosso-scuro); }
-/* Riepilogo: fatturato di stagione, anno solare e mese (query 148) */
-.fatturato { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); background: var(--bianco); border: 1px solid var(--linea);
-  border-radius: 14px; margin-bottom: 10px; overflow: hidden; }
-.fat-testa { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 10px; padding: 10px 14px 0; }
-.fat-titolo { font-weight: 850; font-size: 15px; color: var(--nero); }
-.fat-voce { display: grid; align-content: start; gap: 1px; padding: 6px 14px 12px; text-decoration: none; color: inherit; min-width: 0; }
-.fat-voce:hover { background: var(--carta); }
-.fat-voce .etichetta { font-size: 12px; color: var(--testo-2); font-weight: 600; }
-.fat-cifra { font-size: 21px; font-weight: 850; font-stretch: 115%; color: var(--nero); line-height: 1.1; }
-.fat-voce .sotto { font-size: 12px; color: var(--testo-2); }
-.fat-principale { grid-column: 1 / -1; }
-.fat-principale .fat-cifra { font-size: 30px; color: var(--rosso); }
-.fat-voce:not(.fat-principale) { border-top: 1px solid var(--linea); padding-top: 10px; }
-.fat-voce:last-child { border-left: 1px solid var(--linea); }
-@media (min-width: 900px) {
-  .fatturato { grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr) minmax(0, 1fr); }
-  .fat-principale { grid-column: auto; }
-  .fat-voce:not(.fat-principale) { border-top: 0; padding-top: 6px; }
-  .fat-voce + .fat-voce { border-left: 1px solid var(--linea); }
-}
+/* Riepilogo: i numeri del giorno in una riga sola e bassa (7 tessere; 4 per riga su schermi medi, striscia da scorrere sul telefono).
+   Le colonne seguono la larghezza della colonna principale (container query), non dello schermo. */
+.home-principale { container-type: inline-size; }
+/* sul telefono: una striscia sola che si scorre col dito (così "Da fare" resta subito sotto) */
+.kpi-home { display: grid; gap: 8px; grid-auto-flow: column; grid-auto-columns: minmax(140px, 42%); overflow-x: auto;
+  scroll-snap-type: x proximity; margin-bottom: 14px; padding-bottom: 4px; scrollbar-width: thin; }
+.kpi-home > .tessera { scroll-snap-align: start; }
+.kpi-home .tessera { padding: 9px 11px; border-radius: 12px; min-width: 0; }
+.kpi-home .etichetta { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.kpi-home .cifra { font-size: 23px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.kpi-home .cifra small { font-size: 13px; font-weight: 700; }
+.kpi-home .sotto { font-size: 11.5px; line-height: 1.35; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+@container (min-width: 600px) { .kpi-home { grid-auto-flow: row; grid-auto-columns: auto; overflow: visible; padding-bottom: 0;
+  grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+@container (min-width: 960px) { .kpi-home { grid-template-columns: repeat(7, minmax(0, 1fr)); } }
+/* Impostazioni: che periodo vedere nel fatturato e nelle statistiche */
+fieldset.periodo-conti { border: 0; padding: 0; margin: 14px 0 0; display: grid; gap: 6px; min-width: 0; }
+fieldset.periodo-conti legend { font-weight: 700; font-size: 14px; color: var(--nero); margin-bottom: 4px; padding: 0; }
+fieldset.periodo-conti .spunta { margin: 0; }
 .tessera-rossa .delta, .tessera-nera .delta { color: #fff; }
 
 .cruscotto-3, .cruscotto-2 { display: grid; gap: 14px; margin-bottom: 14px; }

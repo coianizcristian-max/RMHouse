@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { staffCorrente } from '@/lib/staff';
 import { euro, oggiISO, dataBreve } from '@/lib/formato';
-import { meseStagione } from '@/lib/stagione';
+import { meseStagione, periodoPredefinito } from '@/lib/stagione';
 
 export const dynamic = 'force-dynamic';
 
@@ -16,9 +16,10 @@ export default async function RiepilogoConti() {
   const oggi = oggiISO();
   const inizioMese = oggi.slice(0, 8) + '01';
   const inizioAnno = oggi.slice(0, 5) + '01-01';   // le ricevute mancanti: anno fiscale (solare)
-  const mS = await meseStagione();
+  const [mS, periodo] = await Promise.all([meseStagione(), periodoPredefinito()]);
   const [yy, mm] = oggi.split('-').map(Number);
-  const inizioStagione = `${mm >= mS ? yy : yy - 1}-${String(mS).padStart(2, '0')}-01`;
+  // il periodo scelto in Impostazioni: stagione sportiva (predefinita) o anno solare
+  const inizioStagione = periodo === 'anno' ? inizioAnno : `${mm >= mS ? yy : yy - 1}-${String(mS).padStart(2, '0')}-01`;
 
   const [{ data: giorno }, { data: mese }, { data: anno }, { data: mancanti }, { data: attesa }, { data: rateScadute },
          { data: prossime }, { data: ultimi }, { data: fatture }] = await Promise.all([
@@ -63,7 +64,7 @@ export default async function RiepilogoConti() {
       <div className="kpi">
         <div className="tessera tessera-rossa"><div className="etichetta">Incassato oggi</div><div className="cifra">{euro(giorno?.incassato_cent || 0)}</div></div>
         <Link prefetch={false} className="tessera" href="/gestione/incassi"><div className="etichetta">Nel mese</div><div className="cifra">{euro(mese?.incassato_cent || 0)}</div></Link>
-        <Link prefetch={false} className="tessera" href="/gestione/statistiche/economia"><div className="etichetta">Da inizio stagione</div><div className="cifra">{euro(anno?.incassato_cent || 0)}</div></Link>
+        <Link prefetch={false} className="tessera" href="/gestione/statistiche/economia"><div className="etichetta">{periodo === 'anno' ? 'Da inizio anno' : 'Da inizio stagione'}</div><div className="cifra">{euro(anno?.incassato_cent || 0)}</div></Link>
         <Link prefetch={false} className={`tessera${daIncassare ? ' tessera-nera' : ''}`} href="/gestione/rate?vista=scadute">
           <div className="etichetta">Da incassare</div><div className="cifra">{euro(daIncassare)}</div>
           <div className="sotto">in attesa e rate scadute</div></Link>

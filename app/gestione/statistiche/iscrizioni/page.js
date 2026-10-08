@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation';
 import { staffCorrente } from '@/lib/staff';
-import { meseStagione } from '@/lib/stagione';
+import { meseStagione, periodoPredefinito } from '@/lib/stagione';
 import { leggiPeriodo } from '@/lib/periodo';
 import { Numero, BarreGruppi, Linee, Linea, BarreOrizzontali, Anello } from '@/lib/grafici';
 import { eur, pct, meseDi, MESI, MESI_STAGIONE, mesiDellaStagione, quota } from '@/lib/statistiche';
@@ -9,7 +9,7 @@ import Testa, { Blocco } from '../Testa';
 export const dynamic = 'force-dynamic';
 
 export default async function Iscrizioni({ searchParams }) {
-  const per = leggiPeriodo(await searchParams, 'stagione', await meseStagione());
+  const per = leggiPeriodo(await searchParams, await periodoPredefinito(), await meseStagione());
   const { supabase, staff } = await staffCorrente();
   if (staff.ruolo === 'insegnante') redirect('/gestione');
   const p = staff.palestra_id;

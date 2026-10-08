@@ -4,6 +4,7 @@ import CercaVeloce from './CercaVeloce';
 import Promemoria from './Promemoria';
 import PannelloNotizie from './PannelloNotizie';
 import { staffCorrente } from '@/lib/staff';
+import { periodoPredefinito } from '@/lib/stagione';
 import { ora, oggiISO, euro, dataBreve } from '@/lib/formato';
 import { STATI_CLIENTE, TIPI_SCADENZA } from '@/lib/stati';
 
@@ -39,36 +40,8 @@ function Andamento({ punti }) {
 
 const MESI_LUNGHI = ['gennaio', 'febbraio', 'marzo', 'aprile', 'maggio', 'giugno', 'luglio', 'agosto', 'settembre', 'ottobre', 'novembre', 'dicembre'];
 
-// Il fatturato (incassi registrati, come in Conti): stagione in corso, anno solare e mese, ognuno con il confronto
-// allo stesso giorno dell'anno (o del mese) prima. Ogni numero apre le statistiche economiche di quel periodo.
-function Fatturato({ f }) {
-  const inizio = new Date(`${f.inizio_stagione}T12:00:00Z`);
-  const a = inizio.getUTCFullYear();
-  const oggi = new Date();
-  const anno = Number(oggi.toLocaleDateString('it-IT', { year: 'numeric', timeZone: 'Europe/Rome' }));
-  const mese = MESI_LUNGHI[Number(oggi.toLocaleDateString('it-IT', { month: 'numeric', timeZone: 'Europe/Rome' })) - 1];
-  const voci = [
-    { chiave: 'stagione', titolo: `Stagione ${a}/${String(a + 1).slice(2)}`, valore: f.stagione, prima: f.stagione_prima,
-      sotto: `dal 1° ${MESI_LUNGHI[inizio.getUTCMonth()]}`, confronto: ' sulla stagione scorsa' },
-    { chiave: 'anno', titolo: `Anno solare ${anno}`, valore: f.anno, prima: f.anno_prima, sotto: 'dal 1° gennaio', confronto: ` sul ${anno - 1}` },
-    { chiave: 'mese', titolo: mese.charAt(0).toUpperCase() + mese.slice(1), valore: f.mese, prima: f.mese_prima, sotto: 'questo mese', confronto: ' sul mese scorso' },
-  ];
-  return (
-    <section className="fatturato" aria-label="Fatturato">
-      <div className="fat-testa">
-        <span className="fat-titolo">Fatturato</span>
-        <span className="piccolo muto">incassi registrati · allo stesso giorno di prima</span>
-      </div>
-      {voci.map((v, i) => (
-        <LinkVeloce key={v.chiave} className={`fat-voce${i === 0 ? ' fat-principale' : ''}`} href={`/gestione/statistiche/economia?p=${v.chiave}`}>
-          <span className="etichetta">{v.titolo}</span>
-          <span className="fat-cifra">{euro(v.valore)}</span>
-          <span className="sotto">{v.sotto}{v.prima > 0 && <> · <Delta adesso={v.valore} prima={v.prima} suffisso={v.confronto} /></>}</span>
-        </LinkVeloce>
-      ))}
-    </section>
-  );
-}
+// Euro senza centesimi: nelle tessere del Riepilogo conta il numero intero (e così ci sta)
+const euroTondo = (cent) => euro(Math.round((Number(cent) || 0) / 100) * 100);
 
 // Pagina iniziale: numeri, problemi da sistemare, oggi e scadenze, tutto in una schermata
 export default async function Home({ searchParams }) {
@@ -78,7 +51,10 @@ export default async function Home({ searchParams }) {
   const gestione = staff.ruolo !== 'insegnante';
 
   // tutto il Riepilogo con una chiamata sola (query 144); se la funzione manca, le letture una per una
-  const { data: insieme, error: erroreInsieme } = await supabase.rpc('home_dati', { p_palestra: p });
+  const [{ data: insieme, error: erroreInsieme }, periodo] = await Promise.all([
+    supabase.rpc('home_dati', { p_palestra: p }),
+    gestione ? periodoPredefinito() : Promise.resolve('stagione'),
+  ]);
   const d = !erroreInsieme && insieme ? {
     k: insieme.k, lezioni: insieme.lezioni, corsi: insieme.corsi, scadenze: insieme.scadenze, rateScadute: insieme.rate_scadute,
     richieste: insieme.richieste, promemoria: insieme.promemoria, staffRighe: insieme.staff, sostituzioni: insieme.sostituzioni,
@@ -145,42 +121,59 @@ export default async function Home({ searchParams }) {
 
       {gestione && <CercaVeloce palestraId={p} key={scegli || 'cerca'} modoIniziale={scegli === 'incassa' ? 'incassa' : 'scheda'} />}
 
-      {gestione && fatturato && <Fatturato f={fatturato} />}
-
-      {gestione && k && (
-        <div className="kpi">
-          <LinkVeloce className="tessera tessera-rossa" href="/gestione/persone?stato=attivi">
-            <div className="etichetta">Iscritti attivi</div>
-            <div className="cifra">{k.attivi}</div>
-            <div className="sotto"><Delta adesso={k.attivi} prima={k.attivi_mese_scorso} suffisso=" su un mese fa" /></div>
-          </LinkVeloce>
-          <LinkVeloce className="tessera" href="/gestione/statistiche">
-            <div className="etichetta">Venduto nel mese</div>
-            <div className="cifra">{euro(k.venduto_mese)}</div>
-            <div className="sotto"><Delta adesso={k.venduto_mese} prima={k.venduto_mese_scorso} suffisso=" sul mese scorso" /></div>
-          </LinkVeloce>
-          <LinkVeloce className="tessera" href="/gestione/scadenze?tipo=abbonamento">
-            <div className="etichetta">Da rinnovare in 14 giorni</div>
-            <div className="cifra">{k.da_rinnovare_14?.quanti ?? 0}</div>
-            <div className="sotto">valgono {euro(k.da_rinnovare_14?.valore || 0)}</div>
-          </LinkVeloce>
-          <LinkVeloce className="tessera" href="/gestione/persone?stato=nuovi">
-            <div className="etichetta">Nuovi nel mese</div>
-            <div className="cifra">{k.nuovi_mese}</div>
-            <div className="sotto">{k.prove_settimana} prove questa settimana</div>
-          </LinkVeloce>
-          <LinkVeloce className="tessera" href="/gestione/calendario">
-            <div className="etichetta">Posti occupati, settimana</div>
-            <div className="cifra">{k.occupazione_settimana != null ? `${k.occupazione_settimana}%` : '—'}</div>
-            <div className="sotto">sui posti disponibili nelle sale</div>
-          </LinkVeloce>
-          <LinkVeloce className="tessera tessera-nera" href="/gestione/oggi">
-            <div className="etichetta">Oggi</div>
-            <div className="cifra">{k.lezioni_oggi}<small> lezioni</small></div>
-            <div className="sotto">{k.attesi_oggi} persone attese{prossima ? ` · prossima alle ${ora(prossima.inizio)}` : ''}</div>
-          </LinkVeloce>
-        </div>
-      )}
+      {/* i numeri del giorno in una riga sola e bassa: sotto, subito, le cose da fare */}
+      {gestione && k && (() => {
+        const inizioF = fatturato ? new Date(`${fatturato.inizio_stagione}T12:00:00Z`) : null;
+        const annoF = inizioF?.getUTCFullYear();
+        const meseOra = MESI_LUNGHI[Number(adesso.toLocaleDateString('it-IT', { month: 'numeric', timeZone: 'Europe/Rome' })) - 1];
+        const fat = !fatturato ? null : periodo === 'anno'
+          ? { chiave: 'anno', titolo: `Fatturato ${adesso.toLocaleDateString('it-IT', { year: 'numeric', timeZone: 'Europe/Rome' })}`,
+              valore: fatturato.anno, prima: fatturato.anno_prima, da: 'dal 1° gennaio' }
+          : { chiave: 'stagione', titolo: `Fatturato ${annoF}/${String(annoF + 1).slice(2)}`,
+              valore: fatturato.stagione, prima: fatturato.stagione_prima, da: `dal 1° ${MESI_LUNGHI[inizioF.getUTCMonth()]}` };
+        return (
+          <div className="kpi-home">
+            <LinkVeloce className="tessera tessera-rossa" href="/gestione/persone?stato=attivi">
+              <div className="etichetta">Iscritti attivi</div>
+              <div className="cifra">{k.attivi}</div>
+              <div className="sotto"><Delta adesso={k.attivi} prima={k.attivi_mese_scorso} suffisso=" su un mese fa" /></div>
+            </LinkVeloce>
+            {fat && (
+              <LinkVeloce className="tessera" href={`/gestione/statistiche/economia?p=${fat.chiave}`}
+                          title={`Incassi registrati ${fat.da} (il periodo si sceglie in Impostazioni → Regole). ${meseOra}: ${euro(fatturato.mese)}`}>
+                <div className="etichetta">{fat.titolo}</div>
+                <div className="cifra">{euroTondo(fat.valore)}</div>
+                <div className="sotto">{meseOra} {euroTondo(fatturato.mese)}{fat.prima > 0 && <> · <Delta adesso={fat.valore} prima={fat.prima} /></>}</div>
+              </LinkVeloce>
+            )}
+            <LinkVeloce className="tessera" href="/gestione/statistiche">
+              <div className="etichetta">Venduto nel mese</div>
+              <div className="cifra">{euroTondo(k.venduto_mese)}</div>
+              <div className="sotto"><Delta adesso={k.venduto_mese} prima={k.venduto_mese_scorso} suffisso=" sul mese scorso" /></div>
+            </LinkVeloce>
+            <LinkVeloce className="tessera" href="/gestione/scadenze?tipo=abbonamento">
+              <div className="etichetta">Da rinnovare (14 gg)</div>
+              <div className="cifra">{k.da_rinnovare_14?.quanti ?? 0}</div>
+              <div className="sotto">valgono {euroTondo(k.da_rinnovare_14?.valore || 0)}</div>
+            </LinkVeloce>
+            <LinkVeloce className="tessera" href="/gestione/persone?stato=nuovi">
+              <div className="etichetta">Nuovi nel mese</div>
+              <div className="cifra">{k.nuovi_mese}</div>
+              <div className="sotto">{k.prove_settimana} {k.prove_settimana === 1 ? 'prova' : 'prove'} in settimana</div>
+            </LinkVeloce>
+            <LinkVeloce className="tessera" href="/gestione/calendario" title="Posti occupati questa settimana, sui posti disponibili nelle sale">
+              <div className="etichetta">Posti occupati</div>
+              <div className="cifra">{k.occupazione_settimana != null ? `${k.occupazione_settimana}%` : '—'}</div>
+              <div className="sotto">questa settimana</div>
+            </LinkVeloce>
+            <LinkVeloce className="tessera tessera-nera" href="/gestione/oggi">
+              <div className="etichetta">Oggi</div>
+              <div className="cifra">{k.lezioni_oggi}<small> lezioni</small></div>
+              <div className="sotto">{k.attesi_oggi} attese{prossima ? ` · prossima ${ora(prossima.inizio)}` : ''}</div>
+            </LinkVeloce>
+          </div>
+        );
+      })()}
 
       {/* segreteria: tutta la lista (con per chi è); gli altri: solo le cose assegnate a loro */}
       <Promemoria palestraId={p} voci={promemoria || []} oggi={oggiISO()} gestione={gestione} staff={elencoStaff || []} />

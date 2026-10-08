@@ -60,9 +60,10 @@ function ZonaFile({ titolo, nomeFile, sotto, caricato, onFile }) {
 function Dove({ passi }) {
   return (
     <p className="imp-dove">
-      <span className="imp-dove-et">Dove si scarica:</span>{' '}
+      <span className="imp-dove-et">Dove si scarica:</span>
       <span className="imp-passo">app titolare</span>
-      {passi.map((p) => <span key={p} className={p.length <= 24 ? 'imp-passo' : undefined}><i aria-hidden="true">›</i>{p}</span>)}
+      {/* tra un passo e l'altro c'è uno spazio: la riga va a capo lì, mai a metà di un passo corto */}
+      {passi.map((p) => <span key={p}>{' '}<i aria-hidden="true">›</i>{' '}<span className={p.length <= 24 ? 'imp-passo' : undefined}>{p}</span></span>)}
     </p>
   );
 }

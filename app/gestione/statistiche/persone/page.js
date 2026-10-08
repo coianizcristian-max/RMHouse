@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation';
 import { staffCorrente } from '@/lib/staff';
-import { meseStagione } from '@/lib/stagione';
+import { meseStagione, periodoPredefinito } from '@/lib/stagione';
 import { leggiPeriodo } from '@/lib/periodo';
 import { Numero, Anello, BarreOrizzontali } from '@/lib/grafici';
 import Testa, { Blocco } from '../Testa';
@@ -9,7 +9,7 @@ export const dynamic = 'force-dynamic';
 
 // Chi frequenta: la fotografia degli iscritti attivi oggi (il periodo vale per le altre sezioni)
 export default async function Persone({ searchParams }) {
-  const per = leggiPeriodo(await searchParams, 'stagione', await meseStagione());
+  const per = leggiPeriodo(await searchParams, await periodoPredefinito(), await meseStagione());
   const { supabase, staff } = await staffCorrente();
   if (staff.ruolo === 'insegnante') redirect('/gestione');
   const p = staff.palestra_id;

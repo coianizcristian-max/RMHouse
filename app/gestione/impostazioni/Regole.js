@@ -25,6 +25,7 @@ export default function Regole({ palestra }) {
     mese: palestra.mese_inizio_stagione || 9,
     fine: palestra.mese_fine_stagione || 7,
     annuale: palestra.mese_inizio_annuale || 10,
+    periodo: palestra.periodo_conti === 'anno' ? 'anno' : 'stagione',
     giorni: palestra.giorni_prenotabili ?? 21,
     preavviso: palestra.preavviso_ore ?? 2,
     recensione: palestra.google_review_url || '',
@@ -40,6 +41,7 @@ export default function Regole({ palestra }) {
       mese_inizio_stagione: parseInt(f.mese, 10),
       mese_fine_stagione: parseInt(f.fine, 10),
       mese_inizio_annuale: parseInt(f.annuale, 10),
+      periodo_conti: f.periodo,
       giorni_prenotabili: parseInt(f.giorni, 10),
       preavviso_ore: parseInt(f.preavviso, 10),
       google_review_url: f.recensione || null,
@@ -73,6 +75,15 @@ export default function Regole({ palestra }) {
               </select>
               <span className="piccolo muto">Chi entra dopo paga l&apos;annuale ridotto dei mesi persi.</span></div>
           </div>
+          <fieldset className="campo periodo-conti" id="conti">
+            <legend>Fatturato e statistiche: che periodo vedere</legend>
+            <label className="spunta"><input type="radio" name="periodo" value="stagione" checked={f.periodo === 'stagione'} onChange={set('periodo')} />
+              <span>La stagione sportiva <span className="muto">(dal 1° {MESI[f.mese - 1]})</span></span></label>
+            <label className="spunta"><input type="radio" name="periodo" value="anno" checked={f.periodo === 'anno'} onChange={set('periodo')} />
+              <span>L&apos;anno solare <span className="muto">(dal 1° gennaio)</span></span></label>
+            <span className="piccolo muto">Vale per il fatturato in cima al Riepilogo, i Conti e il periodo con cui si aprono le Statistiche
+              (lì con i bottoni si vede comunque anche l&apos;altro). Ricevute mancanti e commercialista restano sull&apos;anno solare.</span>
+          </fieldset>
         </section>
         <section className="pannello">
           <h2>Prove dal sito</h2>
