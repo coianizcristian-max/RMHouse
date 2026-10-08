@@ -25,7 +25,14 @@ export async function settimana({ da, sala, insegnante, mie, sede, corso, giorni
 
   // una chiamata sola per tutta la settimana (query 144); se la funzione manca, le letture una per una
   const filtri = { p_sala: sala || null, p_insegnante: mie === '1' ? staff.id : (insegnante || null), p_sede: sede || null, p_corso: corso || null };
-  const { data: insieme, error: erroreInsieme } = await supabase.rpc('settimana_dati', { p_palestra: staff.palestra_id, p_inizio: inizio, p_fine: fine, ...filtri });
+  // insieme ai momenti dei workshop del periodo (nascosti se si filtra per insegnante o per corso: non sono corsi)
+  const conWorkshop = !(mie === '1' || insegnante || corso);
+  const [{ data: insieme, error: erroreInsieme }, { data: wsPeriodo }] = await Promise.all([
+    supabase.rpc('settimana_dati', { p_palestra: staff.palestra_id, p_inizio: inizio, p_fine: fine, ...filtri }),
+    conWorkshop ? supabase.rpc('workshop_periodo', { p_palestra: staff.palestra_id, p_dal: inizio, p_al: fine }) : Promise.resolve({ data: [] }),
+  ]);
+  const workshop = (Array.isArray(wsPeriodo) ? wsPeriodo : [])
+    .filter((m) => (!sala || m.sala_id === sala) && (!sede || !m.sede_id || m.sede_id === sede));
   let tutte, sale, insegnanti, corsi, note, sedi, chiusure, facce, coda;
   if (!erroreInsieme && insieme) {
     ({ lezioni: tutte, sale, insegnanti, corsi, note, sedi, chiusure, facce, coda } = insieme);
@@ -60,7 +67,7 @@ export async function settimana({ da, sala, insegnante, mie, sede, corso, giorni
   return {
     staff, inizio, fine, giorni: n,
     lezioni: lezioni || [], sale: sale || [], insegnanti: insegnanti || [],
-    corsi: corsi || [], note: note || [], facce: facce || [], coda: coda || [], sedi: sedi || [], giorniChiusi,
+    corsi: corsi || [], note: note || [], facce: facce || [], coda: coda || [], sedi: sedi || [], giorniChiusi, workshop,
   };
 }
 

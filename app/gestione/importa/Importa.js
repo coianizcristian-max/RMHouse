@@ -20,7 +20,7 @@ const CAMPI = [
   { k: 'data_inizio', etichetta: 'Inizio abbonamento', parole: ['inizio', 'datainizio'] },
 ];
 
-export default function Importa({ corsi, tipi, palestraId, vista }) {
+export default function Importa({ corsi, tipi, palestraId, vista, meseStagione = 9 }) {
   const [fonte, setFonte] = useState(vista === 'esporta' ? 'esporta' : vista === 'altro' ? 'altro' : 'app');
   const [dati, setDati] = useState(null);      // { intestazioni, righe }
   const [mappa, setMappa] = useState({});
@@ -84,7 +84,7 @@ export default function Importa({ corsi, tipi, palestraId, vista }) {
         ))}
       </div>
 
-      {fonte === 'esporta' ? <Esporta palestraId={palestraId} /> : fonte === 'app' ? <AppPalestre palestraId={palestraId} /> : (
+      {fonte === 'esporta' ? <Esporta palestraId={palestraId} /> : fonte === 'app' ? <AppPalestre palestraId={palestraId} meseStagione={meseStagione} /> : (
       <>
 
       {errore && <div className="errore" role="alert">{errore}</div>}

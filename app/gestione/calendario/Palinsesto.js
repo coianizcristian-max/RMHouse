@@ -1,5 +1,6 @@
 'use client';
 import { useState, useRef, useEffect } from 'react';
+import Link from 'next/link';
 import { supabaseBrowser } from '@/lib/supabase/browser';
 import FoglioLezione from './FoglioLezione';
 import AzioniGruppo from './AzioniGruppo';
@@ -31,7 +32,7 @@ const IconaProva = () => (
 // bordo e banda nel colore del corso con l'orario, nome del corso, insegnante e sala con l'icona, i cerchietti dei prenotati
 // (o "Nessun prenotato"), i numeri (verde = prenotati, blu = posti liberi), il "+" per aggiungere qualcuno, la barra di riempimento
 // e in basso il cerchietto per selezionare più lezioni insieme (insegnante, sala, posti, prenotazioni, nota, annulla).
-export default function Palinsesto({ giorniVisti = 7, inizio, lezioni, corsi = [], note = [], facce = [], coda = [], sale = [], insegnanti = [], giorniChiusi = {}, palestraId, gestione = true }) {
+export default function Palinsesto({ giorniVisti = 7, inizio, lezioni, corsi = [], note = [], facce = [], coda = [], sale = [], insegnanti = [], giorniChiusi = {}, palestraId, gestione = true, workshop = [] }) {
   const [aggiorno, setAggiorno] = useState(false); // mentre la pagina si ricarica dopo un'azione di gruppo
   const [scelta, setScelta] = useState(null);
   const [finestraCorso, setFinestraCorso] = useState(null);   // { corsoId, nome, scheda }: la finestra del corso sopra il palinsesto
@@ -71,7 +72,108 @@ export default function Palinsesto({ giorniVisti = 7, inizio, lezioni, corsi = [
   const nomeGiorno = (g) => GIORNI[(new Date(g + 'T12:00:00Z').getUTCDay() + 6) % 7];
   // computer, 3, 5 o 7 giorni: un giorno senza lezioni (di solito la domenica) diventa una colonna stretta che si intravede,
   // così gli altri giorni hanno più spazio; se c'è anche una sola lezione torna larga come le altre
-  const vuoti = giorni.map((g) => !lezioni.some((l) => l.data === g) && !note.some((n) => n.data === g));
+  const vuoti = giorni.map((g) => !lezioni.some((l) => l.data === g) && !note.some((n) => n.data === g) && !workshop.some((w) => w.data === g));
+  // la scheda di una lezione (colore del corso, insegnante, sala, prenotati, posti, selezione)
+  const cartaLezione = (l) => {
+    const c = colore(l.corso_id);
+    const corso = corsoDi(l.corso_id);
+    const pieno = l.capienza ? Math.min(100, Math.round(((l.iscritti + l.prove) / l.capienza) * 100)) : 0;
+    const annullata = l.stato === 'annullata';
+    const nonVisibile = corso && (corso.visibilita !== 'pubblico' || corso.attivo === false);
+    const posti = l.capienza ? Math.max(l.capienza - l.iscritti - l.prove, 0) : null;
+    const fl = facceDi(l.lezione_id);
+    const altri = fl.slice(MAX_FACCE);
+    const scelto = selezione.includes(l.lezione_id);
+    const etichetta = annullata ? ['Lezione annullata', 'grigia']
+      : l.prenotabile === false ? ['Corso non prenotabile', '']
+      : nonVisibile ? ['Corso non visibile', ''] : null;
+    return (
+      <div key={l.lezione_id} role="button" tabIndex={0}
+           className={`pal-carta${annullata ? ' annullata' : ''}${scelto ? ' selezionata' : ''}`}
+           style={{ borderColor: c }}
+           onClick={() => apri(l)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); apri(l); } }}
+           aria-label={`${l.corso_nome}, ${ora(l.inizio)}`}>
+        <div className="pal-banda" style={{ background: c, color: testoSu(c) }}>
+          {ora(l.inizio)} - {ora(l.fine)}
+          {l.note && !annullata && <span className="pal-angolo" data-tip={l.note} tabIndex={0} aria-label={`Nota: ${l.note}`} />}
+        </div>
+        <div className="pal-corpo">
+          <div className="pal-nome">{l.corso_nome}</div>
+          <div className="pal-riga" title={nomeInsegnante(l) || undefined}><IconaPersona />{nomeInsegnante(l) || 'insegnante da assegnare'}</div>
+          <div className="pal-riga" title={l.sala_nome || undefined}><IconaSala />{l.sala_nome || 'sala da assegnare'}</div>
+
+          <div className="pal-piede">
+            {fl.length === 0
+              ? <span className="pal-nessuno">{l.presenti > 0 ? `${l.presenti} presenti` : 'Nessun prenotato'}</span>
+              : (
+                <span className="pal-facce-box" tabIndex={0} data-tip={elencoNomi(fl, `${fl.length} ${fl.length === 1 ? 'Prenotato' : 'Prenotati'}:`)}>
+                <span className="pal-facce">
+                  {fl.slice(0, MAX_FACCE).map((f) => (
+                    f.foto_url
+                      ? <img key={f.allievo_id} src={f.foto_url} alt="" className={f.tipo === 'prova' ? 'pal-faccia prova' : 'pal-faccia'} />
+                      : <span key={f.allievo_id} className={f.tipo === 'prova' ? 'pal-faccia prova' : 'pal-faccia'}>{iniziali(f)}</span>
+                  ))}
+                  {altri.length > 0 && <span className="pal-altri" aria-label={`e altri ${altri.length}`}>…</span>}
+                </span>
+                </span>
+              )}
+            <span className="pal-numeri" onClick={(e) => { if (e.target.closest('.pal-cerchio')) { e.stopPropagation(); e.target.closest('.pal-cerchio').focus(); } }}>
+              <span className="pal-cerchio verde" tabIndex={0} data-tip={fl.length ? elencoNomi(fl, `${l.iscritti} ${l.iscritti === 1 ? 'Prenotato' : 'Prenotati'}:`) : `${l.iscritti} ${l.iscritti === 1 ? 'Prenotato' : 'Prenotati'}`} aria-label={`${l.iscritti} prenotati`}>{l.iscritti}</span>
+              <span className="pal-cerchio blu" tabIndex={0} data-tip={posti === null ? 'Posti senza limite' : `${posti} ${posti === 1 ? 'Posto disponibile' : 'Posti disponibili'}`} aria-label={posti === null ? 'posti senza limite' : `${posti} posti disponibili`}>{posti === null ? '∞' : posti}</span>
+              {l.prove > 0 && <span className="pal-cerchio rosso" tabIndex={0} data-tip={`${l.prove} in prova`} aria-label={`${l.prove} in prova`}>{l.prove}</span>}
+              {codaDi(l.lezione_id).length > 0 && (
+                <span className="pal-cerchio coda" tabIndex={0}
+                      data-tip={[`${codaDi(l.lezione_id).length} in coda:`, ...codaDi(l.lezione_id).map((c, i) => `${i + 1}. ${`${c.allievi?.nome || ''} ${c.allievi?.cognome || ''}`.trim()}`)].join('\n')}
+                      aria-label={`${codaDi(l.lezione_id).length} in coda`}>{codaDi(l.lezione_id).length}</span>
+              )}
+              {gestione && !annullata && (
+                <button type="button" className="pal-piu" data-tip="Aggiungi qualcuno alla lezione" aria-label="Aggiungi qualcuno alla lezione"
+                        onClick={(e) => aggiungi(e, l)}>+</button>
+              )}
+            </span>
+          </div>
+
+          <div className="pal-fondo">
+            {etichetta
+              ? <div className="pal-centro"><span className={`pal-etichetta ${etichetta[1]}`} title={etichetta[0]}>{etichetta[0]}</span></div>
+              : <div className={`pal-barra${posti === 0 ? ' piena' : ''}`}><span style={{ width: `${pieno}%` }} /></div>}
+          </div>
+        </div>
+        {gestione && (
+          <button type="button" className={scelto ? 'pal-check scelto' : 'pal-check'} aria-pressed={scelto}
+                  aria-label={scelto ? 'Togli dalla selezione' : 'Seleziona questa lezione'}
+                  onClick={(e) => seleziona(e, l.lezione_id)} onKeyDown={(e) => e.stopPropagation()}>
+            {scelto && <svg viewBox="0 0 24 24" width="12" height="12" aria-hidden="true" fill="none" stroke="#fff" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12l5 5 9-10" /></svg>}
+          </button>
+        )}
+      </div>
+    );
+  };
+  // il workshop nel calendario: una scheda nera fra le lezioni, all'ora giusta; porta all'appello del workshop
+  const cartaWorkshop = (w) => {
+    const posti = w.posti != null ? Math.max(w.posti - w.iscritti, 0) : null;
+    const corpo = (
+      <>
+        <div className="pal-banda pal-ws-banda">{ora(w.inizio)} - {ora(w.fine)}<span className="pal-ws-tag">Workshop</span></div>
+        <div className="pal-corpo">
+          <div className="pal-nome">{w.titolo}{w.momenti > 1 ? ` · ${w.momento}` : ''}</div>
+          <div className="pal-riga" title={w.insegnante || undefined}><IconaPersona />{w.insegnante || 'insegnante esterno'}</div>
+          <div className="pal-riga" title={w.sala || undefined}><IconaSala />{w.sala || 'sala da assegnare'}</div>
+          <div className="pal-piede">
+            <span className="pal-nessuno">{w.presenti > 0 ? `${w.presenti} presenti` : gestione ? 'Apri per l\'appello' : 'Workshop'}</span>
+            <span className="pal-numeri">
+              <span className="pal-cerchio verde" data-tip={`${w.iscritti} iscritti`} aria-label={`${w.iscritti} iscritti`}>{w.iscritti}</span>
+              <span className="pal-cerchio blu" data-tip={posti === null ? 'Posti senza limite' : `${posti} posti liberi`} aria-label={posti === null ? 'posti senza limite' : `${posti} posti liberi`}>{posti === null ? '∞' : posti}</span>
+            </span>
+          </div>
+        </div>
+      </>
+    );
+    return gestione
+      ? <Link prefetch={false} key={`w${w.momento_id}`} className="pal-carta pal-ws" href={`/gestione/workshop/${w.workshop_id}?scheda=appello&momento=${w.momento_id}`}
+              aria-label={`Workshop ${w.titolo}, ${ora(w.inizio)}`}>{corpo}</Link>
+      : <div key={`w${w.momento_id}`} className="pal-carta pal-ws">{corpo}</div>;
+  };
   const colonne = giorni.length >= 3 && vuoti.some(Boolean) && !vuoti.every(Boolean)
     ? vuoti.map((v) => (v ? 'minmax(92px, .42fr)' : 'minmax(0, 1fr)')).join(' ') : null;
 
@@ -150,11 +252,12 @@ export default function Palinsesto({ giorniVisti = 7, inizio, lezioni, corsi = [
              style={colonne ? { '--pal-colonne': colonne } : undefined}>
           {giorni.map((g) => {
             const delGiorno = lezioni.filter((l) => l.data === g);
+            const wsGiorno = workshop.filter((w) => w.data === g);
             const prove = delGiorno.reduce((s, l) => s + (l.prove || 0), 0);
             const nNote = noteDi(g).length;
             const dataBreve = `${Number(g.slice(8, 10))}/${Number(g.slice(5, 7))}`;
             return (
-              <section key={g} className={`colonna-giorno${delGiorno.length === 0 ? ' vuota' : ''}`}>
+              <section key={g} className={`colonna-giorno${delGiorno.length === 0 && wsGiorno.length === 0 ? ' vuota' : ''}`}>
                 <header className={g === oggi ? 'pal-testa oggi' : 'pal-testa'}>
                   <span className="pal-giorno">
                     <span className="pal-nome-giorno">{nomeGiorno(g)}</span>
@@ -184,84 +287,13 @@ export default function Palinsesto({ giorniVisti = 7, inizio, lezioni, corsi = [
                 ))}
 
                 {giorniChiusi[g] && <div className="pal-chiuso">Chiuso · {giorniChiusi[g]}</div>}
-                {delGiorno.length === 0 && !giorniChiusi[g] && <div className="pal-vuoto">Nessuna lezione</div>}
+                {delGiorno.length === 0 && wsGiorno.length === 0 && !giorniChiusi[g] && <div className="pal-vuoto">Nessuna lezione</div>}
 
                 <div className="pal-carte">
-                {delGiorno.map((l) => {
-                  const c = colore(l.corso_id);
-                  const corso = corsoDi(l.corso_id);
-                  const pieno = l.capienza ? Math.min(100, Math.round(((l.iscritti + l.prove) / l.capienza) * 100)) : 0;
-                  const annullata = l.stato === 'annullata';
-                  const nonVisibile = corso && (corso.visibilita !== 'pubblico' || corso.attivo === false);
-                  const posti = l.capienza ? Math.max(l.capienza - l.iscritti - l.prove, 0) : null;
-                  const fl = facceDi(l.lezione_id);
-                  const altri = fl.slice(MAX_FACCE);
-                  const scelto = selezione.includes(l.lezione_id);
-                  const etichetta = annullata ? ['Lezione annullata', 'grigia']
-                    : l.prenotabile === false ? ['Corso non prenotabile', '']
-                    : nonVisibile ? ['Corso non visibile', ''] : null;
-                  return (
-                    <div key={l.lezione_id} role="button" tabIndex={0}
-                         className={`pal-carta${annullata ? ' annullata' : ''}${scelto ? ' selezionata' : ''}`}
-                         style={{ borderColor: c }}
-                         onClick={() => apri(l)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); apri(l); } }}
-                         aria-label={`${l.corso_nome}, ${ora(l.inizio)}`}>
-                      <div className="pal-banda" style={{ background: c, color: testoSu(c) }}>
-                        {ora(l.inizio)} - {ora(l.fine)}
-                        {l.note && !annullata && <span className="pal-angolo" data-tip={l.note} tabIndex={0} aria-label={`Nota: ${l.note}`} />}
-                      </div>
-                      <div className="pal-corpo">
-                        <div className="pal-nome">{l.corso_nome}</div>
-                        <div className="pal-riga" title={nomeInsegnante(l) || undefined}><IconaPersona />{nomeInsegnante(l) || 'insegnante da assegnare'}</div>
-                        <div className="pal-riga" title={l.sala_nome || undefined}><IconaSala />{l.sala_nome || 'sala da assegnare'}</div>
-
-                        <div className="pal-piede">
-                          {fl.length === 0
-                            ? <span className="pal-nessuno">{l.presenti > 0 ? `${l.presenti} presenti` : 'Nessun prenotato'}</span>
-                            : (
-                              <span className="pal-facce-box" tabIndex={0} data-tip={elencoNomi(fl, `${fl.length} ${fl.length === 1 ? 'Prenotato' : 'Prenotati'}:`)}>
-                              <span className="pal-facce">
-                                {fl.slice(0, MAX_FACCE).map((f) => (
-                                  f.foto_url
-                                    ? <img key={f.allievo_id} src={f.foto_url} alt="" className={f.tipo === 'prova' ? 'pal-faccia prova' : 'pal-faccia'} />
-                                    : <span key={f.allievo_id} className={f.tipo === 'prova' ? 'pal-faccia prova' : 'pal-faccia'}>{iniziali(f)}</span>
-                                ))}
-                                {altri.length > 0 && <span className="pal-altri" aria-label={`e altri ${altri.length}`}>…</span>}
-                              </span>
-                              </span>
-                            )}
-                          <span className="pal-numeri" onClick={(e) => { if (e.target.closest('.pal-cerchio')) { e.stopPropagation(); e.target.closest('.pal-cerchio').focus(); } }}>
-                            <span className="pal-cerchio verde" tabIndex={0} data-tip={fl.length ? elencoNomi(fl, `${l.iscritti} ${l.iscritti === 1 ? 'Prenotato' : 'Prenotati'}:`) : `${l.iscritti} ${l.iscritti === 1 ? 'Prenotato' : 'Prenotati'}`} aria-label={`${l.iscritti} prenotati`}>{l.iscritti}</span>
-                            <span className="pal-cerchio blu" tabIndex={0} data-tip={posti === null ? 'Posti senza limite' : `${posti} ${posti === 1 ? 'Posto disponibile' : 'Posti disponibili'}`} aria-label={posti === null ? 'posti senza limite' : `${posti} posti disponibili`}>{posti === null ? '∞' : posti}</span>
-                            {l.prove > 0 && <span className="pal-cerchio rosso" tabIndex={0} data-tip={`${l.prove} in prova`} aria-label={`${l.prove} in prova`}>{l.prove}</span>}
-                            {codaDi(l.lezione_id).length > 0 && (
-                              <span className="pal-cerchio coda" tabIndex={0}
-                                    data-tip={[`${codaDi(l.lezione_id).length} in coda:`, ...codaDi(l.lezione_id).map((c, i) => `${i + 1}. ${`${c.allievi?.nome || ''} ${c.allievi?.cognome || ''}`.trim()}`)].join('\n')}
-                                    aria-label={`${codaDi(l.lezione_id).length} in coda`}>{codaDi(l.lezione_id).length}</span>
-                            )}
-                            {gestione && !annullata && (
-                              <button type="button" className="pal-piu" data-tip="Aggiungi qualcuno alla lezione" aria-label="Aggiungi qualcuno alla lezione"
-                                      onClick={(e) => aggiungi(e, l)}>+</button>
-                            )}
-                          </span>
-                        </div>
-
-                        <div className="pal-fondo">
-                          {etichetta
-                            ? <div className="pal-centro"><span className={`pal-etichetta ${etichetta[1]}`} title={etichetta[0]}>{etichetta[0]}</span></div>
-                            : <div className={`pal-barra${posti === 0 ? ' piena' : ''}`}><span style={{ width: `${pieno}%` }} /></div>}
-                        </div>
-                      </div>
-                      {gestione && (
-                        <button type="button" className={scelto ? 'pal-check scelto' : 'pal-check'} aria-pressed={scelto}
-                                aria-label={scelto ? 'Togli dalla selezione' : 'Seleziona questa lezione'}
-                                onClick={(e) => seleziona(e, l.lezione_id)} onKeyDown={(e) => e.stopPropagation()}>
-                          {scelto && <svg viewBox="0 0 24 24" width="12" height="12" aria-hidden="true" fill="none" stroke="#fff" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12l5 5 9-10" /></svg>}
-                        </button>
-                      )}
-                    </div>
-                  );
-                })}
+                {/* lezioni e workshop insieme, in ordine di orario */}
+                {[...delGiorno.map((l) => ({ l })), ...wsGiorno.map((w) => ({ w }))]
+                  .sort((a, b) => new Date((a.l || a.w).inizio) - new Date((b.l || b.w).inizio))
+                  .map(({ l, w }) => (w ? cartaWorkshop(w) : cartaLezione(l)))}
                 </div>
               </section>
             );

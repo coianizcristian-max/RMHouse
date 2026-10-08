@@ -3,6 +3,9 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabaseBrowser } from '@/lib/supabase/browser';
 import Immagine from '../Immagine';
+import CampoTestoRicco from '../CampoTestoRicco';
+import { Finestra } from '../Gestore';
+import Dettaglio from '../../workshop/Dettaglio';
 import { euro } from '@/lib/formato';
 import { STATI_WORKSHOP } from '@/lib/workshop';
 
@@ -65,6 +68,7 @@ export default function WorkshopForm({ palestraId, workshop = null, momenti = []
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
   const [errore, setErrore] = useState('');
   const [invio, setInvio] = useState(false);
+  const [anteprima, setAnteprima] = useState(false);
   const rifErrore = useRef(null);
   useEffect(() => { if (errore) rifErrore.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }); }, [errore]);
 
@@ -90,6 +94,12 @@ export default function WorkshopForm({ palestraId, workshop = null, momenti = []
   }
   function aggiungiOpzione() {
     setOo((xs) => [...xs, { id: nuovoId(), nome: '', descrizione: '', momenti: mm.length === 1 ? [mm[0].id] : [], attiva: true, prezzi: [scaglioneVuoto()] }]);
+  }
+  // chi viene solo a uno dei giorni: un'opzione "Solo …" per ogni momento che non ce l'ha ancora (i prezzi li scrivi tu)
+  const senzaOpzioneSingola = mm.filter((m) => !(oo || []).some((o) => o.momenti.length === 1 && o.momenti[0] === m.id));
+  function opzioniPerGiorno() {
+    setOo((xs) => [...xs, ...senzaOpzioneSingola.map((m) => ({ id: nuovoId(), nome: `Solo ${m.titolo || 'questo giorno'}`, descrizione: '',
+      momenti: [m.id], attiva: true, prezzi: [scaglioneVuoto()] }))]);
   }
   function togliOpzione(i) {
     const o = oo[i];
@@ -147,8 +157,24 @@ export default function WorkshopForm({ palestraId, workshop = null, momenti = []
     if (onSalvato) onSalvato(data); else router.push(`/gestione/workshop/${data}`);
   }
 
+  // come lo vede il cliente: gli stessi dati del modulo, anche non salvati
+  const wAnteprima = () => ({
+    titolo: f.titolo.trim() || 'Titolo del workshop', insegnante: f.insegnante, sottotitolo: f.sottotitolo, stato: f.stato,
+    luogo: f.luogo || sedi.find((x) => x.id === f.sede_id)?.nome || '', locandina_url: f.locandina_url,
+    descrizione: f.descrizione, info_pratiche: f.info_pratiche, certificato_richiesto: f.certificato_richiesto,
+    quota_cent: f.quota_esterni ? quotaCent : 0,
+    momenti: mm.filter((m) => m.data && m.dalle).map((m) => ({ id: m.id, titolo: m.titolo || 'Workshop', inizio: isoDa(m.data, m.dalle),
+      fine: m.alle ? isoDa(m.data, m.alle) : null, posti: m.posti === '' ? null : Number(m.posti), occupati: 0,
+      sala: sale.find((x) => x.id === m.sala_id)?.nome || null })),
+    opzioni: (oo || []).filter((o) => o.attiva).map((o) => ({ id: o.id, nome: o.nome || 'Opzione', descrizione: o.descrizione, momenti: o.momenti,
+      prezzi: o.prezzi.filter((x) => x.allievi !== '' && Number.isFinite(centDa(x.allievi)))
+        .map((x) => ({ fino_al: x.fino_al || null, allievi: centDa(x.allievi), esterni: Number.isFinite(centDa(x.esterni)) ? centDa(x.esterni) : null })),
+      liberi: null })),
+  });
+
   if (!oo) return null;
   return (
+    <>
     <form onSubmit={salva} className="wf">
       <div className="wf-griglia">
         <div className="wf-principale">
@@ -162,9 +188,11 @@ export default function WorkshopForm({ palestraId, workshop = null, momenti = []
               <div className="campo wf-6"><label htmlFor="wf-sotto">Sottotitolo <span className="eti-info">· una riga sotto il titolo, es. "Livello intermedio · dai 16 anni"</span></label>
                 <input id="wf-sotto" value={f.sottotitolo} onChange={set('sottotitolo')} /></div>
               <div className="campo wf-6"><label htmlFor="wf-desc">Descrizione per i clienti</label>
-                <textarea id="wf-desc" rows={4} value={f.descrizione} onChange={set('descrizione')} placeholder="Cosa si fa, per chi è, chi è l'insegnante…" /></div>
-              <div className="campo wf-6"><label htmlFor="wf-info">Cosa sapere <span className="eti-info">· va nell'email di conferma e nel promemoria</span></label>
-                <textarea id="wf-info" rows={2} value={f.info_pratiche} onChange={set('info_pratiche')} placeholder="Cosa portare, abbigliamento, quanto arrivare prima…" /></div>
+                <CampoTestoRicco id="wf-desc" rows={6} value={f.descrizione} onChange={(v) => setF((x) => ({ ...x, descrizione: v }))}
+                                 placeholder="Cosa si fa, per chi è, chi è l'insegnante…" /></div>
+              <div className="campo wf-6"><label htmlFor="wf-info">Cosa sapere <span className="eti-info">· va anche nell'email di conferma e nel promemoria (lì senza formattazione)</span></label>
+                <CampoTestoRicco id="wf-info" rows={3} value={f.info_pratiche} onChange={(v) => setF((x) => ({ ...x, info_pratiche: v }))}
+                                 placeholder="Cosa portare, abbigliamento, quanto arrivare prima…" /></div>
               {sedi.length > 1 && (
                 <div className="campo wf-3"><label htmlFor="wf-sede">Sede</label>
                   <select id="wf-sede" value={f.sede_id} onChange={set('sede_id')}>
@@ -249,7 +277,15 @@ export default function WorkshopForm({ palestraId, workshop = null, momenti = []
                 {iscrittiPerOpzione[o.id] > 0 && <p className="piccolo muto" style={{ margin: '6px 0 0' }}>{iscrittiPerOpzione[o.id]} iscritti con questa opzione: chi è già iscritto tiene il suo prezzo.</p>}
               </div>
             ))}
-            <button type="button" className="btn btn-piccolo" onClick={aggiungiOpzione}>+ Aggiungi un'opzione</button>
+            <div className="azioni">
+              <button type="button" className="btn btn-piccolo" onClick={aggiungiOpzione}>+ Aggiungi un'opzione</button>
+              {mm.length > 1 && senzaOpzioneSingola.length > 0 && (
+                <button type="button" className="btn btn-piccolo" onClick={opzioniPerGiorno}
+                        title="Per chi viene solo a uno dei giorni: crea «Solo …» per ogni momento, poi scrivi i prezzi">
+                  + Un'opzione per ogni giorno ({senzaOpzioneSingola.length})
+                </button>
+              )}
+            </div>
           </section>
         </div>
 
@@ -309,8 +345,28 @@ export default function WorkshopForm({ palestraId, workshop = null, momenti = []
       {errore && <div className="errore" role="alert" ref={rifErrore}>{errore}</div>}
       <div className="cf-barra-salva">
         <button className="btn btn-primario" disabled={invio || (!f.online && !f.in_segreteria)}>{invio ? 'Salvo…' : workshop ? 'Salva il workshop' : 'Crea il workshop'}</button>
+        <button type="button" className="btn" onClick={() => setAnteprima(true)}
+                title="Come lo vedono i clienti sul telefono">Anteprima<span className="ws-solo-pc"> sul telefono</span></button>
         <button type="button" className="btn" onClick={() => (onAnnulla ? onAnnulla() : router.back())}>Annulla</button>
       </div>
     </form>
+    {anteprima && (
+      <Finestra titolo="Anteprima: come lo vedono i clienti" sotto="Nell'app e dal link pubblico, su un telefono. Non è ancora salvato: chiudi e salva quando va bene."
+                chiudi={() => setAnteprima(false)}>
+        <div className="at-telefono">
+          <div className="at-stato" aria-hidden="true"><span>9:41</span><span className="at-notch" /><span>●●● 5G</span></div>
+          <div className="at-app" aria-hidden="true"><strong>Ritmo Metropolitano</strong><span>☰</span></div>
+          <div className="at-schermo">
+            <Dettaglio w={wAnteprima()} />
+            <div className="at-iscriviti">
+              <strong>Iscriviti</strong>
+              <span className="piccolo muto">Qui il cliente sceglie chi iscrivere e l&apos;opzione, vede il totale e paga.</span>
+              <span className="btn btn-primario at-finto">Iscriviti</span>
+            </div>
+          </div>
+        </div>
+      </Finestra>
+    )}
+    </>
   );
 }

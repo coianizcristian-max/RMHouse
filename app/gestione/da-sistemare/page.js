@@ -23,9 +23,9 @@ export default async function PaginaDaSistemare() {
   const p = staff.palestra_id;
   const oggi = new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Rome' });
 
-  const [anomalie, { data: ultima }, senzaTipo, { data: tipi }, { data: alias }, { data: slot }, orari] = await Promise.all([
+  const [anomalie, { data: ultima }, senzaTipo, { data: tipi }, { data: alias }, { data: slot }, orari, { data: venduti }] = await Promise.all([
     tutte(() => supabase.from('anomalie_import')
-      .select('id, chiave, categoria, gravita, titolo, dettaglio, link, risolta, risolta_at, nota, chiusa_sola, allievo_id, aggiornata_at, allievi ( nome, cognome )')
+      .select('id, chiave, categoria, gravita, titolo, dettaglio, link, risolta, risolta_at, nota, chiusa_sola, allievo_id, aggiornata_at, dati, allievi ( nome, cognome )')
       .eq('palestra_id', p).order('categoria').order('titolo').order('id')),
     supabase.from('importazioni').select('id, iniziata_at, finita_at, ricalcolata_at, riepilogo')
       .eq('palestra_id', p).order('iniziata_at', { ascending: false }).limit(1),
@@ -38,6 +38,8 @@ export default async function PaginaDaSistemare() {
     tutte(() => supabase.from('orari').select('id, giorno_settimana, ora_inizio, corsi ( nome ), sale ( nome )')
       .eq('palestra_id', p).eq('attivo', true).or(`valido_al.is.null,valido_al.gte.${oggi}`)
       .order('giorno_settimana').order('ora_inizio').order('id')),
+    // prodotti venduti in APP Palestre in questa stagione che in RMHouse non hanno un abbonamento (dal file delle vendite)
+    supabase.rpc('vendite_da_abbinare', { p_palestra: p }),
   ]);
 
   // abbonamenti di APP Palestre in corso che non corrispondono a niente del listino
@@ -56,7 +58,15 @@ export default async function PaginaDaSistemare() {
   const daAbbinare = nomi.map((nome) => {
     const t = (prima || []).find((x) => x.abbonamento.trim() === nome)?.tipi_abbonamento;
     return { nome, persone: perNome.get(nome).size, prima: t ? `${t.nome}${t.archiviato ? ' (archiviato)' : ''}` : null };
-  }).sort((a, b) => b.persone - a.persone || a.nome.localeCompare(b.nome));
+  });
+  // le vendite della stagione: si aggiungono (o completano) quelli in corso
+  const chiave = (t) => String(t || '').replace(/\s+/g, ' ').trim().toLowerCase();
+  for (const v of venduti || []) {
+    const c = daAbbinare.find((x) => chiave(x.nome) === chiave(v.nome));
+    if (c) Object.assign(c, { vendite: v.vendite, prezzo: v.prezzo_cent, ultima: v.ultima });
+    else daAbbinare.push({ nome: v.nome, persone: 0, prima: null, vendite: v.vendite, acquirenti: v.persone, prezzo: v.prezzo_cent, ultima: v.ultima });
+  }
+  daAbbinare.sort((a, b) => b.persone - a.persone || (b.vendite || 0) - (a.vendite || 0) || a.nome.localeCompare(b.nome));
 
   return (
     <>

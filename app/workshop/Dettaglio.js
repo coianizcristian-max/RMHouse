@@ -1,5 +1,6 @@
 import { euro } from '@/lib/formato';
 import { giornoOra, testoScaglioni } from '@/lib/workshop';
+import { TestoRicco } from '@/lib/testoRicco';
 
 // La presentazione di un workshop (app e pagina pubblica): locandina, titolo, insegnante, quando e dove, descrizione,
 // i momenti con i posti e le opzioni con i prezzi. Niente stato: va bene sia sul server sia nel browser.
@@ -24,8 +25,8 @@ export default function Dettaglio({ w, esterno = null, compatta = false }) {
             );
           })}
         </ul>
-        {w.descrizione && <p className="wp-descr">{w.descrizione}</p>}
-        {w.info_pratiche && <div className="wp-info"><strong>Cosa sapere</strong><p>{w.info_pratiche}</p></div>}
+        {w.descrizione && <TestoRicco testo={w.descrizione} className="wp-descr testo-ricco" />}
+        {w.info_pratiche && <div className="wp-info"><strong>Cosa sapere</strong><TestoRicco testo={w.info_pratiche} /></div>}
         <div className="wp-prezzi">
           <h2>Prezzi</h2>
           <ul>

@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation';
 import { staffCorrente } from '@/lib/staff';
 import Importa from './Importa';
+import { meseStagione } from '@/lib/stagione';
 
 export const dynamic = 'force-dynamic';
 
@@ -9,10 +10,11 @@ export default async function PaginaImporta({ searchParams }) {
   const { supabase, staff } = await staffCorrente();
   if (staff.ruolo === 'insegnante') redirect('/gestione');
 
-  const [corsi, tipi] = await Promise.all([
+  const [corsi, tipi, mese] = await Promise.all([
     supabase.from('corsi').select('id, nome').eq('palestra_id', staff.palestra_id).order('nome'),
     supabase.from('tipi_abbonamento').select('id, nome').eq('palestra_id', staff.palestra_id).order('nome'),
+    meseStagione(),
   ]);
 
-  return <Importa corsi={corsi.data || []} tipi={tipi.data || []} palestraId={staff.palestra_id} vista={vista} />;
+  return <Importa corsi={corsi.data || []} tipi={tipi.data || []} palestraId={staff.palestra_id} vista={vista} meseStagione={mese} />;
 }

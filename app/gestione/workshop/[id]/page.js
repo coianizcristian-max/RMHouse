@@ -8,7 +8,7 @@ export const metadata = { title: 'Workshop' };
 // Scheda di un workshop: iscritti (incassi, presenze, annullamenti), conti e modifica
 export default async function PaginaSchedaWorkshop({ params, searchParams }) {
   const { id } = await params;
-  const { scheda } = (await searchParams) || {};
+  const { scheda, momento } = (await searchParams) || {};
   const { supabase, staff } = await staffCorrente();
   if (staff.ruolo === 'insegnante') redirect('/gestione');
   const p = staff.palestra_id;
@@ -27,6 +27,6 @@ export default async function PaginaSchedaWorkshop({ params, searchParams }) {
   if (!w) notFound();
   return (
     <SchedaWorkshop palestraId={p} workshop={w} momenti={momenti || []} opzioni={opzioni || []} iscrizioni={iscrizioni || []}
-                    sedi={sedi || []} sale={sale || []} quotaCent={pal?.quota_iscrizione_cent || 0} schedaIniziale={scheda === 'modifica' ? 'modifica' : 'iscritti'} />
+                    sedi={sedi || []} sale={sale || []} quotaCent={pal?.quota_iscrizione_cent || 0} schedaIniziale={['modifica', 'appello', 'prezzi'].includes(scheda) ? scheda : 'iscritti'} momentoIniziale={momento || null} />
   );
 }

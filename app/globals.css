@@ -988,6 +988,14 @@ a.tessera:hover, .scheda-corso:hover {
 .zona-foto .zona-testo { display: grid; gap: 2px; flex: 1; min-width: 0; }
 .zona-foto .zona-testo strong { font-size: 15px; color: var(--nero); }
 .zona-foto .segnaposto svg { stroke: var(--testo-2); }
+/* Importa da APP Palestre: sotto ogni riquadro dove si scarica il file */
+.imp-file { display: grid; gap: 6px; align-content: start; min-width: 0; }
+.imp-dove { margin: 0 6px; font-size: 13px; line-height: 1.55; color: var(--testo-2); }
+.imp-dove-et { font-weight: 700; color: var(--nero); }
+.imp-dove i { font-style: normal; font-weight: 700; color: var(--rosso); margin: 0 6px; }
+.imp-passo { white-space: nowrap; }
+.imp-tessere { grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); }
+.imp-tessere .cifra { font-size: 26px; overflow-wrap: anywhere; }
 /* con la foto caricata: foto grande, sotto Cambia / Togli */
 .zona-foto.con-foto { flex-direction: column; align-items: center; gap: 8px; padding: 12px; }
 .foto-grande { display: block; width: 100%; max-width: 420px; aspect-ratio: 4 / 3; object-fit: cover; border-radius: 12px; background: var(--carta); }
@@ -1164,6 +1172,26 @@ a.tessera:hover, .scheda-corso:hover {
 .delta { font-weight: 700; }
 .delta.su { color: var(--ok); }
 .delta.giu { color: var(--rosso-scuro); }
+/* Riepilogo: fatturato di stagione, anno solare e mese (query 148) */
+.fatturato { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); background: var(--bianco); border: 1px solid var(--linea);
+  border-radius: 14px; margin-bottom: 10px; overflow: hidden; }
+.fat-testa { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 10px; padding: 10px 14px 0; }
+.fat-titolo { font-weight: 850; font-size: 15px; color: var(--nero); }
+.fat-voce { display: grid; align-content: start; gap: 1px; padding: 6px 14px 12px; text-decoration: none; color: inherit; min-width: 0; }
+.fat-voce:hover { background: var(--carta); }
+.fat-voce .etichetta { font-size: 12px; color: var(--testo-2); font-weight: 600; }
+.fat-cifra { font-size: 21px; font-weight: 850; font-stretch: 115%; color: var(--nero); line-height: 1.1; }
+.fat-voce .sotto { font-size: 12px; color: var(--testo-2); }
+.fat-principale { grid-column: 1 / -1; }
+.fat-principale .fat-cifra { font-size: 30px; color: var(--rosso); }
+.fat-voce:not(.fat-principale) { border-top: 1px solid var(--linea); padding-top: 10px; }
+.fat-voce:last-child { border-left: 1px solid var(--linea); }
+@media (min-width: 900px) {
+  .fatturato { grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr) minmax(0, 1fr); }
+  .fat-principale { grid-column: auto; }
+  .fat-voce:not(.fat-principale) { border-top: 0; padding-top: 6px; }
+  .fat-voce + .fat-voce { border-left: 1px solid var(--linea); }
+}
 .tessera-rossa .delta, .tessera-nera .delta { color: #fff; }
 
 .cruscotto-3, .cruscotto-2 { display: grid; gap: 14px; margin-bottom: 14px; }
@@ -3532,12 +3560,12 @@ form.periodo-date .btn { flex: none; width: auto; min-height: 36px; padding: 0 1
 
 /* Da sistemare (dopo l'import da APP Palestre) */
 .abbina { margin-bottom: 18px; border-color: var(--attenzione-tenue); background: #fffaf2; }
-.abbina-elenco, .abbina-fatti { list-style: none; margin: 10px 0 0; padding: 0; display: grid; gap: 8px; }
+.abbina-elenco, .abbina-fatti { list-style: none; margin: 10px 0 0; padding: 0; display: grid; gap: 8px; grid-template-columns: minmax(0, 1fr); }
 .abbina-elenco li { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between;
   padding: 10px 12px; border-radius: 12px; background: var(--bianco); border: 1px solid var(--linea); }
 .abbina-nome { display: grid; gap: 2px; min-width: 0; flex: 1 1 260px; }
 .abbina-scelta { display: flex; gap: 8px; flex: 1 1 320px; min-width: 0; }
-.abbina-scelta select { flex: 1; min-width: 0; min-height: 42px; border: 1.5px solid var(--linea); border-radius: 10px; padding: 0 10px; font: inherit; background: var(--bianco); }
+.abbina-scelta select { flex: 1; min-width: 0; width: 100%; min-height: 42px; border: 1.5px solid var(--linea); border-radius: 10px; padding: 0 10px; font: inherit; background: var(--bianco); }
 .abbina-fatti li { display: flex; gap: 10px; align-items: center; justify-content: space-between; }
 .ds-gruppo h2 { font-size: 18px; margin: 18px 0 8px; }
 .ds-gruppo h2 .muto { font-weight: 600; font-size: 15px; }
@@ -4588,3 +4616,79 @@ body:has(.sportello) .bottone-rapide { display: none; }
   .wp-iscrizione, .wa-iscriviti { padding: 14px; }
   .wp-stato-locandina { width: 96px; }
 }
+
+/* ------------------------------------------------------------------
+   Testo con formattazione (descrizione dei workshop): **grassetto**, _corsivo_, ## titolo, elenchi, link
+   ------------------------------------------------------------------ */
+.testo-ricco p { margin: 0 0 8px; }
+.testo-ricco h3 { font-size: 16px; margin: 14px 0 4px; color: var(--nero); }
+.testo-ricco ul, .testo-ricco ol { margin: 0 0 8px; padding-left: 22px; }
+.testo-ricco li { margin: 2px 0; }
+.testo-ricco a { color: var(--rosso); text-decoration: underline; overflow-wrap: anywhere; }
+.testo-ricco > :first-child { margin-top: 0; }
+.testo-ricco > :last-child { margin-bottom: 0; }
+.wp-descr.testo-ricco { white-space: normal; margin: 0 0 10px; }
+.wp-info .testo-ricco { margin-top: 4px; }
+.wp-info .testo-ricco p { white-space: normal; margin: 0 0 6px; }
+.wp-info .testo-ricco > :last-child { margin-bottom: 0; }
+
+/* la barra di formattazione sopra il campo */
+.ctr { display: grid; gap: 5px; }
+.ctr-barra { display: flex; flex-wrap: wrap; gap: 4px; }
+.ctr-bottone { min-height: 32px; padding: 0 10px; border: 1px solid var(--linea); border-radius: 8px; background: var(--bianco);
+  font: inherit; font-size: 13px; color: var(--nero); cursor: pointer; }
+.ctr-bottone:hover { border-color: var(--nero); }
+.ctr-vedi { margin-left: auto; }
+.ctr-vedi.attivo { background: var(--nero); border-color: var(--nero); color: #fff; }
+.ctr-vista { min-height: 96px; padding: 10px 12px; border: 1.5px dashed var(--linea); border-radius: 10px; background: var(--bianco); }
+.ctr-aiuto { margin: 0; font-size: 11.5px; color: var(--testo-2); }
+
+/* Anteprima del workshop su un telefono */
+.at-telefono { width: 390px; max-width: 100%; height: min(760px, calc(96vh - 150px)); min-height: 420px; margin: 0 auto;
+  border: 10px solid #141414; border-radius: 40px; background: var(--bianco); overflow: hidden; display: flex; flex-direction: column;
+  box-shadow: 0 18px 40px rgba(0, 0, 0, .18); }
+.at-stato { flex: none; display: flex; justify-content: space-between; align-items: center; padding: 5px 18px 4px; background: #141414;
+  color: #fff; font-size: 11px; font-weight: 700; }
+.at-notch { width: 90px; height: 14px; border-radius: 0 0 12px 12px; background: #000; }
+.at-app { flex: none; display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; background: var(--bianco);
+  border-bottom: 1px solid var(--linea); font-size: 15px; color: var(--nero); }
+.at-schermo { flex: 1; overflow-y: auto; padding: 14px; }
+.at-schermo .wp { grid-template-columns: 1fr; gap: 14px; }
+.at-schermo .wp-locandina { max-width: 100%; margin: 0 auto; }
+.at-schermo h1 { font-size: 24px; }
+.at-iscriviti { margin-top: 16px; padding: 14px; border: 1.5px solid var(--nero); border-radius: 16px; background: var(--bianco); display: grid; gap: 6px; }
+.at-finto { pointer-events: none; justify-self: start; }
+.ws-solo-pc { display: none; }
+@media (min-width: 900px) { .ws-solo-pc { display: inline; } }
+@media (max-width: 640px) {
+  .at-telefono { border-width: 6px; border-radius: 26px; height: calc(96vh - 170px); }
+}
+
+/* Appello di un workshop (un momento alla volta) */
+.wsa { display: grid; gap: 10px; }
+.wsa .wsa-momenti { margin-bottom: 0; justify-self: start; }
+.wsa-testa { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 12px 14px; background: var(--carta); border-radius: 12px; }
+.wsa-testa > div:first-child { display: grid; gap: 2px; min-width: 0; }
+.wsa-testa strong { color: var(--nero); }
+.wsa-conto { display: flex; align-items: baseline; gap: 4px; white-space: nowrap; }
+.wsa-conto strong { font-size: 28px; font-weight: 850; font-stretch: 115%; color: var(--rosso); }
+.wsa-azioni { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; }
+.wsa-azioni .spunta { margin: 0; }
+.wsa-elenco { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.wsa-elenco li { display: flex; align-items: center; gap: 8px; border: 1px solid var(--linea); border-radius: 12px; background: var(--bianco); padding-right: 10px; }
+.wsa-elenco li.presente { border-color: var(--ok); background: var(--ok-tenue); }
+.wsa-persona { flex: 1; min-width: 0; min-height: 56px; display: flex; align-items: center; gap: 12px; padding: 10px 12px; background: none; border: 0;
+  font: inherit; text-align: left; color: inherit; cursor: pointer; }
+.wsa-spunta { width: 30px; height: 30px; flex: none; border-radius: 50%; border: 2px solid var(--linea); display: grid; place-items: center;
+  font-weight: 900; color: #fff; background: var(--bianco); }
+.wsa-elenco li.presente .wsa-spunta { background: var(--ok); border-color: var(--ok); }
+.wsa-nome { display: grid; gap: 1px; min-width: 0; }
+.wsa-nome strong { color: var(--nero); }
+.wsa-tag { display: flex; flex-wrap: wrap; gap: 4px; justify-content: flex-end; }
+.wsa-paga { border: 0; cursor: pointer; font-family: inherit; }
+
+/* Workshop nel calendario: scheda nera fra le lezioni, porta all'appello */
+.pal-carta.pal-ws { border-color: var(--nero); text-decoration: none; color: inherit; display: block; }
+.pal-ws-banda { background: var(--nero); color: #fff; display: flex; justify-content: space-between; align-items: center; gap: 6px; }
+.pal-ws-tag { font-size: 10px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; background: #fff; color: var(--nero);
+  border-radius: 999px; padding: 1px 7px; }

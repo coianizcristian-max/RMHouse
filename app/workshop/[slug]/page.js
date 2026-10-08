@@ -6,6 +6,7 @@ import { SLUG } from '@/lib/palestra';
 import { stripeAttivo } from '@/lib/stripe';
 import { satispayAttivo } from '@/lib/satispay';
 import Dettaglio from '../Dettaglio';
+import { testoSemplice } from '@/lib/testoRicco';
 import IscrizionePubblica from './IscrizionePubblica';
 
 export const dynamic = 'force-dynamic';
@@ -19,7 +20,7 @@ export async function generateMetadata({ params }) {
   const { slug } = await params;
   const w = await leggi(slug);
   if (!w) return { title: 'Workshop · Ritmo Metropolitano' };
-  const descr = (w.descrizione || w.sottotitolo || '').slice(0, 180) || undefined;
+  const descr = (testoSemplice(w.descrizione) || w.sottotitolo || '').replace(/\s+/g, ' ').slice(0, 180) || undefined;
   return {
     title: `${w.titolo} · Workshop · Ritmo Metropolitano`, description: descr,
     openGraph: { title: w.titolo, description: descr, images: w.locandina_url ? [w.locandina_url] : undefined },

@@ -11,7 +11,12 @@ const CATEGORIE = {
   corsi: 'Corsi e orari',
   pagamenti: 'Pagamenti',
   ricevute: 'Ricevute',
+  listino: 'Listino',
 };
+// le voci che si sistemano con un clic (query 148): il testo del bottone
+const AZIONI = { da_incassare: 'Metti da incassare', prezzo_app: 'Metti il prezzo di APP' };
+const euroT = (c) => `${(Number(c || 0) / 100).toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €`;
+const dataT = (iso) => (iso ? iso.split('-').reverse().join('/') : '');
 const VISTE = [
   ['da_sistemare', 'Da sistemare'],
   ['da_verificare', 'Da verificare'],
@@ -173,9 +178,9 @@ function Abbina({ palestraId, daAbbinare, tipi, alias, ultima, onFatto }) {
       <h2 id="abbina-titolo" style={{ marginTop: 0 }}>Abbonamenti da abbinare</h2>
       {daAbbinare.length > 0 ? (
         <p className="piccolo muto">
-          Questi abbonamenti di APP Palestre sono in corso ma in RMHouse non c'è un abbonamento con lo stesso nome, quindi le iscrizioni
-          non sono state create. Scegli a quale abbonamento di RMHouse corrispondono: le iscrizioni si creano subito.
-          Gli abbonamenti di RMHouse non vengono modificati.
+          Questi abbonamenti di APP Palestre (in corso, o venduti in questa stagione) in RMHouse non hanno un abbonamento con lo stesso
+          nome: per quelli in corso le iscrizioni non sono state create. Scegli a quale abbonamento di RMHouse corrispondono: le iscrizioni
+          si creano subito e i pagamenti e le vendite con quel nome vengono riconosciuti. Gli abbonamenti di RMHouse non vengono modificati.
         </p>
       ) : <p className="piccolo muto">Tutti gli abbonamenti in corso sono abbinati.</p>}
       {errore && <div className="errore" role="alert">{errore}</div>}
@@ -186,7 +191,10 @@ function Abbina({ palestraId, daAbbinare, tipi, alias, ultima, onFatto }) {
               <div className="abbina-nome">
                 <strong>{r.nome}</strong>
                 <span className="piccolo muto">
-                  {r.persone} {r.persone === 1 ? 'persona' : 'persone'} in corso{r.prima ? ` · prima era: ${r.prima}` : ''}
+                  {[r.persone > 0 && `${r.persone} ${r.persone === 1 ? 'persona' : 'persone'} in corso`,
+                    r.vendite > 0 && `${r.vendite} ${r.vendite === 1 ? 'vendita' : 'vendite'} in stagione${r.ultima ? ` (l'ultima il ${dataT(r.ultima)})` : ''}`,
+                    r.prezzo > 0 && `listino APP ${euroT(r.prezzo)}`,
+                    r.prima && `prima era: ${r.prima}`].filter(Boolean).join(' · ')}
                 </span>
               </div>
               <div className="abbina-scelta">
@@ -249,6 +257,16 @@ export default function DaSistemare({ palestraId, anomalie, ultima, daAbbinare, 
     if (error) { mostra('Non riuscito: riprova.'); return; }
     setScelte(new Set()); setNota('');
     mostra(risolta ? (ids.length === 1 ? 'Segnata come fatta' : `${ids.length} segnate come fatte`) : 'Riaperta');
+    router.refresh();
+  }
+
+  async function azione(a) {
+    const tipo = a.dati?.azione;
+    if (tipo === 'prezzo_app' && !confirm(`Mettere nel listino di RMHouse il prezzo di APP Palestre (${euroT(a.dati.prezzo_cent)})?\n` +
+      'Vale per le vendite da adesso in poi; quelle già fatte non cambiano.')) return;
+    const { data, error } = await supabaseBrowser().rpc('risolvi_anomalia_import', { p_id: a.id, p_azione: tipo });
+    if (error) { mostra(error.message?.includes('gia_fatta') ? 'Era già stata fatta.' : 'Non riuscito: riprova.'); router.refresh(); return; }
+    mostra(tipo === 'da_incassare' ? 'Messo da incassare: lo trovi nella scheda e in Incassi → da incassare' : data?.nota || 'Fatto');
     router.refresh();
   }
 
@@ -361,6 +379,9 @@ export default function DaSistemare({ palestraId, anomalie, ultima, daAbbinare, 
                       )}
                       {correggibile(a) && (
                         <button className="link-btn piccolo ds-correggi" onClick={() => correggi([a.id])} title={correggibile(a)}>Correggi</button>
+                      )}
+                      {!a.risolta && AZIONI[a.dati?.azione] && (
+                        <button className="link-btn piccolo ds-correggi" onClick={() => azione(a)}>{AZIONI[a.dati.azione]}</button>
                       )}
                       <button className="link-btn piccolo" onClick={() => segna([a.id], !a.risolta)}>{a.risolta ? 'Riapri' : 'Fatto'}</button>
                     </div>

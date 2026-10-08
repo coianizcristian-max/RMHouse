@@ -24,7 +24,7 @@ export default async function PaginaPalinsesto({ searchParams }) {
           <Legenda />
         </span>
       </Barra>
-      <Palinsesto giorniVisti={d.giorni} inizio={d.inizio} lezioni={d.lezioni} corsi={d.corsi} note={d.note} facce={d.facce} coda={d.coda}
+      <Palinsesto giorniVisti={d.giorni} inizio={d.inizio} lezioni={d.lezioni} corsi={d.corsi} note={d.note} facce={d.facce} coda={d.coda} workshop={d.workshop}
                   sale={d.sale} insegnanti={d.insegnanti} giorniChiusi={d.giorniChiusi}
                   palestraId={d.staff.palestra_id} gestione={d.staff.ruolo !== 'insegnante'} />
     </>

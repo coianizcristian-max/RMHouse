@@ -11,11 +11,13 @@ const METODI = [['contanti', 'Contanti'], ['pos', 'POS / carta'], ['satispay', '
 const ORIGINI = { app: 'dall\'app', pubblico: 'dal link', segreteria: 'in segreteria' };
 const norm = (t) => String(t || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
 
-export default function IscrittiWorkshop({ workshop: w, momenti, opzioni, iscrizioni }) {
+export default function IscrittiWorkshop({ workshop: w, momenti, opzioni, iscrizioni, daIncassare = null }) {
   const router = useRouter();
   const [filtro, setFiltro] = useState('tutti');
-  const [cerca, setCerca] = useState('');
-  const [incasso, setIncasso] = useState(null);    // { id, metodo, ricevuta, email }
+  // dall'appello ("da pagare"): si apre già sulla persona, con l'incasso pronto
+  const [cerca, setCerca] = useState(daIncassare ? `${daIncassare.allievi?.nome || ''} ${daIncassare.allievi?.cognome || ''}`.trim() : '');
+  const [incasso, setIncasso] = useState(daIncassare ? { id: daIncassare.id, metodo: 'contanti', ricevuta: true,
+    inviaEmail: !!daIncassare.allievi?.account?.email, email: daIncassare.allievi?.account?.email || '' } : null);    // { id, metodo, ricevuta, email }
   const [invio, setInvio] = useState('');
   const [errore, setErrore] = useState('');
   const [avviso, setAvviso] = useState('');

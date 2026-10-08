@@ -37,6 +37,39 @@ function Andamento({ punti }) {
   );
 }
 
+const MESI_LUNGHI = ['gennaio', 'febbraio', 'marzo', 'aprile', 'maggio', 'giugno', 'luglio', 'agosto', 'settembre', 'ottobre', 'novembre', 'dicembre'];
+
+// Il fatturato (incassi registrati, come in Conti): stagione in corso, anno solare e mese, ognuno con il confronto
+// allo stesso giorno dell'anno (o del mese) prima. Ogni numero apre le statistiche economiche di quel periodo.
+function Fatturato({ f }) {
+  const inizio = new Date(`${f.inizio_stagione}T12:00:00Z`);
+  const a = inizio.getUTCFullYear();
+  const oggi = new Date();
+  const anno = Number(oggi.toLocaleDateString('it-IT', { year: 'numeric', timeZone: 'Europe/Rome' }));
+  const mese = MESI_LUNGHI[Number(oggi.toLocaleDateString('it-IT', { month: 'numeric', timeZone: 'Europe/Rome' })) - 1];
+  const voci = [
+    { chiave: 'stagione', titolo: `Stagione ${a}/${String(a + 1).slice(2)}`, valore: f.stagione, prima: f.stagione_prima,
+      sotto: `dal 1° ${MESI_LUNGHI[inizio.getUTCMonth()]}`, confronto: ' sulla stagione scorsa' },
+    { chiave: 'anno', titolo: `Anno solare ${anno}`, valore: f.anno, prima: f.anno_prima, sotto: 'dal 1° gennaio', confronto: ` sul ${anno - 1}` },
+    { chiave: 'mese', titolo: mese.charAt(0).toUpperCase() + mese.slice(1), valore: f.mese, prima: f.mese_prima, sotto: 'questo mese', confronto: ' sul mese scorso' },
+  ];
+  return (
+    <section className="fatturato" aria-label="Fatturato">
+      <div className="fat-testa">
+        <span className="fat-titolo">Fatturato</span>
+        <span className="piccolo muto">incassi registrati · allo stesso giorno di prima</span>
+      </div>
+      {voci.map((v, i) => (
+        <LinkVeloce key={v.chiave} className={`fat-voce${i === 0 ? ' fat-principale' : ''}`} href={`/gestione/statistiche/economia?p=${v.chiave}`}>
+          <span className="etichetta">{v.titolo}</span>
+          <span className="fat-cifra">{euro(v.valore)}</span>
+          <span className="sotto">{v.sotto}{v.prima > 0 && <> · <Delta adesso={v.valore} prima={v.prima} suffisso={v.confronto} /></>}</span>
+        </LinkVeloce>
+      ))}
+    </section>
+  );
+}
+
 // Pagina iniziale: numeri, problemi da sistemare, oggi e scadenze, tutto in una schermata
 export default async function Home({ searchParams }) {
   const { scegli } = (await searchParams) || {};
@@ -49,9 +82,9 @@ export default async function Home({ searchParams }) {
   const d = !erroreInsieme && insieme ? {
     k: insieme.k, lezioni: insieme.lezioni, corsi: insieme.corsi, scadenze: insieme.scadenze, rateScadute: insieme.rate_scadute,
     richieste: insieme.richieste, promemoria: insieme.promemoria, staffRighe: insieme.staff, sostituzioni: insieme.sostituzioni,
-    prossime: insieme.prossime, daSistemare: insieme.da_sistemare, daVerificare: insieme.da_verificare,
+    prossime: insieme.prossime, daSistemare: insieme.da_sistemare, daVerificare: insieme.da_verificare, fatturato: insieme.fatturato,
   } : await caricaSeparato(supabase, staff, p, gestione);
-  const { k, lezioni, corsi, scadenze, rateScadute, richieste, promemoria, staffRighe, sostituzioni, prossime, daSistemare, daVerificare } = d;
+  const { k, lezioni, corsi, scadenze, rateScadute, richieste, promemoria, staffRighe, sostituzioni, prossime, daSistemare, daVerificare, fatturato } = d;
 
   const colore = (id) => corsi?.find((c) => c.id === id)?.colore || 'var(--rosso)';
   const elencoStaff = (staffRighe || []).map((s) => ({ id: s.id, nome: `${s.nome} ${s.cognome || ''}`.trim() }));
@@ -111,6 +144,8 @@ export default async function Home({ searchParams }) {
       </div>
 
       {gestione && <CercaVeloce palestraId={p} key={scegli || 'cerca'} modoIniziale={scegli === 'incassa' ? 'incassa' : 'scheda'} />}
+
+      {gestione && fatturato && <Fatturato f={fatturato} />}
 
       {gestione && k && (
         <div className="kpi">

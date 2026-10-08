@@ -7,12 +7,14 @@ import { euro } from '@/lib/formato';
 import { STATI_WORKSHOP, periodo, giornoOra, contiWorkshop, postiMomenti, testoScaglioni } from '@/lib/workshop';
 import WorkshopForm from '../WorkshopForm';
 import IscrittiWorkshop from './IscrittiWorkshop';
+import AppelloWorkshop from './AppelloWorkshop';
 
 // La scheda di un workshop: in alto locandina, quando, stato e i numeri (posti per momento, incassi, compenso);
 // sotto due schede: gli iscritti e la modifica.
-export default function SchedaWorkshop({ palestraId, workshop: w, momenti, opzioni, iscrizioni, sedi, sale, quotaCent, schedaIniziale = 'iscritti' }) {
+export default function SchedaWorkshop({ palestraId, workshop: w, momenti, opzioni, iscrizioni, sedi, sale, quotaCent, schedaIniziale = 'iscritti', momentoIniziale = null }) {
   const router = useRouter();
   const [scheda, setScheda] = useState(schedaIniziale);
+  const [daIncassare, setDaIncassare] = useState(null);   // dall'appello: "da pagare" apre gli iscritti con l'incasso pronto
   const [copiato, setCopiato] = useState(false);
   const [errore, setErrore] = useState('');
   const attive = iscrizioni.filter((i) => i.stato === 'iscritto');
@@ -89,13 +91,19 @@ export default function SchedaWorkshop({ palestraId, workshop: w, momenti, opzio
       </div>
 
       <div className="schede-sezione" role="tablist">
-        <button type="button" role="tab" aria-selected={scheda === 'iscritti'} onClick={() => setScheda('iscritti')}>Iscritti <span className="conta-mini">{attive.length}</span></button>
+        <button type="button" role="tab" aria-selected={scheda === 'iscritti'} onClick={() => { setDaIncassare(null); setScheda('iscritti'); }}>Iscritti <span className="conta-mini">{attive.length}</span></button>
+        <button type="button" role="tab" aria-selected={scheda === 'appello'} onClick={() => setScheda('appello')}>Appello</button>
         <button type="button" role="tab" aria-selected={scheda === 'prezzi'} onClick={() => setScheda('prezzi')}>Opzioni e prezzi</button>
         <button type="button" role="tab" aria-selected={scheda === 'modifica'} onClick={() => setScheda('modifica')}>Modifica</button>
       </div>
 
       {scheda === 'iscritti' && (
-        <IscrittiWorkshop workshop={w} momenti={momenti} opzioni={opzioni} iscrizioni={iscrizioni} />
+        <IscrittiWorkshop key={daIncassare?.id || 'tutti'} workshop={w} momenti={momenti} opzioni={opzioni} iscrizioni={iscrizioni} daIncassare={daIncassare} />
+      )}
+
+      {scheda === 'appello' && (
+        <AppelloWorkshop workshop={w} momenti={momenti} opzioni={opzioni} iscrizioni={iscrizioni} momentoIniziale={momentoIniziale}
+                         onIncassa={(i) => { setDaIncassare(i); setScheda('iscritti'); }} />
       )}
 
       {scheda === 'prezzi' && (

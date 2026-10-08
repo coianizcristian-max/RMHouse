@@ -10,8 +10,13 @@ import { testoSu } from '@/lib/colori';
 const GIORNI = ['Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab', 'Dom'];
 const MINUTI = (iso) => { const d = new Date(iso); return d.getHours() * 60 + d.getMinutes(); };
 
-export default function Settimana({ inizio, lezioni, corsi = [], palestraId, gestione = true }) {
+export default function Settimana({ inizio, lezioni: soloLezioni, corsi = [], palestraId, gestione = true, workshop = [] }) {
   const router = useRouter();
+  // i momenti dei workshop entrano nella griglia come le lezioni (neri; toccandoli si apre l'appello del workshop)
+  const lezioni = [...soloLezioni, ...workshop.map((w) => ({
+    lezione_id: `w${w.momento_id}`, ws: w, data: w.data, inizio: w.inizio, fine: w.fine, stato: 'programmata',
+    corso_nome: `Workshop · ${w.titolo}${w.momenti > 1 ? ` · ${w.momento}` : ''}`, sala_nome: w.sala, iscritti: w.iscritti, prove: 0, capienza: w.posti,
+  }))];
   const [scelta, setScelta] = useState(null);
   const [giorno, setGiorno] = useState(null);        // pannello del giorno
   const [dati, setDati] = useState(null);
@@ -109,6 +114,7 @@ export default function Settimana({ inizio, lezioni, corsi = [], palestraId, ges
   const proveGiorno = (g) => lezioni.filter((l) => l.data === g).reduce((s, l) => s + (l.prove || 0), 0);
 
   const stile = (l) => {
+    if (l.ws) return { background: 'var(--nero)', color: '#fff', border: '1px solid var(--nero)' };
     const c = coloreCorso(l.corso_id);
     if (l.stato === 'annullata') {
       return { background: 'repeating-linear-gradient(45deg,var(--carta),var(--carta)6px,#fff 6px,#fff 12px)',
@@ -165,7 +171,11 @@ export default function Settimana({ inizio, lezioni, corsi = [], palestraId, ges
                 const h = Math.max(y(MINUTI(l.fine)) - top, 34);
                 const k = corsie[l.lezione_id] || { i: 0, n: 1 };
                 return (
-                  <button key={l.lezione_id} type="button" onClick={() => { setScelta(l); setDaOggi(false); setTavolozza(false); }}
+                  <button key={l.lezione_id} type="button"
+                          onClick={() => {
+                            if (l.ws) { if (gestione) router.push(`/gestione/workshop/${l.ws.workshop_id}?scheda=appello&momento=${l.ws.momento_id}`); return; }
+                            setScelta(l); setDaOggi(false); setTavolozza(false);
+                          }}
                           title={`${ora(l.inizio)} ${l.corso_nome} · ${l.sala_nome || ''} · ${l.iscritti}${l.capienza ? `/${l.capienza}` : ''}`}
                           style={{
                             position: 'absolute', top, height: h - 2,
