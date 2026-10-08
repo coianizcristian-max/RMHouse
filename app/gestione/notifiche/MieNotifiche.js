@@ -15,6 +15,7 @@ const TIPI = [
   ['prova', 'Nuova prova prenotata', 'Chi, quale corso e quando. Gli insegnanti la ricevono solo per le proprie lezioni.', ['admin', 'segreteria', 'insegnante']],
   ['affitto', 'Nuova richiesta di affitto', 'Una richiesta di sala o festa arrivata dal sito, da confermare.', ['admin', 'segreteria']],
   ['certificato', 'Certificato da approvare', 'Un cliente ha caricato il certificato.', ['admin', 'segreteria']],
+  ['workshop', 'Iscrizioni ai workshop', 'Qualcuno si iscrive a un workshop dall\'app o dal link pubblico.', ['admin', 'segreteria']],
   ['pagamento', 'Pagamento online ricevuto', 'Quando qualcuno paga con carta (se i pagamenti online sono attivi).', ['admin', 'segreteria']],
   ['compito', 'Cose da fare assegnate a te', 'Quando qualcuno ti assegna una cosa da fare (a te o al tuo gruppo).', ['admin', 'segreteria', 'insegnante']],
   ['lezione', 'Le mie lezioni', 'Una tua lezione è stata annullata, o te ne è stata assegnata una.', ['admin', 'segreteria', 'insegnante']],

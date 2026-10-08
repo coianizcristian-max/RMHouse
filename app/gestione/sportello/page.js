@@ -9,13 +9,17 @@ export const metadata = { title: 'Sportello' };
 // Sportello: il cliente al banco in una schermata (cerca o nuovo → situazione → abbonamento, quota,
 // certificato, posto a lezione → incasso e ricevuta per email → gruppo WhatsApp e tessera dell'ente)
 export default async function PaginaSportello({ searchParams }) {
-  const { persona } = (await searchParams) || {};
+  const { persona, workshop: workshopIniziale } = (await searchParams) || {};
   const { supabase, staff } = await staffCorrente();
   if (staff.ruolo === 'insegnante') redirect('/gestione');
   const p = staff.palestra_id;
 
   // una chiamata sola per corsi, abbonamenti, orari, impostazioni, staff e Satispay (query 144); se manca, le letture una per una
-  const { data: insieme, error: erroreInsieme } = await supabase.rpc('sportello_dati', { p_palestra: p });
+  // i workshop aperti (query 147) insieme: nessuna attesa in più
+  const [{ data: insieme, error: erroreInsieme }, { data: workshop }] = await Promise.all([
+    supabase.rpc('sportello_dati', { p_palestra: p }),
+    supabase.rpc('workshop_aperti', { p_palestra: p }),
+  ]);
   let corsi, tipi, orari, palestra, persone, satispay;
   if (!erroreInsieme && insieme) {
     ({ corsi, tipi, orari, palestra, persone } = insieme);
@@ -38,6 +42,7 @@ export default async function PaginaSportello({ searchParams }) {
 
   return (
     <Sportello palestraId={p} corsi={corsi || []} tipi={tipi || []} orari={(orari || []).map((o) => ({ ...o, insegnante: nomeIns[o.insegnante_id] || '' }))} palestra={palestra || {}}
-               personaIniziale={persona || null} satispay={satispay} />
+               personaIniziale={persona || null} satispay={satispay}
+               workshop={Array.isArray(workshop) ? workshop.filter((w) => w.stato !== 'annullato' && (w.opzioni || []).length) : []} workshopIniziale={workshopIniziale || null} />
   );
 }

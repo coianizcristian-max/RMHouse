@@ -14,13 +14,14 @@ export default async function Area() {
 
   // al primo ingresso si collega l'utente all'anagrafica della segreteria
   await supabase.rpc('collega_account');
-  const [{ data }, { data: materiali }, { data: inVerifica }, aspetto, { data: miei }, { data: disdette }] = await Promise.all([
+  const [{ data }, { data: materiali }, { data: inVerifica }, aspetto, { data: miei }, { data: disdette }, { data: workshop }] = await Promise.all([
     supabase.rpc('area_riepilogo'),
     supabase.rpc('materiali_area'),
     supabase.from('certificati').select('allievo_id, scadenza, caricato_at').eq('stato', 'da_verificare'),
     aspettoAreaCliente(),
     supabase.from('account').select('consenso_marketing, consenso_chiesto_at').eq('user_id', user.id).limit(1),
     supabase.rpc('disdette_area'),
+    supabase.rpc('workshop_area'),   // query 147: i workshop in programma (in home le locandine)
   ]);
   // moduli obbligatori ancora da firmare, per sé e per i figli
   // (tutte le persone insieme, non una dopo l'altra: una famiglia con tre figli aspettava tre viaggi al database)
@@ -44,5 +45,5 @@ export default async function Area() {
   }
 
   return <Riepilogo dati={data} materiali={materiali || []} inVerifica={inVerifica || []} aspetto={aspetto} chiediConsenso={chiediConsenso} moduliDaFirmare={moduliDaFirmare}
-                    disdette={disdette || {}} />;
+                    disdette={disdette || {}} workshop={Array.isArray(workshop) ? workshop : []} />;
 }

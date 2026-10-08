@@ -1,6 +1,7 @@
 'use client';
 import { useState } from 'react';
 import Link from 'next/link';
+import { periodo } from '@/lib/workshop';
 import { useRouter } from 'next/navigation';
 import { supabaseBrowser } from '@/lib/supabase/browser';
 import InstallaApp from './InstallaApp';
@@ -18,7 +19,7 @@ const MOTIVI_DISDETTA = {
 };
 const motivo = (e, base) => MOTIVI_DISDETTA[Object.keys(MOTIVI_DISDETTA).find((k) => e?.message?.includes(k))] || base;
 
-export default function Riepilogo({ dati, materiali = [], inVerifica = [], aspetto = {}, chiediConsenso = false, moduliDaFirmare = 0, disdette = {} }) {
+export default function Riepilogo({ dati, materiali = [], inVerifica = [], aspetto = {}, chiediConsenso = false, moduliDaFirmare = 0, disdette = {}, workshop = [] }) {
   const router = useRouter();
   const [chiedo, setChiedo] = useState(null);   // lezione su cui si sta confermando "Cancella prenotazione"
   const ore = disdette.ore_disdetta ?? 4;
@@ -329,6 +330,25 @@ export default function Riepilogo({ dati, materiali = [], inVerifica = [], aspet
           {dati.avvisi.map((a, i) => (
             <div key={i} className="ac-avviso"><span className="piccolo"><strong>{a.titolo}</strong> — {a.testo}</span></div>
           ))}
+        </section>
+      )}
+
+      {workshop.length > 0 && (
+        <section className="ac-sezione">
+          <h2>Workshop</h2>
+          <div className="ac-workshop">
+            {workshop.slice(0, 4).map((w) => {
+              const miei = (w.iscritti || []);
+              return (
+                <Link prefetch={false} key={w.id} href={`/area/workshop/${w.id}`} className="ac-ws">
+                  {w.locandina_url ? <img src={w.locandina_url} alt="" /> : <span className="ac-ws-vuota" aria-hidden="true">{w.titolo.slice(0, 2).toUpperCase()}</span>}
+                  <span className="ac-ws-testo"><strong>{w.titolo}</strong>
+                    <span className="piccolo">{periodo(w.inizio, w.fine)}{miei.length ? ` · ${miei.map((i) => i.nome).join(', ')} iscritt${miei.length > 1 ? 'i' : 'o/a'}${miei.some((i) => i.da_pagare) ? ' (da pagare)' : ''}` : w.aperte ? ' · iscrizioni aperte' : ''}</span></span>
+                </Link>
+              );
+            })}
+          </div>
+          {workshop.length > 4 && <Link prefetch={false} href="/area/workshop" className="piccolo">Tutti i workshop ›</Link>}
         </section>
       )}
 

@@ -17,6 +17,7 @@ const ICONE = {
   struttura: <><path d="M4 21V8l8-5 8 5v13" /><path d="M9 21v-6h6v6" /></>,
   persone: <><circle cx="9" cy="8" r="3.2" /><path d="M3 20c0-3.3 2.7-5.5 6-5.5s6 2.2 6 5.5" /><path d="M16 8.2a3 3 0 0 0 0-.4M17 14.8c2.4.5 4 2.5 4 5.2" /></>,
   conti: <><path d="M4 20V10M10 20V4M16 20v-7M22 20H2" /></>,
+  workshop: <><path d="M12 3.5l2.5 5 5.5.8-4 3.9.9 5.5L12 16.1l-4.9 2.6.9-5.5-4-3.9 5.5-.8z" /></>,
   sportello: <><circle cx="9" cy="8" r="3.2" /><path d="M3 20c0-3.3 2.7-5.5 6-5.5s6 2.2 6 5.5" /><path d="M18.5 7v6M15.5 10h6" /></>,
   impostazioni: <><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z" /></>,
   home: <><path d="M3 10.5 12 3l9 7.5" /><path d="M5 9.5V21h14V9.5" /></>,
@@ -70,6 +71,7 @@ export default function Guscio({ gestione, nome, ruolo, palestraId, funzioni = {
     [/^\/gestione\/crm\/sondaggi\/[^/]+$/, 'Risultati'], [/^\/gestione\/commercialista\/attestati/, 'Attestati'],
     [/^\/gestione\/giornata\/staff/, 'Giornata per insegnanti'], [/^\/gestione\/compensi\/[^/]+$/, 'Riepilogo compensi'],
     [/^\/gestione\/persone\/[^/]+\/firmati/, 'Moduli firmati'],
+    [/^\/gestione\/workshop\/(?!nuovo$)[^/]+$/, 'Scheda workshop'],
   ];
   const titoloBarra = (DETTAGLI.find(([re]) => re.test(path)) || [])[1] || scelta?.testo;
 

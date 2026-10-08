@@ -10,6 +10,7 @@ import CampoCerca from '../CampoCerca';
 import NuovoCliente from './NuovoCliente';
 import { GruppoWhatsApp, TesseraEnte } from './Ultimi';
 import { Data, centDa, euroTesto, oggi, piuGiorni, giorniTra, eta } from './campi';
+import { periodo, prezzoOpzione, testoScaglioni } from '@/lib/workshop';
 
 const GIORNI = ['', 'lun', 'mar', 'mer', 'gio', 'ven', 'sab', 'dom'];
 const FILTRI = [['tutti', 'Tutti'], ['attivi', 'Con abbonamento'], ['scaduti', 'Abbonamento finito'], ['certificato', 'Certificato da sistemare']];
@@ -20,6 +21,10 @@ const ERRORI = {
   orario_non_del_corso: 'Uno dei giorni scelti non è di questo corso.',
   numerazione_mancante: 'Manca la numerazione delle ricevute (Impostazioni → Fiscale).',
   importo_non_valido: 'Controlla il prezzo.',
+  gia_iscritto: 'È già iscritto/a a questo workshop (lo trovi nella scheda del workshop).',
+  posti_esauriti: 'Workshop al completo per questa opzione.',
+  workshop_annullato: 'Questo workshop è annullato.',
+  opzione_senza_momenti: 'Questa opzione del workshop non ha date: sistemala nella scheda del workshop.',
   non_autorizzato: 'Non hai i permessi per incassare.',
 };
 const ESITI_LEZIONE = {
@@ -37,9 +42,11 @@ const VENDITA = {
   quota: false, quotaImporto: '', corso_id: '', tipo_id: '', orari: [], data_inizio: '', prezzo: '', ingressi: '', note: '',
   aLezioni: false, al: '', nLez: '', euroLez: '', prezzoMano: false,
   certificato: '', lezioni: [], metodo: 'contanti', ricevuta: true, inviaEmail: true, email: '',
+  ws_id: '', ws_opzione: '', ws_prezzo: '',
 };
 
-export default function Sportello({ palestraId, corsi, tipi, orari, palestra, personaIniziale, satispay = false }) {
+// workshop: quelli in cui si può ancora iscrivere qualcuno (query 147); workshopIniziale: arrivati da "Iscrivi dallo Sportello"
+export default function Sportello({ palestraId, corsi, tipi, orari, palestra, personaIniziale, satispay = false, workshop = [], workshopIniziale = null }) {
   const [modo, setModo] = useState(personaIniziale ? 'persona' : 'cerca');   // cerca | nuovo | persona
   const [personaId, setPersonaId] = useState(personaIniziale);
   const [s, setS] = useState(null);           // situazione della persona scelta
@@ -63,6 +70,7 @@ export default function Sportello({ palestraId, corsi, tipi, orari, palestra, pe
 
   const stagione = (() => { const d = new Date(); const m = d.getMonth() + 1; return m >= (palestra.mese_inizio_stagione || 9) ? d.getFullYear() : d.getFullYear() - 1; })();
   const quotaCent = palestra.quota_iscrizione_cent || 0;
+  const wsIniziale = workshop.find((w) => w.id === workshopIniziale) || null;
   const corso = corsi.find((c) => c.id === v.corso_id);
   const tipo = tipi.find((t) => t.id === v.tipo_id);
   const set = (k) => (e) => setV((x) => ({ ...x, [k]: e.target.type === 'checkbox' ? e.target.checked : e.target.value }));
@@ -108,6 +116,7 @@ export default function Sportello({ palestraId, corsi, tipi, orari, palestra, pe
       corso_id: ultima && corsi.some((c) => c.id === ultima.corso_id) ? ultima.corso_id : '',
       tipo_id: t ? t.id : '', orari: orariOk, data_inizio: dal, prezzo: t ? euroTesto(t.prezzo_cent) : '',
       email: sit.persona?.email || '', inviaEmail: !!sit.persona?.email,
+      ...(wsIniziale ? { corso_id: '', tipo_id: '', orari: [], prezzo: '', ws_id: wsIniziale.id, ws_opzione: wsIniziale.opzioni.length === 1 ? wsIniziale.opzioni[0].id : '' } : {}),
     });
     setEsito(null); setErrore(''); setVista3('incassa');
   }
@@ -223,7 +232,13 @@ export default function Sportello({ palestraId, corsi, tipi, orari, palestra, pe
   const importoLezioni = nLezioni != null && euroLez != null ? Math.round(nLezioni * euroLez) : null;
   const prezzoCent = !tipo ? 0 : v.aLezioni && !v.prezzoMano ? importoLezioni : centDa(v.prezzo);
   const quotaImportoCent = v.quota ? centDa(v.quotaImporto) ?? quotaCent : 0;
-  const totale = (v.quota ? quotaImportoCent || 0 : 0) + (tipo ? prezzoCent || 0 : 0);
+  // workshop: prezzo da allievo (abbonamento attivo o sospeso) o da esterno, dallo scaglione di oggi; si può cambiare a mano
+  const ws = workshop.find((w) => w.id === v.ws_id) || null;
+  const wsOpz = ws?.opzioni.find((o) => o.id === v.ws_opzione) || null;
+  const esternoWs = !(s?.iscrizioni || []).some((i) => (i.stato === 'attiva' || i.stato === 'sospesa') && i.data_fine >= oggi());
+  useEffect(() => { if (wsOpz) setV((x) => ({ ...x, ws_prezzo: euroTesto(prezzoOpzione(wsOpz, esternoWs)) })); }, [v.ws_opzione, esternoWs]); // eslint-disable-line
+  const wsPrezzoCent = wsOpz ? centDa(v.ws_prezzo) : 0;
+  const totale = (v.quota ? quotaImportoCent || 0 : 0) + (tipo ? prezzoCent || 0 : 0) + (wsOpz ? wsPrezzoCent || 0 : 0);
   const orariCorso = orari.filter((o) => o.corso_id === v.corso_id);
   const nelleSueOre = (l) => tipo?.modalita === 'orari_fissi' && v.orari.includes(l.orario_id) && l.data >= (v.data_inizio || oggi())
     && !(v.aLezioni && v.al && l.data > v.al);
@@ -239,7 +254,10 @@ export default function Sportello({ palestraId, corsi, tipi, orari, palestra, pe
     if (tipo && v.aLezioni && nLezioni == null && !v.prezzoMano) { setErrore('A lezioni: conferma il numero di lezioni (scrivilo o tocca ✓).'); return null; }
     if (tipo && v.aLezioni && prezzoCent == null) { setErrore('A lezioni: scrivi quanto costa una lezione (o l\'importo).'); return null; }
     if (tipo && (prezzoCent == null || prezzoCent < 0)) { setErrore('Controlla il prezzo dell\'abbonamento.'); return null; }
-    if (!v.quota && !tipo && !v.certificato && !v.lezioni.length) { setErrore('Non c\'è niente da confermare: scegli quota, abbonamento, certificato o una lezione.'); return null; }
+    if (ws && !wsOpz) { setErrore('Workshop: scegli l\'opzione (o togli il workshop).'); return null; }
+    if (wsOpz && (wsPrezzoCent == null || wsPrezzoCent < 0)) { setErrore('Controlla il prezzo del workshop.'); return null; }
+    if (wsOpz && wsOpz.liberi === 0 && !confirm(`«${wsOpz.nome}» è al completo. Iscrivere lo stesso, oltre i posti?`)) return null;
+    if (!v.quota && !tipo && !v.certificato && !v.lezioni.length && !wsOpz) { setErrore('Non c\'è niente da confermare: scegli quota, abbonamento, workshop, certificato o una lezione.'); return null; }
     if (v.ricevuta && v.inviaEmail && totale > 0 && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v.email.trim())) { setErrore('Scrivi un\'email valida per la ricevuta (o togli "inviala per email").'); return null; }
     return {
       palestra_id: palestraId, allievo_id: personaId,
@@ -251,6 +269,8 @@ export default function Sportello({ palestraId, corsi, tipi, orari, palestra, pe
       data_fine: tipo && v.aLezioni && v.al ? v.al : null,
       note: v.note, certificato_scadenza: v.certificato || null, lezioni: v.lezioni,
       metodo: v.metodo, ricevuta: v.ricevuta, invia_email: v.ricevuta && v.inviaEmail, email: v.email.trim(),
+      workshop_opzione_id: wsOpz ? wsOpz.id : null, workshop_prezzo_cent: wsOpz ? wsPrezzoCent : null,
+      ...(wsOpz && wsOpz.liberi === 0 ? { forza: true } : {}),
     };
   }
 
@@ -270,10 +290,11 @@ export default function Sportello({ palestraId, corsi, tipi, orari, palestra, pe
     const { data: pagati } = data.pagamenti?.length
       ? await supabaseBrowser().from('pagamenti').select('importo_cent').in('id', data.pagamenti) : { data: [] };
     const incassato = (pagati || []).reduce((t, x) => t + (x.importo_cent || 0), 0);
-    const fatto = { ...data, ricevuteDati: ric || [], totale: incassato, corso, tipo, metodo: dati.metodo };
+    const fatto = { ...data, ricevuteDati: ric || [], totale: incassato, corso, tipo, metodo: dati.metodo,
+                    workshopNome: data.workshop ? `${ws?.titolo || 'Workshop'} · ${wsOpz?.nome || ''}` : null };
     const sit = await carica(personaId);
     preparaVendita(sit);
-    setV((x) => ({ ...x, corso_id: corso?.id || x.corso_id, tipo_id: '', orari: [], prezzo: '', lezioni: [], quota: false }));
+    setV((x) => ({ ...x, corso_id: corso?.id || x.corso_id, tipo_id: '', orari: [], prezzo: '', lezioni: [], quota: false, ws_id: '', ws_opzione: '', ws_prezzo: '' }));
     setSp(null);
     setEsito(fatto); setVista3('dopo');
     return true;
@@ -300,7 +321,7 @@ export default function Sportello({ palestraId, corsi, tipi, orari, palestra, pe
     if (importo === 0) { setInvio(false); await registra(dati); return; }   // niente da incassare
     // 2) la richiesta sull'app del cliente
     const r = await fetch('/api/satispay/richiesta', { method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ telefono: spTel, importo_cent: importo, allievo_id: personaId, descrizione: [tipo?.nome, v.quota && 'quota annuale'].filter(Boolean).join(' + ') || 'Ritmo Metropolitano' }) });
+      body: JSON.stringify({ telefono: spTel, importo_cent: importo, allievo_id: personaId, descrizione: [tipo?.nome, wsOpz && `workshop ${ws?.titolo}`, v.quota && 'quota annuale'].filter(Boolean).join(' + ') || 'Ritmo Metropolitano' }) });
     const d = await r.json().catch(() => ({}));
     setInvio(false);
     if (!r.ok) { setErrore(d.errore || 'Richiesta Satispay non inviata.'); return; }
@@ -523,6 +544,47 @@ export default function Sportello({ palestraId, corsi, tipi, orari, palestra, pe
                 {tipo && <div className="campo sp-nota"><input value={v.note} onChange={set('note')} placeholder="Nota (facoltativa)" aria-label="Nota" /></div>}
               </div>
 
+              {workshop.length > 0 && (
+                <div className={`sp-blocco${wsOpz ? ' scelto' : ''}`}>
+                  <div className="sp-blocco-testa"><b>Workshop</b>
+                    {v.ws_id && <button type="button" className="link-btn piccolo" onClick={() => setV((x) => ({ ...x, ws_id: '', ws_opzione: '', ws_prezzo: '' }))}>togli</button>}
+                  </div>
+                  <div className="campo"><label htmlFor="sp-ws">Quale</label>
+                    <select id="sp-ws" value={v.ws_id} onChange={(e) => {
+                      const w = workshop.find((x) => x.id === e.target.value);
+                      setV((x) => ({ ...x, ws_id: e.target.value, ws_opzione: w?.opzioni.length === 1 ? w.opzioni[0].id : '', ws_prezzo: '' }));
+                    }}>
+                      <option value="">— nessuno —</option>
+                      {workshop.map((w) => <option key={w.id} value={w.id}>{w.titolo} · {periodo(w.inizio, w.fine)}{w.stato === 'bozza' ? ' (bozza)' : w.stato === 'chiuso' ? ' (iscrizioni chiuse)' : ''}</option>)}
+                    </select></div>
+                  {ws && (
+                    <>
+                      <div className="sp-chip-riga" role="radiogroup" aria-label="Opzione del workshop">
+                        {ws.opzioni.map((o) => (
+                          <button key={o.id} type="button" role="radio" aria-checked={v.ws_opzione === o.id} className={`sp-chip${v.ws_opzione === o.id ? ' attivo' : ''}`}
+                                  onClick={() => setV((x) => ({ ...x, ws_opzione: o.id }))}>
+                            {o.nome} · {euro(prezzoOpzione(o, esternoWs))}{o.liberi != null ? ` · ${o.liberi ? `${o.liberi} posti` : 'pieno'}` : ''}
+                          </button>
+                        ))}
+                      </div>
+                      {wsOpz && (
+                        <div className="sp-campi-2">
+                          <div className="campo"><label htmlFor="sp-ws-prezzo">Prezzo {esternoWs ? 'esterni' : 'allievi'} €</label>
+                            <input id="sp-ws-prezzo" inputMode="decimal" value={v.ws_prezzo} onChange={set('ws_prezzo')} /></div>
+                          <p className="piccolo muto" style={{ alignSelf: 'end', margin: '0 0 10px' }}>{testoScaglioni(wsOpz.prezzi, esternoWs)}</p>
+                        </div>
+                      )}
+                      {esternoWs && ws.quota_cent > 0 && !v.quota && (!s?.persona?.quota_valida_fino || s.persona.quota_valida_fino < oggi()) && (
+                        <p className="piccolo sp-attenzione">Esterno senza quota annuale: spunta la quota qui sopra.</p>
+                      )}
+                      {ws.certificato_richiesto && !(s?.persona?.certificato_scadenza && s.persona.certificato_scadenza >= (ws.fine || '').slice(0, 10)) && (
+                        <p className="piccolo sp-attenzione">Per questo workshop serve il certificato medico: segna qui sotto quello nuovo, se l&apos;ha portato.</p>
+                      )}
+                    </>
+                  )}
+                </div>
+              )}
+
               <div className={`sp-blocco${v.certificato ? ' scelto' : ''}`}>
                 <div className="sp-blocco-testa"><b>Certificato medico</b>
                   <span className="piccolo muto">{s?.persona?.certificato_scadenza ? `ora: ${s.persona.certificato_scadenza < oggi() ? 'scaduto il' : 'fino al'} ${dataBreve(s.persona.certificato_scadenza)}` : 'ora: mancante'}</span>
@@ -583,6 +645,7 @@ export default function Sportello({ palestraId, corsi, tipi, orari, palestra, pe
                 <div className="sp-righe-totale piccolo muto">
                   {v.quota && <span>Quota {euro(quotaImportoCent || 0)}</span>}
                   {tipo && <span>{tipo.nome} {euro(prezzoCent || 0)}</span>}
+                  {wsOpz && <span>Workshop {euro(wsPrezzoCent || 0)}</span>}
                 </div>
                 {totale > 0 && (
                   <>
@@ -837,6 +900,7 @@ function Dopo({ esito, s, corso, palestra, palestraId, stagione, lezioni, onRica
           <div className="sp-fatto-titolo">✓ Registrato{esito.totale > 0 ? `: ${euro(esito.totale)} · ${METODI.find(([k]) => k === esito.metodo)?.[1] || esito.metodo}` : ' (niente da incassare)'}</div>
           <ul>
             {esito.iscrizione_id && <li>Abbonamento {esito.tipo?.nome} · {esito.corso?.nome}</li>}
+            {esito.workshopNome && <li>Iscritto/a al workshop {esito.workshopNome}</li>}
             {esito.ricevuteDati.map((r) => (
               <li key={r.id}>Ricevuta n. {r.numero}/{r.anno} · {euro(r.importo_cent + (r.iva_cent || 0))} <Link prefetch={false} href={`/gestione/ricevute/${r.id}`} target="_blank" className="link-btn piccolo">apri ↗</Link></li>
             ))}

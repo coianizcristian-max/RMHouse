@@ -20,6 +20,7 @@ const TIPI = {
   appello: { nome: 'Appello', colore: '#0f766e' },
   affitto: { nome: 'Affitto sala', colore: '#be185d' },
   compensi: { nome: 'Compensi', colore: '#475569' },
+  workshop: { nome: 'Workshop', colore: '#e11d48' },
 };
 // questi arrivano già dalle notizie (con lo stato "da fare"): dalle notifiche si saltano per non vederli due volte
 const GIA_IN_NOTIZIE = ['certificato', 'prova', 'prova_invio', 'richiesta'];

@@ -16,6 +16,7 @@ const ICONE = {
   sala: I(<><path d="M3 21V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v16" /><path d="M9 21v-6h6v6" /></>),
   euro: I(<><path d="M17 6a7 7 0 1 0 0 12" /><path d="M4 10h9M4 14h9" /></>),
   eventi: I(<><path d="M12 2l3 6 7 1-5 5 1 7-6-3-6 3 1-7-5-5 7-1z" /></>),
+  workshop: I(<><path d="M4 20h16" /><path d="M6 20V9l6-5 6 5v11" /><path d="M10 20v-5h4v5" /><path d="M12 4v-1" /></>),
   moduli: I(<><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z" /><path d="M14 3v6h6M8 13h8M8 17h5" /></>),
   messaggi: I(<><path d="M21 12a8 8 0 0 1-12 7l-5 1 1-4.5A8 8 0 1 1 21 12Z" /></>),
   privacy: I(<><circle cx="12" cy="12" r="9" /><path d="M12 8h.01M11 12h1v5h1" /></>),
@@ -84,6 +85,7 @@ export default function MenuLaterale({ aperto, chiudi, esci }) {
           {voce('/area/personal', 'Lezione privata', 'personal')}
           {voce('/area/sala', 'Prenota una sala', 'sala')}
           {voce('/area/pagamenti', 'Pagamenti e ricevute', 'euro')}
+          {voce('/area/workshop', 'Workshop', 'workshop')}
           {voce('/area/eventi', 'Eventi e stage', 'eventi')}
           {voce('/area/moduli', 'Moduli e documenti', 'moduli')}
           {voce('/area/scuola', 'Contatti e WhatsApp', 'messaggi')}
