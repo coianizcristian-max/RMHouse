@@ -4698,3 +4698,41 @@ body:has(.sportello) .bottone-rapide { display: none; }
 .pal-ws-banda { background: var(--nero); color: #fff; display: flex; justify-content: space-between; align-items: center; gap: 6px; }
 .pal-ws-tag { font-size: 10px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; background: #fff; color: var(--nero);
   border-radius: 999px; padding: 1px 7px; }
+
+/* Workshop: la scheda "Insegnante" (compenso nel cedolino o pagato a parte) */
+.wsi { display: grid; gap: 12px; }
+.wsi .pannello { margin: 0; }
+.wsi-conto { display: grid; gap: 2px; }
+.wsi-conto strong { font-size: 26px; font-weight: 850; font-stretch: 115%; color: var(--nero); }
+.wsi-campi { display: grid; gap: 0 12px; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
+.wsi-campi .wsi-doc { grid-column: 1 / -1; }
+
+/* ==================================================================
+   188 — Riepilogo più basso. Su un portatile con lo zoom di Windows al 125% la colonna principale è
+   larga ~950 px: prima i numeri andavano su due righe (4+3) e "Da sistemare", "Lezioni di oggi" e "Scadenze"
+   finivano sotto il bordo dello schermo. Ora: saluto e pulsanti su una riga, numeri su una riga sola,
+   "Da fare oggi" con il modulo accanto al titolo. Tutto segue la larghezza della colonna (container query).
+   ================================================================== */
+.kpi-home .tessera { padding: 7px 10px; }
+.kpi-home .etichetta { font-size: 12px; }
+.promemoria .vuoto, .guscio .promemoria .vuoto { padding: 2px 0; border: 0; background: none; text-align: left; font-size: 13.5px; }
+/* tra 600 e 840 px: una striscia sola (si scorre), mai due righe */
+@container (min-width: 600px) {
+  .kpi-home { grid-auto-flow: column; grid-auto-columns: minmax(148px, 1fr); grid-template-columns: none; overflow-x: auto; padding-bottom: 4px; }
+}
+@container (min-width: 760px) {
+  .cruscotto-testa, .guscio .cruscotto-testa { align-items: center; margin-bottom: 12px; gap: 8px 16px; }
+  .cruscotto-testa .occhiello { font-size: 13px; }
+  .guscio .cruscotto-testa h1 { font-size: clamp(20px, 2.4cqi, 26px); }
+  .cruscotto-testa .azioni { gap: 8px; }
+  .cruscotto-testa .azioni .btn { flex: 0 0 auto; min-width: 0; min-height: 38px; padding: 0 14px; font-size: 15px; }
+  .promemoria { display: grid; grid-template-columns: auto minmax(0, 1fr); column-gap: 18px; align-items: center; }
+  .promemoria > * { grid-column: 1 / -1; }
+  .promemoria > .pannello-testa { grid-column: 1; margin-bottom: 10px; }
+  .promemoria > form.pm-nuovo { grid-column: 2; margin-bottom: 10px; }
+}
+/* da 840 px: le 7 tessere in una riga sola, la cifra si adatta alla larghezza */
+@container (min-width: 840px) {
+  .kpi-home { grid-auto-flow: row; grid-auto-columns: auto; grid-template-columns: repeat(7, minmax(0, 1fr)); overflow: visible; padding-bottom: 0; }
+  .kpi-home .cifra { font-size: clamp(17px, 2.05cqi, 24px); }
+}

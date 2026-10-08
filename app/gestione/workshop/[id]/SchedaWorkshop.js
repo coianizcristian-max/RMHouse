@@ -8,10 +8,12 @@ import { STATI_WORKSHOP, periodo, giornoOra, contiWorkshop, postiMomenti, testoS
 import WorkshopForm from '../WorkshopForm';
 import IscrittiWorkshop from './IscrittiWorkshop';
 import AppelloWorkshop from './AppelloWorkshop';
+import InsegnanteWorkshop from './InsegnanteWorkshop';
 
 // La scheda di un workshop: in alto locandina, quando, stato e i numeri (posti per momento, incassi, compenso);
 // sotto due schede: gli iscritti e la modifica.
-export default function SchedaWorkshop({ palestraId, workshop: w, momenti, opzioni, iscrizioni, sedi, sale, quotaCent, schedaIniziale = 'iscritti', momentoIniziale = null }) {
+export default function SchedaWorkshop({ palestraId, workshop: w, momenti, opzioni, iscrizioni, sedi, sale, quotaCent, schedaIniziale = 'iscritti', momentoIniziale = null,
+                                        staffElenco = [], fine = null, cedolino = null }) {
   const router = useRouter();
   const [scheda, setScheda] = useState(schedaIniziale);
   const [daIncassare, setDaIncassare] = useState(null);   // dall'appello: "da pagare" apre gli iscritti con l'incasso pronto
@@ -85,7 +87,8 @@ export default function SchedaWorkshop({ palestraId, workshop: w, momenti, opzio
           <div className="riquadro">
             <span className="etichetta">Compenso {w.insegnante || 'insegnante'}</span>
             <strong>{euro(conti.compenso)}</strong>
-            <span className="piccolo muto">{w.compenso_tipo === 'percentuale' ? `${Number(w.compenso_percentuale || 0)}% dell'incassato` : 'fisso'} · resta {euro(conti.resta)}</span>
+            <span className="piccolo muto">{w.compenso_tipo === 'percentuale' ? `${Number(w.compenso_percentuale || 0)}% dell'incassato` : 'fisso'} · resta {euro(conti.resta)}
+              {' · '}{w.insegnante_id ? 'nel cedolino' : w.compenso_pagato_at ? 'pagato ✓' : 'da pagare'}</span>
           </div>
         )}
       </div>
@@ -94,6 +97,7 @@ export default function SchedaWorkshop({ palestraId, workshop: w, momenti, opzio
         <button type="button" role="tab" aria-selected={scheda === 'iscritti'} onClick={() => { setDaIncassare(null); setScheda('iscritti'); }}>Iscritti <span className="conta-mini">{attive.length}</span></button>
         <button type="button" role="tab" aria-selected={scheda === 'appello'} onClick={() => setScheda('appello')}>Appello</button>
         <button type="button" role="tab" aria-selected={scheda === 'prezzi'} onClick={() => setScheda('prezzi')}>Opzioni e prezzi</button>
+        <button type="button" role="tab" aria-selected={scheda === 'insegnante'} onClick={() => setScheda('insegnante')}>Insegnante</button>
         <button type="button" role="tab" aria-selected={scheda === 'modifica'} onClick={() => setScheda('modifica')}>Modifica</button>
       </div>
 
@@ -104,6 +108,11 @@ export default function SchedaWorkshop({ palestraId, workshop: w, momenti, opzio
       {scheda === 'appello' && (
         <AppelloWorkshop workshop={w} momenti={momenti} opzioni={opzioni} iscrizioni={iscrizioni} momentoIniziale={momentoIniziale}
                          onIncassa={(i) => { setDaIncassare(i); setScheda('iscritti'); }} />
+      )}
+
+      {scheda === 'insegnante' && (
+        <InsegnanteWorkshop workshop={w} conti={conti} fine={fine} cedolino={cedolino}
+                            nomeStaff={(() => { const x = staffElenco.find((t) => t.id === w.insegnante_id); return x ? `${x.nome} ${x.cognome || ''}`.trim() : null; })()} />
       )}
 
       {scheda === 'prezzi' && (
@@ -128,7 +137,7 @@ export default function SchedaWorkshop({ palestraId, workshop: w, momenti, opzio
 
       {scheda === 'modifica' && (
         <>
-          <WorkshopForm palestraId={palestraId} workshop={w} momenti={momenti} opzioni={opzioni} sedi={sedi} sale={sale} quotaCent={quotaCent}
+          <WorkshopForm palestraId={palestraId} workshop={w} momenti={momenti} opzioni={opzioni} sedi={sedi} sale={sale} quotaCent={quotaCent} staffElenco={staffElenco}
                         iscrittiPerOpzione={iscrittiPerOpzione} onSalvato={() => setScheda('iscritti')} onAnnulla={() => setScheda('iscritti')} />
           <p style={{ marginTop: 18 }}><button type="button" className="link-btn pericolo piccolo" onClick={elimina}>Elimina il workshop</button>
             <span className="piccolo muto"> · solo se non ha iscritti né incassi; altrimenti mettilo in &quot;Annullato&quot;.</span></p>

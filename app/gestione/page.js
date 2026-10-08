@@ -136,7 +136,7 @@ export default async function Home({ searchParams }) {
             <LinkVeloce className="tessera tessera-rossa" href="/gestione/persone?stato=attivi">
               <div className="etichetta">Iscritti attivi</div>
               <div className="cifra">{k.attivi}</div>
-              <div className="sotto"><Delta adesso={k.attivi} prima={k.attivi_mese_scorso} suffisso=" su un mese fa" /></div>
+              <div className="sotto"><Delta adesso={k.attivi} prima={k.attivi_mese_scorso} suffisso=" in un mese" /></div>
             </LinkVeloce>
             {fat && (
               <LinkVeloce className="tessera" href={`/gestione/statistiche/economia?p=${fat.chiave}`}
@@ -152,9 +152,9 @@ export default async function Home({ searchParams }) {
               <div className="sotto"><Delta adesso={k.venduto_mese} prima={k.venduto_mese_scorso} suffisso=" sul mese scorso" /></div>
             </LinkVeloce>
             <LinkVeloce className="tessera" href="/gestione/scadenze?tipo=abbonamento">
-              <div className="etichetta">Da rinnovare (14 gg)</div>
+              <div className="etichetta">Da rinnovare</div>
               <div className="cifra">{k.da_rinnovare_14?.quanti ?? 0}</div>
-              <div className="sotto">valgono {euroTondo(k.da_rinnovare_14?.valore || 0)}</div>
+              <div className="sotto">entro 14 giorni · {euroTondo(k.da_rinnovare_14?.valore || 0)}</div>
             </LinkVeloce>
             <LinkVeloce className="tessera" href="/gestione/persone?stato=nuovi">
               <div className="etichetta">Nuovi nel mese</div>

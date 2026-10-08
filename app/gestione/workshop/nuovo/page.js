@@ -10,10 +10,11 @@ export default async function NuovoWorkshop() {
   const { supabase, staff } = await staffCorrente();
   if (staff.ruolo === 'insegnante') redirect('/gestione');
   const p = staff.palestra_id;
-  const [{ data: sedi }, { data: sale }, { data: pal }] = await Promise.all([
+  const [{ data: sedi }, { data: sale }, { data: pal }, { data: staffElenco }] = await Promise.all([
     supabase.from('sedi').select('id, nome').eq('palestra_id', p).order('ordine'),
     supabase.from('sale').select('id, nome').eq('palestra_id', p).order('ordine', { nullsFirst: false }).order('nome'),
     supabase.from('palestre').select('quota_iscrizione_cent').eq('id', p).maybeSingle(),
+    supabase.from('staff').select('id, nome, cognome, ruolo').eq('palestra_id', p).eq('attivo', true).eq('archiviato', false).order('nome'),
   ]);
   return (
     <>
@@ -23,7 +24,7 @@ export default async function NuovoWorkshop() {
         <h1>Nuovo workshop</h1>
         <p>Dati, locandina, date, prezzi. Finché resta in bozza lo vede solo lo staff.</p>
       </div>
-      <WorkshopForm palestraId={p} sedi={sedi || []} sale={sale || []} quotaCent={pal?.quota_iscrizione_cent || 0} />
+      <WorkshopForm palestraId={p} sedi={sedi || []} sale={sale || []} quotaCent={pal?.quota_iscrizione_cent || 0} staffElenco={staffElenco || []} />
     </>
   );
 }

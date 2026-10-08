@@ -42,10 +42,11 @@ function momentoVuoto(i, primo) {
 }
 const scaglioneVuoto = () => ({ fino_al: '', allievi: '', esterni: '' });
 
-export default function WorkshopForm({ palestraId, workshop = null, momenti = [], opzioni = [], sedi = [], sale = [], quotaCent = 0, iscrittiPerOpzione = {}, onSalvato, onAnnulla }) {
+export default function WorkshopForm({ palestraId, workshop = null, momenti = [], opzioni = [], sedi = [], sale = [], quotaCent = 0, iscrittiPerOpzione = {}, staffElenco = [], onSalvato, onAnnulla }) {
   const router = useRouter();
   const [f, setF] = useState(() => ({
     titolo: workshop?.titolo || '', sottotitolo: workshop?.sottotitolo || '', insegnante: workshop?.insegnante || '',
+    insegnante_id: workshop?.insegnante_id || '',     // '' = esterno/a (nome scritto a mano)
     descrizione: workshop?.descrizione || '', info_pratiche: workshop?.info_pratiche || '', locandina_url: workshop?.locandina_url || null,
     sede_id: workshop?.sede_id || (sedi.length === 1 ? sedi[0].id : ''), luogo: workshop?.luogo || '',
     stato: workshop?.stato || 'bozza',
@@ -73,6 +74,9 @@ export default function WorkshopForm({ palestraId, workshop = null, momenti = []
   useEffect(() => { if (errore) rifErrore.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }); }, [errore]);
 
   const set = (k) => (e) => setF((x) => ({ ...x, [k]: e.target.type === 'checkbox' ? e.target.checked : e.target.value }));
+  const nomeStaff = (id) => { const t = staffElenco.find((x) => x.id === id); return t ? `${t.nome} ${t.cognome || ''}`.trim() : ''; };
+  // gli insegnanti prima, poi il resto dello staff
+  const staffOrdinato = [...staffElenco].sort((a, b) => (a.ruolo === 'insegnante' ? 0 : 1) - (b.ruolo === 'insegnante' ? 0 : 1) || `${a.nome}`.localeCompare(`${b.nome}`, 'it'));
   const setM = (i, k, v) => setMm((xs) => xs.map((m, j) => (j === i ? { ...m, [k]: v } : m)));
   const setO = (i, k, v) => setOo((xs) => xs.map((o, j) => (j === i ? { ...o, [k]: v } : o)));
   const setS = (i, s, k, v) => setOo((xs) => xs.map((o, j) => (j === i ? { ...o, prezzi: o.prezzi.map((x, h) => (h === s ? { ...x, [k]: v } : x)) } : o)));
@@ -132,7 +136,8 @@ export default function WorkshopForm({ palestraId, workshop = null, momenti = []
     }
     const p = {
       id: workshop?.id || nuovoId(), palestra_id: palestraId,
-      titolo: f.titolo, sottotitolo: f.sottotitolo, insegnante: f.insegnante, descrizione: f.descrizione, info_pratiche: f.info_pratiche,
+      titolo: f.titolo, sottotitolo: f.sottotitolo, insegnante: f.insegnante_id ? nomeStaff(f.insegnante_id) : f.insegnante,
+      descrizione: f.descrizione, info_pratiche: f.info_pratiche,
       locandina_url: f.locandina_url || '', sede_id: f.sede_id || '', luogo: f.luogo, stato: f.stato,
       iscrizioni_fino: f.iscrizioni_fino_data ? isoDa(f.iscrizioni_fino_data, f.iscrizioni_fino_ora || '23:59') : '',
       online: f.online, in_segreteria: f.in_segreteria, quota_esterni: f.quota_esterni, certificato_richiesto: f.certificato_richiesto,
@@ -146,20 +151,27 @@ export default function WorkshopForm({ palestraId, workshop = null, momenti = []
         prezzi: o.prezzi.filter((s) => s.allievi !== '').map((s) => ({ fino_al: s.fino_al || null, allievi: centDa(s.allievi), esterni: centDa(s.esterni) })) })),
     };
     setInvio(true);
-    const { data, error } = await supabaseBrowser().rpc('salva_workshop', { p });
-    setInvio(false);
+    const db = supabaseBrowser();
+    const { data, error } = await db.rpc('salva_workshop', { p });
     if (error) {
+      setInvio(false);
       const k = Object.keys(ERRORI).find((x) => error.message?.includes(x));
       setErrore(ERRORI[k] || `Salvataggio non riuscito: ${error.message}`);
       return;
     }
+    // l'insegnante della scuola (query 150): il compenso andrà nel suo cedolino
+    if (f.insegnante_id || workshop?.insegnante_id) {
+      const { error: e2 } = await db.from('workshop').update({ insegnante_id: f.insegnante_id || null }).eq('id', data);
+      if (e2) { setInvio(false); setErrore('Workshop salvato, ma non l\'insegnante della scuola: esegui la query 150 e salva di nuovo.'); return; }
+    }
+    setInvio(false);
     router.refresh();
     if (onSalvato) onSalvato(data); else router.push(`/gestione/workshop/${data}`);
   }
 
   // come lo vede il cliente: gli stessi dati del modulo, anche non salvati
   const wAnteprima = () => ({
-    titolo: f.titolo.trim() || 'Titolo del workshop', insegnante: f.insegnante, sottotitolo: f.sottotitolo, stato: f.stato,
+    titolo: f.titolo.trim() || 'Titolo del workshop', insegnante: f.insegnante_id ? nomeStaff(f.insegnante_id) : f.insegnante, sottotitolo: f.sottotitolo, stato: f.stato,
     luogo: f.luogo || sedi.find((x) => x.id === f.sede_id)?.nome || '', locandina_url: f.locandina_url,
     descrizione: f.descrizione, info_pratiche: f.info_pratiche, certificato_richiesto: f.certificato_richiesto,
     quota_cent: f.quota_esterni ? quotaCent : 0,
@@ -183,8 +195,18 @@ export default function WorkshopForm({ palestraId, workshop = null, momenti = []
             <div className="wf-campi">
               <div className="campo wf-4"><label htmlFor="wf-titolo">Titolo</label>
                 <input id="wf-titolo" value={f.titolo} onChange={set('titolo')} placeholder="Es. Heels Workshop" autoFocus={!workshop} /></div>
-              <div className="campo wf-2"><label htmlFor="wf-ins">Insegnante</label>
-                <input id="wf-ins" value={f.insegnante} onChange={set('insegnante')} placeholder="Nome e cognome" /></div>
+              <div className="campo wf-2"><label htmlFor="wf-ins-chi">Insegnante</label>
+                <select id="wf-ins-chi" value={f.insegnante_id} onChange={set('insegnante_id')}>
+                  <option value="">Esterno/a (scrivi il nome)</option>
+                  {staffOrdinato.length > 0 && (
+                    <optgroup label="Della scuola: il compenso va nel cedolino">
+                      {staffOrdinato.map((t) => <option key={t.id} value={t.id}>{`${t.nome} ${t.cognome || ''}`.trim()}</option>)}
+                    </optgroup>
+                  )}
+                </select>
+                {!f.insegnante_id && (
+                  <input id="wf-ins" value={f.insegnante} onChange={set('insegnante')} placeholder="Nome e cognome" aria-label="Nome dell'insegnante esterno" style={{ marginTop: 6 }} />
+                )}</div>
               <div className="campo wf-6"><label htmlFor="wf-sotto">Sottotitolo <span className="eti-info">· una riga sotto il titolo, es. "Livello intermedio · dai 16 anni"</span></label>
                 <input id="wf-sotto" value={f.sottotitolo} onChange={set('sottotitolo')} /></div>
               <div className="campo wf-6"><label htmlFor="wf-desc">Descrizione per i clienti</label>
@@ -337,6 +359,13 @@ export default function WorkshopForm({ palestraId, workshop = null, momenti = []
               <div className="campo wf-6"><label htmlFor="wf-note">Note interne <span className="eti-info">· le vede solo lo staff</span></label>
                 <textarea id="wf-note" rows={2} value={f.note_interne} onChange={set('note_interne')} placeholder="Viaggio, alloggio, accordi…" /></div>
             </div>
+            {f.compenso_tipo && (
+              <p className="piccolo muto wf-nota">
+                {f.insegnante_id
+                  ? `Insegnante della scuola: il compenso va da solo nel cedolino di ${nomeStaff(f.insegnante_id)} del mese in cui finisce il workshop.`
+                  : 'Insegnante esterno/a: dopo il workshop, nella scheda → Insegnante, stampi il riepilogo da allegare alla sua ricevuta o fattura e registri il pagamento (va nei Costi).'}
+              </p>
+            )}
             {totPosti.some(Boolean) && <p className="piccolo muto wf-nota">Posti: {mm.map((m) => `${m.titolo || 'momento'} ${m.posti || '∞'}`).join(' · ')}</p>}
           </section>
         </aside>
