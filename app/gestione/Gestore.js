@@ -9,15 +9,23 @@ import SceltaColore from './SceltaColore';
 //           opzioni?: [{v,l}], obbligatorio?, aiuto?, meta?, suggerimenti?: [{nome, colore}], nessuno?, segnaposto?,
 //           tipo 'scelta': opzioni [{v,l}] + "+ Nuova…" (nuovaTesto), niente testo libero sbagliato
 //           tipo 'etichette': più valori (array di testi) da opzioni [testo] + "+ Nuova…"
+//           tipo 'molti': più valori da opzioni [{v,l,g}] (g = titoletto), con ricerca; nessunoTesto = cosa vuol dire nessuno scelto
+//           collegati?: { tabella, mia, altra } → il campo non è una colonna: sono le righe di una tabella di collegamento
+//                       (es. tipi_abbonamento_corsi: tipo_abbonamento_id + corso_id), scritte dopo la riga principale
 //           gruppo? (titolo di sezione: modulo compatto a 4 colonne), larghezza? 1-4, se?(bozza) → mostrarlo o no, righe? }]
 // fissi: valori sempre applicati (es. { palestra_id, corso_id })
 // riassunto(riga) -> { titolo, dettaglio, tag?, colore? }
 // sezione(riga) -> { chiave, titolo }: se c'è, le righe (già in ordine) sono divise da un titoletto
 // ordinabile: elenco di nomi (discipline, categorie, sale…) → con più di 6 righe compaiono la ricerca e l'ordine per nome
-export default function Gestore({ tabella, campi, righe, fissi = {}, riassunto, etichettaNuovo = 'Aggiungi', vuoto = 'Ancora niente qui.', onElimina, sezione, ordinabile = false }) {
+// finestra: la modifica si apre in una finestra grande sopra l'elenco (si chiude e si resta dov'eri), non sotto la riga;
+//           il pulsante per aggiungere compare anche in cima all'elenco. titoloNuovo = titolo della finestra per una riga nuova
+export default function Gestore({ tabella, campi, righe, fissi = {}, riassunto, etichettaNuovo = 'Aggiungi', vuoto = 'Ancora niente qui.', onElimina, sezione, ordinabile = false,
+  finestra = false, titoloNuovo }) {
   const router = useRouter();
   const [apri, setApri] = useState(null);       // id della riga in modifica, oppure 'nuovo'
   const [bozza, setBozza] = useState({});
+  const partenza = useRef('');                  // la bozza com'era all'apertura: per chiedere prima di buttare le modifiche
+  const originali = useRef({});                 // valori dei campi "collegati" all'apertura: si scrive solo la differenza
   const [errore, setErrore] = useState('');
   const [invio, setInvio] = useState(false);
   const [salvato, setSalvato] = useState(null);  // riga appena salvata, per mostrarlo
@@ -30,26 +38,37 @@ export default function Gestore({ tabella, campi, righe, fissi = {}, riassunto, 
   const lungo = ordinabile && righe.length > 6;
 
   // valori di partenza delle righe nuove: le caselle spuntate, salvo "predefinito" diverso
-  const vuota = Object.fromEntries(campi.map((c) => [c.k, c.predefinito ?? (c.tipo === 'check' ? true : c.tipo === 'etichette' ? [] : '')]));
+  const multiplo = (c) => c.tipo === 'etichette' || c.tipo === 'molti';
+  const vuota = Object.fromEntries(campi.map((c) => [c.k, c.predefinito ?? (c.tipo === 'check' ? true : multiplo(c) ? [] : '')]));
 
   function apriNuovo() {
-    setBozza({ ...vuota, ...(campi.find((c) => c.k === 'ordine') ? { ordine: righe.length + 1 } : {}) });
-    setErrore(''); setApri('nuovo');
+    const b = { ...vuota, ...(campi.find((c) => c.k === 'ordine') ? { ordine: righe.length + 1 } : {}) };
+    partenza.current = JSON.stringify(b); originali.current = {};
+    setBozza(b); setErrore(''); setApri('nuovo');
   }
   function apriModifica(r) {
     setSalvato(null);
     const b = {};
     campi.forEach((c) => {
       const v = r[c.k];
-      b[c.k] = c.tipo === 'euro' ? (v == null ? '' : (v / 100).toString()) : c.tipo === 'etichette' ? (Array.isArray(v) ? v : []) : v ?? (c.tipo === 'check' ? false : '');
+      b[c.k] = c.tipo === 'euro' ? (v == null ? '' : (v / 100).toString()) : multiplo(c) ? (Array.isArray(v) ? v : []) : v ?? (c.tipo === 'check' ? false : '');
     });
+    partenza.current = JSON.stringify(b);
+    originali.current = Object.fromEntries(campi.filter((c) => c.collegati).map((c) => [c.k, b[c.k]]));
     setBozza(b); setErrore(''); setApri(r.id);
   }
+  const chiudi = () => { setApri(null); setErrore(''); };
+  // chiusura con ×, Esc o clic fuori: se qualcosa è cambiato si chiede prima
+  const chiudiSeVuoi = () => {
+    if (invio) return;
+    if (JSON.stringify(bozza) !== partenza.current && !confirm('Hai cambiato qualcosa: chiudere senza salvare?')) return;
+    chiudi();
+  };
 
   function valore(c) {
     const v = bozza[c.k];
     if (c.tipo === 'check') return !!v;
-    if (c.tipo === 'etichette') return Array.isArray(v) ? v : [];
+    if (multiplo(c)) return Array.isArray(v) ? v : [];
     if (v === '' || v == null) return null;
     if (c.tipo === 'numero') return parseInt(String(v).trim(), 10);
     if (c.tipo === 'euro') return Math.round(numeroEuro(v) * 100);
@@ -74,15 +93,17 @@ export default function Gestore({ tabella, campi, righe, fissi = {}, riassunto, 
     const problema = controlla();
     if (problema) { setErrore(problema); return; }
     setInvio(true); setErrore('');
-    const dati = Object.fromEntries(campi.map((c) => [c.k, valore(c)]));
+    const dati = Object.fromEntries(campi.filter((c) => !c.collegati).map((c) => [c.k, valore(c)]));
+    const collegati = campi.filter((c) => c.collegati);
     const db = supabaseBrowser();
     // la modifica chiede indietro la riga: se non torna niente, non è stata salvata
     // (succede quando l'accesso è scaduto: il database non dà errore ma non cambia nulla)
     // una riga nuova non manda i campi lasciati vuoti: così valgono i valori predefiniti del database
     // (es. "Valido dal" di un orario = oggi), invece di un "vuoto" che il database rifiuta
     const nuovi = Object.fromEntries(Object.entries(dati).filter(([, v]) => v !== null));
+    // con campi collegati serve l'id della riga nuova
     const scrivi = () => (apri === 'nuovo'
-      ? db.from(tabella).insert({ ...fissi, ...nuovi })
+      ? (collegati.length ? db.from(tabella).insert({ ...fissi, ...nuovi }).select('id') : db.from(tabella).insert({ ...fissi, ...nuovi }))
       : db.from(tabella).update(dati).eq('id', apri).select('id'));
     let { data, error } = await scrivi();
     if (!error && apri !== 'nuovo' && !data?.length) {
@@ -94,8 +115,27 @@ export default function Gestore({ tabella, campi, righe, fissi = {}, riassunto, 
         return;
       }
     }
+    if (error) { setInvio(false); setErrore(messaggio(error, campi)); return; }
+    // poi le righe collegate: si tolgono quelle tolte e si aggiungono quelle nuove
+    const id = apri === 'nuovo' ? data?.[0]?.id : apri;
+    for (const c of collegati) {
+      if (!id) break;
+      const { tabella: tc, mia, altra } = c.collegati;
+      const prima = new Set(originali.current[c.k] || []), dopo = new Set(valore(c));
+      const tolti = [...prima].filter((x) => !dopo.has(x)), messi = [...dopo].filter((x) => !prima.has(x));
+      let e1 = null, e2 = null;
+      if (tolti.length) ({ error: e1 } = await db.from(tc).delete().eq(mia, id).in(altra, tolti));
+      if (messi.length) ({ error: e2 } = await db.from(tc).upsert(messi.map((x) => ({ [mia]: id, [altra]: x })), { onConflict: `${mia},${altra}`, ignoreDuplicates: true }));
+      if (e1 || e2) {
+        // la riga è salvata, il collegamento no: si rilegge com'è davvero e si lascia la finestra aperta per riprovare
+        const { data: ora } = await db.from(tc).select(altra).eq(mia, id);
+        originali.current = { ...originali.current, [c.k]: (ora || []).map((x) => x[altra]) };
+        setInvio(false); setApri(id); router.refresh();
+        setErrore(`Salvato, ma "${c.etichetta}" non è stato aggiornato. Premi di nuovo Salva per riprovare.`);
+        return;
+      }
+    }
     setInvio(false);
-    if (error) { setErrore(messaggio(error, campi)); return; }
     setSalvato(apri === 'nuovo' ? 'nuovo' : apri);
     setTimeout(() => setSalvato(null), 4000);
     setApri(null); router.refresh();
@@ -121,6 +161,8 @@ export default function Gestore({ tabella, campi, righe, fissi = {}, riassunto, 
       : (a, b) => String(riassunto(a).titolo).localeCompare(String(riassunto(b).titolo), 'it', { sensitivity: 'base' }));
   }
 
+  const rigaAperta = apri && apri !== 'nuovo' ? righe.find((r) => r.id === apri) : null;
+
   return (
     <div>
       {errore && !apri && <div className="errore" role="alert">{errore}</div>}
@@ -139,7 +181,11 @@ export default function Gestore({ tabella, campi, righe, fissi = {}, riassunto, 
         </div>
       )}
 
-      {righe.length === 0 && apri !== 'nuovo' && <div className="vuoto">{vuoto}</div>}
+      {finestra && righe.length > 6 && (
+        <div className="gestore-nuovo-alto"><button type="button" className="btn btn-piccolo" onClick={apriNuovo}>+ {etichettaNuovo}</button></div>
+      )}
+
+      {righe.length === 0 && (apri !== 'nuovo' || finestra) && <div className="vuoto">{vuoto}</div>}
       {righe.length > 0 && mostrate.length === 0 && <div className="vuoto">Niente con «{cerca}».</div>}
 
       <ul className="elenco">
@@ -153,11 +199,11 @@ export default function Gestore({ tabella, campi, righe, fissi = {}, riassunto, 
             </li>
           ),
           <li key={r.id}>
-            {apri === r.id ? (
+            {apri === r.id && !finestra ? (
               <Modulo campi={campi} bozza={bozza} setBozza={setBozza} salva={salva} annulla={() => { setApri(null); setErrore(''); }} invio={invio} errore={errore} />
             ) : (
               // un clic su qualunque punto della riga apre la modifica (i pulsanti fanno la loro azione)
-              <div className="persona gestore-riga" style={{ alignItems: 'start' }} role="button" tabIndex={0}
+              <div className={`persona gestore-riga${apri === r.id ? ' aperta' : ''}`} style={{ alignItems: 'start' }} role="button" tabIndex={0}
                    title="Clic per modificare"
                    onClick={(e) => { if (!e.target.closest('button, a, input, select, textarea')) apriModifica(r); }}
                    onKeyDown={(e) => { if ((e.key === 'Enter' || e.key === ' ') && e.target === e.currentTarget) { e.preventDefault(); apriModifica(r); } }}>
@@ -185,7 +231,15 @@ export default function Gestore({ tabella, campi, righe, fissi = {}, riassunto, 
         })}
       </ul>
 
-      {apri === 'nuovo' ? (
+      {finestra && apri && (
+        <Finestra titolo={rigaAperta ? riassunto(rigaAperta).titolo : apri === 'nuovo' ? (titoloNuovo || etichettaNuovo) : (bozza.nome || '')}
+                  sotto={rigaAperta ? riassunto(rigaAperta).dettaglio : ''}
+                  larga={campi.some((c) => c.gruppo)} chiudi={chiudiSeVuoi} nuovo={apri === 'nuovo'}>
+          <Modulo campi={campi} bozza={bozza} setBozza={setBozza} salva={salva} annulla={chiudi} invio={invio} errore={errore} finestra />
+        </Finestra>
+      )}
+
+      {apri === 'nuovo' && !finestra ? (
         <div style={{ marginTop: 16 }}>
           <Modulo campi={campi} bozza={bozza} setBozza={setBozza} salva={salva} annulla={() => { setApri(null); setErrore(''); }} invio={invio} errore={errore} />
         </div>
@@ -196,7 +250,43 @@ export default function Gestore({ tabella, campi, righe, fissi = {}, riassunto, 
   );
 }
 
-function Modulo({ campi, bozza, setBozza, salva, annulla, invio, errore }) {
+// La finestra grande sopra l'elenco: titolo in alto, i campi in mezzo (scorrono se non ci stanno), Salva sempre in vista.
+// Si chiude con ×, con Esc o cliccando fuori; la pagina sotto resta ferma dov'era.
+function Finestra({ titolo, sotto, larga, chiudi, nuovo, children }) {
+  const rif = useRef(null);
+  const chiudiRif = useRef(chiudi);
+  chiudiRif.current = chiudi;
+  useEffect(() => {
+    const prima = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';            // sotto non scorre
+    // riga nuova: si comincia a scrivere dal primo campo; modifica: si guarda prima
+    const primo = nuovo ? rif.current?.querySelector('input:not([type=checkbox]), select, textarea') : null;
+    (primo || rif.current)?.focus({ preventScroll: true });
+    const tasto = (e) => { if (e.key === 'Escape' && !e.defaultPrevented) { e.preventDefault(); chiudiRif.current(); } };
+    window.addEventListener('keydown', tasto);
+    return () => { document.body.style.overflow = prima; window.removeEventListener('keydown', tasto); };
+  }, [nuovo]);
+  // clic fuori: solo se il clic comincia e finisce sul fondo (selezionare un testo trascinando fuori non chiude)
+  const giuSulFondo = useRef(false);
+  return (
+    <div className="gf-velo" onMouseDown={(e) => { giuSulFondo.current = e.target === e.currentTarget; }}
+         onClick={(e) => { if (giuSulFondo.current && e.target === e.currentTarget) chiudi(); giuSulFondo.current = false; }}>
+      <div className={`gf-finestra${larga ? ' larga' : ''}`} role="dialog" aria-modal="true" aria-labelledby="gf-titolo" tabIndex={-1} ref={rif}>
+        {/* header e section, non div: la regola generale dei fogli ([role=dialog] > div) qui non deve valere */}
+        <header className="gf-testa">
+          <div style={{ minWidth: 0 }}>
+            <h2 id="gf-titolo">{titolo}</h2>
+            {sotto && <div className="piccolo muto gf-sotto">{sotto}</div>}
+          </div>
+          <button type="button" className="gf-chiudi" onClick={chiudi} aria-label="Chiudi" title="Chiudi (Esc)">×</button>
+        </header>
+        <section className="gf-corpo">{children}</section>
+      </div>
+    </div>
+  );
+}
+
+function Modulo({ campi, bozza, setBozza, salva, annulla, invio, errore, finestra = false }) {
   const aGruppi = campi.some((c) => c.gruppo);
   const set = (k, v) => setBozza((b) => ({ ...b, [k]: v }));
   const rifErrore = useRef(null);
@@ -225,6 +315,9 @@ function Modulo({ campi, bozza, setBozza, salva, annulla, invio, errore }) {
             <option value="">{c.vuotoTesto || '— nessuno —'}</option>
             {c.opzioni.map((o) => <option key={o.v} value={o.v}>{o.l}</option>)}
           </select>
+        ) : c.tipo === 'molti' ? (
+          <SceltaMolti id={id} valore={Array.isArray(bozza[c.k]) ? bozza[c.k] : []} opzioni={c.opzioni || []} nessunoTesto={c.nessunoTesto}
+                       onChange={(v) => set(c.k, v)} />
         ) : c.tipo === 'etichette' ? (
           <Etichette id={id} valore={Array.isArray(bozza[c.k]) ? bozza[c.k] : []} opzioni={c.opzioni || []} nuovaTesto={c.nuovaTesto}
                      onChange={(v) => set(c.k, v)} />
@@ -271,7 +364,8 @@ function Modulo({ campi, bozza, setBozza, salva, annulla, invio, errore }) {
   }
 
   return (
-    <form onSubmit={salva} style={aGruppi ? undefined : { padding: '14px 0' }} className={aGruppi ? 'gestore-modulo a-gruppi' : undefined}>
+    <form onSubmit={salva} style={aGruppi || finestra ? undefined : { padding: '14px 0' }}
+          className={[aGruppi && 'gestore-modulo a-gruppi', finestra && 'gf-modulo'].filter(Boolean).join(' ') || undefined}>
       {aGruppi ? sezioni.map((z) => (
         <div key={z.nome} className="gm-sez">
           <div className="gm-sezione">{z.nome}</div>
@@ -279,9 +373,10 @@ function Modulo({ campi, bozza, setBozza, salva, annulla, invio, errore }) {
         </div>
       )) : visibili.map(campo)}
       {errore && <div className="errore" role="alert" ref={rifErrore}>{errore}</div>}
-      <div style={{ display: 'flex', gap: 10 }} className={aGruppi ? 'gm-azioni' : undefined}>
+      <div style={{ display: 'flex', gap: 10 }} className={[aGruppi && 'gm-azioni', finestra && 'gf-azioni'].filter(Boolean).join(' ') || undefined}>
         <button className="btn btn-primario" disabled={invio}>{invio ? 'Salvo…' : 'Salva'}</button>
         <button type="button" className="btn" onClick={annulla}>Annulla</button>
+        {finestra && <span className="piccolo muto gf-tasti">Esc per chiudere</span>}
       </div>
     </form>
   );
@@ -309,13 +404,60 @@ function Etichette({ id, valore, opzioni = [], onChange, nuovaTesto = '+ Nuova�
       {apri ? (
         <span className="etichette-nuova">
           <input value={nuova} onChange={(e) => setNuova(e.target.value)} placeholder="nome della nuova" autoFocus autoComplete="off"
-                 onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); aggiungi(); } if (e.key === 'Escape') { setApri(false); setNuova(''); } }} />
+                 onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); aggiungi(); } if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); setApri(false); setNuova(''); } }} />
           <button type="button" className="btn btn-piccolo btn-primario" onClick={aggiungi}>Aggiungi</button>
           <button type="button" className="link-btn piccolo" onClick={() => { setApri(false); setNuova(''); }}>annulla</button>
         </span>
       ) : (
         <button type="button" className="oc-gruppo-chip nessuno" onClick={() => setApri(true)}>{nuovaTesto}</button>
       )}
+    </div>
+  );
+}
+
+// Più valori da un elenco lungo (es. i corsi compresi in un abbonamento): a gruppi (g), in ordine fisso, con la ricerca
+function SceltaMolti({ id, valore, opzioni = [], onChange, nessunoTesto = 'Nessuno scelto' }) {
+  const [cerca, setCerca] = useState('');
+  const [soloScelti, setSoloScelti] = useState(false);
+  const scelti = new Set(valore);
+  const norm = (t) => String(t ?? '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  const parole = norm(cerca).split(/\s+/).filter(Boolean);
+  const mostrate = opzioni.filter((o) => (!soloScelti || scelti.has(o.v)) && parole.every((p) => norm(`${o.l} ${o.g || ''}`).includes(p)));
+  const blocchi = [...new Set(mostrate.map((o) => o.g || ''))].sort((a, b) => a.localeCompare(b, 'it'))
+    .map((g) => ({ g, voci: mostrate.filter((o) => (o.g || '') === g).sort((a, b) => a.l.localeCompare(b.l, 'it', { numeric: true })) }));
+  const toggle = (v) => onChange(scelti.has(v) ? valore.filter((x) => x !== v) : [...valore, v]);
+  // con la ricerca: "tutti questi" sceglie (o toglie) quelli che si vedono
+  const tuttiVisti = mostrate.length > 0 && mostrate.every((o) => scelti.has(o.v));
+  const tuttiQuesti = () => onChange(tuttiVisti ? valore.filter((v) => !mostrate.some((o) => o.v === v)) : [...new Set([...valore, ...mostrate.map((o) => o.v)])]);
+  return (
+    <div className="molti" id={id}>
+      <div className="molti-barra">
+        <strong className={valore.length ? '' : 'molti-nessuno'}>{valore.length ? `${valore.length} ${valore.length === 1 ? 'scelto' : 'scelti'}` : nessunoTesto}</strong>
+        {opzioni.length > 10 && (
+          <input type="search" value={cerca} onChange={(e) => setCerca(e.target.value)} placeholder="Cerca…" aria-label="Cerca nell'elenco"
+                 onKeyDown={(e) => { if (e.key === 'Enter') e.preventDefault(); if (e.key === 'Escape' && cerca) { e.preventDefault(); e.stopPropagation(); setCerca(''); } }} />
+        )}
+        {valore.length > 0 && (
+          <label className="spunta piccolo"><input type="checkbox" checked={soloScelti} onChange={(e) => setSoloScelti(e.target.checked)} /> solo quelli scelti</label>
+        )}
+        {parole.length > 0 && mostrate.length > 0 && (
+          <button type="button" className="link-btn piccolo" onClick={tuttiQuesti}>{tuttiVisti ? 'togli questi' : `scegli questi ${mostrate.length}`}</button>
+        )}
+        {valore.length > 0 && !parole.length && (
+          <button type="button" className="link-btn piccolo pericolo" onClick={() => { if (confirm('Togliere tutti quelli scelti?')) onChange([]); }}>togli tutti</button>
+        )}
+      </div>
+      {mostrate.length === 0 && <div className="piccolo muto">Niente{cerca ? ` con «${cerca}»` : ''}.</div>}
+      {blocchi.map(({ g, voci }) => (
+        <div key={g} className="molti-blocco">
+          {g && <div className="molti-titolo">{g}</div>}
+          <div className="molti-voci">
+            {voci.map((o) => (
+              <button key={o.v} type="button" className="oc-gruppo-chip" style={{ '--g': 'var(--nero)' }} aria-pressed={scelti.has(o.v)} onClick={() => toggle(o.v)}>{o.l}</button>
+            ))}
+          </div>
+        </div>
+      ))}
     </div>
   );
 }

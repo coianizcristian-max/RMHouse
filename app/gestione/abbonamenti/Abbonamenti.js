@@ -80,7 +80,14 @@ export default function Abbonamenti({ palestraId, sezioneIniziale = 'tipi', tipi
     (!famiglia || famiglieDi(t).includes(famiglia)) &&
     (!testo || parole.every((w) => sempl(`${t.nome} ${t.codice || ''} ${t.famiglia || ''}`).includes(w))))
     .sort(ordine === 'durata' ? (a, b) => (fascia(a).ordine - fascia(b).ordine) || perNome(a, b) : perNome);
-  const quantiCorsi = (id) => coperti.filter((c) => c.tipo_abbonamento_id === id).length;
+  // i corsi compresi in ogni abbonamento (nessuno = tutti): si toccano anche in fondo alla finestra dell'abbonamento
+  const corsiDi = {};
+  for (const c of coperti) (corsiDi[c.tipo_abbonamento_id] ||= []).push(c.corso_id);
+  const quantiCorsi = (id) => corsiDi[id]?.length || 0;
+  const opzioniCorsi = corsi.map((c) => ({ v: c.id, l: c.nome, g: c.disciplina }));
+  // nella finestra si toccano solo i corsi attivi: un abbinamento a un corso chiuso resta com'è (si salva solo la differenza)
+  const attivi = new Set(corsi.map((c) => c.id));
+  const conCorsi = (t) => ({ ...t, corsi_compresi: (corsiDi[t.id] || []).filter((id) => attivi.has(id)) });
   const nomeGruppo = (id) => gruppi.find((g) => g.id === id)?.nome;
   const senzaGruppo = quanti('nessuno');
 
@@ -152,7 +159,8 @@ export default function Abbonamenti({ palestraId, sezioneIniziale = 'tipi', tipi
           </div>
           {avviso && <div className="avviso-ok" role="status">{avviso}</div>}
           <Gestore
-            tabella="tipi_abbonamento" fissi={{ palestra_id: palestraId }} righe={visibili} etichettaNuovo="Aggiungi abbonamento"
+            tabella="tipi_abbonamento" fissi={{ palestra_id: palestraId }} righe={visibili.map(conCorsi)} etichettaNuovo="Aggiungi abbonamento"
+            finestra titoloNuovo="Nuovo abbonamento"
             vuoto="Nessun abbonamento con questi filtri." onElimina={eliminaTipo}
             sezione={ordine === 'durata' ? fascia : undefined}
             campi={[
@@ -186,6 +194,12 @@ export default function Abbonamenti({ palestraId, sezioneIniziale = 'tipi', tipi
               { k: 'rinnovo_automatico', etichetta: 'Rinnovo automatico mensile online', tipo: 'check', predefinito: false, gruppo: 'Vendita' },
               { k: 'attivo', etichetta: 'Attivo', tipo: 'check', gruppo: 'Vendita' },
               { k: 'archiviato', etichetta: 'Archiviato (resta nello storico)', tipo: 'check', predefinito: false, gruppo: 'Vendita' },
+
+              // in fondo: i corsi che l'abbonamento fa frequentare (gli stessi di "Corsi coperti")
+              { k: 'corsi_compresi', etichetta: 'Corsi compresi', tipo: 'molti', gruppo: 'Corsi compresi', larghezza: 6,
+                aiuto: 'nessuno = tutti i corsi; servono a proporre l\'abbonamento giusto e a cosa si prenota dall\'app',
+                nessunoTesto: 'Nessuno scelto: vale per tutti i corsi', opzioni: opzioniCorsi,
+                collegati: { tabella: 'tipi_abbonamento_corsi', mia: 'tipo_abbonamento_id', altra: 'corso_id' } },
             ]}
             riassunto={(t) => ({
               titolo: t.codice ? `${t.nome} · ${t.codice}` : t.nome,
@@ -225,6 +239,7 @@ export default function Abbonamenti({ palestraId, sezioneIniziale = 'tipi', tipi
           </p>
           <Gestore
             tabella="voci_listino" ordinabile fissi={{ palestra_id: palestraId }} righe={voci} etichettaNuovo="Aggiungi voce"
+            finestra titoloNuovo="Nuova voce di listino"
             vuoto="Nessuna voce a listino."
             campi={[
               { k: 'nome', etichetta: 'Nome', tipo: 'testo', obbligatorio: true },

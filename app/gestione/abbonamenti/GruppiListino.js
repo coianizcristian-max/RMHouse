@@ -15,13 +15,15 @@ export default function GruppiListino({ palestraId, gruppi, tipi }) {
   const [avviso, setAvviso] = useState('');
   const [invio, setInvio] = useState(false);
   const [nuovo, setNuovo] = useState('');
+  const [creo, setCreo] = useState(false);          // il riquadro "Aggiungi gruppo" è aperto
+  const [appena, setAppena] = useState(null);       // { id, nome } del gruppo appena creato, finché la pagina non si ricarica
   const [rinomina, setRinomina] = useState(null);   // { id, nome }
 
   const di = (g) => tipi.filter((t) => (g === 'nessuno' ? !t.gruppo_id : t.gruppo_id === g));
   const testo = cerca.trim().toLowerCase();
   const righe = di(vista).filter((t) => !testo || `${t.nome} ${t.codice || ''} ${t.famiglia || ''}`.toLowerCase().includes(testo));
   const famiglie = [...new Set(righe.map((t) => t.famiglia || 'Senza famiglia'))].sort();
-  const nomeVista = vista === 'nessuno' ? 'Senza gruppo' : gruppi.find((g) => g.id === vista)?.nome;
+  const nomeVista = vista === 'nessuno' ? 'Senza gruppo' : gruppi.find((g) => g.id === vista)?.nome || (appena?.id === vista ? appena.nome : '');
 
   function spunta(id) { setScelti((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id])); }
   function spuntaFamiglia(f) {
@@ -41,13 +43,19 @@ export default function GruppiListino({ palestraId, gruppi, tipi }) {
     setScelti([]); router.refresh();
   }
 
-  async function aggiungi(e) {
-    e.preventDefault();
-    if (!nuovo.trim()) return;
-    const { error } = await supabaseBrowser().from('gruppi_listino')
-      .insert({ palestra_id: palestraId, nome: nuovo.trim(), ordine: gruppi.length + 1 });
+  // il gruppo nuovo si crea dal riquadro accanto agli altri e si apre subito (vuoto)
+  async function aggiungi() {
+    const nome = nuovo.trim().replace(/\s+/g, ' ');
+    if (!nome || invio) return;
+    setInvio(true); setErrore(''); setAvviso('');
+    const { data, error } = await supabaseBrowser().from('gruppi_listino')
+      .insert({ palestra_id: palestraId, nome, ordine: gruppi.length + 1 }).select('id').single();
+    setInvio(false);
     if (error) { setErrore(error.code === '23505' ? 'Esiste già un gruppo con questo nome.' : 'Gruppo non creato.'); return; }
-    setNuovo(''); router.refresh();
+    setNuovo(''); setCreo(false);
+    if (data?.id) { setAppena({ id: data.id, nome }); setVista(data.id); setScelti([]); }
+    setAvviso(`Gruppo «${nome}» creato. Per riempirlo apri il gruppo dove sono ora gli abbonamenti, spuntali e scegli «sposta in ${nome}».`);
+    router.refresh();
   }
 
   async function salvaNome() {
@@ -83,6 +91,21 @@ export default function GruppiListino({ palestraId, gruppi, tipi }) {
           <button type="button" className="gruppo-riquadro attenzione" aria-pressed={vista === 'nessuno'}
                   onClick={() => { setVista('nessuno'); setScelti([]); }}>
             <strong>Senza gruppo</strong><span>{di('nessuno').length} da sistemare</span>
+          </button>
+        )}
+        {creo ? (
+          <div className="gruppo-aggiungi aperto">
+            <input value={nuovo} onChange={(e) => setNuovo(e.target.value)} placeholder="Nome, es. Estate" aria-label="Nome del nuovo gruppo"
+                   autoFocus autoComplete="off" maxLength={60}
+                   onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); aggiungi(); } if (e.key === 'Escape') { setCreo(false); setNuovo(''); } }} />
+            <span className="gruppo-aggiungi-azioni">
+              <button type="button" className="btn btn-piccolo btn-primario" disabled={!nuovo.trim() || invio} onClick={aggiungi}>{invio ? 'Creo…' : 'Crea'}</button>
+              <button type="button" className="link-btn piccolo" onClick={() => { setCreo(false); setNuovo(''); }}>annulla</button>
+            </span>
+          </div>
+        ) : (
+          <button type="button" className="gruppo-aggiungi" onClick={() => { setCreo(true); setErrore(''); }}>
+            <span className="gruppo-piu" aria-hidden="true">+</span>Aggiungi gruppo
           </button>
         )}
       </div>
@@ -148,11 +171,6 @@ export default function GruppiListino({ palestraId, gruppi, tipi }) {
           );
         })}
       </div>
-
-      <form className="gruppo-nuovo" onSubmit={aggiungi}>
-        <input value={nuovo} onChange={(e) => setNuovo(e.target.value)} placeholder="Nuovo gruppo, es. Estate" aria-label="Nome del nuovo gruppo" />
-        <button className="btn btn-piccolo" disabled={!nuovo.trim()}>Aggiungi gruppo</button>
-      </form>
     </>
   );
 }
