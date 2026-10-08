@@ -4301,3 +4301,13 @@ body:has(.sportello) .bottone-rapide { display: none; }
 .vel-verdetto ul { margin: 6px 0 0; padding-left: 18px; }
 .vel-verdetto li { margin: 4px 0; font-size: 14px; }
 @media (max-width: 640px) { .vel-tabella td:last-child, .vel-tabella th:last-child { display: none; } }
+
+/* campo a più valori (etichette / famiglie) */
+.etichette-scelta { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; min-height: 36px; }
+.etichette-scelta .oc-gruppo-chip { cursor: pointer; padding: 5px 11px 5px 9px; font-size: 13px; }
+.etichette-scelta .oc-gruppo-chip[aria-pressed='true'] { background: var(--nero); color: var(--bianco); border-color: var(--nero); }
+.etichette-scelta .oc-gruppo-chip[aria-pressed='true']::before { background: var(--bianco); }
+.etichette-scelta .oc-gruppo-chip[aria-pressed='false'] { background: var(--bianco); color: var(--testo-2); border-color: var(--linea); }
+.etichette-scelta .oc-gruppo-chip[aria-pressed='false']::before { background: var(--linea); }
+.etichette-nuova { display: inline-flex; gap: 6px; align-items: center; }
+.etichette-nuova input { min-height: 32px; padding: 4px 10px; border: 1px solid var(--linea); border-radius: 10px; font: inherit; font-size: 13.5px; width: 200px; }

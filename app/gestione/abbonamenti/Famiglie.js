@@ -17,28 +17,36 @@ export default function Famiglie({ palestraId, tipi }) {
   const [avviso, setAvviso] = useState('');
   const [invio, setInvio] = useState(false);
 
-  const conta = {};
-  for (const t of tipi) { const f = t.famiglia || ''; conta[f] = (conta[f] || 0) + 1; }
+  // ogni abbonamento può avere più famiglie: si conta ogni famiglia in quanti abbonamenti compare
+  const conta = {}; let senza = 0;
+  for (const t of tipi) {
+    const lista = Array.isArray(t.famiglie) && t.famiglie.length ? t.famiglie : (t.famiglia ? [t.famiglia] : []);
+    if (!lista.length) senza += 1;
+    for (const f of lista) conta[f] = (conta[f] || 0) + 1;
+  }
+  conta[''] = senza;
   const famiglie = Object.keys(conta).filter(Boolean).sort((a, b) => a.localeCompare(b, 'it'));
   const simili = (f) => famiglie.filter((x) => x !== f && chiaveSimile(x) === chiaveSimile(f));
 
-  async function rinomina(da, a) {
-    if (!String(a || '').trim()) { setErrore('Scrivi il nuovo nome.'); return; }
+  async function rinomina(da, a, togli = false) {
+    if (!togli && !String(a || '').trim()) { setErrore('Scrivi il nuovo nome.'); return; }
     setInvio(true); setErrore(''); setAvviso('');
     const { data, error } = await supabaseBrowser().rpc('rinomina_famiglia', { p_palestra: palestraId, p_da: da || null, p_a: a });
     setInvio(false);
     if (error) { setErrore('Non riuscito. Riprova.'); return; }
-    const unita = famiglie.some((x) => x !== da && x.toLowerCase() === String(a).trim().toLowerCase());
-    setAvviso(`${data} ${data === 1 ? 'abbonamento' : 'abbonamenti'} ${unita ? `uniti in «${a.trim()}»` : `ora in «${a.trim()}»`}.`);
+    const unita = !togli && famiglie.some((x) => x !== da && x.toLowerCase() === String(a).trim().toLowerCase());
+    setAvviso(togli ? `«${da}» tolta da ${data} ${data === 1 ? 'abbonamento' : 'abbonamenti'}.`
+      : `${data} ${data === 1 ? 'abbonamento' : 'abbonamenti'} ${unita ? `uniti in «${a.trim()}»` : `ora in «${a.trim()}»`}.`);
     setApri(null); router.refresh();
   }
 
   return (
     <div className="famiglie">
       <p className="muto piccolo" style={{ margin: '0 0 10px' }}>
-        La famiglia raggruppa gli abbonamenti simili negli elenchi (filtri, Sportello, scheda persona, corsi coperti, recuperi):
-        non cambia prezzi, corsi né regole. Nella scheda dell&apos;abbonamento si sceglie dall&apos;elenco; una nuova si crea con
-        «+ Nuova famiglia». Qui si rinominano o si uniscono: cambiano su tutti i loro abbonamenti.
+        Un abbonamento può stare in più famiglie (es. Aerea e Pole Dance). Le famiglie raggruppano gli abbonamenti negli elenchi
+        (filtri, Sportello, scheda persona, corsi coperti, recuperi): non cambiano prezzi, corsi né regole. Nella scheda
+        dell&apos;abbonamento si toccano quelle che valgono; una nuova si crea con «+ Nuova famiglia». Qui si rinominano, si uniscono
+        o si tolgono: vale per tutti i loro abbonamenti.
       </p>
       {errore && <div className="errore" role="alert">{errore}</div>}
       {avviso && <div className="avviso-ok" role="status">{avviso}</div>}
@@ -68,6 +76,8 @@ export default function Famiglie({ palestraId, tipi }) {
             {apri !== f && (
               <div className="gestore-azioni">
                 <button type="button" className="link-btn" onClick={() => { setApri(f); setNome(f); setErrore(''); }}>Rinomina o unisci</button>
+                <button type="button" className="link-btn pericolo" disabled={invio}
+                        onClick={() => { if (confirm(`Togliere la famiglia «${f}» da ${conta[f]} ${conta[f] === 1 ? 'abbonamento' : 'abbonamenti'}? Non cambia prezzi né corsi.`)) rinomina(f, '', true); }}>Togli</button>
               </div>
             )}
           </li>

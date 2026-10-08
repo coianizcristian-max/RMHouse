@@ -68,15 +68,16 @@ export default function Abbonamenti({ palestraId, sezioneIniziale = 'tipi', tipi
   const nelGruppo = (t) => !gruppo || (gruppo === 'nessuno' ? !t.gruppo_id : t.gruppo_id === gruppo);
   const quanti = (g) => tipi.filter((t) => !t.archiviato && (g === 'nessuno' ? !t.gruppo_id : t.gruppo_id === g)).length;
   // tutte le famiglie in uso (per sceglierle nella scheda dell'abbonamento, invece di riscriverle)
-  const tutteFamiglie = [...new Set(tipi.map((t) => t.famiglia).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'it'));
-  const famiglie = [...new Set(tipi.filter((t) => !t.archiviato && nelGruppo(t)).map((t) => t.famiglia).filter(Boolean))].sort();
+  const famiglieDi = (t) => (Array.isArray(t.famiglie) && t.famiglie.length ? t.famiglie : (t.famiglia ? [t.famiglia] : []));
+  const tutteFamiglie = [...new Set(tipi.flatMap(famiglieDi))].sort((a, b) => a.localeCompare(b, 'it'));
+  const famiglie = [...new Set(tipi.filter((t) => !t.archiviato && nelGruppo(t)).flatMap(famiglieDi))].sort();
   // parola per parola, senza accenti né spazi doppi: "attrezzi 90" trova anche "ATTREZZI  90 min…"
   const sempl = (x) => String(x || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
   const parole = sempl(cerca).split(/\s+/).filter(Boolean);
   const testo = parole.join(' ');
   const visibili = tipi.filter((t) =>
     (archiviati ? t.archiviato : !t.archiviato) && nelGruppo(t) &&
-    (!famiglia || t.famiglia === famiglia) &&
+    (!famiglia || famiglieDi(t).includes(famiglia)) &&
     (!testo || parole.every((w) => sempl(`${t.nome} ${t.codice || ''} ${t.famiglia || ''}`).includes(w))))
     .sort(ordine === 'durata' ? (a, b) => (fascia(a).ordine - fascia(b).ordine) || perNome(a, b) : perNome);
   const quantiCorsi = (id) => coperti.filter((c) => c.tipo_abbonamento_id === id).length;
@@ -161,10 +162,10 @@ export default function Abbonamenti({ palestraId, sezioneIniziale = 'tipi', tipi
               { k: 'gruppo_id', etichetta: 'Gruppo di listino', tipo: 'select', opzioni: opzioniGruppo, vuotoTesto: '— nessuno —',
                 predefinito: gruppo && gruppo !== 'nessuno' ? gruppo : '', gruppo: 'Abbonamento' },
               { k: 'modalita', etichetta: 'Tipo', tipo: 'select', opzioni: MODALITA, obbligatorio: true, predefinito: 'orari_fissi', gruppo: 'Abbonamento' },
-              { k: 'famiglia', etichetta: 'Famiglia', tipo: 'scelta', gruppo: 'Abbonamento', larghezza: 2, aiuto: 'raggruppa i simili',
-                opzioni: tutteFamiglie.map((f) => ({ v: f, l: f })), vuotoTesto: '— nessuna —', nuovaTesto: '+ Nuova famiglia…' },
+              { k: 'famiglie', etichetta: 'Famiglie', tipo: 'etichette', gruppo: 'Abbonamento', larghezza: 6, aiuto: 'una o più: raggruppano i simili',
+                opzioni: tutteFamiglie, nuovaTesto: '+ Nuova famiglia…' },
+              { k: 'descrizione', etichetta: 'Descrizione per il cliente', tipo: 'testolungo', righe: 1, gruppo: 'Abbonamento', larghezza: 5, aiuto: 'nel negozio dell\'app' },
               { k: 'aliquota_id', etichetta: 'IVA', tipo: 'select', opzioni: opzioniAliquota, vuotoTesto: '— predefinita —', gruppo: 'Abbonamento' },
-              { k: 'descrizione', etichetta: 'Descrizione per il cliente', tipo: 'testolungo', righe: 1, gruppo: 'Abbonamento', larghezza: 3, aiuto: 'nel negozio dell\'app' },
 
               { k: 'prezzo_cent', etichetta: 'Prezzo segreteria (€)', tipo: 'euro', obbligatorio: true, gruppo: 'Prezzo e durata' },
               { k: 'prezzo_web_cent', etichetta: 'Prezzo online (€)', tipo: 'euro', gruppo: 'Prezzo e durata', aiuto: 'vuoto = uguale' },

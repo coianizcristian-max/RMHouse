@@ -8,6 +8,7 @@ import SceltaColore from './SceltaColore';
 // campi: [{ k, etichetta, tipo: 'testo'|'numero'|'euro'|'select'|'check'|'ora'|'data'|'testolungo',
 //           opzioni?: [{v,l}], obbligatorio?, aiuto?, meta?, suggerimenti?: [{nome, colore}], nessuno?, segnaposto?,
 //           tipo 'scelta': opzioni [{v,l}] + "+ Nuova…" (nuovaTesto), niente testo libero sbagliato
+//           tipo 'etichette': più valori (array di testi) da opzioni [testo] + "+ Nuova…"
 //           gruppo? (titolo di sezione: modulo compatto a 4 colonne), larghezza? 1-4, se?(bozza) → mostrarlo o no, righe? }]
 // fissi: valori sempre applicati (es. { palestra_id, corso_id })
 // riassunto(riga) -> { titolo, dettaglio, tag?, colore? }
@@ -29,7 +30,7 @@ export default function Gestore({ tabella, campi, righe, fissi = {}, riassunto, 
   const lungo = ordinabile && righe.length > 6;
 
   // valori di partenza delle righe nuove: le caselle spuntate, salvo "predefinito" diverso
-  const vuota = Object.fromEntries(campi.map((c) => [c.k, c.predefinito ?? (c.tipo === 'check' ? true : '')]));
+  const vuota = Object.fromEntries(campi.map((c) => [c.k, c.predefinito ?? (c.tipo === 'check' ? true : c.tipo === 'etichette' ? [] : '')]));
 
   function apriNuovo() {
     setBozza({ ...vuota, ...(campi.find((c) => c.k === 'ordine') ? { ordine: righe.length + 1 } : {}) });
@@ -40,7 +41,7 @@ export default function Gestore({ tabella, campi, righe, fissi = {}, riassunto, 
     const b = {};
     campi.forEach((c) => {
       const v = r[c.k];
-      b[c.k] = c.tipo === 'euro' ? (v == null ? '' : (v / 100).toString()) : v ?? (c.tipo === 'check' ? false : '');
+      b[c.k] = c.tipo === 'euro' ? (v == null ? '' : (v / 100).toString()) : c.tipo === 'etichette' ? (Array.isArray(v) ? v : []) : v ?? (c.tipo === 'check' ? false : '');
     });
     setBozza(b); setErrore(''); setApri(r.id);
   }
@@ -48,6 +49,7 @@ export default function Gestore({ tabella, campi, righe, fissi = {}, riassunto, 
   function valore(c) {
     const v = bozza[c.k];
     if (c.tipo === 'check') return !!v;
+    if (c.tipo === 'etichette') return Array.isArray(v) ? v : [];
     if (v === '' || v == null) return null;
     if (c.tipo === 'numero') return parseInt(String(v).trim(), 10);
     if (c.tipo === 'euro') return Math.round(numeroEuro(v) * 100);
@@ -223,6 +225,9 @@ function Modulo({ campi, bozza, setBozza, salva, annulla, invio, errore }) {
             <option value="">{c.vuotoTesto || '— nessuno —'}</option>
             {c.opzioni.map((o) => <option key={o.v} value={o.v}>{o.l}</option>)}
           </select>
+        ) : c.tipo === 'etichette' ? (
+          <Etichette id={id} valore={Array.isArray(bozza[c.k]) ? bozza[c.k] : []} opzioni={c.opzioni || []} nuovaTesto={c.nuovaTesto}
+                     onChange={(v) => set(c.k, v)} />
         ) : c.tipo === 'scelta' ? (
           <SceltaONuova id={id} valore={bozza[c.k] ?? ''} opzioni={c.opzioni} vuotoTesto={c.vuotoTesto} nuovaTesto={c.nuovaTesto}
                         onChange={(v) => set(c.k, v)} />
@@ -279,6 +284,39 @@ function Modulo({ campi, bozza, setBozza, salva, annulla, invio, errore }) {
         <button type="button" className="btn" onClick={annulla}>Annulla</button>
       </div>
     </form>
+  );
+}
+
+// Più valori da un elenco (es. le famiglie di un abbonamento): si toccano quelli che valgono; uno nuovo si scrive e si aggiunge
+function Etichette({ id, valore, opzioni = [], onChange, nuovaTesto = '+ Nuova…' }) {
+  const [nuova, setNuova] = useState('');
+  const [apri, setApri] = useState(false);
+  const scelte = valore.map((v) => v.toLowerCase());
+  const tutte = [...opzioni];
+  for (const v of valore) if (!tutte.some((o) => o.toLowerCase() === v.toLowerCase())) tutte.push(v);
+  const toggle = (o) => onChange(scelte.includes(o.toLowerCase()) ? valore.filter((v) => v.toLowerCase() !== o.toLowerCase()) : [...valore, o]);
+  const aggiungi = () => {
+    const n = nuova.trim().replace(/\s+/g, ' ');
+    if (!n) return;
+    if (!scelte.includes(n.toLowerCase())) onChange([...valore, tutte.find((o) => o.toLowerCase() === n.toLowerCase()) || n]);
+    setNuova(''); setApri(false);
+  };
+  return (
+    <div className="etichette-scelta" id={id}>
+      {tutte.map((o) => (
+        <button key={o} type="button" className="oc-gruppo-chip" style={{ '--g': 'var(--nero)' }} aria-pressed={scelte.includes(o.toLowerCase())} onClick={() => toggle(o)}>{o}</button>
+      ))}
+      {apri ? (
+        <span className="etichette-nuova">
+          <input value={nuova} onChange={(e) => setNuova(e.target.value)} placeholder="nome della nuova" autoFocus autoComplete="off"
+                 onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); aggiungi(); } if (e.key === 'Escape') { setApri(false); setNuova(''); } }} />
+          <button type="button" className="btn btn-piccolo btn-primario" onClick={aggiungi}>Aggiungi</button>
+          <button type="button" className="link-btn piccolo" onClick={() => { setApri(false); setNuova(''); }}>annulla</button>
+        </span>
+      ) : (
+        <button type="button" className="oc-gruppo-chip nessuno" onClick={() => setApri(true)}>{nuovaTesto}</button>
+      )}
+    </div>
   );
 }
 
