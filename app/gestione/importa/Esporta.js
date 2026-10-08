@@ -81,6 +81,10 @@ export default function Esporta({ palestraId }) {
         Gli stessi quattro elenchi di APP Palestre, presi da RMHouse: con le stesse colonne, così si aprono in Excel, si possono dare
         a un altro gestionale o al commercialista, e si possono anche reimportare qui.
       </p>
+      <p className="piccolo" style={{ maxWidth: 780 }}>
+        Per far controllare a Claude il lavoro della segreteria (incassi, ricevute, presenze, modifiche) c&apos;è il pacchetto apposta:{' '}
+        <a href="/gestione/verifiche">Conti → Export per le verifiche</a>.
+      </p>
       {errore && <div className="errore" role="alert">{errore}</div>}
 
       <div className="griglia-2 esporta-elenchi" style={{ marginBottom: 16 }}>

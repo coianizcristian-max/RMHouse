@@ -100,6 +100,7 @@ const SEZIONI = [
       ['Mandare la ricevuta al cliente', '/gestione/ricevute', 'Aprendo una ricevuta: logo, "Invia su WhatsApp", "Invia via email", copia il link, annulla. Il cliente la apre dal link e la trova nell\'app.', 'invia-ricevuta'],
       ['Rendiconto staff', '/gestione/rendiconto', 'Lezioni, ore, presenze e compenso stimato di ogni insegnante su un periodo libero.'],
       ['Per il commercialista', '/gestione/commercialista', 'Registro documenti, corrispettivi per giorno e aliquota, acquisti, incassi e compensi in un ZIP; aliquote IVA, numerazioni, attestati per la detrazione sportiva dei ragazzi.'],
+      ['Export per le verifiche', '/gestione/verifiche', 'Una o due volte l\'anno: un pacchetto ZIP con clienti, abbonamenti, pagamenti, ricevute, presenze e modifiche da dare a Claude, con le istruzioni passo passo e il messaggio già pronto. Trova incassi mancanti, ricevute saltate, chi frequenta senza abbonamento, certificati scaduti, contanti non versati.'],
       ['Statistiche', '/gestione/statistiche', 'Panoramica, iscrizioni e rinnovi, frequenza, corsi, persone, prove e contatti, economia. Di base sulla stagione sportiva; si può scegliere la stagione scorsa, l\'anno solare o un periodo libero.'],
       ['Motivi di chi non si iscrive', '/gestione/statistiche/prove', 'Statistiche → Prove: le risposte del sondaggio mandato a chi ha provato senza poi iscriversi.'],
       ['Incassi', '/gestione/incassi', 'Quote, abbonamenti, prove e affitti incassati, totali per metodo e quello che resta da incassare.'],

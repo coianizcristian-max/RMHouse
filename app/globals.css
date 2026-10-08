@@ -4736,3 +4736,35 @@ body:has(.sportello) .bottone-rapide { display: none; }
   .kpi-home { grid-auto-flow: row; grid-auto-columns: auto; grid-template-columns: repeat(7, minmax(0, 1fr)); overflow: visible; padding-bottom: 0; }
   .kpi-home .cifra { font-size: clamp(17px, 2.05cqi, 24px); }
 }
+
+/* 189 — Export per le verifiche: i passi numerati, il periodo, l'avanzamento, il messaggio per Claude */
+.vf { display: grid; gap: 14px; max-width: 980px; }
+.vf .pannello h2 { margin-top: 0; }
+.vf-stato { padding: 10px 14px; border-radius: 12px; background: var(--carta); border: 1px solid var(--linea); font-size: 14.5px; line-height: 1.5; }
+.vf-stato-da-fare { background: #fff6e5; border-color: #f1c66b; }
+.vf-passi { list-style: none; margin: 0; padding: 0; counter-reset: vf; display: grid; gap: 0; }
+.vf-passi > li { counter-increment: vf; position: relative; padding: 12px 0 14px 46px; border-top: 1px solid var(--linea); min-width: 0; }
+.vf-passi > li:first-child { border-top: 0; padding-top: 4px; }
+.vf-passi > li::before { content: counter(vf); position: absolute; left: 0; top: 10px; width: 32px; height: 32px; border-radius: 50%;
+  background: var(--nero); color: #fff; font-weight: 800; display: grid; place-items: center; font-size: 15px; }
+.vf-passi > li:first-child::before { top: 2px; }
+.vf-passi p { margin: 6px 0 0; line-height: 1.5; }
+.vf-titolo { font-weight: 750; font-size: 16px; margin-bottom: 8px; }
+.vf-titolo .tag { margin-left: 6px; vertical-align: middle; }
+.vf-periodi { margin-bottom: 8px; }
+.vf-date { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; }
+.vf-date label { display: inline-flex; align-items: center; gap: 6px; font-size: 14px; color: var(--testo-2); }
+.vf-date input { min-height: 40px; padding: 6px 10px; font: inherit; border: 1.5px solid var(--linea); border-radius: 10px; background: var(--bianco); }
+.vf-avanz { display: grid; gap: 4px; margin-top: 10px; max-width: 520px; }
+.vf-barra { height: 8px; border-radius: 99px; background: var(--linea); overflow: hidden; }
+.vf-barra span { display: block; height: 100%; background: var(--rosso); transition: width .2s; }
+.vf-spunte { display: grid; gap: 4px; margin-bottom: 10px; }
+.vf-spunte .spunta { margin: 0; }
+.vf-messaggio { margin-top: 10px; }
+.vf-messaggio summary { cursor: pointer; font-size: 14px; color: var(--testo-2); }
+.vf-messaggio textarea { width: 100%; margin-top: 8px; font: 13px/1.45 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  padding: 10px 12px; border: 1.5px solid var(--linea); border-radius: 10px; background: var(--carta); color: var(--testo); resize: vertical; }
+.vf-file { list-style: none; margin: 0; padding: 0; display: grid; gap: 0 22px; grid-template-columns: minmax(0, 1fr); }
+.vf-file li { padding: 8px 0; border-top: 1px solid var(--linea); min-width: 0; }
+@media (min-width: 900px) { .vf-file { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 600px) { .vf-passi > li { padding-left: 40px; } .vf-passi > li::before { width: 28px; height: 28px; font-size: 14px; } .vf .btn { width: 100%; } }
