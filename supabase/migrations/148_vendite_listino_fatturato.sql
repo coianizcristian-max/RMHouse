@@ -496,15 +496,17 @@ grant execute on function importa_ap_listino(uuid, jsonb) to authenticated, serv
 -- 6. Il controllo finale dell'import chiama anche i due controlli nuovi
 --    (si aggiunge una riga a importa_ap_anomalie della 124, senza riscriverla)
 -- ---------------------------------------------------------------------
+-- Le funzioni della 124 si "ritoccano" senza riscriverle: se il loro testo è stato incollato con gli a capo di Windows
+-- (\r\n, succede con l'SQL Editor) i \r si tolgono prima, e i punti da cambiare si cercano senza badare agli spazi.
 do $$
 declare v_def text;
 begin
-  v_def := pg_get_functiondef('importa_ap_anomalie(uuid)'::regprocedure);
+  v_def := replace(pg_get_functiondef('importa_ap_anomalie(uuid)'::regprocedure), chr(13), '');
   if position('controlla_vendite' in v_def) = 0 then
-    v_def := replace(v_def,
-      E'if auth.uid() is not null and not is_gestione(v_pal) then raise exception ''non_autorizzato''; end if;\n',
-      E'if auth.uid() is not null and not is_gestione(v_pal) then raise exception ''non_autorizzato''; end if;\n' ||
-      E'  -- 148: vendite e listino di APP Palestre (se caricati)\n  perform controlla_vendite(p_imp);\n  perform controlla_listino(p_imp);\n');
+    -- subito dopo il controllo dei permessi (il primo "raise exception 'non_autorizzato'")
+    v_def := regexp_replace(v_def,
+      '(if\s+auth\.uid\(\)\s+is\s+not\s+null\s+and\s+not\s+is_gestione\(v_pal\)\s+then\s+raise\s+exception\s+''non_autorizzato''\s*;\s*end\s+if\s*;)',
+      E'\\1\n  -- 148: vendite e listino di APP Palestre (se caricati)\n  perform controlla_vendite(p_imp);\n  perform controlla_listino(p_imp);');
     if position('controlla_vendite' in v_def) = 0 then
       raise exception 'importa_ap_anomalie: non trovo dove aggiungere il controllo delle vendite';
     end if;
@@ -519,28 +521,28 @@ end $$;
 do $$
 declare v_def text;
 begin
-  v_def := pg_get_functiondef('importa_ap_chiudi(uuid)'::regprocedure);
+  v_def := replace(pg_get_functiondef('importa_ap_chiudi(uuid)'::regprocedure), chr(13), '');
   if position('v_pren' in v_def) = 0 then
-    v_def := replace(v_def, E'  v_fuso text;\nbegin', E'  v_fuso text; v_pren boolean;\nbegin');
-    v_def := replace(v_def,
-      E'  select min(data_pagamento) into v_primo_pag from import_pagamenti where importazione_id = p_imp;\n',
-      E'  select min(data_pagamento) into v_primo_pag from import_pagamenti where importazione_id = p_imp;\n' ||
-      E'  -- 148: le anomalie sugli orari solo se questa volta sono state caricate le prenotazioni\n' ||
-      E'  v_pren := exists (select 1 from import_prenotazioni where importazione_id = p_imp);\n');
-    v_def := replace(v_def,
-      E'    if t.modalita = ''orari_fissi'' then\n      if cardinality(v_orari) = 0 and cardinality(v_fuori) = 0 then',
-      E'    if t.modalita = ''orari_fissi'' and v_pren then\n      if cardinality(v_orari) = 0 and cardinality(v_fuori) = 0 then');
+    v_def := regexp_replace(v_def, '(v_fuso\s+text\s*;)(\s*begin)', '\1 v_pren boolean;\2');
+    v_def := regexp_replace(v_def,
+      '(select\s+min\(data_pagamento\)\s+into\s+v_primo_pag\s+from\s+import_pagamenti\s+where\s+importazione_id\s*=\s*p_imp\s*;)',
+      E'\\1\n  -- 148: le anomalie sugli orari solo se questa volta sono state caricate le prenotazioni\n' ||
+      E'  v_pren := exists (select 1 from import_prenotazioni where importazione_id = p_imp);');
+    v_def := regexp_replace(v_def,
+      'if\s+t\.modalita\s*=\s*''orari_fissi''\s+then(\s+if\s+cardinality\(v_orari\)\s*=\s*0\s+and\s+cardinality\(v_fuori\)\s*=\s*0\s+then)',
+      'if t.modalita = ''orari_fissi'' and v_pren then\1');
     if (length(v_def) - length(replace(v_def, 'v_pren', ''))) / length('v_pren') <> 3 then
       raise exception 'importa_ap_chiudi: non trovo i punti da cambiare (prenotazioni)';
     end if;
     execute v_def;
   end if;
 
-  v_def := pg_get_functiondef('importa_ap_anomalie(uuid)'::regprocedure);
+  v_def := replace(pg_get_functiondef('importa_ap_anomalie(uuid)'::regprocedure), chr(13), '');
   if position('148: voci di file non caricati' in v_def) = 0 then
-    v_def := replace(v_def,
-      E'     and (importazione_id is distinct from p_imp or (aggiornata_at < v_giro and chiave not like ''ric\\_doppia|%''));',
-      E'     and (importazione_id is distinct from p_imp or (aggiornata_at < v_giro and chiave not like ''ric\\_doppia|%''))\n' ||
+    -- la chiusura automatica delle voci "non più uscite": "... chiave not like 'ric\_doppia|%'));"
+    v_def := regexp_replace(v_def,
+      '(chiave\s+not\s+like\s+''ric.{1,2}doppia\|%''\s*\)\s*\))\s*;',
+      E'\\1\n' ||
       E'     -- 148: voci di file non caricati questa volta: restano com''erano\n' ||
       E'     and (exists (select 1 from import_prenotazioni x where x.importazione_id = p_imp)\n' ||
       E'          or split_part(chiave, ''|'', 1) not in (''da_pren'', ''senza_orari'', ''pochi_orari'', ''orari_in_piu'', ''orario_manca'',\n' ||
@@ -711,9 +713,10 @@ end $f$;
 do $$
 declare v_def text;
 begin
-  v_def := pg_get_functiondef('workshop_email(uuid)'::regprocedure);
+  v_def := replace(pg_get_functiondef('workshop_email(uuid)'::regprocedure), chr(13), '');
   if position('testo_semplice(r.info_pratiche)' in v_def) = 0 then
-    v_def := replace(v_def, '''info'', coalesce(r.info_pratiche, '''')', '''info'', coalesce(testo_semplice(r.info_pratiche), '''')');
+    v_def := regexp_replace(v_def, '''info''\s*,\s*coalesce\(\s*r\.info_pratiche\s*,\s*''''\s*\)',
+                            '''info'', coalesce(testo_semplice(r.info_pratiche), '''')');
     if position('testo_semplice(r.info_pratiche)' in v_def) = 0 then
       raise exception 'workshop_email: non trovo il testo "cosa sapere"';
     end if;
