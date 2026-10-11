@@ -2,6 +2,7 @@
 import { useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { supabaseBrowser } from '@/lib/supabase/browser';
+import { testoAliquota } from '@/lib/iva';
 
 const SPUNTE = [
   ['attivo', 'Attivo', 'Il corso è nel palinsesto'],
@@ -30,13 +31,20 @@ function Numero({ c, campo, euro = false, vuotoOk = false, segnaposto, onSalva, 
   );
 }
 
-export default function ModificaVeloce({ corsi: iniziali }) {
+export default function ModificaVeloce({ corsi: iniziali, aliquote = [] }) {
   const [corsi, setCorsi] = useState(iniziali);
   const [cerca, setCerca] = useState('');
   const [soloAttivi, setSoloAttivi] = useState(true);
   const [stato, setStato] = useState({});             // id → 'salvo' | 'ok' | 'errore'
   const [scelti, setScelti] = useState(new Set());
-  const [massa, setMassa] = useState({ capienza: '', prezzo: '', prove: '' });
+  const [massa, setMassa] = useState({ capienza: '', prezzo: '', prove: '', iva: '' });
+  // la tendina dell'IVA del corso (query 166): "—" = quella dell'abbonamento o la predefinita
+  const sceltaIva = (valore, onCambia, etichetta) => (
+    <select className="mv-iva" value={valore || ''} onChange={(e) => onCambia(e.target.value)} aria-label={etichetta}>
+      <option value="">—</option>
+      {aliquote.map((a) => <option key={a.id} value={a.id}>{testoAliquota(a)}</option>)}
+    </select>
+  );
   const [avviso, setAvviso] = useState('');
   const timer = useRef(null);
 
@@ -67,8 +75,9 @@ export default function ModificaVeloce({ corsi: iniziali }) {
     if (massa.capienza !== '') { const v = leggiIntero(massa.capienza); if (v === undefined) return mostra('Posti: scrivi un numero'); cambi.capienza = v; }
     if (massa.prezzo !== '') { const v = leggiEuro(massa.prezzo); if (v === null) return mostra('Prezzo: scrivi un importo'); cambi.prezzo_prova_cent = v; }
     if (massa.prove !== '') { const v = leggiIntero(massa.prove); if (v == null) return mostra('Prove: scrivi un numero'); cambi.max_prove_per_lezione = v; }
+    if (massa.iva !== '') cambi.aliquota_id = massa.iva === 'nessuna' ? null : massa.iva;
     if (!Object.keys(cambi).length) return mostra('Scrivi almeno un valore');
-    applica(cambi, 'Aggiornati').then(() => setMassa({ capienza: '', prezzo: '', prove: '' }));
+    applica(cambi, 'Aggiornati').then(() => setMassa({ capienza: '', prezzo: '', prove: '', iva: '' }));
   }
 
   const senzaPosti = corsi.filter((c) => c.attivo && c.capienza == null).length;
@@ -96,6 +105,7 @@ export default function ModificaVeloce({ corsi: iniziali }) {
               <th title="Vuoto = come la sala">Posti</th>
               <th>Prova €</th>
               <th title="Quante persone in prova al massimo in una lezione">Prove / lezione</th>
+              {aliquote.length > 0 && <th title="IVA di abbonamenti, prove e incassi del corso (prezzi IVA compresa). Vuoto = quella dell'abbonamento, se no la predefinita">IVA</th>}
               {SPUNTE.map(([k, t, d]) => <th key={k} title={d} className="mv-spunta">{t}</th>)}
               <th aria-label="Stato" />
             </tr>
@@ -112,6 +122,7 @@ export default function ModificaVeloce({ corsi: iniziali }) {
                 <td><Numero key={`p${c.capienza}`} c={c} campo="capienza" vuotoOk segnaposto="sala" onSalva={salva} onErrore={errore} /></td>
                 <td><Numero key={`e${c.prezzo_prova_cent}`} c={c} campo="prezzo_prova_cent" euro onSalva={salva} onErrore={errore} /></td>
                 <td><Numero key={`m${c.max_prove_per_lezione}`} c={c} campo="max_prove_per_lezione" onSalva={salva} onErrore={errore} /></td>
+                {aliquote.length > 0 && <td>{sceltaIva(c.aliquota_id, (v) => salva([c.id], { aliquota_id: v || null }), `IVA ${c.nome}`)}</td>}
                 {SPUNTE.map(([k, t]) => (
                   <td key={k} className="mv-spunta">
                     <input type="checkbox" aria-label={`${t} ${c.nome}`} checked={!!c[k]} onChange={(e) => salva([c.id], { [k]: e.target.checked })} />
@@ -137,6 +148,14 @@ export default function ModificaVeloce({ corsi: iniziali }) {
             <label><span>Posti</span><input inputMode="numeric" value={massa.capienza} onChange={(e) => setMassa({ ...massa, capienza: e.target.value })} /></label>
             <label><span>Prova €</span><input inputMode="decimal" value={massa.prezzo} onChange={(e) => setMassa({ ...massa, prezzo: e.target.value })} /></label>
             <label><span>Prove / lez.</span><input inputMode="numeric" value={massa.prove} onChange={(e) => setMassa({ ...massa, prove: e.target.value })} /></label>
+            {aliquote.length > 0 && (
+              <label><span>IVA</span>
+                <select value={massa.iva} onChange={(e) => setMassa({ ...massa, iva: e.target.value })} aria-label="IVA per i corsi selezionati">
+                  <option value="">—</option>
+                  <option value="nessuna">come l'abbonamento</option>
+                  {aliquote.map((a) => <option key={a.id} value={a.id}>{testoAliquota(a)}</option>)}
+                </select></label>
+            )}
             <button type="button" className="mv-b-applica" onClick={applicaNumeri}>Applica</button>
           </div>
           <div className="mv-b-spunte">

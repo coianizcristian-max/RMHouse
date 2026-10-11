@@ -119,7 +119,7 @@ export default function FinestraCorso({ corsoId, nome, palestraId, schedaInizial
         {d && (
           <>
             <div style={{ display: scheda === 'corso' ? undefined : 'none' }} className="fc-scheda">
-              <CorsoForm palestraId={palestraId} corso={d.corso} discipline={d.discipline} fasce={d.fasce} livelli={d.livelli} sedi={d.sedi}
+              <CorsoForm palestraId={palestraId} corso={d.corso} discipline={d.discipline} fasce={d.fasce} livelli={d.livelli} sedi={d.sedi} aliquote={d.aliquote}
                          tavolozza={d.palestra?.tema?.tavolozza || []} onModificato={setModificato}
                          onSalvato={() => { setModificato(false); onChiudi(); }} onAnnulla={chiudi} />
             </div>

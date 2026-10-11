@@ -12,7 +12,16 @@ export default async function PaginaAppello({ params }) {
   const { id } = await params;
   const { supabase, staff } = await staffCorrente();
 
-  const [{ data: lezione }, { data: persone }, { data: dettagli }, { data: avvisati }, { data: nuove }, { data: regole }, { data: saldi }, { data: senzaIncasso }] = await Promise.all([
+  // tutta la pagina in una lettura (query 165); senza, le undici di prima
+  let lezione, persone, dettagli, avvisati, nuove, regole, saldi, senzaIncasso, postazioni, lz, insegnanti, sostituzione = null;
+  const { data: tutto, error: e165 } = await supabase.rpc('appello_dati', { p_lezione: id });
+  if (!e165 && tutto && typeof tutto === 'object') {
+    ({ lezione, persone, dettagli, avvisati, nuove, saldi, postazioni, lz, insegnanti, sostituzione } = tutto);
+    regole = { recupero_da: tutto.recupero_da }; senzaIncasso = tutto.senza_incasso;
+  } else if (!e165 && tutto === null) {
+    notFound();
+  } else {
+  [{ data: lezione }, { data: persone }, { data: dettagli }, { data: avvisati }, { data: nuove }, { data: regole }, { data: saldi }, { data: senzaIncasso }] = await Promise.all([
     supabase.from('v_lezioni').select('*').eq('id', id).maybeSingle(),
     supabase.from('v_appello')
       .select('allievo_id, tipo, nome, cognome, data_nascita, certificato_scadenza, bloccato, certificato_in_scadenza, quota_mancante, presente')
@@ -30,13 +39,15 @@ export default async function PaginaAppello({ params }) {
     staff.ruolo !== 'insegnante' ? supabase.rpc('senza_incasso', { p_palestra: staff.palestra_id }) : Promise.resolve({ data: [] }),
   ]);
 
-  const { data: postazioni } = await supabase.rpc('postazioni_lezione', { p_lezione: id });
+  ({ data: postazioni } = await supabase.rpc('postazioni_lezione', { p_lezione: id }));
   if (!lezione) notFound();
   // chi ha tenuto la lezione (conferma per i compensi) e chi la poteva tenere
-  const [{ data: lz }, { data: insegnanti }] = await Promise.all([
+  [{ data: lz }, { data: insegnanti }] = await Promise.all([
     supabase.from('lezioni').select('insegnante_id, svolta_da, svolta_at, svolta_come, appello_da, appello_at, appello_mod_da, appello_mod_at').eq('id', id).maybeSingle(),
     supabase.from('staff').select('id, nome, cognome').eq('palestra_id', staff.palestra_id).eq('attivo', true).not('archiviato', 'is', true).order('nome'),
   ]);
+  }
+  if (!lezione) notFound();
   const nomeDi = (sid) => { const s = (insegnanti || []).find((x) => x.id === sid); return s ? `${s.nome} ${s.cognome || ''}`.trim() : ''; };
   const gestione = staff.ruolo !== 'insegnante';
   const mia = gestione || lz?.insegnante_id === staff.id || lz?.svolta_da === staff.id;
@@ -83,7 +94,7 @@ export default async function PaginaAppello({ params }) {
   return (
     <>
       {testa}
-      <Sostituzione lezioneId={lezione.id} gestione={gestione} />
+      <Sostituzione lezioneId={lezione.id} gestione={gestione} iniziale={sostituzione} />
       {lezione.stato === 'annullata' && <div className="errore">Lezione annullata{lezione.note ? `: ${lezione.note}` : ''}.</div>}
       {lezione.stato !== 'annullata' && (
         <ConfermaLezione lezioneId={lezione.id} gestione={gestione}

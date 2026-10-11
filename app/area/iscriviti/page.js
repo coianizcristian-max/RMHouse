@@ -6,6 +6,8 @@ import { utenteCorrente } from '@/lib/utente';
 import { stripeAttivo } from '@/lib/stripe';
 import Iscriviti from './Iscriviti';
 import { satispayAttivo } from '@/lib/satispay';
+import { impostazioniPalestra } from '@/lib/staff';
+import { SLUG } from '@/lib/palestra';
 
 export const dynamic = 'force-dynamic';
 export const metadata = { title: 'Iscriviti · Ritmo Metropolitano' };
@@ -16,11 +18,12 @@ export default async function PaginaIscriviti({ searchParams }) {
   const user = await utenteCorrente();
   if (!user) redirect(`/area/accedi?da=${encodeURIComponent('/area/iscriviti' + (corso ? `?corso=${corso}` : ''))}`);
   const supabase = await supabaseServer();
-  await supabase.rpc('collega_account');
-  const { data: pal } = await supabase.from('palestre').select('id, stripe, quota_iscrizione_cent, area_cliente').limit(1).maybeSingle();
-  if (!pal) redirect('/area');
+  // la palestra dalla memoria del server (insieme al collegamento dell'account) e Satispay con le altre letture
+  // (prima: collega → palestra → nove letture → Satispay, quattro giri uno dopo l'altro; ora due)
+  const [pal] = await Promise.all([impostazioniPalestra(SLUG), supabase.rpc('collega_account')]);
+  if (!pal?.id) redirect('/area');
 
-  const [{ data: persone }, { data: catalogo }, { data: corsi }, { data: tipi }, { data: orari }, { data: coperti }, { data: pieni }, { data: attivi }, { data: staff }] = await Promise.all([
+  const [{ data: persone }, { data: catalogo }, { data: corsi }, { data: tipi }, { data: orari }, { data: coperti }, { data: pieni }, { data: attivi }, { data: staff }, satispay] = await Promise.all([
     supabase.rpc('profilo_area'),
     supabaseAdmin().from('v_corsi_pubblici').select('id, nome, descrizione, colore, foto_url, disciplina, categoria, fascia, eta_min, eta_max, livello, sede, insegnanti, orari').eq('palestra_id', pal.id),
     supabase.from('corsi').select('id, iscrizioni_app, nota_iscrizioni').eq('palestra_id', pal.id).eq('attivo', true),
@@ -34,6 +37,7 @@ export default async function PaginaIscriviti({ searchParams }) {
     supabase.from('iscrizioni').select('allievo_id, corso_id, data_fine').eq('stato', 'attiva').gte('data_fine', new Date().toISOString().slice(0, 10)),
     // nome e cognome di chi insegna in ogni orario: i clienti scelgono anche in base all'insegnante
     supabaseAdmin().from('staff').select('id, nome, cognome').eq('palestra_id', pal.id),
+    pal.stripe?.abbonamenti_online !== false ? satispayAttivo() : Promise.resolve(false),
   ]);
   const insegnante = Object.fromEntries((staff || []).map((x) => [x.id, `${x.nome} ${x.cognome || ''}`.trim()]));
   const oggiIso = new Date().toISOString().slice(0, 10);
@@ -43,7 +47,7 @@ export default async function PaginaIscriviti({ searchParams }) {
   const stato = Object.fromEntries((corsi || []).map((c) => [c.id, c]));
   const elenco = (catalogo || []).filter((c) => stato[c.id]).map((c) => ({ ...c, iscrizioni_app: stato[c.id].iscrizioni_app || 'aperte', nota_iscrizioni: stato[c.id].nota_iscrizioni }));
 
-  const conSatispay = pal.stripe?.abbonamenti_online !== false && await satispayAttivo();
+  const conSatispay = pal.stripe?.abbonamenti_online !== false && satispay;
   return (
     <Iscriviti
       persone={(persone || []).map((p) => ({ id: p.id, nome: p.nome, nascita: p.nascita, quota: !!p.quota_mancante, certificatoOk: !!p.certificato_ok, inVerifica: !!p.certificato_in_verifica, token: p.token }))}

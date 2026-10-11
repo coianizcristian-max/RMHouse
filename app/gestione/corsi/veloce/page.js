@@ -8,18 +8,22 @@ export const dynamic = 'force-dynamic';
 export default async function PaginaModificaVeloce() {
   const { supabase, staff } = await staffCorrente();
   if (staff.ruolo === 'insegnante') redirect('/gestione');
-  const { data: corsi } = await supabase.from('corsi')
-    .select('id, nome, colore, attivo, prova_abilitata, prenotabile, prezzo_prova_cent, max_prove_per_lezione, capienza, discipline ( nome )')
-    .eq('palestra_id', staff.palestra_id)
-    .order('attivo', { ascending: false }).order('nome');
+  const [{ data: corsi }, { data: aliquote }] = await Promise.all([
+    supabase.from('corsi')
+      .select('id, nome, colore, attivo, prova_abilitata, prenotabile, prezzo_prova_cent, max_prove_per_lezione, capienza, aliquota_id, discipline ( nome )')
+      .eq('palestra_id', staff.palestra_id)
+      .order('attivo', { ascending: false }).order('nome'),
+    // le aliquote IVA (query 166): colonna "IVA" della tabella
+    supabase.from('aliquote_iva').select('id, nome, percentuale, natura, predefinita').eq('palestra_id', staff.palestra_id).eq('attiva', true).order('ordine'),
+  ]);
   return (
     <>
       <div className="intestazione">
         <div className="occhiello">Struttura</div>
         <h1>Modifica veloce dei corsi</h1>
-        <p>Posti, prova e prenotazioni di tutti i corsi in una tabella: ogni modifica si salva da sola. Per cambiarne tanti insieme spuntali e usa la barra in basso.</p>
+        <p>Posti, prova, IVA e prenotazioni di tutti i corsi in una tabella: ogni modifica si salva da sola. Per cambiarne tanti insieme spuntali e usa la barra in basso.</p>
       </div>
-      <ModificaVeloce corsi={corsi || []} />
+      <ModificaVeloce corsi={corsi || []} aliquote={aliquote || []} />
     </>
   );
 }

@@ -8,6 +8,7 @@ import { euro, dataBreve } from '@/lib/formato';
 import LinkPagamento from '../LinkPagamento';
 import RimborsoCarta from '../RimborsoCarta';
 import CorreggiIncasso from '../CorreggiIncasso';
+import SceltaIva from '../SceltaIva';
 
 const CAUSALI = [
   ['quota_iscrizione', 'Quota annuale'], ['abbonamento', 'Abbonamento'], ['prova', 'Lezione di prova'],
@@ -19,7 +20,7 @@ const NOME = (k) => (CAUSALI.find(([v]) => v === k) || [null, k])[1];
 export default function Incassi({ palestraId, righe, totali, dal, al, stato, online = false }) {
   const router = useRouter();
   const [apri, setApri] = useState(false);
-  const [f, setF] = useState({ importo: '', causale: 'quota_iscrizione', metodo: 'contanti', descrizione: '', cerca: '', account_id: '', allievo_id: '', data: new Date().toLocaleDateString('sv-SE') });
+  const [f, setF] = useState({ importo: '', causale: 'quota_iscrizione', metodo: 'contanti', descrizione: '', cerca: '', account_id: '', allievo_id: '', data: new Date().toLocaleDateString('sv-SE'), aliquota_id: '' });
   const [correggi, setCorreggi] = useState(null);
   const [trovati, setTrovati] = useState([]);
   const [errore, setErrore] = useState('');
@@ -47,6 +48,7 @@ export default function Incassi({ palestraId, righe, totali, dal, al, stato, onl
         palestra_id: palestraId, account_id: f.account_id || null, allievo_id: f.allievo_id || null,
         causale: f.causale, metodo: f.metodo, importo_cent: Math.round(importo * 100),
         descrizione: f.descrizione || NOME(f.causale), incassato: true, pagato_at: f.data || null,
+        aliquota_id: f.aliquota_id || null,   // IVA scelta a mano (query 166); vuota = automatica
       },
     });
     setInvio(false);
@@ -149,6 +151,11 @@ export default function Incassi({ palestraId, righe, totali, dal, al, stato, onl
           <div className="campo">
             <label htmlFor="de">Descrizione</label>
             <input id="de" value={f.descrizione} onChange={set('descrizione')} placeholder={NOME(f.causale)} />
+          </div>
+          <div style={{ gridColumn: '1 / -1' }}>
+            <SceltaIva palestraId={palestraId} id="in-iva" etichetta="IVA" value={f.aliquota_id} onChange={(v) => setF({ ...f, aliquota_id: v })}
+                       auto="automatica: dal corso, dall'abbonamento o la predefinita"
+                       esempioCent={f.aliquota_id ? Math.round(parseFloat(String(f.importo || '').replace(',', '.')) * 100) || 0 : 0} />
           </div>
           <div className="campo">
             <label htmlFor="pe">Da chi (facoltativo)</label>

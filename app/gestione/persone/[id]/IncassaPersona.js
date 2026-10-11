@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabaseBrowser } from '@/lib/supabase/browser';
 import { euro } from '@/lib/formato';
+import SceltaIva from '../../SceltaIva';
 
 const CAUSALI = [
   ['quota_iscrizione', 'Quota annuale'], ['abbonamento', 'Abbonamento'], ['prova', 'Lezione di prova'],
@@ -18,7 +19,7 @@ export default function IncassaPersona({ palestraId, allievoId, accountId, nome,
   const [f, setF] = useState({
     causale: quotaMancante ? 'quota_iscrizione' : 'abbonamento',
     importo: quotaMancante && quotaCent ? (quotaCent / 100).toFixed(2).replace('.', ',') : '',
-    descrizione: '', data: new Date().toLocaleDateString('sv-SE'),
+    descrizione: '', data: new Date().toLocaleDateString('sv-SE'), aliquota_id: '',
   });
   const [invio, setInvio] = useState(false);
   const [errore, setErrore] = useState('');
@@ -41,7 +42,8 @@ export default function IncassaPersona({ palestraId, allievoId, accountId, nome,
     setInvio(true); setErrore('');
     const { error } = await supabaseBrowser().rpc('registra_incasso', {
       p: { palestra_id: palestraId, account_id: accountId || null, allievo_id: allievoId, causale: f.causale, metodo,
-           importo_cent: Math.round(importo * 100), descrizione: f.descrizione || nomeCausale(f.causale), incassato: true, pagato_at: f.data || null },
+           importo_cent: Math.round(importo * 100), descrizione: f.descrizione || nomeCausale(f.causale), incassato: true, pagato_at: f.data || null,
+           aliquota_id: f.aliquota_id || null },
     });
     setInvio(false);
     if (error) { setErrore('Registrazione non riuscita.'); return; }
@@ -90,6 +92,11 @@ export default function IncassaPersona({ palestraId, allievoId, accountId, nome,
           <input value={f.descrizione} onChange={(e) => setF({ ...f, descrizione: e.target.value })} placeholder={nomeCausale(f.causale)} aria-label="Descrizione" />
           <input type="date" value={f.data} max={new Date().toLocaleDateString('sv-SE')} onChange={(e) => setF({ ...f, data: e.target.value })} aria-label="Data dell'incasso" title="Data dell'incasso (se non è oggi)" />
           <button className="btn btn-primario" disabled={invio}>{invio ? 'Salvo…' : 'Incassa'}</button>
+        </div>
+        <div className="ip-iva">
+          <SceltaIva palestraId={palestraId} id="ip-iva" etichetta="IVA" value={f.aliquota_id} onChange={(v) => setF({ ...f, aliquota_id: v })} piccolo
+                     auto="automatica: dal corso, dall'abbonamento o la predefinita"
+                     esempioCent={f.aliquota_id ? Math.round(parseFloat(String(f.importo || '').replace(',', '.')) * 100) || 0 : 0} />
         </div>
         <span className="piccolo muto">Per un abbonamento nuovo usa "Nuova iscrizione": crea l'iscrizione e l'incasso insieme.</span>
       </form>

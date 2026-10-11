@@ -11,6 +11,7 @@ const DOCUMENTI = [['ricevuta', 'Ricevute'], ['fattura', 'Fatture'], ['nota_cred
 const MESI = ['gen', 'feb', 'mar', 'apr', 'mag', 'giu', 'lug', 'ago', 'set', 'ott', 'nov', 'dic'];
 const CAUSALI = { abbonamento: 'Abbonamenti', quota_iscrizione: 'Quote annuali', prova: 'Prove', workshop: 'Workshop', affitto: 'Affitto sale', altro: 'Altro' };
 const ISO = (d) => d.toISOString().slice(0, 10);
+const QUANTE = 150;
 
 // icone piccole delle azioni (una riga sola, niente spazio in più)
 const I = {
@@ -39,6 +40,8 @@ export default function Ricevute({ palestraId, righeIniziali, mancantiIniziali, 
   const [scelti, setScelti] = useState([]);
   const [fattura, setFattura] = useState(null);
   const [aperta, setAperta] = useState(null);    // { id, cosa: 'invia' | 'modifica' }
+  // l'elenco si mostra a blocchi: con 1.500 ricevute in due mesi la pagina pesava 1,2 MB e il browser faticava
+  const [quante, setQuante] = useState(QUANTE);
   const primo = useRef(true);
 
   // i filtri si applicano subito (si rilegge dal database)
@@ -61,7 +64,7 @@ export default function Ricevute({ palestraId, righeIniziali, mancantiIniziali, 
       if (!vivo) return;
       setCarico(false);
       if (error) { setErrore('Non riesco a leggere le ricevute: riprova.'); return; }
-      setErrore(''); setRighe(Array.isArray(data) ? data : []); setMancanti(m || []);
+      setErrore(''); setRighe(Array.isArray(data) ? data : []); setMancanti(m || []); setQuante(QUANTE);
       try { window.history.replaceState(null, '', `/gestione/ricevute?dal=${f.dal}&al=${f.al}${vista === 'statistiche' ? '&vista=statistiche' : ''}`); } catch { /* niente */ }
     }, 250);
     return () => { vivo = false; clearTimeout(t); };
@@ -260,13 +263,19 @@ export default function Ricevute({ palestraId, righeIniziali, mancantiIniziali, 
           <h2 className="sezione">Emesse</h2>
           {righe.length === 0 && <div className="vuoto">Nessun documento con questi filtri.</div>}
           <ul className="ric-elenco">
-            {righe.map((r) => (
+            {righe.slice(0, quante).map((r) => (
               <RigaRicevuta key={r.id} r={r} invio={invio} aperta={aperta?.id === r.id ? aperta.cosa : null}
                             onApri={(cosa) => setAperta(aperta?.id === r.id && aperta.cosa === cosa ? null : { id: r.id, cosa })}
                             onRimborso={() => notaCredito(r)} onAnnulla={() => annulla(r)} onFatto={(msg) => { setAvviso(msg); setAperta(null); ricarica(); }}
                             onXml={() => setTimeout(ricarica, 1500)} />
             ))}
           </ul>
+          {righe.length > quante && (
+            <div className="azioni" style={{ justifyContent: 'center' }}>
+              <button type="button" className="btn" onClick={() => setQuante((n) => n + QUANTE)}>Mostra altre ({righe.length - quante})</button>
+              <button type="button" className="link-btn" onClick={() => setQuante(righe.length)}>tutte</button>
+            </div>
+          )}
           {righe.length >= 5000 && <p className="piccolo muto">Mostro i primi 5000: restringi il periodo.</p>}
         </>
       )}

@@ -21,7 +21,8 @@ export default async function Persone({ searchParams }) {
   const p = staff.palestra_id;
   const n = Math.max(1, parseInt(pagina, 10) || 1);
 
-  const COLONNE = 'id, nome, cognome, data_nascita, foto_url, is_titolare, titolare_nome, titolare_cognome, email, telefono, attivo, fine_prossima, ultima_fine, certificato_scadenza, stato, certificato_scaduto, quota_mancante, senza_orari, etichette, etichette_id, giorni_al_compleanno, consenso_whatsapp, consenso_immagini, consenso_marketing';
+  // sesso e codice fiscale dalla vista (query 165): il maschile/femminile dello stato senza una seconda lettura
+  const COLONNE = 'id, nome, cognome, data_nascita, foto_url, is_titolare, titolare_nome, titolare_cognome, email, telefono, attivo, fine_prossima, ultima_fine, certificato_scadenza, stato, certificato_scaduto, quota_mancante, senza_orari, etichette, etichette_id, giorni_al_compleanno, consenso_whatsapp, consenso_immagini, consenso_marketing, codice_fiscale, sesso';
   const query = applicaFiltri(
     supabase.from('v_stato_clienti').select(COLONNE, { count: 'exact' }).eq('palestra_id', p),
     { q, stato, campanello, etichetta, consenso },
@@ -29,22 +30,33 @@ export default async function Persone({ searchParams }) {
   // in prima pagina, sopra a tutti, chi ha quelle iniziali o nome/cognome che comincia così ("cc" → Cristian Coianiz)
   const pr = n === 1 && q.trim() ? filtroPrioritari(q) : null;
 
-  const [{ data: elenco, count }, { data: conti }, { data: etichette }, { data: primi }] = await Promise.all([
+  let [{ data: elenco, count, error: erroreElenco }, { data: conti }, { data: etichette }, { data: primi }] = await Promise.all([
     query.order('cognome').order('nome').range((n - 1) * PER_PAGINA, n * PER_PAGINA - 1),
     supabase.rpc('conteggi_persone', { p_palestra: p }),
     supabase.from('etichette').select('id, nome, colore').eq('palestra_id', p).order('nome'),
     pr ? applicaFiltri(supabase.from('v_stato_clienti').select(COLONNE).eq('palestra_id', p), { q: '', stato, campanello, etichetta, consenso })
       .or(pr).order('cognome').order('nome').limit(PER_PAGINA) : Promise.resolve({ data: [] }),
   ]);
+  // senza la query 165 la vista non ha "sesso": si rilegge come prima
+  if (erroreElenco) {
+    const vecchie = COLONNE.replace(', codice_fiscale, sesso', '');
+    const [r1, r2] = await Promise.all([
+      applicaFiltri(supabase.from('v_stato_clienti').select(vecchie, { count: 'exact' }).eq('palestra_id', p), { q, stato, campanello, etichetta, consenso })
+        .order('cognome').order('nome').range((n - 1) * PER_PAGINA, n * PER_PAGINA - 1),
+      pr ? applicaFiltri(supabase.from('v_stato_clienti').select(vecchie).eq('palestra_id', p), { q: '', stato, campanello, etichetta, consenso })
+        .or(pr).order('cognome').order('nome').limit(PER_PAGINA) : Promise.resolve({ data: [] }),
+    ]);
+    elenco = r1.data; count = r1.count; primi = r2.data;
+  }
   const visti = new Set();
   const persone = [...(primi || []).sort((x, y) => livelloRicerca(x, q) - livelloRicerca(y, q)), ...(elenco || [])]
     .filter((x) => (visti.has(x.id) ? false : visti.add(x.id)));
 
   // maschile o femminile per lo stato di ogni riga ("Persa", "Iscritta"…): sesso o codice fiscale
   const ids = (persone || []).map((x) => x.id);
-  const { data: generi } = ids.length
+  const { data: generi } = ids.length && persone.some((x) => x.sesso === undefined)
     ? await supabase.from('allievi').select('id, sesso, codice_fiscale').in('id', ids)
-    : { data: [] };
+    : { data: persone };
   const gDi = Object.fromEntries((generi || []).map((x) => [x.id, genere(x)]));
   const personeG = (persone || []).map((x) => ({ ...x, genere: gDi[x.id] || null }));
 

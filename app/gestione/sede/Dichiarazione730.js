@@ -27,7 +27,7 @@ export default function Dichiarazione730({ palestraId, palestra, haTimbro }) {
   const router = useRouter();
   const imp = palestra.dichiarazione || {};
   const [f, setF] = useState({ intestazione: imp.intestazione || '', presso: imp.presso || '', firma: imp.firma || 'Legale Rappresentante' });
-  const [anteprima, setAnteprima] = useState(haTimbro ? `/api/dichiarazioni/timbro?v=${Date.now()}` : null);
+  const [anteprima, setAnteprima] = useState(haTimbro ? '/api/dichiarazioni/timbro' : null);
   const [msg, setMsg] = useState('');
   const [invio, setInvio] = useState(false);
   const set = (k) => (e) => setF((x) => ({ ...x, [k]: e.target.value }));

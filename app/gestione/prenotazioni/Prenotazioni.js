@@ -10,7 +10,7 @@ const GENERE = { ingresso: ['prenotazione', 'tag-ok'], recupero: ['recupero', 't
 const ORIGINE = { cliente: 'dall\'app', sito: 'dal sito', segreteria: 'segreteria' };
 const norm = (t) => String(t || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
 
-export default function Prenotazioni({ righe, giorni, tipo, origine, q, gestione }) {
+export default function Prenotazioni({ righe, giorni, tipo, origine, q, gestione, iscrittiFissi = 0 }) {
   const router = useRouter();
   const [testo, setTesto] = useState(q);
   const [tipoF, setTipoF] = useState(tipo);
@@ -48,8 +48,12 @@ export default function Prenotazioni({ righe, giorni, tipo, origine, q, gestione
       <div className="intestazione" style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-end', justifyContent: 'space-between', gap: 12 }}>
         <div>
           <div className="occhiello">Oggi</div>
-          <h1>Prenotazioni</h1>
-          <p>Ingressi, recuperi e prove in arrivo: {righe.length} nei prossimi {giorni === 1 ? 'giorno' : `${giorni} giorni`}, {dallApp} {dallApp === 1 ? 'fatta' : 'fatte'} dai clienti.</p>
+          <h1>Prenotazioni singole</h1>
+          <p>
+            Ingressi a pacchetto, recuperi, lezioni in più e prove: {righe.length} nei prossimi {giorni === 1 ? 'giorno' : `${giorni} giorni`}, {dallApp} {dallApp === 1 ? 'fatta' : 'fatte'} dai clienti.
+            {' '}Chi è iscritto a un corso con i giorni fissi non prenota ({iscrittiFissi} {iscrittiFissi === 1 ? 'presenza prevista' : 'presenze previste'} nello stesso periodo): li trovi nel{' '}
+            <Link prefetch={false} href="/gestione/calendario">Palinsesto</Link> e nell&apos;<Link prefetch={false} href="/gestione/appello">Appello</Link>.
+          </p>
         </div>
         <div className="pastiglie" style={{ margin: 0 }}>
           {[[1, 'Oggi'], [7, '7 giorni'], [30, '30 giorni'], [90, '3 mesi']].map(([g, t]) => (
@@ -61,7 +65,7 @@ export default function Prenotazioni({ righe, giorni, tipo, origine, q, gestione
       <div className="filtri-persone">
         <input type="search" value={testo} onChange={(e) => setTesto(e.target.value)} placeholder="Cerca persona, corso o insegnante…" aria-label="Cerca" />
         <select value={tipoF} onChange={(e) => setTipoF(e.target.value)} aria-label="Tipo">
-          <option value="">Tutte ({righe.length})</option>
+          <option value="">Tutte le singole ({righe.length})</option>
           <option value="ingresso">Prenotazioni ({conta('ingresso')})</option>
           <option value="recupero">Recuperi ({conta('recupero')})</option>
           <option value="prova">Prove ({conta('prova')})</option>
@@ -75,7 +79,7 @@ export default function Prenotazioni({ righe, giorni, tipo, origine, q, gestione
       </div>
       {errore && <div className="errore" role="alert">{errore}</div>}
 
-      {visibili.length === 0 && <div className="vuoto">Nessuna prenotazione {righe.length ? 'con questi filtri' : 'in questo periodo'}.</div>}
+      {visibili.length === 0 && <div className="vuoto">Nessuna prenotazione singola {righe.length ? 'con questi filtri' : 'in questo periodo'}: nessun ingresso a pacchetto, recupero, lezione in più o prova. Gli iscritti fissi sono nel Palinsesto.</div>}
 
       {[...giorniMap.entries()].map(([g, lista]) => (
         <section key={g} style={{ marginBottom: 18 }}>
@@ -113,7 +117,7 @@ export default function Prenotazioni({ righe, giorni, tipo, origine, q, gestione
           </ul>
         </section>
       ))}
-      <p className="piccolo muto">«Sposta» apre la scheda della persona: da «Prossime lezioni» si disdice e la si aggiunge a un&apos;altra lezione. Gli iscritti fissi dei corsi non compaiono qui: sono in appello.</p>
+      <p className="piccolo muto">«Sposta» apre la scheda della persona: da «Prossime lezioni» si disdice e la si aggiunge a un&apos;altra lezione. Gli iscritti fissi dei corsi non compaiono qui: sono nel Palinsesto e in appello.</p>
     </>
   );
 }

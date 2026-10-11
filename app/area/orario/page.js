@@ -17,7 +17,14 @@ export default async function PaginaOrario({ searchParams }) {
   const oggi = oggiISO();
   const g = /^\d{4}-\d{2}-\d{2}$/.test(giorno || '') && giorno >= oggi ? giorno : oggi;
 
-  const [{ data: dati }, { data: lezioni }, { data: regole }, { data: perMese }, { data: sedi }, { data: code }] = await Promise.all([
+  // tutto in una lettura (query 165); senza, le letture di prima in tre giri
+  let dati, lezioni, regole, perMese, sedi, code, prenotabiliPer = null, perCreditoPer = null;
+  const { data: tutto, error: e165 } = await supabase.rpc('area_orario', { p_giorno: g });
+  if (!e165 && tutto && typeof tutto === 'object') {
+    dati = tutto.riepilogo; lezioni = tutto.lezioni; regole = tutto.regole; perMese = tutto.per_mese; sedi = tutto.sedi; code = tutto.code;
+    prenotabiliPer = tutto.prenotabili || {}; perCreditoPer = tutto.per_credito || {};
+  } else {
+  [{ data: dati }, { data: lezioni }, { data: regole }, { data: perMese }, { data: sedi }, { data: code }] = await Promise.all([
     supabase.rpc('area_riepilogo'),
     supabase.rpc('orario_area', { p_giorno: g, p_sede: null }),
     supabase.rpc('disdette_area'),
@@ -25,6 +32,7 @@ export default async function PaginaOrario({ searchParams }) {
     supabase.from('sedi').select('id, nome, principale').eq('visibile', true).order('principale', { ascending: false }).order('ordine'),
     supabase.from('liste_attesa').select('lezione_id, allievo_id').in('stato', ['in_attesa', 'avvisato']).not('lezione_id', 'is', null),
   ]);
+  }
   const massimo = regole?.recuperi_max_mese ?? null;
   const meseDi = (iso) => new Date(iso).toLocaleDateString('sv-SE', { timeZone: 'Europe/Rome' }).slice(0, 7);
   const pieno = (allievo, iso) => massimo != null && ((perMese?.[allievo]?.[meseDi(iso)] || 0) >= massimo);
@@ -38,11 +46,12 @@ export default async function PaginaOrario({ searchParams }) {
   };
   const disdette = (regole?.disdette || []).map((d) => `${d.lezione_id}:${d.allievo_id}`);
   await Promise.all((dati.allievi || []).map(async (a) => {
-    const { data } = await supabase.rpc('lezioni_prenotabili', { p_allievo: a.id });
+    const { data } = prenotabiliPer ? { data: prenotabiliPer[a.id] || [] } : await supabase.rpc('lezioni_prenotabili', { p_allievo: a.id });
     (data || []).forEach((l) => aggiungi(l.lezione_id, { allievo_id: a.id, nome: a.nome, credito: null }));
   }));
   const crediti = [...(dati.crediti || [])].sort((x, y) => String(x.scadenza).localeCompare(String(y.scadenza)));
-  const perCredito = await Promise.all(crediti.map((c) => supabase.rpc('lezioni_per_recupero', { p_credito: c.id })));   // tutti insieme
+  const perCredito = perCreditoPer ? crediti.map((c) => ({ data: perCreditoPer[c.id] || [] }))
+    : await Promise.all(crediti.map((c) => supabase.rpc('lezioni_per_recupero', { p_credito: c.id })));   // tutti insieme
   crediti.forEach((c, i) => {
     (perCredito[i].data || []).filter((l) => !disdette.includes(`${l.lezione_id}:${c.allievo_id}`) && !pieno(c.allievo_id, l.inizio))
       .forEach((l) => aggiungi(l.lezione_id, { allievo_id: c.allievo_id, nome: c.allievo, credito: c.id }));

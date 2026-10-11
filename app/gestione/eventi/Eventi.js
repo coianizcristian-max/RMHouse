@@ -5,11 +5,12 @@ import { supabaseBrowser } from '@/lib/supabase/browser';
 import Immagine from '../Immagine';
 import IscrittiEvento from './IscrittiEvento';
 import { dataBreve, ora, euro } from '@/lib/formato';
+import SceltaIva from '../SceltaIva';
 
 const VUOTO = {
   titolo: '', descrizione: '', locandina_url: null, luogo: '', sede_id: '',
   data: '', ora_inizio: '18:00', ora_fine: '20:00', prenotabile: false, prezzo: '', posti: '',
-  in_evidenza: false, visibilita: 'pubblico',
+  in_evidenza: false, visibilita: 'pubblico', aliquota_id: '',
 };
 
 export default function Eventi({ palestraId, eventi, sedi, iscritti }) {
@@ -34,7 +35,7 @@ export default function Eventi({ palestraId, eventi, sedi, iscritti }) {
       data: i.toLocaleDateString('sv-SE'), ora_inizio: i.toTimeString().slice(0, 5),
       ora_fine: e.fine ? new Date(e.fine).toTimeString().slice(0, 5) : '',
       prenotabile: e.prenotabile, prezzo: e.prezzo_cent ? (e.prezzo_cent / 100).toString() : '',
-      posti: e.posti ?? '', in_evidenza: e.in_evidenza, visibilita: e.visibilita,
+      posti: e.posti ?? '', in_evidenza: e.in_evidenza, visibilita: e.visibilita, aliquota_id: e.aliquota_id || '',
     });
     setApri(e.id); setErrore('');
   }
@@ -52,6 +53,7 @@ export default function Eventi({ palestraId, eventi, sedi, iscritti }) {
       prezzo_cent: f.prezzo ? Math.round(parseFloat(f.prezzo.replace(',', '.')) * 100) : 0,
       posti: f.posti === '' ? null : parseInt(f.posti, 10),
       in_evidenza: f.in_evidenza, visibilita: f.visibilita,
+      aliquota_id: f.aliquota_id || null,   // IVA dell'evento (query 166): vuota = la predefinita
     };
     const db = supabaseBrowser();
     const { error } = apri === 'nuovo'
@@ -111,6 +113,8 @@ export default function Eventi({ palestraId, eventi, sedi, iscritti }) {
             <div className="campo"><label htmlFor="pr">Prezzo (€)</label><input id="pr" inputMode="decimal" value={f.prezzo} onChange={set('prezzo')} placeholder="0 = gratuito" /></div>
             <div className="campo"><label htmlFor="po">Posti</label><input id="po" type="number" min="1" value={f.posti} onChange={set('posti')} /></div>
           </div>
+          <SceltaIva palestraId={palestraId} id="ev-iva" etichetta="IVA (il prezzo è IVA compresa)" value={f.aliquota_id} onChange={(v) => setF({ ...f, aliquota_id: v })}
+                     auto="predefinita" esempioCent={f.prezzo ? Math.round(parseFloat(String(f.prezzo).replace(',', '.')) * 100) : 0} />
           <label className="spunta"><input type="checkbox" checked={f.prenotabile} onChange={set('prenotabile')} /><span>Prenotabile dai clienti</span></label>
           <label className="spunta"><input type="checkbox" checked={f.in_evidenza} onChange={set('in_evidenza')} /><span>In evidenza nella home ({inEvidenza}/3 occupati)</span></label>
           <div className="campo">

@@ -42,7 +42,8 @@ const nextConfig = {
   // le pagine appena visitate restano nel browser per 30 secondi: tornare indietro (es. Sportello → Riepilogo → Sportello)
   // è immediato invece di aspettare di nuovo il server. Dopo ogni modifica (router.refresh) si ricaricano comunque.
   // "static" vale per le pagine preparate in anticipo dai link del menù (LinkVeloce): un minuto, poi si rileggono
-  experimental: { staleTimes: { dynamic: 30, static: 60 } },
+  // static 300: lo scheletro delle pagine del menù, preparato in anticipo, resta buono 5 minuti (prima 1: ogni minuto 8 richieste al server in più)
+  experimental: { staleTimes: { dynamic: 30, static: 300 } },
   async headers() {
     return [
       { source: '/:path*', headers: sicurezza },

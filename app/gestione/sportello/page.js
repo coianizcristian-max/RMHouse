@@ -16,9 +16,12 @@ export default async function PaginaSportello({ searchParams }) {
 
   // una chiamata sola per corsi, abbonamenti, orari, impostazioni, staff e Satispay (query 144); se manca, le letture una per una
   // i workshop aperti (query 147) insieme: nessuna attesa in più
-  const [{ data: insieme, error: erroreInsieme }, { data: workshop }] = await Promise.all([
+  // con ?persona= anche la sua situazione (query 165), così la pagina arriva già pronta senza letture dal browser
+  const conPersona = /^[0-9a-f-]{36}$/i.test(persona || '');
+  const [{ data: insieme, error: erroreInsieme }, { data: workshop }, { data: situazione }] = await Promise.all([
     supabase.rpc('sportello_dati', { p_palestra: p }),
     supabase.rpc('workshop_aperti', { p_palestra: p }),
+    conPersona ? supabase.rpc('situazione_cliente', { p_allievo: persona }) : Promise.resolve({ data: null }),
   ]);
   let corsi, tipi, orari, palestra, persone, satispay;
   if (!erroreInsieme && insieme) {
@@ -42,7 +45,7 @@ export default async function PaginaSportello({ searchParams }) {
 
   return (
     <Sportello palestraId={p} corsi={corsi || []} tipi={tipi || []} orari={(orari || []).map((o) => ({ ...o, insegnante: nomeIns[o.insegnante_id] || '' }))} palestra={palestra || {}}
-               personaIniziale={persona || null} satispay={satispay}
+               personaIniziale={persona || null} situazioneIniziale={situazione && typeof situazione === 'object' ? situazione : null} satispay={satispay}
                workshop={Array.isArray(workshop) ? workshop.filter((w) => w.stato !== 'annullato' && (w.opzioni || []).length) : []} workshopIniziale={workshopIniziale || null}
                modificaIniziale={/^[0-9a-f-]{36}$/.test(modifica || '') ? modifica : null} />
   );

@@ -10,6 +10,7 @@ import AssegnaGiorni from '../../AssegnaGiorni';
 import { gruppiDi, gruppoColorato, chiaveGruppo } from '@/lib/gruppi';
 import GruppoWhatsApp from './GruppoWhatsApp';
 import { motivoPagamento, testoTag } from '@/lib/daSistemareTesti';
+import { testoAliquota } from '@/lib/iva';
 
 export const dynamic = 'force-dynamic';
 
@@ -22,7 +23,22 @@ export default async function Corso({ params, searchParams }) {
   if (staff.ruolo === 'insegnante') redirect('/gestione');
   const p = staff.palestra_id;
 
-  const [{ data: corso }, { data: iscritti }, { data: orari }, { data: sale }, { data: insegnanti }, { data: attese },
+  // tutta la scheda in una lettura (query 165); senza, le tredici di prima
+  let corso, iscritti, orari, sale, insegnanti, attese, base, abilitati, iscrizioni, discipline, competenze, debitiTutti, materiali;
+  // l'IVA del corso (query 166) insieme alla scheda: stessa ondata
+  const [{ data: tutto, error: e165 }, { data: ivaCorso }] = await Promise.all([
+    supabase.rpc('scheda_corso', { p_corso: id }),
+    supabase.from('corsi').select('aliquota_id, aliquote_iva ( nome, percentuale, natura )').eq('id', id).maybeSingle(),
+  ]);
+  if (!e165 && tutto && typeof tutto === 'object') {
+    ({ corso, orari, sale, insegnanti, attese, base, abilitati, iscrizioni, discipline, competenze, materiali } = tutto);
+    debitiTutti = tutto.debiti;
+    const stati = vista === 'tutti' ? ['attiva', 'sospesa', 'scaduta', 'annullata'] : ['attiva', 'sospesa'];
+    iscritti = (tutto.iscritti || []).filter((i) => stati.includes(i.stato));
+  } else if (!e165 && tutto === null) {
+    notFound();
+  } else {
+  [{ data: corso }, { data: iscritti }, { data: orari }, { data: sale }, { data: insegnanti }, { data: attese },
          { data: base }, { data: abilitati }, { data: iscrizioni }, { data: discipline }, { data: competenze }, { data: debitiTutti }] = await Promise.all([
     supabase.from('v_riepilogo_corsi').select('*').eq('corso_id', id).maybeSingle(),
     supabase.from('v_iscritti_corso').select('*').eq('corso_id', id)
@@ -42,8 +58,9 @@ export default async function Corso({ params, searchParams }) {
     // chi è iscritto e non ha pagato (query 162): nome in rosso
     supabase.rpc('pagamenti_da_sistemare', { p_palestra: p }),
   ]);
-  const { data: materiali } = await supabase.from('materiali')
-    .select('id, titolo, tipo, url, minuti_prima').eq('corso_id', id).eq('attivo', true).order('created_at');
+  ({ data: materiali } = await supabase.from('materiali')
+    .select('id, titolo, tipo, url, minuti_prima').eq('corso_id', id).eq('attivo', true).order('created_at'));
+  }
   if (!corso) notFound();
 
   const idAbilitati = (abilitati || []).map((a) => a.staff_id);
@@ -74,6 +91,7 @@ export default async function Corso({ params, searchParams }) {
             {corso.attivo === false && <span className="tag tag-attenzione">archiviato</span>}
             {corso.visibilita !== 'pubblico' && <span className="tag tag-neutro">nascosto</span>}
             {corso.prenotabile === false && <span className="tag tag-neutro">non prenotabile</span>}
+            {ivaCorso?.aliquote_iva && <span className="tag tag-neutro" title="IVA del corso: vale per abbonamenti, prove e incassi di questo corso (i prezzi sono IVA compresa)">{testoAliquota(ivaCorso.aliquote_iva)}</span>}
           </div>
         </div>
         <div className="azioni scheda-azioni">

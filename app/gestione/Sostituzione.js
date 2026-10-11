@@ -16,7 +16,7 @@ const ERRORI = {
 // Chi tiene la lezione e come cambiarlo.
 // Segreteria e amministrazione: "cambia" (solo questa o anche le future dello stesso orario).
 // Insegnante titolare: "Fatti sostituire" su una sua lezione futura (solo quella data).
-export default function Sostituzione({ lezioneId, gestione, onFatto }) {
+export default function Sostituzione({ lezioneId, gestione, onFatto, iniziale = null }) {
   const router = useRouter();
   const [l, setL] = useState(null);
   const [staff, setStaff] = useState([]);
@@ -31,9 +31,20 @@ export default function Sostituzione({ lezioneId, gestione, onFatto }) {
   const [conflitti, setConflitti] = useState(null);   // la persona scelta è già occupata a quell'ora?
   const [proposte, setProposte] = useState({ disciplinaId: null, nomeDisciplina: '', delCorso: [], competenze: [], discipline: [] });
 
+  // i dati del riquadro: dalla pagina (appello, query 165), da una RPC sola, o come prima con sei letture
+  const applica = (d) => {
+    if (!d?.lezione) return;
+    const lez = d.lezione; const dId = lez.corsi?.disciplina_id || null;
+    setProposte({ disciplinaId: dId, nomeDisciplina: (d.discipline || []).find((x) => x.id === dId)?.nome || '',
+      delCorso: d.del_corso || [], competenze: d.competenze || [], discipline: d.discipline || [] });
+    setL(lez); setStaff(d.staff || []); setIo(d.io || null);
+  };
   useEffect(() => {
+    if (iniziale) { applica(iniziale); return; }
     const db = supabaseBrowser();
     (async () => {
+      const { data: uno, error: e165 } = await db.rpc('sostituzione_dati', { p_lezione: lezioneId });
+      if (!e165 && uno) { applica(uno); return; }
       const { data: lez } = await db.from('lezioni')
         .select('id, palestra_id, inizio, stato, orario_id, insegnante_id, insegnante_titolare, sostituzione_da, sostituzione_at, corso_id, corsi ( disciplina_id )')
         .eq('id', lezioneId).maybeSingle();
@@ -51,7 +62,7 @@ export default function Sostituzione({ lezioneId, gestione, onFatto }) {
         delCorso: (delCorso || []).map((x) => x.staff_id), competenze: comp || [], discipline: disc || [] });
       setL(lez); setStaff(s || []); setIo(me || null);
     })();
-  }, [lezioneId]);
+  }, [lezioneId, iniziale]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // appena si sceglie chi e quali lezioni: controllo che non sia già occupata alla stessa ora
   useEffect(() => {

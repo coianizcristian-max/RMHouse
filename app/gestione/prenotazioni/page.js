@@ -13,7 +13,7 @@ export default async function PaginaPrenotazioni({ searchParams }) {
   const g = ['1', '7', '30', '90'].includes(giorni) ? Number(giorni) : 7;
   const da = oggiISO(); const a = spostaGiorni(da, g - 1);
 
-  const [{ data: pren }, { data: prove }] = await Promise.all([
+  const [{ data: pren }, { data: prove }, { data: fissi }] = await Promise.all([
     supabase.from('prenotazioni')
       .select('id, tipo, origine, created_at, note, lezione_id, allievo_id, allievi ( nome, cognome, account ( telefono ) ), lezioni!inner ( id, data, inizio, fine, stato, corso_id, corsi ( nome, colore ), sale ( nome ), insegnante:staff!lezioni_insegnante_id_fkey ( nome ) )')
       .eq('palestra_id', p).eq('stato', 'confermata')
@@ -24,12 +24,15 @@ export default async function PaginaPrenotazioni({ searchParams }) {
       .eq('palestra_id', p).eq('stato', 'confermata')
       .gte('lezioni.data', da).lte('lezioni.data', a).neq('lezioni.stato', 'annullata')
       .order('created_at', { ascending: false }).limit(1000),
+    // quanti sono gli iscritti fissi (con i giorni del corso) nello stesso periodo: non prenotano, ma la pagina lo dice
+    supabase.from('v_occupazione').select('iscritti').eq('palestra_id', p).eq('stato', 'programmata').gte('data', da).lte('data', a),
   ]);
+  const iscrittiFissi = (fissi || []).reduce((s, x) => s + (x.iscritti || 0), 0);
 
   const righe = [
     ...(pren || []).map((x) => ({ ...x, genere: x.tipo })),
     ...(prove || []).map((x) => ({ ...x, genere: 'prova' })),
   ].sort((x, y) => (x.lezioni.inizio < y.lezioni.inizio ? -1 : 1));
 
-  return <Prenotazioni righe={righe} giorni={g} tipo={tipo || ''} origine={origine || ''} q={q || ''} gestione={staff.ruolo !== 'insegnante'} />;
+  return <Prenotazioni righe={righe} giorni={g} tipo={tipo || ''} origine={origine || ''} q={q || ''} gestione={staff.ruolo !== 'insegnante'} iscrittiFissi={iscrittiFissi} />;
 }

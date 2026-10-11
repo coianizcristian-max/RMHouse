@@ -5104,3 +5104,6 @@ body:has(.sportello) .bottone-rapide { display: none; }
 .ds-diff .ds-rmh { color: var(--nero); font-weight: 600; }
 .ds-diff .ds-app { color: var(--attenzione); font-weight: 600; }
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+
+/* 203 — orario dell'area clienti da telefono: la fila dei giorni scorre dentro la sua riga, la pagina non si allarga */
+.area-casa, .area-recuperi { grid-template-columns: minmax(0, 1fr); }

@@ -32,11 +32,13 @@ export default async function PerIlCommercialista({ searchParams }) {
   const a = /^\d{4}-\d{2}-\d{2}$/.test(al || '') ? al : scelte[1][2];
   const annoDetrazioni = parseInt(anno, 10) || new Date().getFullYear() - (new Date().getMonth() < 6 ? 1 : 0);
 
-  const [{ data: r }, { data: aliquote }, { data: numerazioni }, { data: ragazzi }] = await Promise.all([
+  const [{ data: r }, { data: aliquote }, { data: numerazioni }, { data: ragazzi }, { data: ivaPalestra }] = await Promise.all([
     supabase.rpc('riepilogo_fiscale', { p_palestra: p, p_dal: da, p_al: a }),
     supabase.from('aliquote_iva').select('*').eq('palestra_id', p).order('ordine').order('nome'),
     supabase.from('numerazioni').select('*').eq('palestra_id', p).order('codice'),
     supabase.rpc('versamenti_ragazzi', { p_palestra: p, p_anno: annoDetrazioni, p_storico: true }),
+    // IVA della quota annuale e dell'affitto sale (query 166); senza la query, null
+    supabase.from('palestre').select('aliquota_quota_id, aliquota_spazi_id').eq('id', p).maybeSingle(),
   ]);
   const scarica = (file) => `/api/commercialista?dal=${da}&al=${a}&file=${file}`;
   const senzaCf = (ragazzi || []).filter((x) => !x.codice_fiscale || !x.pagante_cf).length;
@@ -162,7 +164,7 @@ export default async function PerIlCommercialista({ searchParams }) {
         </div>
 
         <aside>
-          <Regole palestraId={p} aliquote={aliquote || []} numerazioni={numerazioni || []} />
+          <Regole palestraId={p} aliquote={aliquote || []} numerazioni={numerazioni || []} ivaPalestra={ivaPalestra || null} />
         </aside>
       </div>
     </>

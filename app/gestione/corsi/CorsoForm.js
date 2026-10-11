@@ -4,11 +4,12 @@ import { useRouter } from 'next/navigation';
 import { supabaseBrowser } from '@/lib/supabase/browser';
 import Immagine from '../Immagine';
 import { gradazioni, testoSu, TAVOLOZZA_BASE } from '@/lib/colori';
+import SceltaIva from '../SceltaIva';
 
 
 // Nella pagina del corso, dopo Salva si va alla scheda; nella finestra del Palinsesto (onSalvato/onAnnulla) si resta dove si è.
 // onModificato(sì/no): avvisa se ci sono cambiamenti non salvati (per chiedere prima di chiudere la finestra)
-export default function CorsoForm({ palestraId, corso, discipline, fasce, livelli, sedi = [], tavolozza = [], onSalvato, onAnnulla, onModificato }) {
+export default function CorsoForm({ palestraId, corso, discipline, fasce, livelli, sedi = [], tavolozza = [], aliquote = null, onSalvato, onAnnulla, onModificato }) {
   const router = useRouter();
   const [f, setF] = useState({
     nome: corso?.nome || '',
@@ -31,6 +32,7 @@ export default function CorsoForm({ palestraId, corso, discipline, fasce, livell
     nota_iscrizioni: corso?.nota_iscrizioni || '',
     link_whatsapp: corso?.link_whatsapp || '',
     sede_id: corso?.sede_id || (sedi[0]?.id ?? ''),
+    aliquota_id: corso?.aliquota_id || '',   // IVA del corso (query 166): '' = quella dell'abbonamento o la predefinita
   });
   const [errore, setErrore] = useState('');
   const [invio, setInvio] = useState(false);
@@ -69,6 +71,7 @@ export default function CorsoForm({ palestraId, corso, discipline, fasce, livell
       link_whatsapp: f.link_whatsapp.trim() || null,
       nota_iscrizioni: f.nota_iscrizioni.trim() || null,
       sede_id: f.sede_id || null,
+      aliquota_id: f.aliquota_id || null,
     };
     const db = supabaseBrowser();
     const { data, error } = corso
@@ -141,6 +144,17 @@ export default function CorsoForm({ palestraId, corso, discipline, fasce, livell
                 <div className="campo cf-6 cf-riga-piccola"><label htmlFor="maxp">Prove per lezione</label>
                   <input id="maxp" type="number" min="0" value={f.max_prove_per_lezione} onChange={set('max_prove_per_lezione')} style={{ maxWidth: 140 }} /></div>
               )}
+            </div>
+            <div className="cf-campi">
+              <div className="cf-3">
+                <SceltaIva palestraId={palestraId} id="iva" etichetta="IVA del corso" value={f.aliquota_id} onChange={(v) => setF({ ...f, aliquota_id: v })}
+                           aliquote={aliquote} auto="come l'abbonamento, se no la predefinita"
+                           esempioCent={Math.round(parseFloat(String(f.prezzo_prova).replace(',', '.') || '0') * 100) || 1500} />
+              </div>
+              <p className="cf-3 piccolo muto" style={{ alignSelf: 'end', margin: '0 0 6px' }}>
+                Vale per abbonamenti, prove e incassi di questo corso. I prezzi sono sempre IVA compresa: sulla ricevuta l&apos;IVA si scorpora, non si aggiunge.
+                Attività sportiva = esente (0%); attività non sportiva = 22%.
+              </p>
             </div>
             <div className="cf-interruttori">
               <label className="cf-interruttore"><input type="checkbox" checked={f.attivo} onChange={set('attivo')} /><span>Corso attivo</span></label>

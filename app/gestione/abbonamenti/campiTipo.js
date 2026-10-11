@@ -48,7 +48,8 @@ export function campiTipoAbbonamento({ gruppi = [], aliquote = [], famiglie = []
     { k: 'famiglie', etichetta: 'Famiglie', tipo: 'etichette', gruppo: 'Abbonamento', larghezza: 6, aiuto: 'una o più: raggruppano i simili',
       opzioni: famiglie, nuovaTesto: '+ Nuova famiglia…' },
     { k: 'descrizione', etichetta: 'Descrizione per il cliente', tipo: 'testolungo', righe: 1, gruppo: 'Abbonamento', larghezza: 5, aiuto: 'nel negozio dell\'app' },
-    { k: 'aliquota_id', etichetta: 'IVA', tipo: 'select', opzioni: opzioniAliquota(aliquote), vuotoTesto: '— predefinita —', gruppo: 'Abbonamento' },
+    { k: 'aliquota_id', etichetta: 'IVA', tipo: 'select', opzioni: opzioniAliquota(aliquote), vuotoTesto: '— predefinita —', gruppo: 'Abbonamento',
+      aiuto: 'Prezzi IVA compresa. Se il corso ha una sua IVA (scheda del corso) vale quella del corso.' },
 
     { k: 'prezzo_cent', etichetta: 'Prezzo segreteria (€)', tipo: 'euro', obbligatorio: true, gruppo: 'Prezzo e durata' },
     { k: 'prezzo_web_cent', etichetta: 'Prezzo online (€)', tipo: 'euro', gruppo: 'Prezzo e durata', aiuto: 'vuoto = uguale' },

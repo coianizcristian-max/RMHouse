@@ -13,9 +13,16 @@ export default async function PaginaPrenota() {
   const user = await utenteCorrente();
   if (!user) redirect('/area/accedi');
 
-  const [{ data }, { data: regole }, { data: perMese }] = await Promise.all([
+  // tutto in una lettura (query 165); senza, le letture di prima in tre giri
+  let data, regole, perMese, perCreditoPer = null, pacchettiPer = null;
+  const { data: tutto, error: e165 } = await supabase.rpc('area_recuperi');
+  if (!e165 && tutto && typeof tutto === 'object') {
+    data = tutto.riepilogo; regole = tutto.regole; perMese = tutto.per_mese; perCreditoPer = tutto.per_credito || {}; pacchettiPer = tutto.pacchetti || {};
+  } else {
+  [{ data }, { data: regole }, { data: perMese }] = await Promise.all([
     supabase.rpc('area_riepilogo'), supabase.rpc('disdette_area'), supabase.rpc('recuperi_per_mese'),
   ]);
+  }
   const massimo = regole?.recuperi_max_mese ?? null;
   const meseDi = (iso) => new Date(iso).toLocaleDateString('sv-SE', { timeZone: 'Europe/Rome' }).slice(0, 7);
   // niente recuperi proposti in un mese in cui il limite è già raggiunto
@@ -24,15 +31,17 @@ export default async function PaginaPrenota() {
 
   const disdetteDi = (id) => (regole?.disdette || []).filter((d) => d.allievo_id === id).map((d) => d.lezione_id);
   const crediti = await Promise.all((data.crediti || []).map(async (c) => {
-    const { data: lezioni } = await supabase.rpc('lezioni_per_recupero', { p_credito: c.id });
+    const { data: lezioni } = perCreditoPer ? { data: perCreditoPer[c.id] || [] } : await supabase.rpc('lezioni_per_recupero', { p_credito: c.id });
     // le lezioni date dalla scuola (lezioni in più, lezioni annullate) non hanno il limite del mese
     return { ...c, lezioni: (lezioni || []).filter((l) => !disdetteDi(c.allievo_id).includes(l.lezione_id) && (c.dalla_scuola || !pieno(c.allievo_id, l.inizio))) };
   }));
   const pacchetti = await Promise.all((data.allievi || []).map(async (a) => {
-    const [{ data: abb }, { data: lezioni }] = await Promise.all([
-      supabase.rpc('abbonamenti_prenotabili', { p_allievo: a.id }),
-      supabase.rpc('lezioni_prenotabili', { p_allievo: a.id }),
-    ]);
+    const [{ data: abb }, { data: lezioni }] = pacchettiPer
+      ? [{ data: pacchettiPer[a.id]?.abbonamenti || [] }, { data: pacchettiPer[a.id]?.lezioni || [] }]
+      : await Promise.all([
+        supabase.rpc('abbonamenti_prenotabili', { p_allievo: a.id }),
+        supabase.rpc('lezioni_prenotabili', { p_allievo: a.id }),
+      ]);
     return { allievo_id: a.id, allievo: a.nome, abbonamenti: abb || [], lezioni: lezioni || [] };
   }));
 

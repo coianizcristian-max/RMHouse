@@ -64,7 +64,7 @@ const VENDITA = {
 };
 
 // workshop: quelli in cui si può ancora iscrivere qualcuno (query 147); workshopIniziale: arrivati da "Iscrivi dallo Sportello"
-export default function Sportello({ palestraId, corsi, tipi, orari, palestra, personaIniziale, satispay = false, workshop = [], workshopIniziale = null, modificaIniziale = null }) {
+export default function Sportello({ palestraId, corsi, tipi, orari, palestra, personaIniziale, situazioneIniziale = null, satispay = false, workshop = [], workshopIniziale = null, modificaIniziale = null }) {
   const [modo, setModo] = useState(personaIniziale ? 'persona' : 'cerca');   // cerca | nuovo | persona
   const [personaId, setPersonaId] = useState(personaIniziale);
   const [s, setS] = useState(null);           // situazione della persona scelta
@@ -106,9 +106,15 @@ export default function Sportello({ palestraId, corsi, tipi, orari, palestra, pe
   };
 
   // ------------------------------------------------------------ situazione della persona
+  const giaPronta = useRef(situazioneIniziale);   // la situazione arrivata con la pagina: si usa una volta sola
   async function carica(id) {
     const sb = supabaseBrowser();
     dimenticaDaSistemare();   // dopo un incasso i nomi rossi si rileggono
+    // una lettura sola (query 165); senza, le sette di prima
+    const pronta = giaPronta.current && id === personaIniziale ? giaPronta.current : null;
+    giaPronta.current = null;
+    const { data: tutto, error: e165 } = pronta ? { data: pronta, error: null } : await sb.rpc('situazione_cliente', { p_allievo: id });
+    if (!e165 && tutto && typeof tutto === 'object') return componi(tutto.persona, tutto.dati, tutto.iscrizioni, tutto.tesseramenti, tutto.storia, tutto.crediti, tutto.debiti);
     const [{ data: persona }, { data: dati }, { data: iscrizioni }, { data: tess }, { data: storia }, { data: crediti }] = await Promise.all([
       sb.from('v_stato_clienti').select('id, nome, cognome, data_nascita, is_titolare, titolare_nome, titolare_cognome, email, telefono, attivo, fine_prossima, ultima_fine, certificato_scadenza, quota_valida_fino, consenso_whatsapp, account_id, stato')
         .eq('id', id).maybeSingle(),
@@ -123,6 +129,9 @@ export default function Sportello({ palestraId, corsi, tipi, orari, palestra, pe
       sb.from('v_crediti').select('iscrizione_id, aggiunta').eq('allievo_id', id).eq('stato', 'disponibile'),
     ]);
     const { data: debiti } = await sb.rpc('da_saldare', { p_palestra: palestraId, p_allievo: id });
+    return componi(persona, dati, iscrizioni, tess, storia, crediti, debiti);
+  }
+  function componi(persona, dati, iscrizioni, tess, storia, crediti, debiti) {
     // la tessera vale un anno da quando si fa: conta quella ancora valida (anche se fatta la stagione scorsa), se no l'ultima
     const oggiT = oggi();
     const tt = (tess || []).map((t) => ({ ...t, scaduta: t.stato === 'tesserato' && !!t.scadenza && t.scadenza < oggiT }));

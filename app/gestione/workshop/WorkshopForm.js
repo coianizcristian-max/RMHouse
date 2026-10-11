@@ -7,6 +7,7 @@ import CampoTestoRicco from '../CampoTestoRicco';
 import { Finestra } from '../Gestore';
 import Dettaglio from '../../workshop/Dettaglio';
 import { euro } from '@/lib/formato';
+import SceltaIva from '../SceltaIva';
 import { STATI_WORKSHOP } from '@/lib/workshop';
 
 // Scheda di un workshop: dati e locandina, i momenti (date, sala, posti), le opzioni che si comprano con i prezzi
@@ -57,6 +58,7 @@ export default function WorkshopForm({ palestraId, workshop = null, momenti = []
     quota_esterni: workshop ? workshop.quota_esterni : true, certificato_richiesto: workshop ? workshop.certificato_richiesto : false,
     compenso_tipo: workshop?.compenso_tipo || '', compenso: workshop?.compenso_tipo === 'percentuale' ? (workshop?.compenso_percentuale ?? '') : euroTesto(workshop?.compenso_cent),
     note_interne: workshop?.note_interne || '',
+    aliquota_id: workshop?.aliquota_id || '',   // IVA del workshop (query 166): vuota = la predefinita
   }));
   const [mm, setMm] = useState(() => (momenti.length ? momenti.map((m) => ({
     id: m.id, titolo: m.titolo, data: dataLocale(m.inizio), dalle: oraLocale(m.inizio), alle: oraLocale(m.fine), sala_id: m.sala_id || '', posti: m.posti ?? '',
@@ -166,6 +168,11 @@ export default function WorkshopForm({ palestraId, workshop = null, momenti = []
     if (f.insegnante_id || workshop?.insegnante_id) {
       const { error: e2 } = await db.from('workshop').update({ insegnante_id: f.insegnante_id || null }).eq('id', data);
       if (e2) { setInvio(false); setErrore('Workshop salvato, ma non l\'insegnante della scuola: esegui la query 150 e salva di nuovo.'); return; }
+    }
+    // l'IVA del workshop (query 166)
+    if (f.aliquota_id || workshop?.aliquota_id) {
+      const { error: e3 } = await db.from('workshop').update({ aliquota_id: f.aliquota_id || null }).eq('id', data);
+      if (e3) { setInvio(false); setErrore('Workshop salvato, ma non l\'IVA: esegui la query 166 e salva di nuovo.'); return; }
     }
     setInvio(false);
     router.refresh();
@@ -351,6 +358,9 @@ export default function WorkshopForm({ palestraId, workshop = null, momenti = []
               <label className="cf-interruttore"><input type="checkbox" checked={f.in_segreteria} onChange={set('in_segreteria')} /><span>Si può pagare in segreteria</span></label>
               <label className="cf-interruttore"><input type="checkbox" checked={f.quota_esterni} onChange={set('quota_esterni')} /><span>Chi non ha la quota annuale la paga insieme{quotaCent > 0 ? ` (${euro(quotaCent)})` : ''}</span></label>
               <label className="cf-interruttore"><input type="checkbox" checked={f.certificato_richiesto} onChange={set('certificato_richiesto')} /><span>Serve il certificato medico</span></label>
+            </div>
+            <div className="wf-riga" style={{ marginTop: 8 }}>
+              <SceltaIva palestraId={palestraId} id="wf-iva" etichetta="IVA (i prezzi sono IVA compresa)" value={f.aliquota_id} onChange={(v) => setF({ ...f, aliquota_id: v })} auto="predefinita" />
             </div>
             {!f.online && !f.in_segreteria && <p className="piccolo sp-attenzione">Scegli almeno un modo di pagare.</p>}
           </section>

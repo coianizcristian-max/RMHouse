@@ -11,5 +11,6 @@ export async function GET() {
   if (!staff || staff.ruolo === 'insegnante') return new Response('Non autorizzato', { status: 403 });
   const { data: f } = await supabase.from('palestra_file').select('tipo, dati').eq('palestra_id', staff.palestra_id).eq('chiave', 'timbro_firma').maybeSingle();
   if (!f) return new Response('Nessun timbro', { status: 404 });
-  return new Response(Buffer.from(f.dati, 'base64'), { headers: { 'Content-Type': f.tipo || 'image/png', 'Cache-Control': 'private, no-store' } });
+  // il browser la tiene un'ora (solo per sé): dopo un cambio la pagina la richiede con ?v= nuovo
+  return new Response(Buffer.from(f.dati, 'base64'), { headers: { 'Content-Type': f.tipo || 'image/png', 'Cache-Control': 'private, max-age=3600' } });
 }
