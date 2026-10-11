@@ -1,14 +1,15 @@
 'use client';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { supabaseBrowser } from '@/lib/supabase/browser';
 import { scaricaCsv } from '@/lib/stati';
-import { dataBreve } from '@/lib/formato';
-import { TIPI_ASI, QUALIFICHE_ASI, impostazioniEnte, valoriPersona, fileEnte, scaricaFileEnte } from '@/lib/tessereEnte';
+import { dataBreve, oggiISO } from '@/lib/formato';
+import { TIPI_ASI, QUALIFICHE_ASI, impostazioniEnte, valoriPersona, fileEnte, scaricaFileEnte, mancaNelFile } from '@/lib/tessereEnte';
 import { parteCognome, parteNome, normalizzaCF } from '@/lib/codiceFiscale';
 import ImpostazioniEnte from './ImpostazioniEnte';
 import PreferitoAsi from './PreferitoAsi';
+import ImportaScadenze from './ImportaScadenze';
 import { testoPerAsi } from '@/lib/asiCompila';
 
 // il codice fiscale dice che nome e cognome sono scritti al contrario (es. cognome "Alisa", nome "Burlea", CF BRLLSA…):
@@ -21,8 +22,12 @@ export function invertiti(r) {
 }
 
 const STATI = { da_inviare: ['da mandare all\'ente', 'tag-attenzione'], inviato: ['mandato, attende il numero', 'tag-neutro'], tesserato: ['tessera fatta', 'tag-ok'] };
-const FILTRI = [['tutti', 'Tutti'], ['senza', 'Senza tessera'], ['da_inviare', 'Da mandare'], ['inviato', 'Mandati'], ['tesserato', 'Tesserati'], ['dati', 'Dati mancanti']];
-const DA = { persona: 'scelto per lei', tessera: 'come la sua tessera', corso: 'dal corso', predefinito: 'predefinito' };
+const FILTRI = [['tutti', 'Tutti'], ['senza', 'Senza tessera', 'non ce l\'hanno o è scaduta'], ['scadenza', 'In scadenza', 'scade entro 30 giorni'],
+  ['da_inviare', 'Da mandare'], ['inviato', 'Mandati'], ['tesserato', 'Tesserati'], ['dati', 'Dati mancanti']];
+const DA = { persona: 'scelto per lei', tessera: 'come la tessera fatta', disciplina: 'dalla disciplina del corso', precedente: 'come l\'ultima tessera',
+  corso: 'dal corso', predefinito: 'predefinito' };
+// giorni da oggi a una data (negativi = passata)
+const giorniA = (iso, oggi) => Math.round((Date.parse(iso) - Date.parse(oggi)) / 86400000);
 
 export default function Tesseramento({ palestra, stagione, corrente, righe, discipline = [], conEnte = true, girati = [] }) {
   const router = useRouter();
@@ -37,11 +42,18 @@ export default function Tesseramento({ palestra, stagione, corrente, righe, disc
   const [avviso, setAvviso] = useState('');
   const [invio, setInvio] = useState(false);
   const [vediGirati, setVediGirati] = useState(false);
+  // "Come funziona": aperto finché non lo chiudi (si ricorda su questo computer)
+  const [come, setCome] = useState(true);
+  useEffect(() => { try { if (localStorage.getItem('rm-ts-come') === '0') setCome(false); } catch { /* niente */ } }, []);
   const nomeEnte = ente.nome || 'ente';
+  const oggi = oggiISO();
+  const manca = mancaNelFile(palestra.ente || {});
+  // tessera fatta ma scade entro 30 giorni: da rifare
+  const inScadenza = (r) => r.stato === 'tesserato' && r.scadenza && giorniA(r.scadenza, oggi) <= 30;
 
   const mancano = (r) => [...(Array.isArray(r.mancano) ? r.mancano : []), ...(invertiti(r) ? ['nome e cognome invertiti?'] : [])];
   const testo = cerca.trim().toLowerCase();
-  const passa = (r, k) => (k === 'tutti' ? true : k === 'senza' ? !r.stato : k === 'dati' ? mancano(r).length > 0 : r.stato === k);
+  const passa = (r, k) => (k === 'tutti' ? true : k === 'senza' ? !r.stato : k === 'scadenza' ? inScadenza(r) : k === 'dati' ? mancano(r).length > 0 : r.stato === k);
   const visibili = useMemo(() => righe.filter((r) => passa(r, filtro) &&
     (!testo || `${r.cognome} ${r.nome} ${r.corsi || ''} ${r.numero || ''} ${r.codice_fiscale || ''}`.toLowerCase().includes(testo))), [righe, filtro, testo]); // eslint-disable-line react-hooks/exhaustive-deps
   const conta = (k) => righe.filter((r) => passa(r, k)).length;
@@ -67,7 +79,7 @@ export default function Tesseramento({ palestra, stagione, corrente, righe, disc
   }
 
   async function numero(r) {
-    const n = prompt(`Numero di tessera di ${r.nome} ${r.cognome} (es. A 1234567)`, r.numero ? `${r.tipo_tessera || r.tipo_precedente || ''} ${r.numero}`.trim() : '');
+    const n = prompt(`Numero di tessera di ${r.nome} ${r.cognome} (es. A 1234567; con la scadenza: A 1234567 08/10/2027)`, r.numero ? `${r.tipo_tessera || r.tipo_precedente || ''} ${r.numero}`.trim() : '');
     if (n === null) return;
     setErrore('');
     const { error } = await supabaseBrowser().rpc('scrivi_numero_tessera', { p_palestra: palestra.id, p_stagione: stagione, p_allievo: r.allievo_id, p_testo: n });
@@ -100,13 +112,28 @@ export default function Tesseramento({ palestra, stagione, corrente, righe, disc
   }
 
   function fileEnteScelti() {
-    const girati = sceltiRighe.filter(invertiti);
+    if (manca.length) {
+      setErrore(`Manca il ${manca.join(', ')}: senza, il portale scarta il file. Scrivilo nelle Impostazioni ${nomeEnte} (qui sotto), salva e riprova.`);
+      setApriEnte(true); return;
+    }
+    // chi ha già la tessera valida (e non in scadenza) non va rimandato
+    const valide = sceltiRighe.filter((r) => r.stato === 'tesserato' && !inScadenza(r));
+    const daMandare = sceltiRighe.filter((r) => !valide.includes(r));
+    if (!daMandare.length) { setErrore('Le persone scelte hanno già la tessera valida: niente da mandare.'); return; }
+    const girati = daMandare.filter(invertiti);
     if (girati.length && !confirm(`${girati.length === 1 ? 'Una persona ha' : `${girati.length} persone hanno`} nome e cognome invertiti secondo il codice fiscale (${girati.slice(0, 4).map((r) => `${r.cognome} ${r.nome}`).join(', ')}${girati.length > 4 ? '…' : ''}). Nel file li metto giusti, ma sistemali anche nella scheda ("scambia" nella colonna Dati). Continuare?`)) return;
-    const senzaCf = sceltiRighe.filter((r) => !r.codice_fiscale);
+    const senzaCf = daMandare.filter((r) => !r.codice_fiscale);
     if (senzaCf.length && !confirm(`${senzaCf.length} ${senzaCf.length === 1 ? 'persona non ha' : 'persone non hanno'} il codice fiscale (${senzaCf.slice(0, 4).map((r) => `${r.cognome} ${r.nome}`).join(', ')}${senzaCf.length > 4 ? '…' : ''}): il portale le scarterà. Scaricare lo stesso?`)) return;
-    const giuste = sceltiRighe.map((r) => (invertiti(r) ? { ...r, nome: r.cognome, cognome: r.nome } : r));
-    scaricaFileEnte(`tessere-${nomeEnte.toLowerCase()}-${stagione}-${sceltiRighe.length}.csv`, fileEnte(giuste, ente, stagione), ente.codifica);
-    setAvviso(`File con ${sceltiRighe.length} ${sceltiRighe.length === 1 ? 'persona' : 'persone'} scaricato: caricalo sul portale (Tesserati → Caricamento tessere da file), poi "Segna mandati".`);
+    // senza la disciplina per l'ente la colonna DISCIPLINA resta vuota
+    const senzaDisc = ente.colonne.some((c) => c.campo === 'disciplina') ? daMandare.filter((r) => !valoriPersona(r, ente).disciplina) : [];
+    if (senzaDisc.length) {
+      const corsi = [...new Set(senzaDisc.map((r) => (r.corsi || '').split(', ')[0]).filter(Boolean))].slice(0, 4).join(', ');
+      if (!confirm(`${senzaDisc.length === 1 ? 'Una persona non ha' : `${senzaDisc.length} persone non hanno`} la disciplina per ${nomeEnte}${corsi ? ` (corsi: ${corsi}…)` : ''}: nel file la colonna DISCIPLINA resterebbe vuota. Sceglila in Impostazioni ${nomeEnte} → Discipline, colonna "Per l'ente". Scaricare lo stesso?`)) { setApriEnte(true); return; }
+    }
+    const giuste = daMandare.map((r) => (invertiti(r) ? { ...r, nome: r.cognome, cognome: r.nome } : r));
+    setErrore('');
+    scaricaFileEnte(`tessere-${nomeEnte.toLowerCase()}-${stagione}-${daMandare.length}.csv`, fileEnte(giuste, ente, stagione), ente.codifica);
+    setAvviso(`File con ${daMandare.length} ${daMandare.length === 1 ? 'persona' : 'persone'} scaricato${valide.length ? ` (tolte ${valide.length} che hanno già la tessera valida)` : ''}: caricalo sul portale (Tesserati → Caricamento tessere da file), poi "Segna mandati".`);
   }
 
   function elencoCompleto() {
@@ -165,11 +192,39 @@ export default function Tesseramento({ palestra, stagione, corrente, righe, disc
         </div>
         <span className="in-riga">
           {ente.portale && <a className="link-btn piccolo" href={ente.portale} target="_blank" rel="noreferrer">Apri il portale {nomeEnte} ↗</a>}
-          <button className="link-btn piccolo" onClick={() => setApriEnte(!apriEnte)}>{apriEnte ? 'chiudi le impostazioni' : `Impostazioni ${ente.nome || 'ente'}${ente.affiliazione ? ` · ${ente.affiliazione}` : ''}`}</button>
+          <button type="button" className="btn btn-piccolo" aria-expanded={apriEnte} onClick={() => setApriEnte(!apriEnte)}>
+            {apriEnte ? 'Chiudi le impostazioni' : `⚙ Impostazioni ${ente.nome || 'ente'}${ente.affiliazione ? ` · ${ente.affiliazione}` : ''}`}
+          </button>
         </span>
       </div>
 
+      {manca.length > 0 && !apriEnte && (
+        <div className="avviso" role="status">
+          Manca il <b>{manca.join(', ')}</b> (colonna CODICE AFFILIAZIONE del file): scrivilo nelle{' '}
+          <button type="button" className="link-btn" onClick={() => setApriEnte(true)}>Impostazioni {nomeEnte}</button>.
+        </div>
+      )}
+
+      <details className="pannello asi-aiuto" open={come}
+               onToggle={(ev) => { const o = ev.currentTarget.open; setCome(o); try { localStorage.setItem('rm-ts-come', o ? '1' : '0'); } catch { /* niente */ } }}>
+        <summary><b>Come funziona</b> <span className="piccolo muto">· 4 passi</span></summary>
+        <ol className="asi-passi">
+          <li><b>Chi tesserare:</b> filtro <i>Senza tessera</i> (non ce l&apos;hanno o è scaduta) o <i>In scadenza</i> → spunta → <b>File per {nomeEnte}</b>.
+            Nel file: tipo (A/B secondo la disciplina), qualifica e disciplina dalle Impostazioni; <i>CODICE TESSERA</i> resta vuoto, il numero lo dà {nomeEnte}.</li>
+          <li><b>Sul portale {nomeEnte}:</b> Tesserati → Caricamento tessere da file → carica il file. Poi qui <b>Segna mandati</b>.</li>
+          <li><b>Quando le tessere sono fatte:</b> <b>Segna tesserati</b> (se i numeri sono in fila scrivi il primo), oppure <i>scrivi il numero</i> sulla persona.</li>
+          <li><b>La tessera vale un anno:</b> chi scade entro 30 giorni è in <i>In scadenza</i>, chi è scaduto torna in <i>Senza tessera</i>.
+            Le scadenze delle tessere già fatte: <i>Importa le scadenze</i> qui sotto.</li>
+        </ol>
+        <p className="piccolo muto" style={{ margin: '6px 0 0' }}>I valori predefiniti (tipo per disciplina, qualifica, disciplina {nomeEnte}, codice di affiliazione) si cambiano in <b>Impostazioni {nomeEnte}</b>, in alto a destra; per una persona sola, tocca i suoi valori nella colonna &quot;Per {nomeEnte}&quot;.</p>
+      </details>
+
       {apriEnte && <ImpostazioniEnte palestraId={palestra.id} ente={palestra.ente || {}} discipline={discipline} stagione={stagione} onChiudi={() => setApriEnte(false)} />}
+
+      <details className="pannello asi-aiuto">
+        <summary><b>Importa le scadenze</b> <span className="piccolo muto">· dal vostro Excel delle iscrizioni (es. &quot;A 1413763 08/10/2026&quot;)</span></summary>
+        <ImportaScadenze palestraId={palestra.id} />
+      </details>
 
       <details className="pannello asi-aiuto">
         <summary><b>Compila il portale {nomeEnte} da RMHouse</b> <span className="piccolo muto">· persona per persona, senza riscrivere i dati</span></summary>
@@ -178,8 +233,8 @@ export default function Tesseramento({ palestra, stagione, corrente, righe, disc
 
       <div className="ts-filtri">
         <input type="search" placeholder="Cerca nome, corso, numero o codice fiscale" value={cerca} onChange={(e) => setCerca(e.target.value)} aria-label="Cerca" />
-        {FILTRI.map(([k, t]) => (
-          <button key={k} type="button" className="stato-pillola" aria-current={filtro === k ? 'true' : undefined} onClick={() => { setFiltro(k); setScelti([]); }}>
+        {FILTRI.map(([k, t, aiuto]) => (
+          <button key={k} type="button" className="stato-pillola" title={aiuto} aria-current={filtro === k ? 'true' : undefined} onClick={() => { setFiltro(k); setScelti([]); }}>
             {t} <span className="conta">{conta(k)}</span>
           </button>
         ))}
@@ -218,12 +273,11 @@ export default function Tesseramento({ palestra, stagione, corrente, righe, disc
                     </td>
                     <td>
                       <span className="in-riga">
-                        {r.stato ? <span className={`tag ${STATI[r.stato][1]}`}>{STATI[r.stato][0]}</span> : <span className="tag tag-rosso">senza tessera</span>}
+                        {r.stato ? <span className={`tag ${STATI[r.stato][1]}`}>{STATI[r.stato][0]}</span>
+                          : <span className="tag tag-rosso">{r.scaduta_il ? 'tessera scaduta' : 'senza tessera'}</span>}
                         <button className="link-btn piccolo" onClick={() => numero(r)}>{r.numero ? `${r.tipo_tessera || r.tipo_precedente || ''} ${r.numero}`.trim() : 'scrivi il numero'}</button>
                       </span>
-                      {(r.scadenza || (!r.stato && r.numero_precedente)) && (
-                        <span className="ts-corsi">{r.scadenza ? `scade il ${dataBreve(r.scadenza)}` : `ultima: ${r.tessera_anagrafica}`}</span>
-                      )}
+                      <Scadenza r={r} oggi={oggi} />
                     </td>
                     {conEnte && (
                       <td className="ts-ente">
@@ -253,13 +307,22 @@ export default function Tesseramento({ palestra, stagione, corrente, righe, disc
           </table>
         </div>
       )}
-      <p className="piccolo muto" style={{ marginTop: 12 }}>
-        Come si fa: scegli le persone (es. filtro &quot;Senza tessera&quot; → spunta tutti) → <b>File per {nomeEnte}</b> → sul portale
-        Tesserati → Caricamento tessere da file → poi qui <b>Segna mandati</b>, e quando arrivano i numeri <b>Segna tesserati</b>
-        (o &quot;scrivi il numero&quot; persona per persona). Il file ha le colonne del modello ASI: si cambiano in Impostazioni.
-      </p>
     </div>
   );
+}
+
+// sotto lo stato della tessera: quando scade, quando è scaduta, o che la scadenza non si sa
+function Scadenza({ r, oggi }) {
+  if (r.scadenza) {
+    const g = giorniA(r.scadenza, oggi);
+    return <span className={`ts-corsi${g <= 30 ? ' ts-scade' : ''}`}>scade il {dataBreve(r.scadenza)}{g <= 30 ? ` · ${g <= 0 ? 'oggi' : g === 1 ? 'domani' : `fra ${g} giorni`}` : ''}</span>;
+  }
+  if (r.scaduta_il) {
+    return <span className="ts-corsi ts-scade">{`${r.tipo_precedente || ''} ${r.numero_precedente || ''}`.trim()} scaduta il {dataBreve(r.scaduta_il)}</span>;
+  }
+  if (r.scadenza_sconosciuta) return <span className="ts-corsi">scadenza non nota · importa le scadenze</span>;
+  if (!r.stato && r.numero_precedente) return <span className="ts-corsi">ultima: {`${r.tipo_precedente || ''} ${r.numero_precedente}`.trim()}</span>;
+  return null;
 }
 
 // tipo, qualifica e disciplina solo per questa persona ("predefinito" = come tutti gli altri)

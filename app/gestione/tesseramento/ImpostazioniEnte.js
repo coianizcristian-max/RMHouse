@@ -29,6 +29,7 @@ export default function ImpostazioniEnte({ palestraId, ente, discipline = [], st
     const nuovo = { ...e, nome: e.nome.trim(), affiliazione: e.affiliazione.trim(), portale: e.portale.trim(), discipline_ente: discEnte,
       // tolte dall'elenco: non valgono più come traduzione
       mappa: Object.fromEntries(Object.entries(e.mappa).filter(([, v]) => v && discEnte.includes(v))),
+      mappa_tipo: Object.fromEntries(Object.entries(e.mappa_tipo).filter(([, v]) => v)),
       disciplina: discEnte.includes(e.disciplina) ? e.disciplina : '',
       colonne: e.colonne.filter((c) => c.titolo.trim()).map((c) => ({ titolo: c.titolo.trim(), campo: c.campo, valore: c.campo === 'fisso' ? c.valore : '' })) };
     setInvio(true);
@@ -47,7 +48,7 @@ export default function ImpostazioniEnte({ palestraId, ente, discipline = [], st
       <div className="te-griglia">
         <div className="campo"><label htmlFor="te-n">Ente</label>
           <input id="te-n" value={e.nome} onChange={set('nome')} placeholder="Es. ASI, CSEN, UISP…" /></div>
-        <div className="campo"><label htmlFor="te-a">Codice di affiliazione</label>
+        <div className={`campo${e.affiliazione.trim() ? '' : ' te-manca'}`}><label htmlFor="te-a">Codice di affiliazione <span className="eti-info">· va nel file (CODICE AFFILIAZIONE)</span></label>
           <input id="te-a" value={e.affiliazione} onChange={set('affiliazione')} placeholder="Es. VEN-VI0421" /></div>
         <div className="campo te-largo"><label htmlFor="te-p">Link del portale <span className="eti-info">· la pagina dove fate le tessere</span></label>
           <input id="te-p" value={e.portale} onChange={set('portale')} placeholder="https://…" /></div>
@@ -67,7 +68,7 @@ export default function ImpostazioniEnte({ palestraId, ente, discipline = [], st
           <select id="te-t" value={e.tipo_tessera} onChange={set('tipo_tessera')}>
             <option value="">—</option>{TIPI_ASI.map((t) => <option key={t} value={t}>{t}</option>)}
           </select>
-          <span className="piccolo muto">Chi ha già una tessera tiene il suo tipo.</span></div>
+          <span className="piccolo muto">Solo se la disciplina non ne ha uno (qui sotto, colonna Tessera).</span></div>
         <div className="campo"><label htmlFor="te-q">Qualifica</label>
           <select id="te-q" value={e.qualifica} onChange={set('qualifica')}>
             <option value="">—</option>{QUALIFICHE_ASI.map((t) => <option key={t} value={t}>{t}</option>)}
@@ -83,8 +84,9 @@ export default function ImpostazioniEnte({ palestraId, ente, discipline = [], st
         <div className="campo"><label htmlFor="te-el">Le discipline della vostra affiliazione <span className="eti-info">· una per riga, scritte come sul portale</span></label>
           <textarea id="te-el" rows={8} value={elenco} onChange={(ev) => setElenco(ev.target.value)} /></div>
         <div>
-          <p className="piccolo" style={{ margin: '0 0 6px' }}><b>Le vostre discipline → quella dell&apos;ente</b></p>
+          <p className="piccolo" style={{ margin: '0 0 6px' }}><b>Le vostre discipline → quella dell&apos;ente e il tipo di tessera</b></p>
           <ul className="te-mappa">
+            <li className="te-mappa-testa piccolo muto"><span>Disciplina</span><span>Per l&apos;ente</span><span>Tessera</span></li>
             {discipline.map((d) => (
               <li key={d.id}>
                 <span>{d.nome}</span>
@@ -92,9 +94,15 @@ export default function ImpostazioniEnte({ palestraId, ente, discipline = [], st
                   <option value="">{e.disciplina ? `predefinita (${e.disciplina})` : '—'}</option>
                   {discEnte.map((t) => <option key={t} value={t}>{t}</option>)}
                 </select>
+                <select value={e.mappa_tipo[d.id] || ''} onChange={(ev) => setE((x) => ({ ...x, mappa_tipo: { ...x.mappa_tipo, [d.id]: ev.target.value } }))} aria-label={`Tipo di tessera per ${d.nome}`}>
+                  <option value="">{e.tipo_tessera ? `(${e.tipo_tessera})` : '—'}</option>
+                  {TIPI_ASI.map((t) => <option key={t} value={t}>{t}</option>)}
+                </select>
               </li>
             ))}
           </ul>
+          <p className="piccolo muto" style={{ margin: '6px 0 0' }}><b>Per l&apos;ente</b>: la disciplina {e.nome || 'dell\'ente'} che va nella colonna DISCIPLINA del file (se resta &quot;—&quot; il file avvisa).
+            <b> Tessera</b>: il tipo per chi fa quella disciplina (es. Aerea e Pole B, le altre A). Chi fa più corsi prende quello del corso più recente.</p>
         </div>
       </div>
 

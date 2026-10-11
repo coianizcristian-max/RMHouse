@@ -113,7 +113,7 @@ export default function Sportello({ palestraId, corsi, tipi, orari, palestra, pe
       sb.from('allievi').select('id, codice_fiscale, sesso, luogo_nascita, tessera, account ( nome, cognome, indirizzo, cap, citta, provincia, codice_fiscale )').eq('id', id).maybeSingle(),
       sb.from('iscrizioni').select('id, corso_id, tipo_abbonamento_id, data_inizio, data_fine, stato, ingressi_residui, pagamento_id, corsi ( nome ), tipi_abbonamento ( nome, modalita ), iscrizioni_orari ( orario_id, orari ( corso_id, giorno_settimana, ora_inizio ) )')
         .eq('allievo_id', id).order('data_inizio', { ascending: false }).limit(8),
-      sb.from('tesseramenti').select('stagione, stato, numero').eq('allievo_id', id).order('stagione', { ascending: false }).limit(1),
+      sb.from('tesseramenti').select('stagione, stato, numero, tipo_tessera, scadenza').eq('allievo_id', id).order('stagione', { ascending: false }).limit(3),
       // tutta la storia: abbonamenti fatti in RMHouse e quelli importati da APP Palestre, dal più recente
       sb.from('v_periodi').select('iscrizione_id, dal, al, prezzo_cent, abbonamento, viva').eq('allievo_id', id)
         .order('dal', { ascending: false }).order('al', { ascending: false }).limit(60),
@@ -121,7 +121,11 @@ export default function Sportello({ palestraId, corsi, tipi, orari, palestra, pe
       sb.from('v_crediti').select('iscrizione_id, aggiunta').eq('allievo_id', id).eq('stato', 'disponibile'),
     ]);
     const { data: debiti } = await sb.rpc('da_saldare', { p_palestra: palestraId, p_allievo: id });
-    const nuovo = { persona, dati, iscrizioni: iscrizioni || [], tessera: (tess || [])[0] || null, storia: storia || [], crediti: crediti || [],
+    // la tessera vale un anno da quando si fa: conta quella ancora valida (anche se fatta la stagione scorsa), se no l'ultima
+    const oggiT = oggi();
+    const tt = (tess || []).map((t) => ({ ...t, scaduta: t.stato === 'tesserato' && !!t.scadenza && t.scadenza < oggiT }));
+    const tessera = tt.find((t) => t.stato === 'tesserato' && t.scadenza && !t.scaduta) || tt[0] || null;
+    const nuovo = { persona, dati, iscrizioni: iscrizioni || [], tessera, storia: storia || [], crediti: crediti || [],
                     debiti: Array.isArray(debiti) ? debiti[0] || null : null };
     setS(nuovo);
     return nuovo;
@@ -972,8 +976,10 @@ function Situazione({ s, v, setV, palestraId, onCambia, onRinnova, onRicarica, o
         <div className={`sp-stato-riga ${quotaStato[0]}`}><dt>Quota annuale</dt><dd>{quotaStato[1]}</dd></div>
         <div className={`sp-stato-riga ${certStato[0]}`}><dt>Certificato</dt><dd>{certStato[1]}
           {certStato[0] !== 'ok' && !v.certificato && <span className="piccolo muto"> · se l&apos;ha portato scrivi la scadenza in 2</span>}</dd></div>
-        <div className={`sp-stato-riga ${s.tessera?.stato === 'tesserato' ? 'ok' : 'forse'}`}><dt>Tessera</dt>
-          <dd>{s.tessera?.stato === 'tesserato' ? `fatta${s.tessera.numero ? ` n. ${s.tessera.numero}` : ''} (${s.tessera.stagione}/${String(s.tessera.stagione + 1).slice(2)})` : s.tessera?.stato === 'inviato' ? 'inviata, da confermare' : 'da fare'}</dd></div>
+        <div className={`sp-stato-riga ${s.tessera?.stato === 'tesserato' && !s.tessera.scaduta ? 'ok' : 'forse'}`}><dt>Tessera</dt>
+          <dd>{s.tessera?.scaduta ? `scaduta il ${dataBreve(s.tessera.scadenza)}: da rifare`
+            : s.tessera?.stato === 'tesserato' ? `fatta${s.tessera.numero ? ` n. ${s.tessera.numero}` : ''}${s.tessera.scadenza ? `, scade il ${dataBreve(s.tessera.scadenza)}` : ` (${s.tessera.stagione}/${String(s.tessera.stagione + 1).slice(2)})`}`
+            : s.tessera?.stato === 'inviato' ? 'inviata, da confermare' : 'da fare'}</dd></div>
         <div className={`sp-stato-riga ${p.consenso_whatsapp ? 'ok' : 'forse'}`}><dt>WhatsApp</dt><dd>{p.consenso_whatsapp ? 'sì ai gruppi' : p.consenso_whatsapp === false ? 'no ai gruppi' : 'non chiesto'}</dd></div>
       </dl>
       {s.debiti && <DaSaldare d={s.debiti} palestraId={palestraId} email={p.email} onFatto={onRicarica} />}
@@ -1079,7 +1085,7 @@ function Dopo({ esito, s, corso, palestra, palestraId, stagione, lezioni, onRica
         </div>
       )}
       <GruppoWhatsApp persona={s?.persona} corso={corso} palestraNome={palestra.nome} />
-      <TesseraEnte palestraId={palestraId} ente={palestra.ente || {}} persona={s?.persona} dati={s?.dati} tessera={s?.tessera?.stagione === stagione ? s.tessera : null}
+      <TesseraEnte palestraId={palestraId} ente={palestra.ente || {}} persona={s?.persona} dati={s?.dati} tessera={s?.tessera && !s.tessera.scaduta && (s.tessera.stagione === stagione || (s.tessera.stato === 'tesserato' && s.tessera.scadenza)) ? s.tessera : null}
                    stagione={stagione} onCambio={onRicarica} />
       <div className="sp-bottoni sp-fine">
         <button type="button" className="btn" onClick={onAncora}>Altro per {s?.persona?.nome}</button>

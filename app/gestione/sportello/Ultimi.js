@@ -94,7 +94,7 @@ export function TesseraEnte({ palestraId, ente = {}, persona, dati, tessera, sta
         <span className="sp-icona ente" aria-hidden="true">★</span>
         <strong>Tessera {nomeEnte}</strong>
         <span className={`sp-stato ${tessera?.stato === 'tesserato' ? 'ok' : 'no'}`}>
-          {tessera?.stato === 'tesserato' ? `fatta${tessera.numero ? ` · n. ${tessera.numero}` : ''}` : tessera?.stato === 'inviato' ? 'inviata' : 'da fare'}
+          {tessera?.stato === 'tesserato' ? `fatta${tessera.numero ? ` · n. ${tessera.numero}` : ''}${tessera.scadenza ? ` · scade ${daISO(tessera.scadenza)}` : ''}` : tessera?.stato === 'inviato' ? 'inviata' : 'da fare'}
         </span>
       </div>
       <div className="sp-copia-campi">

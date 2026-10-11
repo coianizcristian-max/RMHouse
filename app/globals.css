@@ -5000,7 +5000,7 @@ body:has(.sportello) .bottone-rapide { display: none; }
 .te-due { display: grid; gap: 12px; grid-template-columns: minmax(0, 1fr); }
 @media (min-width: 900px) { .te-due { grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr); } }
 .te-mappa { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
-.te-mappa li { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.6fr); gap: 8px; align-items: center; font-size: 14px; }
+.te-mappa li { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.6fr) 78px; gap: 8px; align-items: center; font-size: 14px; }
 .te-mappa select { min-height: 34px; padding: 4px 8px; font-size: 13px; }
 .te-colonne { margin: 0; padding-left: 22px; display: grid; gap: 4px; }
 .te-colonne li { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1.4fr) minmax(0, .9fr) auto; gap: 6px; align-items: center; }
@@ -5053,3 +5053,12 @@ body:has(.sportello) .bottone-rapide { display: none; }
 .sp-giorni-troppi { color: var(--rosso-scuro); }
 .ag-troppi { color: var(--rosso-scuro); font-weight: 650; }
 .ipc-incasso { color: var(--attenzione); font-weight: 700; }
+
+/* 199 — tessere: tipo per disciplina, scadenze, importazione */
+.te-mappa .te-mappa-testa { font-size: 12px; }
+.te-manca input { border-color: var(--attenzione); box-shadow: 0 0 0 2px color-mix(in srgb, var(--attenzione) 22%, transparent); }
+.tesseramento .ts-scade { color: var(--attenzione); font-weight: 600; }
+.ts-importa-scelte { display: flex; flex-wrap: wrap; gap: 8px; align-items: flex-start; }
+.ts-importa-scelte label.btn { cursor: pointer; }
+.ts-importa-scelte textarea { flex: 1 1 260px; min-height: 40px; padding: 6px 10px; font: inherit; font-size: 13px; border: 1px solid var(--linea); border-radius: 8px; resize: vertical; }
+.ts-non-trovate { margin-top: 6px; max-height: 140px; overflow: auto; word-break: break-word; }
