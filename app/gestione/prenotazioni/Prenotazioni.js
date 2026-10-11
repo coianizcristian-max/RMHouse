@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { supabaseBrowser } from '@/lib/supabase/browser';
 import { dataBreve, ora } from '@/lib/formato';
+import { useDaSistemare, motivoPagamento } from '@/lib/daSistemare';
 
 const GENERE = { ingresso: ['prenotazione', 'tag-ok'], recupero: ['recupero', 'tag-ok'], prova: ['prova', 'tag-attenzione'] };
 const ORIGINE = { cliente: 'dall\'app', sito: 'dal sito', segreteria: 'segreteria' };
@@ -16,6 +17,7 @@ export default function Prenotazioni({ righe, giorni, tipo, origine, q, gestione
   const [origF, setOrigF] = useState(origine);
   const [invio, setInvio] = useState(null);
   const [errore, setErrore] = useState('');
+  const debiti = useDaSistemare();   // chi non ha pagato: nome in rosso
 
   const vai = (g) => router.push(`/gestione/prenotazioni?giorni=${g}`);
   const parole = norm(testo).split(/\s+/).filter(Boolean);
@@ -91,7 +93,8 @@ export default function Prenotazioni({ righe, giorni, tipo, origine, q, gestione
                       <strong>
                         <span className="pallino-colore" style={{ background: l.corsi?.colore || 'var(--rosso)', display: 'inline-block', marginRight: 6, verticalAlign: 'middle' }} />
                         {ora(l.inizio)} · {l.corsi?.nome}
-                        {' · '}<Link prefetch={false} href={`/gestione/persone/${r.allievo_id}`}>{r.allievi?.nome} {r.allievi?.cognome}</Link>
+                        {' · '}<Link prefetch={false} href={`/gestione/persone/${r.allievo_id}`} className={debiti.has(r.allievo_id) ? 'nome-rosso' : undefined}
+                                     title={motivoPagamento(debiti.get(r.allievo_id)) || undefined}>{r.allievi?.nome} {r.allievi?.cognome}</Link>
                       </strong>
                       <span className="piccolo muto">
                         <span className={`tag ${t[1]}`}>{t[0]}</span> {ORIGINE[r.origine] || r.origine} il {dataBreve(r.created_at)}

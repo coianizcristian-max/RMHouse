@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import { supabaseBrowser } from '@/lib/supabase/browser';
 import { cercaPersone } from '@/lib/ricerca';
 import { etichettaPaga } from '@/lib/formato';
+import { useDaSistemare, testoTag } from '@/lib/daSistemare';
 
 // Cerca un cliente e apri la scheda, oppure scegli per chi fare una nuova iscrizione
 export default function CercaVeloce({ palestraId, modoIniziale = 'scheda' }) {
@@ -13,6 +14,7 @@ export default function CercaVeloce({ palestraId, modoIniziale = 'scheda' }) {
   const [modo, setModo] = useState(modoIniziale);   // scheda | iscrivi | incassa
   const [attivo, setAttivo] = useState(-1);
   const campo = useRef(null);
+  const debiti = useDaSistemare(trovati.length > 0);   // chi non ha pagato: nome in rosso
 
   useEffect(() => {
     const t = testo.trim().toLowerCase();
@@ -50,8 +52,9 @@ export default function CercaVeloce({ palestraId, modoIniziale = 'scheda' }) {
           {trovati.map((p, i) => (
             <li key={p.id} role="option" aria-selected={i === attivo}>
               <button type="button" onClick={() => vai(p)} className={i === attivo ? 'attivo' : ''}>
-                <strong>{p.cognome} {p.nome}</strong>
+                <strong className={debiti.has(p.id) ? 'nome-rosso' : undefined}>{p.cognome} {p.nome}</strong>
                 <span className="piccolo muto">
+                  {debiti.has(p.id) && <b className="nome-rosso">{testoTag(debiti.get(p.id))} · </b>}
                   {[p.iscrizioni_attive ? `${p.iscrizioni_attive} iscrizioni in corso` : 'nessuna iscrizione in corso',
                     !p.is_titolare && p.titolare_nome ? `${etichettaPaga(p.data_nascita)} ${p.titolare_nome} ${p.titolare_cognome || ''}` : null, p.telefono].filter(Boolean).join(' · ')}
                 </span>

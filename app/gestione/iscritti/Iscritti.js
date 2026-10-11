@@ -179,10 +179,10 @@ export default function Iscritti({ dati, corsoIniziale = '', cercaIniziale = '',
                 const suoi = c.orari.filter((o) => p.orari?.includes(o.id));
                 const scade = p.fino_al && giorniTra(oggi, p.fino_al) <= 14;
                 return (
-                  <div key={p.iscrizione_id} className={`ipc-riga${p.da_saldare ? ' saldo' : ''}`} role="row">
+                  <div key={p.iscrizione_id} className={`ipc-riga${p.da_saldare || p.senza_incasso ? ' saldo' : ''}`} role="row">
                     <span className="ipc-n">{i + 1}</span>
                     <span className="ipc-chi">
-                      <Link prefetch={false} href={`/gestione/sportello?persona=${p.allievo_id}`}>{p.cognome} {p.nome}</Link>
+                      <Link prefetch={false} href={`/gestione/sportello?persona=${p.allievo_id}`} className={p.da_saldare || p.senza_incasso ? 'nome-rosso' : undefined}>{p.cognome} {p.nome}</Link>
                       <small className="muto">{[p.eta != null && p.eta < 18 ? `${p.eta} anni` : null, p.chi_paga ? `paga ${p.chi_paga}` : null].filter(Boolean).join(' · ')}</small>
                       {p.futuro && <small className="ipc-futuro">dal {gg(p.dal)}</small>}
                     </span>
@@ -207,7 +207,7 @@ export default function Iscritti({ dati, corsoIniziale = '', cercaIniziale = '',
                     </span>
                     <span className="ipc-pag">{p.da_saldare
                       ? <Link prefetch={false} href={`/gestione/sportello?persona=${p.allievo_id}`} className="ipc-rosso">da saldare {euro(p.da_saldare)}</Link>
-                      : p.senza_incasso ? <span className="ipc-incasso" title="L'abbonamento non ha nessun incasso registrato: pagato in APP Palestre e non abbinato, o mai pagato?">incasso non trovato</span>
+                      : p.senza_incasso ? <span className="ipc-incasso ipc-rosso" title="L'abbonamento non ha nessun incasso registrato: pagato in APP Palestre e non abbinato, o mai pagato?">incasso non trovato</span>
                       : <span className="ipc-ok">✓ pagato</span>}</span>
                     <span className="ipc-altri">{p.altri || <span className="muto">—</span>}</span>
                     <span className="ipc-nota">

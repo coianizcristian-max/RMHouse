@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabaseBrowser } from '@/lib/supabase/browser';
 import { etaAl, ora, dataBreve, euro } from '@/lib/formato';
+import { useDaSistemare, testoTag } from '@/lib/daSistemare';
 
 const ETICHETTE = { prova: ['In prova', 'tag-rosso'], recupero: ['Recupero', 'tag-attenzione'], ingresso: ['Ingresso', 'tag-neutro'] };
 
@@ -32,6 +33,7 @@ export default function Appello({ lezioneId, persone, corsoNome = '', gestione =
   const [aggiungi, setAggiungi] = useState(false);
   const [testoCerca, setTestoCerca] = useState('');
   const [candidati, setCandidati] = useState(null);
+  const debiti = useDaSistemare(aggiungi);      // chi non ha pagato, fra le persone da aggiungere
   const [nuova, setNuova] = useState({ nome: '', telefono: '' });
   const [invio, setInvio] = useState(false);
   // chi ha fatto l'appello e quando (si aggiorna a ogni presenza segnata)
@@ -289,13 +291,13 @@ export default function Appello({ lezioneId, persone, corsoNome = '', gestione =
           {candidati?.length > 0 && (
             <ul className="elenco">
               {candidati.map((c) => {
-                const guai = c.abbonamento === 'nessun abbonamento' || !c.certificato_ok;
+                const guai = c.abbonamento === 'nessun abbonamento' || !c.certificato_ok || debiti.has(c.allievo_id);
                 return (
                   <li key={c.allievo_id} className="persona">
                     <span>
                       <span className={`persona-nome${guai ? ' nome-rosso' : ''}`}>{c.cognome} {c.nome}</span>
                       <span className="piccolo muto" style={{ display: 'block' }}>
-                        {c.abbonamento}{!c.certificato_ok && ' · certificato non valido'}{c.recupero && ' · ha un recupero'}
+                        {c.abbonamento}{!c.certificato_ok && ' · certificato non valido'}{debiti.has(c.allievo_id) && ` · ${testoTag(debiti.get(c.allievo_id))}`}{c.recupero && ' · ha un recupero'}
                       </span>
                     </span>
                     <button className="btn btn-piccolo btn-primario" disabled={invio} onClick={() => aggiungiPersona(c)}>Aggiungi</button>
@@ -338,15 +340,15 @@ export default function Appello({ lezioneId, persone, corsoNome = '', gestione =
                   ...(valore === false ? { opacity: .55 } : {}),
                 }}>
               <div>
-                <span className={`persona-nome${p.bloccato || p.quota_mancante || p.da_saldare ? ' nome-rosso' : ''}`}>{p.cognome} {p.nome}</span>
+                <span className={`persona-nome${p.bloccato || p.quota_mancante || p.da_saldare || p.senza_incasso ? ' nome-rosso' : ''}`}>{p.cognome} {p.nome}</span>
                 <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 4 }}>
                   {etichetta && <span className={`tag ${classe}`}>{etichetta}</span>}
                   {p.data_nascita && etaAl(p.data_nascita) < 18 && <span className="tag tag-neutro">{etaAl(p.data_nascita)} anni</span>}
                   {p.bloccato && <span className="tag tag-rosso">Certificato scaduto</span>}
                   {p.certificato_in_scadenza && <span className="tag tag-attenzione">Certificato in scadenza</span>}
                   {p.quota_mancante && <span className="tag tag-attenzione">Quota da pagare</span>}
-                  {!p.da_saldare && p.senza_incasso && <span className="tag tag-attenzione" title="L'abbonamento non ha nessun incasso registrato: controlla se ha pagato">incasso non trovato</span>}
-                  {p.da_saldare && <span className="tag tag-rosso" title="Frequenta ma non ha ancora pagato: passi dalla segreteria">
+                  {!p.da_saldare && p.senza_incasso && <span className="tag tag-debito" title="L'abbonamento non ha nessun incasso registrato: controlla se ha pagato">incasso non trovato</span>}
+                  {p.da_saldare && <span className="tag tag-debito" title="Frequenta ma non ha ancora pagato: passi dalla segreteria">
                     Da saldare{p.da_saldare.totale_cent ? ` ${euro(p.da_saldare.totale_cent)}` : ''}</span>}
                   {p.origine && p.origine !== 'abbonamento' && <span className="tag tag-neutro">da {p.origine}</span>}
                   {gestione && p.tipo === 'iscritto' && !finita && valore !== true && (

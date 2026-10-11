@@ -10,6 +10,26 @@ import { testoSu } from '@/lib/colori';
 
 const GIORNI = ['Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato', 'Domenica'];
 const MAX_FACCE = 6; // al massimo 6 cerchietti e poi "…"; se la scheda è stretta sfumano verso destra
+// chi è iscritto e non ha pagato (da saldare o abbonamento senza incasso): nome in rosso ovunque
+const nonPaga = (f) => f.da_saldare || f.senza_incasso;
+
+// La nuvoletta con l'elenco dei nomi (passando sopra o toccando): HTML vero, così chi non ha pagato è scritto in rosso.
+// Si disegna solo mentre è aperta, quindi le schede del palinsesto restano leggere.
+function Nuvola({ className, elenco, children, ...resto }) {
+  const [su, setSu] = useState(false);
+  return (
+    <span className={`${className} con-nuvola`} tabIndex={0} {...resto}
+          onMouseEnter={() => setSu(true)} onMouseLeave={() => setSu(false)} onFocus={() => setSu(true)} onBlur={() => setSu(false)}>
+      {children}
+      {su && elenco && (
+        <span className="nuvola" role="tooltip">
+          <span className="nuvola-titolo">{elenco.titolo}</span>
+          {elenco.righe.map((r, i) => <span key={i} className={r.rosso ? 'nuvola-rosso' : undefined}>{r.testo}</span>)}
+        </span>
+      )}
+    </span>
+  );
+}
 
 // Icone piccole e grigie: insegnante, sala, prove
 const IconaPersona = () => (
@@ -59,11 +79,12 @@ export default function Palinsesto({ giorniVisti = 7, inizio, lezioni, corsi = [
   const elencoNomi = (fl, titolo) => {
     // prima chi deve pagare (€) e chi ha l'abbonamento senza incasso (?), poi gli altri in ordine alfabetico
     const peso = (f) => (f.da_saldare ? 0 : f.senza_incasso ? 1 : 2);
-    const nomi = [...fl].sort((a, b) => peso(a) - peso(b) || `${a.nome} ${a.cognome}`.localeCompare(`${b.nome} ${b.cognome}`, 'it'))
-      .map((f) => (f.da_saldare ? '€ ' : f.senza_incasso ? '? ' : '') + `${f.nome || ''} ${f.cognome || ''}`.trim() + (f.tipo === 'prova' ? ' (prova)' : '')
-        + (f.da_saldare ? ' · DA SALDARE' : f.senza_incasso ? ' · incasso non trovato' : ''));
+    const righe = [...fl].sort((a, b) => peso(a) - peso(b) || `${a.nome} ${a.cognome}`.localeCompare(`${b.nome} ${b.cognome}`, 'it'))
+      .map((f) => ({ rosso: nonPaga(f),
+        testo: (f.da_saldare ? '€ ' : f.senza_incasso ? '? ' : '') + `${f.nome || ''} ${f.cognome || ''}`.trim() + (f.tipo === 'prova' ? ' (prova)' : '')
+          + (f.da_saldare ? ' · DA SALDARE' : f.senza_incasso ? ' · INCASSO NON TROVATO' : '') }));
     const max = 20;
-    return [titolo, ...nomi.slice(0, max), ...(nomi.length > max ? [`… e altri ${nomi.length - max}`] : [])].join('\n');
+    return { titolo, righe: [...righe.slice(0, max), ...(righe.length > max ? [{ testo: `… e altri ${righe.length - max}` }] : [])] };
   };
   const oggi = new Date().toLocaleDateString('sv-SE');
   const giorni = Array.from({ length: giorniVisti }, (_, i) => {
@@ -110,30 +131,30 @@ export default function Palinsesto({ giorniVisti = 7, inizio, lezioni, corsi = [
             {fl.length === 0
               ? <span className="pal-nessuno">{l.presenti > 0 ? `${l.presenti} presenti` : 'Nessun prenotato'}</span>
               : (
-                <span className="pal-facce-box" tabIndex={0} data-tip={elencoNomi(fl, `${fl.length} ${fl.length === 1 ? 'Prenotato' : 'Prenotati'}:`)}>
+                <Nuvola className="pal-facce-box" elenco={elencoNomi(fl, `${fl.length} ${fl.length === 1 ? 'Prenotato' : 'Prenotati'}:`)}>
                 <span className="pal-facce">
                   {fl.slice(0, MAX_FACCE).map((f) => {
-                    const cl = `pal-faccia${f.tipo === 'prova' ? ' prova' : ''}${f.da_saldare ? ' da-saldare' : f.senza_incasso ? ' senza-incasso' : ''}`;
+                    const cl = `pal-faccia${f.tipo === 'prova' ? ' prova' : ''}${nonPaga(f) ? ' da-saldare' : ''}`;
                     return f.foto_url ? <img key={f.allievo_id} src={f.foto_url} alt="" className={cl} />
                       : <span key={f.allievo_id} className={cl}>{iniziali(f)}</span>;
                   })}
                   {altri.length > 0 && <span className="pal-altri" aria-label={`e altri ${altri.length}`}>…</span>}
                 </span>
-                </span>
+                </Nuvola>
               )}
             <span className="pal-numeri" onClick={(e) => { if (e.target.closest('.pal-cerchio')) { e.stopPropagation(); e.target.closest('.pal-cerchio').focus(); } }}>
-              <span className="pal-cerchio verde" tabIndex={0} data-tip={fl.length ? elencoNomi(fl, `${l.iscritti} ${l.iscritti === 1 ? 'Prenotato' : 'Prenotati'}:`) : `${l.iscritti} ${l.iscritti === 1 ? 'Prenotato' : 'Prenotati'}`} aria-label={`${l.iscritti} prenotati`}>{l.iscritti}</span>
+              {fl.length
+                ? <Nuvola className="pal-cerchio verde" elenco={elencoNomi(fl, `${l.iscritti} ${l.iscritti === 1 ? 'Prenotato' : 'Prenotati'}:`)} aria-label={`${l.iscritti} prenotati`}>{l.iscritti}</Nuvola>
+                : <span className="pal-cerchio verde" tabIndex={0} data-tip={`${l.iscritti} ${l.iscritti === 1 ? 'Prenotato' : 'Prenotati'}`} aria-label={`${l.iscritti} prenotati`}>{l.iscritti}</span>}
               <span className="pal-cerchio blu" tabIndex={0} data-tip={posti === null ? 'Posti senza limite' : `${posti} ${posti === 1 ? 'Posto disponibile' : 'Posti disponibili'}`} aria-label={posti === null ? 'posti senza limite' : `${posti} posti disponibili`}>{posti === null ? '∞' : posti}</span>
               {l.prove > 0 && <span className="pal-cerchio rosso" tabIndex={0} data-tip={`${l.prove} in prova`} aria-label={`${l.prove} in prova`}>{l.prove}</span>}
               {fl.some((f) => f.da_saldare) && (
-                <span className="pal-cerchio saldo" tabIndex={0}
-                      data-tip={elencoNomi(fl.filter((f) => f.da_saldare), 'Non hanno ancora pagato:')}
-                      aria-label={`${fl.filter((f) => f.da_saldare).length} da saldare`}>€</span>
+                <Nuvola className="pal-cerchio saldo" elenco={elencoNomi(fl.filter((f) => f.da_saldare), 'Non hanno ancora pagato:')}
+                        aria-label={`${fl.filter((f) => f.da_saldare).length} da saldare`}>€</Nuvola>
               )}
               {fl.some((f) => f.senza_incasso) && (
-                <span className="pal-cerchio incasso" tabIndex={0}
-                      data-tip={elencoNomi(fl.filter((f) => f.senza_incasso), 'Abbonamento senza nessun incasso registrato (pagato in APP Palestre e non abbinato, o mai pagato?):')}
-                      aria-label={`${fl.filter((f) => f.senza_incasso).length} senza incasso`}>?</span>
+                <Nuvola className="pal-cerchio incasso" elenco={elencoNomi(fl.filter((f) => f.senza_incasso), 'Iscritti senza nessun incasso registrato (non pagato, o pagato in APP Palestre e non abbinato):')}
+                        aria-label={`${fl.filter((f) => f.senza_incasso).length} senza incasso`}>?</Nuvola>
               )}
               {codaDi(l.lezione_id).length > 0 && (
                 <span className="pal-cerchio coda" tabIndex={0}

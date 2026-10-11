@@ -5,11 +5,13 @@ import { useRouter } from 'next/navigation';
 import { supabaseBrowser } from '@/lib/supabase/browser';
 import { dataBreve, etaAl, etichettaPaga } from '@/lib/formato';
 import { STATI_CLIENTE, statoTesto, scaricaCsv } from '@/lib/stati';
+import { useDaSistemare, motivoPagamento, testoTag } from '@/lib/daSistemare';
 
 // Elenco con spunte: chi selezioni finisce nella barra d'azioni in basso
 export default function ElencoPersone({ palestraId, persone, etichette, totale, esporta, consensi = false }) {
   const router = useRouter();
   const [scelti, setScelti] = useState(new Set());
+  const debiti = useDaSistemare();   // chi è iscritto e non ha pagato: nome in rosso
   const [pannello, setPannello] = useState(null);     // 'etichetta'
   const [nuova, setNuova] = useState('');
   const [avviso, setAvviso] = useState('');
@@ -89,18 +91,20 @@ export default function ElencoPersone({ palestraId, persone, etichette, totale, 
             <tbody>
               {persone.map((p) => {
                 const st = STATI_CLIENTE[p.stato];
+                const deb = debiti.get(p.id);
                 return (
                   <tr key={p.id} className={scelti.has(p.id) ? 'selezionata' : undefined}>
                     <td><input type="checkbox" aria-label={`Seleziona ${p.nome} ${p.cognome}`}
                                checked={scelti.has(p.id)} onChange={() => cambia(p.id)} /></td>
                     <td>
-                      <Link prefetch={false} className="persona-nome" href={`/gestione/persone/${p.id}`}>{p.cognome} {p.nome}</Link>
+                      <Link prefetch={false} className={`persona-nome${deb ? ' nome-rosso' : ''}`} href={`/gestione/persone/${p.id}`} title={motivoPagamento(deb) || undefined}>{p.cognome} {p.nome}</Link>
                       {p.data_nascita && <span className="piccolo muto"> · {etaAl(p.data_nascita)} anni</span>}
                       {!p.is_titolare && (
                         <div className="piccolo muto">{etichettaPaga(p.data_nascita)} {p.titolare_nome} {p.titolare_cognome}</div>
                       )}
-                      {(p.etichette?.length > 0 || p.senza_orari || p.quota_mancante || consensi) && (
+                      {(deb || p.etichette?.length > 0 || p.senza_orari || p.quota_mancante || consensi) && (
                         <div className="segni">
+                          {deb && <span className="tag tag-debito">{testoTag(deb)}</span>}
                           {p.senza_orari && <span className="tag tag-attenzione">giorni da assegnare</span>}
                           {p.quota_mancante && <span className="tag tag-attenzione">quota</span>}
                           {p.etichette?.map((e) => <span key={e} className="tag tag-neutro"># {e}</span>)}

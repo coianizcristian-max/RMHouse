@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { supabaseBrowser } from '@/lib/supabase/browser';
 import { euro, dataBreve } from '@/lib/formato';
+import { useDaSistemare, motivoPagamento, testoTag } from '@/lib/daSistemare';
 
 const MOTIVI = {
   gia_rinnovata: 'era già rinnovata',
@@ -17,6 +18,7 @@ const oggiISO = () => new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe
 export default function Rinnovi({ righe, tipi, giorni }) {
   const router = useRouter();
   const [scelti, setScelti] = useState([]);
+  const debiti = useDaSistemare();   // chi non ha pagato: nome in rosso
   const [errore, setErrore] = useState('');
   const [esito, setEsito] = useState(null);
   const [invio, setInvio] = useState(false);
@@ -154,9 +156,11 @@ export default function Rinnovi({ righe, tipi, giorni }) {
                     <span />
                   </label>
                 )}
-                <Link prefetch={false} className="titolo" href={`/gestione/persone/${r.allievo_id}`} style={{ textDecoration: 'none' }}>
+                <Link prefetch={false} className={`titolo${debiti.has(r.allievo_id) ? ' nome-rosso' : ''}`} href={`/gestione/persone/${r.allievo_id}`} style={{ textDecoration: 'none' }}
+                      title={motivoPagamento(debiti.get(r.allievo_id)) || undefined}>
                   {r.cognome} {r.nome}
                 </Link>
+                {debiti.has(r.allievo_id) && <span className="tag tag-debito">{testoTag(debiti.get(r.allievo_id))}</span>}
                 {r.gia_rinnovata && <span className="tag tag-ok">già rinnovato</span>}
                 {r.giorni_alla_scadenza < 0 && <span className="tag tag-rosso">scaduto da {-r.giorni_alla_scadenza} giorni</span>}
                 {r.giorni_alla_scadenza >= 0 && <span className="tag tag-tenue">{r.giorni_alla_scadenza === 0 ? 'scade oggi' : r.giorni_alla_scadenza === 1 ? 'scade domani' : `scade fra ${r.giorni_alla_scadenza} giorni`}</span>}

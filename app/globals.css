@@ -5062,3 +5062,18 @@ body:has(.sportello) .bottone-rapide { display: none; }
 .ts-importa-scelte label.btn { cursor: pointer; }
 .ts-importa-scelte textarea { flex: 1 1 260px; min-height: 40px; padding: 6px 10px; font: inherit; font-size: 13px; border: 1px solid var(--linea); border-radius: 8px; resize: vertical; }
 .ts-non-trovate { margin-top: 6px; max-height: 140px; overflow: auto; word-break: break-word; }
+
+/* 200 — chi è iscritto e non ha pagato: nome in rosso ovunque */
+.nome-rosso, a.nome-rosso, .persona-nome.nome-rosso, .guscio .nome-rosso { color: var(--rosso) !important; }
+.tag-debito { background: var(--rosso); color: #fff; border-color: var(--rosso); font-weight: 700; }
+.pal-faccia.senza-incasso, .pal-faccia.da-saldare { background: var(--rosso-tenue); color: var(--rosso-scuro); box-shadow: 0 0 0 2px var(--rosso); }
+.pal-cerchio.incasso { background: var(--rosso); color: #fff; }
+/* la nuvoletta dei nomi (HTML vero: i nomi di chi non ha pagato sono rossi) */
+.con-nuvola { position: relative; }
+.nuvola { position: absolute; top: calc(100% + 8px); left: 0; z-index: 25; display: flex; flex-direction: column; gap: 1px;
+  width: max-content; max-width: 260px; padding: 7px 12px; text-align: left; white-space: normal;
+  background: var(--bianco); color: var(--testo); border: 1.5px solid #7f9cd8; border-radius: 10px; box-shadow: 0 6px 18px rgba(0,0,0,.14);
+  font: 500 13px/1.45 var(--font); pointer-events: none; cursor: default; }
+.pal-numeri .nuvola { left: auto; right: 0; }
+.nuvola .nuvola-titolo { color: var(--testo); }
+.nuvola .nuvola-rosso { color: var(--rosso); font-weight: 700; }

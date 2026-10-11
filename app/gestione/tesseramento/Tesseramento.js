@@ -10,6 +10,7 @@ import { parteCognome, parteNome, normalizzaCF } from '@/lib/codiceFiscale';
 import ImpostazioniEnte from './ImpostazioniEnte';
 import PreferitoAsi from './PreferitoAsi';
 import ImportaScadenze from './ImportaScadenze';
+import { useDaSistemare, motivoPagamento } from '@/lib/daSistemare';
 import { testoPerAsi } from '@/lib/asiCompila';
 
 // il codice fiscale dice che nome e cognome sono scritti al contrario (es. cognome "Alisa", nome "Burlea", CF BRLLSA…):
@@ -42,6 +43,7 @@ export default function Tesseramento({ palestra, stagione, corrente, righe, disc
   const [avviso, setAvviso] = useState('');
   const [invio, setInvio] = useState(false);
   const [vediGirati, setVediGirati] = useState(false);
+  const debiti = useDaSistemare();   // chi non ha pagato: nome in rosso
   // "Come funziona": aperto finché non lo chiudi (si ricorda su questo computer)
   const [come, setCome] = useState(true);
   useEffect(() => { try { if (localStorage.getItem('rm-ts-come') === '0') setCome(false); } catch { /* niente */ } }, []);
@@ -268,7 +270,8 @@ export default function Tesseramento({ palestra, stagione, corrente, righe, disc
                   <tr key={r.allievo_id}>
                     <td><label className="spunta" style={{ margin: 0 }}><input type="checkbox" checked={scelti.includes(r.allievo_id)} onChange={() => spunta(r.allievo_id)} aria-label={`${r.nome} ${r.cognome}`} /><span /></label></td>
                     <td>
-                      <Link prefetch={false} className="persona-nome" href={`/gestione/persone/${r.allievo_id}`}>{r.cognome} {r.nome}</Link>
+                      <Link prefetch={false} className={`persona-nome${debiti.has(r.allievo_id) ? ' nome-rosso' : ''}`} href={`/gestione/persone/${r.allievo_id}`}
+                            title={motivoPagamento(debiti.get(r.allievo_id)) || undefined}>{r.cognome} {r.nome}</Link>
                       <span className="ts-corsi">{r.corsi || '—'}</span>
                     </td>
                     <td>

@@ -136,12 +136,14 @@ export default function PrenotatiLezione({ lezione, persone, corsoNome, onCambia
           return (
             <li key={p.allievo_id} className={occupato === p.allievo_id ? 'occupato' : ''}>
               {p.foto_url
-                ? <img src={p.foto_url} alt="" className={p.tipo === 'prova' ? 'pal-faccia prova' : 'pal-faccia'} />
-                : <span className={p.tipo === 'prova' ? 'pal-faccia prova' : 'pal-faccia'}>{((p.nome?.[0] || '') + (p.cognome?.[0] || '')).toUpperCase()}</span>}
+                ? <img src={p.foto_url} alt="" className={`pal-faccia${p.tipo === 'prova' ? ' prova' : ''}${p.da_saldare || p.senza_incasso ? ' da-saldare' : ''}`} />
+                : <span className={`pal-faccia${p.tipo === 'prova' ? ' prova' : ''}${p.da_saldare || p.senza_incasso ? ' da-saldare' : ''}`}>{((p.nome?.[0] || '') + (p.cognome?.[0] || '')).toUpperCase()}</span>}
               <div className="pl-chi">
                 <div className="pl-nome">
-                  <Link prefetch={false} href={`/gestione/persone/${p.allievo_id}`}>{p.cognome} {p.nome}</Link>
+                  <Link prefetch={false} href={`/gestione/persone/${p.allievo_id}`} className={p.da_saldare || p.senza_incasso ? 'nome-rosso' : undefined}
+                        title={p.da_saldare ? 'Non ha pagato: da saldare' : p.senza_incasso ? 'Abbonamento senza incasso registrato: controlla se ha pagato' : undefined}>{p.cognome} {p.nome}</Link>
                   {TIPI[p.tipo] && <span className={`tag ${TIPI[p.tipo][1]}`}>{TIPI[p.tipo][0]}</span>}
+                  {(p.da_saldare || p.senza_incasso) && <span className="tag tag-debito">{p.da_saldare ? 'da saldare' : 'incasso non trovato'}</span>}
                   {problemi.length > 0 && <span className="pl-attenzione" title={problemi.join(' · ')} aria-label={problemi.join(' · ')}>⚠ {problemi.join(' · ')}</span>}
                 </div>
                 <div className="piccolo muto pl-info">

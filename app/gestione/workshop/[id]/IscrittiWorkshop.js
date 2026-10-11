@@ -120,7 +120,7 @@ export default function IscrittiWorkshop({ workshop: w, momenti, opzioni, iscriz
           return (
             <li key={i.id} className={`wi-riga${i.stato === 'annullato' ? ' annullata' : ''}`}>
               <div className="wi-chi">
-                <Link prefetch={false} href={`/gestione/persone/${i.allievo_id}`} className="persona-nome">{a.cognome} {a.nome}</Link>
+                <Link prefetch={false} href={`/gestione/persone/${i.allievo_id}`} className={`persona-nome${importo > 0 && !pagato && i.stato === 'iscritto' ? ' nome-rosso' : ''}`}>{a.cognome} {a.nome}</Link>
                 {eta != null && <span className="piccolo muto"> · {eta} anni</span>}
                 <div className="wi-tag">
                   <span className={`tag ${i.esterno ? 'tag-attenzione' : 'tag-neutro'}`}>{i.esterno ? 'esterno' : 'allievo'}</span>

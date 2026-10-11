@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { supabaseBrowser } from '@/lib/supabase/browser';
 import { dataBreve, euro } from '@/lib/formato';
 import { TIPI_SCADENZA, scaricaCsv } from '@/lib/stati';
+import { useDaSistemare, motivoPagamento } from '@/lib/daSistemare';
 
 const chiave = (r) => `${r.tipo}|${r.allievo_id}|${r.riferimento}`;
 const quando = (g) => g == null ? '—' : g < 0 ? `${-g} giorni fa` : g === 0 ? 'oggi' : g === 1 ? 'domani' : `tra ${g} giorni`;
@@ -16,6 +17,7 @@ const whatsapp = (tel) => {
 export default function Scadenze({ palestraId, righe }) {
   const router = useRouter();
   const [scelte, setScelte] = useState(new Set());
+  const debiti = useDaSistemare();   // chi non ha pagato: nome in rosso
   const [nota, setNota] = useState('');
   const [avviso, setAvviso] = useState('');
   const selezionate = righe.filter((r) => scelte.has(chiave(r)));
@@ -79,7 +81,8 @@ export default function Scadenze({ palestraId, righe }) {
                 <tr key={k} className={scelte.has(k) ? 'selezionata' : r.gestito ? 'gestita' : undefined}>
                   <td><input type="checkbox" aria-label={`Seleziona ${r.nome} ${r.cognome}`} checked={scelte.has(k)} onChange={() => cambia(k)} /></td>
                   <td>
-                    <Link prefetch={false} className="persona-nome" href={`/gestione/persone/${r.allievo_id}`}>{r.cognome} {r.nome}</Link>
+                    <Link prefetch={false} className={`persona-nome${debiti.has(r.allievo_id) ? ' nome-rosso' : ''}`} href={`/gestione/persone/${r.allievo_id}`}
+                          title={motivoPagamento(debiti.get(r.allievo_id)) || undefined}>{r.cognome} {r.nome}</Link>
                     {!r.is_titolare && <div className="piccolo muto">paga {r.titolare_nome} {r.titolare_cognome}</div>}
                   </td>
                   <td>

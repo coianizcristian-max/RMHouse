@@ -6,6 +6,7 @@ import { cercaPersone } from '@/lib/ricerca';
 import { gruppiDi } from '@/lib/gruppi';
 import { AggiungiLezioni } from '../persone/[id]/AzioniIscrizione';
 import { euro, dataBreve, ora } from '@/lib/formato';
+import { useDaSistemare, dimenticaDaSistemare, testoTag } from '@/lib/daSistemare';
 import CampoCerca from '../CampoCerca';
 import NuovoCliente from './NuovoCliente';
 import { GruppoWhatsApp, TesseraEnte } from './Ultimi';
@@ -107,6 +108,7 @@ export default function Sportello({ palestraId, corsi, tipi, orari, palestra, pe
   // ------------------------------------------------------------ situazione della persona
   async function carica(id) {
     const sb = supabaseBrowser();
+    dimenticaDaSistemare();   // dopo un incasso i nomi rossi si rileggono
     const [{ data: persona }, { data: dati }, { data: iscrizioni }, { data: tess }, { data: storia }, { data: crediti }] = await Promise.all([
       sb.from('v_stato_clienti').select('id, nome, cognome, data_nascita, is_titolare, titolare_nome, titolare_cognome, email, telefono, attivo, fine_prossima, ultima_fine, certificato_scadenza, quota_valida_fino, consenso_whatsapp, account_id, stato')
         .eq('id', id).maybeSingle(),
@@ -861,6 +863,7 @@ export default function Sportello({ palestraId, corsi, tipi, orari, palestra, pe
 
 // ---------------------------------------------------------------- 1 · cerca (filtri progressivi, in tempo reale)
 function Cerca({ palestraId, testo, setTesto, onScegli, onNuovo }) {
+  const debiti = useDaSistemare();   // chi non ha pagato: nome in rosso anche nei risultati
   const [filtro, setFiltro] = useState('tutti');
   const [trovati, setTrovati] = useState([]);
   const [totale, setTotale] = useState(0);
@@ -914,10 +917,11 @@ function Cerca({ palestraId, testo, setTesto, onScegli, onNuovo }) {
           return (
             <li key={p.id} role="option" aria-selected={i === attivo}>
               <button type="button" className={i === attivo ? 'attivo' : ''} onClick={() => onScegli(p.id)} onMouseEnter={() => setAttivo(i)}>
-                <span className="sp-ris-nome"><b>{p.cognome} {p.nome}</b>{anni != null && <span className="muto"> · {anni} anni</span>}</span>
+                <span className="sp-ris-nome"><b className={debiti.has(p.id) ? 'nome-rosso' : undefined}>{p.cognome} {p.nome}</b>{anni != null && <span className="muto"> · {anni} anni</span>}</span>
                 <span className="sp-ris-info piccolo">
                   <span className={`sp-pallino ${p.attivo ? 'ok' : 'no'}`}>{p.attivo ? `abb. fino al ${dataBreve(p.fine_prossima)}` : p.ultima_fine ? `finito il ${dataBreve(p.ultima_fine)}` : 'mai iscritto'}</span>
                   <span className={`sp-pallino ${certOk ? 'ok' : 'no'}`}>{certOk ? 'cert. ok' : 'cert. da sistemare'}</span>
+                  {debiti.has(p.id) && <span className="sp-pallino no nome-rosso">{testoTag(debiti.get(p.id))}</span>}
                   {!p.is_titolare && p.titolare_nome && <span className="muto">genitore {p.titolare_nome}</span>}
                 </span>
               </button>
@@ -939,6 +943,7 @@ function Cerca({ palestraId, testo, setTesto, onScegli, onNuovo }) {
 function Situazione({ s, v, setV, palestraId, onCambia, onRinnova, onRicarica, onModifica, inModifica }) {
   const [piuLezioni, setPiuLezioni] = useState(null);   // iscrizione a cui si aggiungono lezioni
   const [fatto, setFatto] = useState('');
+  const debiti = useDaSistemare(true, s);   // per "incasso non trovato" (il "da saldare" è già in s.debiti)
   const p = s.persona;
   if (!p) return <p className="muto">Persona non trovata. <button type="button" className="link-btn" onClick={onCambia}>Cerca di nuovo</button></p>;
   const o = oggi();
@@ -961,7 +966,7 @@ function Situazione({ s, v, setV, palestraId, onCambia, onRinnova, onRicarica, o
     <div className="sp-situazione">
       <div className="sp-persona">
         <div>
-          <div className="sp-persona-nome">{p.nome} {p.cognome}</div>
+          <div className={`sp-persona-nome${s.debiti || debiti.get(p.id) ? ' nome-rosso' : ''}`}>{p.nome} {p.cognome}</div>
           <div className="piccolo muto">
             {[anni != null ? `${anni} anni` : null, !p.is_titolare && p.titolare_nome ? `genitore: ${p.titolare_nome} ${p.titolare_cognome || ''}` : null].filter(Boolean).join(' · ')}
           </div>
@@ -973,6 +978,10 @@ function Situazione({ s, v, setV, palestraId, onCambia, onRinnova, onRicarica, o
         </div>
       </div>
       <dl className="sp-stati">
+        {(s.debiti || debiti.get(p.id)?.senza_incasso) && (
+          <div className="sp-stato-riga no"><dt>Pagamenti</dt>
+            <dd className="nome-rosso">{s.debiti ? `da saldare ${euro(s.debiti.totale_cent)}: incassa qui sotto` : 'abbonamento senza nessun incasso registrato: con «Modifica» sull\'abbonamento scegli come ha pagato (o «Non pagato»)'}</dd></div>
+        )}
         <div className={`sp-stato-riga ${quotaStato[0]}`}><dt>Quota annuale</dt><dd>{quotaStato[1]}</dd></div>
         <div className={`sp-stato-riga ${certStato[0]}`}><dt>Certificato</dt><dd>{certStato[1]}
           {certStato[0] !== 'ok' && !v.certificato && <span className="piccolo muto"> · se l&apos;ha portato scrivi la scadenza in 2</span>}</dd></div>

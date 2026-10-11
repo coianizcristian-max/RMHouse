@@ -107,16 +107,16 @@ export default function AppelloWorkshop({ workshop: w, momenti, opzioni, iscrizi
                 <button type="button" className="wsa-persona" aria-pressed={si} onClick={() => cambia(i, !si)}>
                   <span className="wsa-spunta" aria-hidden="true">{si ? '✓' : ''}</span>
                   <span className="wsa-nome">
-                    <strong>{i.allievi?.cognome} {i.allievi?.nome}</strong>
+                    <strong className={daPagare(i) ? 'nome-rosso' : undefined}>{i.allievi?.cognome} {i.allievi?.nome}</strong>
                     <span className="piccolo muto">{[opzioni.length > 1 && o?.nome, i.esterno && 'esterno/a'].filter(Boolean).join(' · ')}</span>
                   </span>
                 </button>
                 <span className="wsa-tag">
                   {daPagare(i) && (onIncassa ? (
-                    <button type="button" className="tag tag-attenzione wsa-paga" onClick={() => onIncassa(i)} title="Vai a incassare">
+                    <button type="button" className="tag tag-debito wsa-paga" onClick={() => onIncassa(i)} title="Vai a incassare">
                       da pagare {euro((i.prezzo_cent || 0) + (i.quota_cent || 0))}
                     </button>
-                  ) : <span className="tag tag-attenzione" title="Deve ancora pagare: lo segnala la segreteria">da pagare</span>)}
+                  ) : <span className="tag tag-debito" title="Deve ancora pagare: lo segnala la segreteria">da pagare</span>)}
                   {!cert(i) && <span className="tag tag-rosso">manca il certificato</span>}
                 </span>
               </li>

@@ -5,17 +5,20 @@ import { useRouter } from 'next/navigation';
 import { supabaseBrowser } from '@/lib/supabase/browser';
 import { cercaPersone } from '@/lib/ricerca';
 import { ora } from '@/lib/formato';
+import { useDaSistemare, motivoPagamento } from '@/lib/daSistemare';
 
 const TITOLO = { ok: 'Tutto in regola', attenzione: 'Può entrare, ma…', bloccato: 'Non può entrare' };
 
-function Esito({ e }) {
-  if (e.errore) return <div className="ingresso-esito bloccato"><strong>{e.errore}</strong></div>;
+function Esito({ e: dato, deb }) {
+  if (dato.errore) return <div className="ingresso-esito bloccato"><strong>{dato.errore}</strong></div>;
+  // iscritto ma non ha pagato: può entrare, ma va mandato in segreteria
+  const e = deb ? { ...dato, esito: dato.esito === 'ok' ? 'attenzione' : dato.esito, avvisi: [motivoPagamento(deb), ...(dato.avvisi || [])] } : dato;
   return (
     <div className={`ingresso-esito ${e.esito}`}>
       <div className="ie-segno" aria-hidden="true">{e.esito === 'ok' ? '✓' : e.esito === 'attenzione' ? '!' : '✕'}</div>
       <div>
         <div className="ie-titolo">{TITOLO[e.esito]}</div>
-        <Link prefetch={false} href={`/gestione/persone/${e.allievo_id}`} className="ie-nome">{e.nome} {e.cognome}</Link>
+        <Link prefetch={false} href={`/gestione/persone/${e.allievo_id}`} className={`ie-nome${deb ? ' nome-rosso' : ''}`}>{e.nome} {e.cognome}</Link>
         <div className="piccolo">
           {e.abbonamento || 'nessun abbonamento'}
           {e.ingressi_residui != null && ` · restano ${e.ingressi_residui} ingressi`}
@@ -34,6 +37,7 @@ export default function Ingresso({ palestraId, esitoIniziale, oggi }) {
   const [esito, setEsito] = useState(esitoIniziale);
   const [cerca, setCerca] = useState('');
   const [trovati, setTrovati] = useState([]);
+  const debiti = useDaSistemare(true, esito);   // chi non ha pagato: nome in rosso
 
   // tolgo il codice dall'indirizzo: ricaricando la pagina non si registra due volte
   useEffect(() => { if (esitoIniziale) router.replace('/gestione/ingresso', { scroll: false }); }, []); // eslint-disable-line react-hooks/exhaustive-deps
@@ -65,7 +69,7 @@ export default function Ingresso({ palestraId, esitoIniziale, oggi }) {
           Oppure cerca la persona qui sotto.</p>
       </div>
 
-      {esito && <Esito e={esito} />}
+      {esito && <Esito e={esito} deb={esito.allievo_id ? debiti.get(esito.allievo_id) : null} />}
 
       <div className="barra-cerca">
         <input value={cerca} onChange={(e) => trova(e.target.value)} placeholder="Cerca per nome e registra l'ingresso" aria-label="Cerca" />
@@ -73,7 +77,7 @@ export default function Ingresso({ palestraId, esitoIniziale, oggi }) {
       {trovati.length > 0 && (
         <div className="pastiglie">
           {trovati.map((t) => (
-            <button key={t.id} type="button" className="stato-pillola" onClick={() => registra(t.id)}>{t.cognome} {t.nome}</button>
+            <button key={t.id} type="button" className={`stato-pillola${debiti.has(t.id) ? ' nome-rosso' : ''}`} onClick={() => registra(t.id)}>{t.cognome} {t.nome}</button>
           ))}
         </div>
       )}
@@ -86,8 +90,8 @@ export default function Ingresso({ palestraId, esitoIniziale, oggi }) {
             <Link prefetch={false} href={`/gestione/persone/${i.allievi?.id}`}>
               <span className={`ml-giorni esito-${i.esito}`}>{ora(i.quando)}</span>
               <span className="ml-testo">
-                <strong>{i.allievi?.nome} {i.allievi?.cognome}</strong>
-                <span className="piccolo muto">{[i.lezioni?.corsi?.nome, ...(i.avvisi || [])].filter(Boolean).join(' · ') || 'in regola'}</span>
+                <strong className={debiti.has(i.allievi?.id) ? 'nome-rosso' : undefined}>{i.allievi?.nome} {i.allievi?.cognome}</strong>
+                <span className="piccolo muto">{[i.lezioni?.corsi?.nome, debiti.has(i.allievi?.id) ? motivoPagamento(debiti.get(i.allievi?.id)) : null, ...(i.avvisi || [])].filter(Boolean).join(' · ') || 'in regola'}</span>
               </span>
             </Link>
           </li>

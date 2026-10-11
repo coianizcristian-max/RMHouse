@@ -9,6 +9,7 @@ import InsegnantiCorso from './InsegnantiCorso';
 import AssegnaGiorni from '../../AssegnaGiorni';
 import { gruppiDi, gruppoColorato, chiaveGruppo } from '@/lib/gruppi';
 import GruppoWhatsApp from './GruppoWhatsApp';
+import { motivoPagamento, testoTag } from '@/lib/daSistemareTesti';
 
 export const dynamic = 'force-dynamic';
 
@@ -22,7 +23,7 @@ export default async function Corso({ params, searchParams }) {
   const p = staff.palestra_id;
 
   const [{ data: corso }, { data: iscritti }, { data: orari }, { data: sale }, { data: insegnanti }, { data: attese },
-         { data: base }, { data: abilitati }, { data: iscrizioni }, { data: discipline }, { data: competenze }] = await Promise.all([
+         { data: base }, { data: abilitati }, { data: iscrizioni }, { data: discipline }, { data: competenze }, { data: debitiTutti }] = await Promise.all([
     supabase.from('v_riepilogo_corsi').select('*').eq('corso_id', id).maybeSingle(),
     supabase.from('v_iscritti_corso').select('*').eq('corso_id', id)
       .in('stato', vista === 'tutti' ? ['attiva', 'sospesa', 'scaduta', 'annullata'] : ['attiva', 'sospesa'])
@@ -38,6 +39,8 @@ export default async function Corso({ params, searchParams }) {
     // chi insegna la disciplina del corso (query 156): proposti per primi nella scelta dell'insegnante
     supabase.from('discipline').select('id, nome, categoria_id').eq('palestra_id', p),
     supabase.from('staff_competenze').select('staff_id, disciplina_id, categoria_id').eq('palestra_id', p),
+    // chi è iscritto e non ha pagato (query 162): nome in rosso
+    supabase.rpc('pagamenti_da_sistemare', { p_palestra: p }),
   ]);
   const { data: materiali } = await supabase.from('materiali')
     .select('id, titolo, tipo, url, minuti_prima').eq('corso_id', id).eq('attivo', true).order('created_at');
@@ -139,11 +142,12 @@ export default async function Corso({ params, searchParams }) {
               const x = infoIscrizione[i.iscrizione_id];
               const fissi = x?.tipi_abbonamento?.modalita === 'orari_fissi' && (i.stato === 'attiva' || i.stato === 'sospesa');
               const assegnati = (x?.iscrizioni_orari || []).map((o) => o.orario_id);
+              const deb = (Array.isArray(debitiTutti) ? debitiTutti : []).find((d) => d.allievo_id === i.allievo_id);
               return (
                 <li key={i.iscrizione_id}>
                   <div className="ei-testa">
                     <div style={{ minWidth: 0 }}>
-                      <Link prefetch={false} className="persona-nome" href={`/gestione/persone/${i.allievo_id}`}>{i.cognome} {i.nome}</Link>
+                      <Link prefetch={false} className={`persona-nome${deb ? ' nome-rosso' : ''}`} href={`/gestione/persone/${i.allievo_id}`} title={motivoPagamento(deb) || undefined}>{i.cognome} {i.nome}</Link>
                       {i.data_nascita && <span className="piccolo muto"> · {etaAl(i.data_nascita)} anni</span>}
                       <div className="piccolo muto">
                         {gruppoIscr(i.iscrizione_id) && <span className="tag-gruppo" style={{ '--g': gruppoIscr(i.iscrizione_id).colore, marginRight: 6 }}>{gruppoIscr(i.iscrizione_id).nome}</span>}
@@ -152,6 +156,7 @@ export default async function Corso({ params, searchParams }) {
                       </div>
                     </div>
                     <div className="ei-segni">
+                      {deb && <Link prefetch={false} className="tag tag-debito" href={`/gestione/sportello?persona=${i.allievo_id}`}>{testoTag(deb)}</Link>}
                       {i.bloccato && i.stato === 'attiva' && <span className="tag tag-rosso">certificato</span>}
                       {i.quota_mancante && i.stato === 'attiva' && <span className="tag tag-attenzione">quota</span>}
                       {i.consenso_whatsapp === false && <span className="tag tag-neutro" title="Non vuole il gruppo WhatsApp">no WhatsApp</span>}

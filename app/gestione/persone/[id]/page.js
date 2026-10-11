@@ -6,6 +6,7 @@ import { staffCorrente } from '@/lib/staff';
 import { dataBreve, ora, etaAl, euro } from '@/lib/formato';
 import { STATI_CLIENTE, statoTesto } from '@/lib/stati';
 import { genere } from '@/lib/genere';
+import { motivoPagamento, testoTag } from '@/lib/daSistemareTesti';
 import Anagrafica from './Anagrafica';
 import Iscrizioni from './Iscrizioni';
 import RinnoviAutomatici from './RinnoviAutomatici';
@@ -35,7 +36,12 @@ export default async function Persona({ params, searchParams }) {
 
   // una sola chiamata al database per tutta la scheda (query 144); se manca, le letture una per una
   let dati = null;
-  const { data: insieme, error: erroreInsieme } = await supabase.rpc('scheda_persona', { p_allievo: id });
+  // insieme: chi non ha pagato (query 162), per il nome in rosso
+  const [{ data: insieme, error: erroreInsieme }, { data: debitiTutti }] = await Promise.all([
+    supabase.rpc('scheda_persona', { p_allievo: id }),
+    supabase.rpc('pagamenti_da_sistemare', { p_palestra: p }),
+  ]);
+  const deb = (Array.isArray(debitiTutti) ? debitiTutti : []).find((x) => x.allievo_id === id);
   if (!erroreInsieme) {
     if (!insieme) notFound();
     const partDi = Object.fromEntries((insieme.partecipa || []).map((x) => [x.lezione_id, x]));
@@ -73,12 +79,13 @@ export default async function Persona({ params, searchParams }) {
             ? <img src={allievo.foto_url} alt="" className="sp-foto" />
             : <span className="sp-foto sp-iniziali">{(allievo.nome?.[0] || '') + (allievo.cognome?.[0] || '')}</span>}
           <div className="sp-nome">
-            <h1>{allievo.cognome} {allievo.nome}</h1>
+            <h1 className={deb ? 'nome-rosso' : undefined} title={motivoPagamento(deb) || undefined}>{allievo.cognome} {allievo.nome}</h1>
             <div className="sp-sotto">
               {allievo.data_nascita
                 ? <span>{etaAl(allievo.data_nascita)} anni · {nato} il {dataBreve(allievo.data_nascita)}</span>
                 : <span className="muto">data di nascita da inserire</span>}
               {st && <span className={`tag tag-${st.tono}`}>{ritirato ? (g === 'F' ? st.f : g === 'M' ? st.m : st.testo) : statoTesto(stato.stato, g)}</span>}
+              {deb && <Link prefetch={false} className="tag tag-debito" href={`/gestione/sportello?persona=${id}`} title={motivoPagamento(deb)}>{testoTag(deb)}</Link>}
               {stato?.certificato_scaduto && <span className="tag tag-rosso">certificato</span>}
               {stato?.quota_mancante && <span className="tag tag-attenzione">quota da pagare</span>}
               {stato?.senza_orari && <span className="tag tag-attenzione">giorni da assegnare</span>}
