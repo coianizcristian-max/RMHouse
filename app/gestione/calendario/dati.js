@@ -31,7 +31,8 @@ export async function settimana({ da, sala, insegnante, mie, sede, corso, giorni
   const conWorkshop = !corso;
   const bozze = staff.ruolo !== 'insegnante';
   // e chi non ha ancora pagato (query 152): nel riquadro dei nomi è segnato "da saldare"
-  const [{ data: insieme, error: erroreInsieme }, { data: wsPeriodo }, { data: saldi }] = await Promise.all([
+  const oggiCal = oggiISO();
+  const [{ data: insieme, error: erroreInsieme }, { data: wsPeriodo }, { data: saldi }, { data: senza }] = await Promise.all([
     supabase.rpc('settimana_dati', { p_palestra: staff.palestra_id, p_inizio: inizio, p_fine: fine, ...filtri }),
     conWorkshop
       ? supabase.rpc('workshop_periodo', { p_palestra: staff.palestra_id, p_dal: inizio, p_al: fine, p_bozze: bozze })
@@ -39,6 +40,9 @@ export async function settimana({ da, sala, insegnante, mie, sede, corso, giorni
         .then((r) => (r.error ? supabase.rpc('workshop_periodo', { p_palestra: staff.palestra_id, p_dal: inizio, p_al: fine }) : r))
       : Promise.resolve({ data: [] }),
     supabase.rpc('saldi_aperti', { p_palestra: staff.palestra_id }),
+    // abbonamenti senza nessun incasso collegato (query 160): solo per la segreteria
+    staff.ruolo !== 'insegnante' ? supabase.rpc('senza_incasso', { p_palestra: staff.palestra_id, p_data: inizio > oggiCal ? inizio : oggiCal })
+      : Promise.resolve({ data: [] }),
   ]);
   const workshop = (Array.isArray(wsPeriodo) ? wsPeriodo : [])
     .filter((m) => (!sala || m.sala_id === sala) && (!sede || !m.sede_id || m.sede_id === sede)
@@ -75,10 +79,12 @@ export async function settimana({ da, sala, insegnante, mie, sede, corso, giorni
   }
 
   const debitori = new Set((Array.isArray(saldi) ? saldi : []).map((x) => x.allievo_id));
+  const senzaIncasso = new Set((Array.isArray(senza) ? senza : []).map((x) => x.allievo_id));
   return {
     staff, inizio, fine, giorni: n,
     lezioni: lezioni || [], sale: sale || [], insegnanti: insegnanti || [],
-    corsi: corsi || [], note: note || [], facce: (facce || []).map((f) => (debitori.has(f.allievo_id) ? { ...f, da_saldare: true } : f)),
+    corsi: corsi || [], note: note || [], facce: (facce || []).map((f) => (debitori.has(f.allievo_id) ? { ...f, da_saldare: true }
+      : senzaIncasso.has(f.allievo_id) ? { ...f, senza_incasso: true } : f)),
     coda: coda || [], sedi: sedi || [], giorniChiusi, workshop,
   };
 }

@@ -16,6 +16,10 @@ export default function AssegnaGiorni({ iscrizioneId, orari, scelti = [], quanti
   const [errore, setErrore] = useState('');
   const colori = mappaGruppi(orari);   // colore di ogni gruppo del corso
   const cambiato = sel.size !== scelti.length || scelti.some((s) => !sel.has(s));
+  // i giorni a settimana dell'abbonamento (es. "2 volte"): non se ne possono segnare di più
+  const max = quanti > 0 ? quanti : null;
+  const troppi = max != null && sel.size > max;
+  const [avviso, setAvviso] = useState('');
 
   if (!orari.length) return <span className="piccolo muto">Il corso non ha orari.</span>;
   if (!aperto) {
@@ -26,6 +30,7 @@ export default function AssegnaGiorni({ iscrizioneId, orari, scelti = [], quanti
           <span className="piccolo">{attuali.map((o) => `${GIORNI[o.giorno_settimana]} ${String(o.ora_inizio).slice(0, 5)}`).join(' · ')}
             {gruppoColorato(attuali, orari) && <span className="tag-gruppo" style={{ '--g': gruppoColorato(attuali, orari).colore, marginLeft: 6 }}>{gruppoColorato(attuali, orari).nome}</span>}</span>
         )}
+        {max != null && scelti.length > max && <span className="tag tag-rosso" title="Ha più giorni di quelli che l'abbonamento prevede">{scelti.length} giorni su {max}</span>}
         <button type="button" className={`btn btn-piccolo${attuali.length ? '' : ' btn-primario'}`} onClick={() => setAperto(true)}>
           {attuali.length ? 'Cambia giorni' : 'Assegna i giorni'}
         </button>
@@ -45,7 +50,13 @@ export default function AssegnaGiorni({ iscrizioneId, orari, scelti = [], quanti
     router.refresh();
   }
 
-  const toggle = (id) => { const s = new Set(sel); s.has(id) ? s.delete(id) : s.add(id); setSel(s); };
+  const toggle = (id) => {
+    setAvviso('');
+    if (sel.has(id)) { const s = new Set(sel); s.delete(id); setSel(s); return; }
+    if (max === 1) { setSel(new Set([id])); return; }                 // "1 volta": il nuovo giorno prende il posto
+    if (max != null && sel.size >= max) { setAvviso(`L'abbonamento prevede ${max} giorni a settimana: togline prima uno.`); return; }
+    setSel(new Set([...sel, id]));
+  };
 
   return (
     <div className="assegna-giorni">
@@ -58,10 +69,11 @@ export default function AssegnaGiorni({ iscrizioneId, orari, scelti = [], quanti
         ))}
       </div>
       <div className="azioni" style={{ alignItems: 'center' }}>
-        <button type="button" className="btn btn-piccolo btn-primario" disabled={invio || !cambiato} onClick={salva}>
+        <button type="button" className="btn btn-piccolo btn-primario" disabled={invio || !cambiato || troppi} onClick={salva}>
           {invio ? 'Salvo…' : 'Salva giorni'}
         </button>
-        {quanti ? <span className="piccolo muto">l'abbonamento prevede {quanti} a settimana</span> : null}
+        {max ? <span className={`piccolo ${troppi ? 'ag-troppi' : 'muto'}`}><b>{sel.size}/{max}</b> · l&apos;abbonamento prevede {max} {max === 1 ? 'giorno' : 'giorni'} a settimana{troppi ? `: togline ${sel.size - max}` : ''}</span> : null}
+        {avviso && <span className="piccolo ag-troppi" role="alert">{avviso}</span>}
         {errore && <span className="piccolo" style={{ color: 'var(--rosso-scuro)' }}>{errore}</span>}
       </div>
     </div>

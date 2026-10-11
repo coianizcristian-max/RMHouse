@@ -57,8 +57,11 @@ export default function Palinsesto({ giorniVisti = 7, inizio, lezioni, corsi = [
   const iniziali = (f) => ((f.nome?.[0] || '') + (f.cognome?.[0] || '')).toUpperCase();
   // l'elenco dei prenotati per il riquadro che compare passandoci sopra: i nomi sono già nella pagina, nessuna richiesta in più
   const elencoNomi = (fl, titolo) => {
-    const nomi = [...fl].sort((a, b) => `${a.nome} ${a.cognome}`.localeCompare(`${b.nome} ${b.cognome}`, 'it'))
-      .map((f) => `${f.nome || ''} ${f.cognome || ''}`.trim() + (f.tipo === 'prova' ? ' (prova)' : '') + (f.da_saldare ? ' · DA SALDARE' : ''));
+    // prima chi deve pagare (€) e chi ha l'abbonamento senza incasso (?), poi gli altri in ordine alfabetico
+    const peso = (f) => (f.da_saldare ? 0 : f.senza_incasso ? 1 : 2);
+    const nomi = [...fl].sort((a, b) => peso(a) - peso(b) || `${a.nome} ${a.cognome}`.localeCompare(`${b.nome} ${b.cognome}`, 'it'))
+      .map((f) => (f.da_saldare ? '€ ' : f.senza_incasso ? '? ' : '') + `${f.nome || ''} ${f.cognome || ''}`.trim() + (f.tipo === 'prova' ? ' (prova)' : '')
+        + (f.da_saldare ? ' · DA SALDARE' : f.senza_incasso ? ' · incasso non trovato' : ''));
     const max = 20;
     return [titolo, ...nomi.slice(0, max), ...(nomi.length > max ? [`… e altri ${nomi.length - max}`] : [])].join('\n');
   };
@@ -110,7 +113,7 @@ export default function Palinsesto({ giorniVisti = 7, inizio, lezioni, corsi = [
                 <span className="pal-facce-box" tabIndex={0} data-tip={elencoNomi(fl, `${fl.length} ${fl.length === 1 ? 'Prenotato' : 'Prenotati'}:`)}>
                 <span className="pal-facce">
                   {fl.slice(0, MAX_FACCE).map((f) => {
-                    const cl = `pal-faccia${f.tipo === 'prova' ? ' prova' : ''}${f.da_saldare ? ' da-saldare' : ''}`;
+                    const cl = `pal-faccia${f.tipo === 'prova' ? ' prova' : ''}${f.da_saldare ? ' da-saldare' : f.senza_incasso ? ' senza-incasso' : ''}`;
                     return f.foto_url ? <img key={f.allievo_id} src={f.foto_url} alt="" className={cl} />
                       : <span key={f.allievo_id} className={cl}>{iniziali(f)}</span>;
                   })}
@@ -126,6 +129,11 @@ export default function Palinsesto({ giorniVisti = 7, inizio, lezioni, corsi = [
                 <span className="pal-cerchio saldo" tabIndex={0}
                       data-tip={elencoNomi(fl.filter((f) => f.da_saldare), 'Non hanno ancora pagato:')}
                       aria-label={`${fl.filter((f) => f.da_saldare).length} da saldare`}>€</span>
+              )}
+              {fl.some((f) => f.senza_incasso) && (
+                <span className="pal-cerchio incasso" tabIndex={0}
+                      data-tip={elencoNomi(fl.filter((f) => f.senza_incasso), 'Abbonamento senza nessun incasso registrato (pagato in APP Palestre e non abbinato, o mai pagato?):')}
+                      aria-label={`${fl.filter((f) => f.senza_incasso).length} senza incasso`}>?</span>
               )}
               {codaDi(l.lezione_id).length > 0 && (
                 <span className="pal-cerchio coda" tabIndex={0}

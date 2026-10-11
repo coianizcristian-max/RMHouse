@@ -74,6 +74,7 @@ export default function Sportello({ palestraId, corsi, tipi, orari, palestra, pe
   const [contate, setContate] = useState(null);   // { n, stima }: lezioni proposte per il pagamento "a lezioni"
   const [invio, setInvio] = useState(false);
   const [errore, setErrore] = useState('');
+  const [avvisoGiorni, setAvvisoGiorni] = useState('');
   const [esito, setEsito] = useState(null);
   const [vista3, setVista3] = useState('incassa');   // incassa | dopo
   const [testo, setTesto] = useState('');
@@ -186,6 +187,7 @@ export default function Sportello({ palestraId, corsi, tipi, orari, palestra, pe
     setErrore('');
     if (!tipo || !v.corso_id) { setErrore('Scegli corso e abbonamento.'); return; }
     if (tipo.modalita === 'orari_fissi' && !v.orari.length) { setErrore('Scegli almeno un giorno.'); return; }
+    if (troppiGiorni) { setErrore(testoTroppi(v.orari.length)); return; }
     if (prezzoCent == null || prezzoCent < 0) { setErrore('Controlla il prezzo.'); return; }
     const i = mod.iscrizione; const r = mod.ricevuta;
     const cambiaPrezzo = prezzoCent !== mod.prezzo;
@@ -339,6 +341,22 @@ export default function Sportello({ palestraId, corsi, tipi, orari, palestra, pe
   const wsPrezzoCent = wsOpz ? centDa(v.ws_prezzo) : 0;
   const totale = (v.quota ? quotaImportoCent || 0 : 0) + (tipo ? prezzoCent || 0 : 0) + (wsOpz ? wsPrezzoCent || 0 : 0);
   const orariCorso = orari.filter((o) => o.corso_id === v.corso_id);
+  // quanti giorni a settimana dà l'abbonamento (es. "2 volte"): non se ne possono segnare di più
+  const maxGiorni = tipo && (tipo.modalita === 'orari_fissi' || v.aLezioni) && tipo.lezioni_settimanali > 0 ? tipo.lezioni_settimanali : null;
+  const troppiGiorni = maxGiorni != null && v.orari.length > maxGiorni;
+  const testoTroppi = (n) => `L'abbonamento prevede ${maxGiorni} ${maxGiorni === 1 ? 'giorno' : 'giorni'} a settimana: ne ${n === 1 ? 'è segnato' : 'sono segnati'} ${n}. Togline ${n - maxGiorni}.`;
+  function toccaGiorno(id) {
+    setAvvisoGiorni('');
+    setV((x) => {
+      if (x.orari.includes(id)) return { ...x, orari: x.orari.filter((y) => y !== id) };
+      if (maxGiorni === 1) return { ...x, orari: [id] };                       // "1 volta": il nuovo giorno prende il posto
+      if (maxGiorni != null && x.orari.length >= maxGiorni) {
+        setAvvisoGiorni(`L'abbonamento prevede ${maxGiorni} giorni a settimana: per sceglierne un altro togline prima uno.`);
+        return x;
+      }
+      return { ...x, orari: [...x.orari, id] };
+    });
+  }
   const nelleSueOre = (l) => tipo?.modalita === 'orari_fissi' && v.orari.includes(l.orario_id) && l.data >= (v.data_inizio || oggi())
     && !(v.aLezioni && v.al && l.data > v.al);
 
@@ -349,6 +367,7 @@ export default function Sportello({ palestraId, corsi, tipi, orari, palestra, pe
     if (tipo && !v.corso_id) { setErrore('Scegli il corso.'); return null; }
     if (v.corso_id && !tipo && !v.lezioni.length) { setErrore('Scegli l\'abbonamento (o togli il corso).'); return null; }
     if (tipo?.modalita === 'orari_fissi' && !v.orari.length) { setErrore('Scegli almeno un giorno: è quello che la fa comparire in appello.'); return null; }
+    if (troppiGiorni) { setErrore(testoTroppi(v.orari.length)); return null; }
     if (tipo && v.aLezioni && (!v.al || v.al < v.data_inizio)) { setErrore('A lezioni: scegli fino a quando vale (la data "Al").'); return null; }
     if (tipo && v.aLezioni && nLezioni == null && !v.prezzoMano) { setErrore('A lezioni: conferma il numero di lezioni (scrivilo o tocca ✓).'); return null; }
     if (tipo && v.aLezioni && prezzoCent == null) { setErrore('A lezioni: scrivi quanto costa una lezione (o l\'importo).'); return null; }
@@ -549,13 +568,13 @@ export default function Sportello({ palestraId, corsi, tipi, orari, palestra, pe
                 </div>
                 {v.corso_id && (tipo?.modalita === 'orari_fissi' || (tipo && v.aLezioni)) && (
                   <div className="sp-chip-riga" role="group" aria-label="Giorni">
-                    <span className="piccolo muto">Giorni:</span>
+                    <span className="piccolo muto">Giorni{maxGiorni != null ? <> <b className={troppiGiorni ? 'sp-giorni-troppi' : v.orari.length === maxGiorni ? 'sp-giorni-ok' : ''}>{v.orari.length}/{maxGiorni}</b></> : null}:</span>
                     {orariCorso.length === 0 && <span className="piccolo muto">il corso non ha orari</span>}
                     {(() => {
                       const chip = (o) => (
                         <button type="button" key={o.id} aria-pressed={v.orari.includes(o.id)} className={`sp-chip${v.orari.includes(o.id) ? ' attivo' : ''}`}
                                 title={o.insegnante ? `con ${o.insegnante}` : undefined}
-                                onClick={() => setV((x) => ({ ...x, orari: x.orari.includes(o.id) ? x.orari.filter((y) => y !== o.id) : [...x.orari, o.id] }))}>
+                                onClick={() => toccaGiorno(o.id)}>
                           {GIORNI[o.giorno_settimana]} {String(o.ora_inizio).slice(0, 5)}
                           {o.insegnante && <small className="sp-chip-ins">{o.insegnante.split(' ')[0]}</small>}
                         </button>
@@ -573,7 +592,7 @@ export default function Sportello({ palestraId, corsi, tipi, orari, palestra, pe
                                     onClick={() => setV((x) => {
                                       // i giorni di questo corso diventano quelli del gruppo (restano quelli di altri corsi)
                                       const resto = x.orari.filter((id) => !orariCorso.some((o) => o.id === id));
-                                      return { ...x, orari: tutti ? resto : [...resto, ...ids.slice(0, tipo?.lezioni_settimanali || ids.length)] };
+                                      return { ...x, orari: tutti ? resto : [...resto, ...ids.slice(0, maxGiorni != null ? Math.max(0, maxGiorni - resto.length) : ids.length)] };
                                     })}>
                               {g.nome}{ins ? <small> · {ins}</small> : null}
                             </button>
@@ -583,6 +602,9 @@ export default function Sportello({ palestraId, corsi, tipi, orari, palestra, pe
                       });
                     })()}
                   </div>
+                )}
+                {(troppiGiorni || avvisoGiorni) && (
+                  <p className="piccolo sp-attenzione" role="alert" style={{ margin: '4px 0 0' }}>{troppiGiorni ? testoTroppi(v.orari.length) : avvisoGiorni}</p>
                 )}
                 {tipo && (
                   <div className="sp-modo-prezzo" role="radiogroup" aria-label="Come si paga">

@@ -9,7 +9,7 @@ const giorniTesto = (g) => (g <= 0 ? 'da oggi' : g === 1 ? 'da ieri' : `da ${g} 
 
 // Home: chi frequenta ma non ha ancora pagato (query 152). Si filtra per nome o corso, "solo chi viene oggi",
 // e si incassa direttamente da qui (metodo + ricevuta).
-export default function DaSaldareHome({ palestraId, righe }) {
+export default function DaSaldareHome({ palestraId, righe, senzaIncasso = 0 }) {
   const router = useRouter();
   const [cerca, setCerca] = useState('');
   const [soloOggi, setSoloOggi] = useState(false);
@@ -38,7 +38,7 @@ export default function DaSaldareHome({ palestraId, righe }) {
         )}
       </div>
       {ultimo && <p className="avviso-ok" role="status" style={{ margin: '0 0 8px' }}>{ultimo}</p>}
-      {righe.length === 0 ? <p className="piccolo muto" style={{ margin: 0 }}>Tutti in regola: nessun abbonamento o rata da incassare.</p> : (
+      {righe.length === 0 ? <p className="piccolo muto" style={{ margin: 0 }}>{senzaIncasso > 0 ? 'Nessun «non pagato» e nessuna rata scaduta.' : 'Tutti in regola: nessun abbonamento o rata da incassare.'}</p> : (
         <ul className="ds-elenco">
           {elenco.map((r) => (
             <li key={r.allievo_id} className={r.oggi?.length ? 'oggi' : ''}>
@@ -65,6 +65,13 @@ export default function DaSaldareHome({ palestraId, righe }) {
           ))}
           {elenco.length === 0 && <li className="piccolo muto">Nessuno con questo filtro.</li>}
         </ul>
+      )}
+      {senzaIncasso > 0 && (
+        <p className="piccolo ds-senza" style={{ margin: '10px 0 0' }}>
+          <b className="ipc-incasso">{senzaIncasso} {senzaIncasso === 1 ? 'abbonamento attivo non ha' : 'abbonamenti attivi non hanno'} nessun incasso registrato</b>
+          {' '}(né pagato né da saldare: di solito venduti con APP Palestre e il pagamento non è stato abbinato).{' '}
+          <Link prefetch={false} href="/gestione/iscritti?problema=incasso">Vedi chi sono</Link>
+        </p>
       )}
     </section>
   );

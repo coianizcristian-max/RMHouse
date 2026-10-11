@@ -12,7 +12,7 @@ export default async function PaginaAppello({ params }) {
   const { id } = await params;
   const { supabase, staff } = await staffCorrente();
 
-  const [{ data: lezione }, { data: persone }, { data: dettagli }, { data: avvisati }, { data: nuove }, { data: regole }, { data: saldi }] = await Promise.all([
+  const [{ data: lezione }, { data: persone }, { data: dettagli }, { data: avvisati }, { data: nuove }, { data: regole }, { data: saldi }, { data: senzaIncasso }] = await Promise.all([
     supabase.from('v_lezioni').select('*').eq('id', id).maybeSingle(),
     supabase.from('v_appello')
       .select('allievo_id, tipo, nome, cognome, data_nascita, certificato_scadenza, bloccato, certificato_in_scadenza, quota_mancante, presente')
@@ -26,6 +26,8 @@ export default async function PaginaAppello({ params }) {
     supabase.from('palestre').select('recupero_da').eq('id', staff.palestra_id).maybeSingle(),
     // chi non ha ancora pagato (query 152): in rosso nell'appello (gli insegnanti vedono chi, non quanto)
     supabase.rpc('saldi_aperti', { p_palestra: staff.palestra_id }),
+    // abbonamento senza nessun incasso collegato (query 160): lo vede solo la segreteria
+    staff.ruolo !== 'insegnante' ? supabase.rpc('senza_incasso', { p_palestra: staff.palestra_id }) : Promise.resolve({ data: [] }),
   ]);
 
   const { data: postazioni } = await supabase.rpc('postazioni_lezione', { p_lezione: id });
@@ -74,7 +76,8 @@ export default async function PaginaAppello({ params }) {
   const ordine = { prova: 0, recupero: 1, ingresso: 2, iscritto: 3 };
   const elenco = (persone || [])
     .map((p) => ({ ...p, ...(dettagli || []).find((d) => d.allievo_id === p.allievo_id),
-                   da_saldare: (saldi || []).find((x) => x.allievo_id === p.allievo_id) || null }))
+                   da_saldare: (saldi || []).find((x) => x.allievo_id === p.allievo_id) || null,
+                   senza_incasso: (senzaIncasso || []).some((x) => x.allievo_id === p.allievo_id) }))
     .sort((a, b) => ordine[a.tipo] - ordine[b.tipo] || a.cognome.localeCompare(b.cognome, 'it'));
 
   return (

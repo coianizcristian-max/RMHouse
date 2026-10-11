@@ -53,10 +53,12 @@ export default async function Home({ searchParams }) {
 
   // tutto il Riepilogo con una chiamata sola (query 144); se la funzione manca, le letture una per una
   // chi deve ancora pagare (query 152) insieme: nessuna attesa in più
-  const [{ data: insieme, error: erroreInsieme }, periodo, { data: saldiDati }] = await Promise.all([
+  const [{ data: insieme, error: erroreInsieme }, periodo, { data: saldiDati }, { data: senzaDati }] = await Promise.all([
     supabase.rpc('home_dati', { p_palestra: p }),
     gestione ? periodoPredefinito() : Promise.resolve('stagione'),
     gestione ? supabase.rpc('da_saldare', { p_palestra: p }) : Promise.resolve({ data: null }),
+    // abbonamenti attivi senza nessun incasso collegato (query 160)
+    gestione ? supabase.rpc('senza_incasso', { p_palestra: p }) : Promise.resolve({ data: null }),
   ]);
   const daSaldare = Array.isArray(saldiDati) ? saldiDati : null;
   const d = !erroreInsieme && insieme ? {
@@ -184,7 +186,7 @@ export default async function Home({ searchParams }) {
                   saldiOggi={(daSaldare || []).filter((r) => r.oggi?.length)} />
 
       {/* chi frequenta senza aver pagato (query 152): sempre in vista, filtrabile, si incassa da qui */}
-      {gestione && daSaldare && <DaSaldareHome palestraId={p} righe={daSaldare} />}
+      {gestione && daSaldare && <DaSaldareHome palestraId={p} righe={daSaldare} senzaIncasso={Array.isArray(senzaDati) ? senzaDati.length : 0} />}
 
       {gestione && sostituzioni?.length > 0 && (
         <section className="pannello sostituzioni">

@@ -345,6 +345,7 @@ export default function Appello({ lezioneId, persone, corsoNome = '', gestione =
                   {p.bloccato && <span className="tag tag-rosso">Certificato scaduto</span>}
                   {p.certificato_in_scadenza && <span className="tag tag-attenzione">Certificato in scadenza</span>}
                   {p.quota_mancante && <span className="tag tag-attenzione">Quota da pagare</span>}
+                  {!p.da_saldare && p.senza_incasso && <span className="tag tag-attenzione" title="L'abbonamento non ha nessun incasso registrato: controlla se ha pagato">incasso non trovato</span>}
                   {p.da_saldare && <span className="tag tag-rosso" title="Frequenta ma non ha ancora pagato: passi dalla segreteria">
                     Da saldare{p.da_saldare.totale_cent ? ` ${euro(p.da_saldare.totale_cent)}` : ''}</span>}
                   {p.origine && p.origine !== 'abbonamento' && <span className="tag tag-neutro">da {p.origine}</span>}

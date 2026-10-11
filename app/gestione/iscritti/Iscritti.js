@@ -14,9 +14,10 @@ const oggiISO = () => new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe
 const PROBLEMI = [
   ['certificato', 'Certificato da sistemare'],
   ['saldo', 'Da saldare'],
+  ['incasso', 'Senza incasso'],
   ['tessera', 'Tessera da fare'],
   ['scade', 'Abbonamento in scadenza (14 gg)'],
-  ['giorni', 'Senza giorni'],
+  ['giorni', 'Giorni da sistemare'],
 ];
 
 // stato del certificato: ok | presto (entro 30 gg) | no
@@ -29,13 +30,13 @@ function certStato(c, oggi) {
 
 // Iscritti per corso (query 154): al posto del file Excel della segreteria. Filtri per area, nome e problemi;
 // note e scadenza del certificato si cambiano scrivendoci sopra; i giorni con "giorni".
-export default function Iscritti({ dati, corsoIniziale = '', cercaIniziale = '' }) {
+export default function Iscritti({ dati, corsoIniziale = '', cercaIniziale = '', problemaIniziale = '' }) {
   const oggi = dati?.data || oggiISO();
   const corsi = useMemo(() => dati?.corsi || [], [dati]);
   const [cat, setCat] = useState('');
   const [corsoSel, setCorsoSel] = useState(corsoIniziale);
   const [cerca, setCerca] = useState(cercaIniziale);
-  const [problemi, setProblemi] = useState([]);
+  const [problemi, setProblemi] = useState(problemaIniziale && PROBLEMI.some(([k]) => k === problemaIniziale) ? [problemaIniziale] : []);
   const [conProve, setConProve] = useState(true);
   const [note, setNote] = useState({});        // iscrizione_id → nota cambiata qui
   const [certificati, setCertificati] = useState({});   // allievo_id → scadenza cambiata qui
@@ -52,7 +53,8 @@ export default function Iscritti({ dati, corsoIniziale = '', cercaIniziale = '' 
     if (p.da_saldare) out.push('saldo');
     if (!p.tessera || p.tessera.stato !== 'tesserato') out.push('tessera');
     if (p.fino_al && giorniTra(oggi, p.fino_al) <= 14) out.push('scade');
-    if (p.modalita === 'orari_fissi' && !p.orari?.length) out.push('giorni');
+    if (p.modalita === 'orari_fissi' && (!p.orari?.length || (p.volte > 0 && p.orari.length > p.volte))) out.push('giorni');
+    if (p.senza_incasso && !p.da_saldare) out.push('incasso');
     return out;
   };
 
@@ -102,7 +104,7 @@ export default function Iscritti({ dati, corsoIniziale = '', cercaIniziale = '' 
         c.orari.filter((o) => p.orari?.includes(o.id)).map((o) => `${GIORNI[o.giorno]} ${o.ora}`).join(', '),
         p.prova ? dataBreve(p.prova) : '', certDi(p) ? dataBreve(certDi(p)) : 'manca',
         p.tessera ? `${p.tessera.numero || ''} ${p.tessera.stato}`.trim() : '', p.abbonamento || '', p.fino_al ? dataBreve(p.fino_al) : '',
-        p.da_saldare ? `da saldare ${euro(p.da_saldare)}` : 'pagato', p.altri || '', notaDi(p)]));
+        p.da_saldare ? `da saldare ${euro(p.da_saldare)}` : p.senza_incasso ? 'incasso non trovato' : 'pagato', p.altri || '', notaDi(p)]));
       c.proveV.forEach((p) => righe.push([c.nome, orariTesto, 'prova', `${p.cognome} ${p.nome}`, '', p.telefono || '', '', '', dataBreve(p.data), '', '', '', '', '', '', p.stato]));
     }
     const csv = comeCsv(['CORSO', 'ORARI', 'N', 'COGNOME E NOME', 'CHI PAGA', 'CELL', 'MAIL', 'GIORNI', 'DATA DI PROVA', 'CERTIFICATO M. SCADENZA',
@@ -187,7 +189,9 @@ export default function Iscritti({ dati, corsoIniziale = '', cercaIniziale = '' 
                     <span className="ipc-tel">{p.telefono ? <a href={`tel:${p.telefono}`}>{p.telefono}</a> : <span className="muto">—</span>}</span>
                     <span className="ipc-giorni">
                       {p.modalita === 'orari_fissi'
-                        ? (suoi.length ? suoi.map((o) => `${GIORNI[o.giorno]} ${o.ora}`).join(', ') : <b className="ipc-rosso">senza giorni</b>)
+                        ? (suoi.length ? <>{suoi.map((o) => `${GIORNI[o.giorno]} ${o.ora}`).join(', ')}
+                            {p.volte > 0 && (p.orari?.length || 0) > p.volte && <b className="ipc-rosso"> · {p.orari.length} giorni su {p.volte}</b>}</>
+                          : <b className="ipc-rosso">senza giorni</b>)
                         : <span className="muto">{p.modalita === 'ingressi' ? `a ingressi${p.ingressi != null ? ` (${p.ingressi})` : ''}` : 'libero'}</span>}
                       {p.modalita === 'orari_fissi' && c.orari.length > 0 && (
                         <button type="button" className="link-btn piccolo" onClick={() => setGiorniAperti(giorniAperti === p.iscrizione_id ? null : p.iscrizione_id)}>giorni</button>
@@ -203,6 +207,7 @@ export default function Iscritti({ dati, corsoIniziale = '', cercaIniziale = '' 
                     </span>
                     <span className="ipc-pag">{p.da_saldare
                       ? <Link prefetch={false} href={`/gestione/sportello?persona=${p.allievo_id}`} className="ipc-rosso">da saldare {euro(p.da_saldare)}</Link>
+                      : p.senza_incasso ? <span className="ipc-incasso" title="L'abbonamento non ha nessun incasso registrato: pagato in APP Palestre e non abbinato, o mai pagato?">incasso non trovato</span>
                       : <span className="ipc-ok">✓ pagato</span>}</span>
                     <span className="ipc-altri">{p.altri || <span className="muto">—</span>}</span>
                     <span className="ipc-nota">
@@ -211,7 +216,7 @@ export default function Iscritti({ dati, corsoIniziale = '', cercaIniziale = '' 
                     </span>
                     {giorniAperti === p.iscrizione_id && (
                       <div className="ipc-assegna">
-                        <AssegnaGiorni iscrizioneId={p.iscrizione_id} scelti={p.orari || []}
+                        <AssegnaGiorni iscrizioneId={p.iscrizione_id} scelti={p.orari || []} quanti={p.volte}
                                        orari={c.orari.map((o) => ({ id: o.id, giorno_settimana: o.giorno, ora_inizio: o.ora, gruppo: o.gruppo }))} />
                       </div>
                     )}
