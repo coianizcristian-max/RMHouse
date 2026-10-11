@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { leggiCsv, leggiData, indovina } from '@/lib/csv';
 import AppPalestre from './AppPalestre';
 import Esporta from './Esporta';
+import TogliProve from './TogliProve';
 import SceltaFile from '../SceltaFile';
 
 const CAMPI = [
@@ -20,8 +21,8 @@ const CAMPI = [
   { k: 'data_inizio', etichetta: 'Inizio abbonamento', parole: ['inizio', 'datainizio'] },
 ];
 
-export default function Importa({ corsi, tipi, palestraId, vista, meseStagione = 9 }) {
-  const [fonte, setFonte] = useState(vista === 'esporta' ? 'esporta' : vista === 'altro' ? 'altro' : 'app');
+export default function Importa({ corsi, tipi, palestraId, vista, meseStagione = 9, admin = false }) {
+  const [fonte, setFonte] = useState(vista === 'esporta' ? 'esporta' : vista === 'altro' ? 'altro' : vista === 'prove' && admin ? 'prove' : 'app');
   const [dati, setDati] = useState(null);      // { intestazioni, righe }
   const [mappa, setMappa] = useState({});
   const [errore, setErrore] = useState('');
@@ -78,13 +79,14 @@ export default function Importa({ corsi, tipi, palestraId, vista, meseStagione =
       </div>
 
       <div className="filtri">
-        {[['app', 'Da APP Palestre'], ['altro', 'Da un altro file'], ['esporta', 'Esporta']].map(([k, l]) => (
+        {[['app', 'Da APP Palestre'], ['altro', 'Da un altro file'], ['esporta', 'Esporta'], ...(admin ? [['prove', 'Togli le prove']] : [])].map(([k, l]) => (
           <a key={k} href="#" onClick={(e) => { e.preventDefault(); setFonte(k); }}
              aria-current={fonte === k ? 'true' : undefined}>{l}</a>
         ))}
       </div>
 
-      {fonte === 'esporta' ? <Esporta palestraId={palestraId} /> : fonte === 'app' ? <AppPalestre palestraId={palestraId} meseStagione={meseStagione} /> : (
+      {fonte === 'prove' ? <TogliProve palestraId={palestraId} onReimporta={() => setFonte('app')} />
+        : fonte === 'esporta' ? <Esporta palestraId={palestraId} /> : fonte === 'app' ? <AppPalestre palestraId={palestraId} meseStagione={meseStagione} /> : (
       <>
 
       {errore && <div className="errore" role="alert">{errore}</div>}

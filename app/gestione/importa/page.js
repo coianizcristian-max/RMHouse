@@ -16,5 +16,5 @@ export default async function PaginaImporta({ searchParams }) {
     meseStagione(),
   ]);
 
-  return <Importa corsi={corsi.data || []} tipi={tipi.data || []} palestraId={staff.palestra_id} vista={vista} meseStagione={mese} />;
+  return <Importa corsi={corsi.data || []} tipi={tipi.data || []} palestraId={staff.palestra_id} vista={vista} meseStagione={mese} admin={staff.ruolo === 'admin'} />;
 }

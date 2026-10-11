@@ -5077,3 +5077,21 @@ body:has(.sportello) .bottone-rapide { display: none; }
 .pal-numeri .nuvola { left: auto; right: 0; }
 .nuvola .nuvola-titolo { color: var(--testo); }
 .nuvola .nuvola-rosso { color: var(--rosso); font-weight: 700; }
+
+/* 201 — Togli le prove */
+.tp-intro h2 { margin: 0 0 6px; font-size: 19px; }
+.tp-gruppo { margin-top: 12px; }
+.tp-testa { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; margin-bottom: 6px; }
+.tp-testa h3 { margin: 0; font-size: 16px; }
+.tp-testa p { flex-basis: 100%; margin: 0; }
+.tp-lista { list-style: none; margin: 0; padding: 0; }
+.tp-lista li { display: flex; gap: 10px; align-items: flex-start; padding: 7px 2px; border-top: 1px solid var(--linea); }
+.tp-lista li > div { min-width: 0; }
+.tp-casella { margin: 2px 0 0; }
+.tp-nome { font-weight: 700; color: var(--nero); }
+.tp-cosa, .tp-motivo { display: block; font-size: 13px; line-height: 1.35; color: var(--testo-2); }
+.tp-motivo { color: var(--attenzione); font-weight: 600; }
+.tp-barra { position: sticky; bottom: calc(10px + env(safe-area-inset-bottom, 0px)); z-index: 8; margin-top: 12px; display: flex; flex-wrap: wrap;
+  align-items: center; justify-content: space-between; gap: 8px 14px; padding: 10px 14px; border-radius: 12px;
+  background: var(--bianco); border: 1px solid var(--linea); box-shadow: 0 6px 20px rgba(0,0,0,.14); }
+@media (max-width: 899px) { .tp-barra { bottom: calc(76px + env(safe-area-inset-bottom, 0px)); } }
