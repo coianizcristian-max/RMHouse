@@ -12,7 +12,7 @@ export default async function NuovoWorkshop() {
   const p = staff.palestra_id;
   const [{ data: sedi }, { data: sale }, { data: pal }, { data: staffElenco }] = await Promise.all([
     supabase.from('sedi').select('id, nome').eq('palestra_id', p).order('ordine'),
-    supabase.from('sale').select('id, nome').eq('palestra_id', p).order('ordine', { nullsFirst: false }).order('nome'),
+    supabase.from('sale').select('id, nome, sede_id').eq('palestra_id', p).order('ordine', { nullsFirst: false }).order('nome'),
     supabase.from('palestre').select('quota_iscrizione_cent').eq('id', p).maybeSingle(),
     supabase.from('staff').select('id, nome, cognome, ruolo').eq('palestra_id', p).eq('attivo', true).eq('archiviato', false).order('nome'),
   ]);

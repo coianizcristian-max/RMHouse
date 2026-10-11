@@ -54,6 +54,11 @@ export function TesseraEnte({ palestraId, ente = {}, persona, dati, tessera, sta
 
   async function segna() {
     setMsg('');
+    // con la query 157 il numero si scrive con il suo tipo ("A 1234567"), come quelli importati
+    if (numero.trim()) {
+      const { error: e157 } = await supabaseBrowser().rpc('scrivi_numero_tessera', { p_palestra: palestraId, p_stagione: stagione, p_allievo: persona.id, p_testo: numero });
+      if (!e157) { setMsg('Segnata ✓'); setNumero(''); onCambio?.(); return; }
+    }
     const { error } = await supabaseBrowser().rpc('aggiorna_tesseramenti', {
       p_palestra: palestraId, p_stagione: stagione, p_allievi: [persona.id], p_stato: 'tesserato',
       p_numero_da: numero.trim() && /^\d+$/.test(numero.trim()) ? Number(numero.trim()) : null,

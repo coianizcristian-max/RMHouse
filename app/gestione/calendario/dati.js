@@ -25,14 +25,24 @@ export async function settimana({ da, sala, insegnante, mie, sede, corso, giorni
 
   // una chiamata sola per tutta la settimana (query 144); se la funzione manca, le letture una per una
   const filtri = { p_sala: sala || null, p_insegnante: mie === '1' ? staff.id : (insegnante || null), p_sede: sede || null, p_corso: corso || null };
-  // insieme ai momenti dei workshop del periodo (nascosti se si filtra per insegnante o per corso: non sono corsi)
-  const conWorkshop = !(mie === '1' || insegnante || corso);
-  const [{ data: insieme, error: erroreInsieme }, { data: wsPeriodo }] = await Promise.all([
+  // insieme ai momenti dei workshop del periodo (query 156: anche le bozze, per la segreteria). Con il filtro per
+  // insegnante (o "le mie") restano quelli che tiene lei; con il filtro per corso spariscono (non sono corsi).
+  const chi = mie === '1' ? staff.id : (insegnante || null);
+  const conWorkshop = !corso;
+  const bozze = staff.ruolo !== 'insegnante';
+  // e chi non ha ancora pagato (query 152): nel riquadro dei nomi è segnato "da saldare"
+  const [{ data: insieme, error: erroreInsieme }, { data: wsPeriodo }, { data: saldi }] = await Promise.all([
     supabase.rpc('settimana_dati', { p_palestra: staff.palestra_id, p_inizio: inizio, p_fine: fine, ...filtri }),
-    conWorkshop ? supabase.rpc('workshop_periodo', { p_palestra: staff.palestra_id, p_dal: inizio, p_al: fine }) : Promise.resolve({ data: [] }),
+    conWorkshop
+      ? supabase.rpc('workshop_periodo', { p_palestra: staff.palestra_id, p_dal: inizio, p_al: fine, p_bozze: bozze })
+        // senza la query 156 la funzione ha solo 3 valori: come prima
+        .then((r) => (r.error ? supabase.rpc('workshop_periodo', { p_palestra: staff.palestra_id, p_dal: inizio, p_al: fine }) : r))
+      : Promise.resolve({ data: [] }),
+    supabase.rpc('saldi_aperti', { p_palestra: staff.palestra_id }),
   ]);
   const workshop = (Array.isArray(wsPeriodo) ? wsPeriodo : [])
-    .filter((m) => (!sala || m.sala_id === sala) && (!sede || !m.sede_id || m.sede_id === sede));
+    .filter((m) => (!sala || m.sala_id === sala) && (!sede || !m.sede_id || m.sede_id === sede)
+      && (!chi || m.insegnante_id === chi));
   let tutte, sale, insegnanti, corsi, note, sedi, chiusure, facce, coda;
   if (!erroreInsieme && insieme) {
     ({ lezioni: tutte, sale, insegnanti, corsi, note, sedi, chiusure, facce, coda } = insieme);
@@ -64,10 +74,12 @@ export async function settimana({ da, sala, insegnante, mie, sede, corso, giorni
       : [{ data: [] }, { data: [] }];
   }
 
+  const debitori = new Set((Array.isArray(saldi) ? saldi : []).map((x) => x.allievo_id));
   return {
     staff, inizio, fine, giorni: n,
     lezioni: lezioni || [], sale: sale || [], insegnanti: insegnanti || [],
-    corsi: corsi || [], note: note || [], facce: facce || [], coda: coda || [], sedi: sedi || [], giorniChiusi, workshop,
+    corsi: corsi || [], note: note || [], facce: (facce || []).map((f) => (debitori.has(f.allievo_id) ? { ...f, da_saldare: true } : f)),
+    coda: coda || [], sedi: sedi || [], giorniChiusi, workshop,
   };
 }
 

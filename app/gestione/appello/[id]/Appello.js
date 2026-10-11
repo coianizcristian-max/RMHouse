@@ -2,7 +2,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabaseBrowser } from '@/lib/supabase/browser';
-import { etaAl, ora, dataBreve } from '@/lib/formato';
+import { etaAl, ora, dataBreve, euro } from '@/lib/formato';
 
 const ETICHETTE = { prova: ['In prova', 'tag-rosso'], recupero: ['Recupero', 'tag-attenzione'], ingresso: ['Ingresso', 'tag-neutro'] };
 
@@ -338,13 +338,15 @@ export default function Appello({ lezioneId, persone, corsoNome = '', gestione =
                   ...(valore === false ? { opacity: .55 } : {}),
                 }}>
               <div>
-                <span className={`persona-nome${p.bloccato || p.quota_mancante ? ' nome-rosso' : ''}`}>{p.cognome} {p.nome}</span>
+                <span className={`persona-nome${p.bloccato || p.quota_mancante || p.da_saldare ? ' nome-rosso' : ''}`}>{p.cognome} {p.nome}</span>
                 <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 4 }}>
                   {etichetta && <span className={`tag ${classe}`}>{etichetta}</span>}
                   {p.data_nascita && etaAl(p.data_nascita) < 18 && <span className="tag tag-neutro">{etaAl(p.data_nascita)} anni</span>}
                   {p.bloccato && <span className="tag tag-rosso">Certificato scaduto</span>}
                   {p.certificato_in_scadenza && <span className="tag tag-attenzione">Certificato in scadenza</span>}
                   {p.quota_mancante && <span className="tag tag-attenzione">Quota da pagare</span>}
+                  {p.da_saldare && <span className="tag tag-rosso" title="Frequenta ma non ha ancora pagato: passi dalla segreteria">
+                    Da saldare{p.da_saldare.totale_cent ? ` ${euro(p.da_saldare.totale_cent)}` : ''}</span>}
                   {p.origine && p.origine !== 'abbonamento' && <span className="tag tag-neutro">da {p.origine}</span>}
                   {gestione && p.tipo === 'iscritto' && !finita && valore !== true && (
                     <button className="link-btn piccolo" onClick={(e) => { e.stopPropagation(); haAvvisato(p); }}>ha avvisato</button>

@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabaseBrowser } from '@/lib/supabase/browser';
 import { dataBreve, ora } from '@/lib/formato';
+import OpzioniInsegnanti from './OpzioniInsegnanti';
 
 const ERRORI = {
   non_tua: 'Puoi farti sostituire solo nelle tue lezioni.',
@@ -28,18 +29,26 @@ export default function Sostituzione({ lezioneId, gestione, onFatto }) {
   const [errore, setErrore] = useState('');
   const [invio, setInvio] = useState(false);
   const [conflitti, setConflitti] = useState(null);   // la persona scelta è già occupata a quell'ora?
+  const [proposte, setProposte] = useState({ disciplinaId: null, nomeDisciplina: '', delCorso: [], competenze: [], discipline: [] });
 
   useEffect(() => {
     const db = supabaseBrowser();
     (async () => {
       const { data: lez } = await db.from('lezioni')
-        .select('id, palestra_id, inizio, stato, orario_id, insegnante_id, insegnante_titolare, sostituzione_da, sostituzione_at')
+        .select('id, palestra_id, inizio, stato, orario_id, insegnante_id, insegnante_titolare, sostituzione_da, sostituzione_at, corso_id, corsi ( disciplina_id )')
         .eq('id', lezioneId).maybeSingle();
       if (!lez) return;
-      const [{ data: s }, { data: me }] = await Promise.all([
+      const [{ data: s }, { data: me }, { data: disc }, { data: comp }, { data: delCorso }] = await Promise.all([
         db.from('staff').select('id, nome, cognome, ruolo').eq('palestra_id', lez.palestra_id).eq('attivo', true).not('archiviato', 'is', true).order('nome'),
         db.rpc('mio_staff', { p_palestra: lez.palestra_id }),
+        // chi tiene già il corso e chi insegna la sua disciplina (query 156) vengono proposti per primi
+        db.from('discipline').select('id, nome, categoria_id').eq('palestra_id', lez.palestra_id),
+        db.from('staff_competenze').select('staff_id, disciplina_id, categoria_id').eq('palestra_id', lez.palestra_id),
+        lez.corso_id ? db.from('corsi_insegnanti').select('staff_id').eq('corso_id', lez.corso_id) : Promise.resolve({ data: [] }),
       ]);
+      const dId = lez.corsi?.disciplina_id || null;
+      setProposte({ disciplinaId: dId, nomeDisciplina: (disc || []).find((d) => d.id === dId)?.nome || '',
+        delCorso: (delCorso || []).map((x) => x.staff_id), competenze: comp || [], discipline: disc || [] });
       setL(lez); setStaff(s || []); setIo(me || null);
     })();
   }, [lezioneId]);
@@ -95,7 +104,7 @@ export default function Sostituzione({ lezioneId, gestione, onFatto }) {
         <div className="sost-scelta">
           <select value={chi} onChange={(e) => setChi(e.target.value)} aria-label="Chi tiene la lezione">
             <option value="">{gestione ? 'Nessun insegnante' : 'Chi ti sostituisce?'}</option>
-            {staff.filter((s) => s.id !== l.insegnante_id).map((s) => <option key={s.id} value={s.id}>{s.nome} {s.cognome || ''}</option>)}
+            <OpzioniInsegnanti persone={staff.filter((s) => s.id !== l.insegnante_id)} {...proposte} />
           </select>
           {gestione && (
             <fieldset className="sost-opzioni">

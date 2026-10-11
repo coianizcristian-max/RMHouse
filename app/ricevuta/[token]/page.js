@@ -14,7 +14,7 @@ export default async function RicevutaPubblica({ params }) {
   if (!r) notFound();
   return (
     <div className="foglio">
-      <StampaSemplice />
+      <StampaSemplice token={token} />
       <FoglioRicevuta r={r} pal={r.palestra} logo={r.palestra?.logo_url || '/logo.png'} />
     </div>
   );

@@ -32,7 +32,7 @@ const IconaProva = () => (
 // bordo e banda nel colore del corso con l'orario, nome del corso, insegnante e sala con l'icona, i cerchietti dei prenotati
 // (o "Nessun prenotato"), i numeri (verde = prenotati, blu = posti liberi), il "+" per aggiungere qualcuno, la barra di riempimento
 // e in basso il cerchietto per selezionare più lezioni insieme (insegnante, sala, posti, prenotazioni, nota, annulla).
-export default function Palinsesto({ giorniVisti = 7, inizio, lezioni, corsi = [], note = [], facce = [], coda = [], sale = [], insegnanti = [], giorniChiusi = {}, palestraId, gestione = true, workshop = [] }) {
+export default function Palinsesto({ giorniVisti = 7, inizio, lezioni, corsi = [], note = [], facce = [], coda = [], sale = [], insegnanti = [], giorniChiusi = {}, palestraId, gestione = true, workshop = [], mioId = null }) {
   const [aggiorno, setAggiorno] = useState(false); // mentre la pagina si ricarica dopo un'azione di gruppo
   const [scelta, setScelta] = useState(null);
   const [finestraCorso, setFinestraCorso] = useState(null);   // { corsoId, nome, scheda }: la finestra del corso sopra il palinsesto
@@ -58,7 +58,7 @@ export default function Palinsesto({ giorniVisti = 7, inizio, lezioni, corsi = [
   // l'elenco dei prenotati per il riquadro che compare passandoci sopra: i nomi sono già nella pagina, nessuna richiesta in più
   const elencoNomi = (fl, titolo) => {
     const nomi = [...fl].sort((a, b) => `${a.nome} ${a.cognome}`.localeCompare(`${b.nome} ${b.cognome}`, 'it'))
-      .map((f) => `${f.nome || ''} ${f.cognome || ''}`.trim() + (f.tipo === 'prova' ? ' (prova)' : ''));
+      .map((f) => `${f.nome || ''} ${f.cognome || ''}`.trim() + (f.tipo === 'prova' ? ' (prova)' : '') + (f.da_saldare ? ' · DA SALDARE' : ''));
     const max = 20;
     return [titolo, ...nomi.slice(0, max), ...(nomi.length > max ? [`… e altri ${nomi.length - max}`] : [])].join('\n');
   };
@@ -89,7 +89,8 @@ export default function Palinsesto({ giorniVisti = 7, inizio, lezioni, corsi = [
       : nonVisibile ? ['Corso non visibile', ''] : null;
     return (
       <div key={l.lezione_id} role="button" tabIndex={0}
-           className={`pal-carta${annullata ? ' annullata' : ''}${scelto ? ' selezionata' : ''}`}
+           className={`pal-carta${annullata ? ' annullata' : ''}${scelto ? ' selezionata' : ''}${l.appello_at ? ' con-appello' : ''}`}
+           title={l.appello_at ? 'Appello fatto' : undefined}
            style={{ borderColor: c }}
            onClick={() => apri(l)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); apri(l); } }}
            aria-label={`${l.corso_nome}, ${ora(l.inizio)}`}>
@@ -108,11 +109,11 @@ export default function Palinsesto({ giorniVisti = 7, inizio, lezioni, corsi = [
               : (
                 <span className="pal-facce-box" tabIndex={0} data-tip={elencoNomi(fl, `${fl.length} ${fl.length === 1 ? 'Prenotato' : 'Prenotati'}:`)}>
                 <span className="pal-facce">
-                  {fl.slice(0, MAX_FACCE).map((f) => (
-                    f.foto_url
-                      ? <img key={f.allievo_id} src={f.foto_url} alt="" className={f.tipo === 'prova' ? 'pal-faccia prova' : 'pal-faccia'} />
-                      : <span key={f.allievo_id} className={f.tipo === 'prova' ? 'pal-faccia prova' : 'pal-faccia'}>{iniziali(f)}</span>
-                  ))}
+                  {fl.slice(0, MAX_FACCE).map((f) => {
+                    const cl = `pal-faccia${f.tipo === 'prova' ? ' prova' : ''}${f.da_saldare ? ' da-saldare' : ''}`;
+                    return f.foto_url ? <img key={f.allievo_id} src={f.foto_url} alt="" className={cl} />
+                      : <span key={f.allievo_id} className={cl}>{iniziali(f)}</span>;
+                  })}
                   {altri.length > 0 && <span className="pal-altri" aria-label={`e altri ${altri.length}`}>…</span>}
                 </span>
                 </span>
@@ -121,6 +122,11 @@ export default function Palinsesto({ giorniVisti = 7, inizio, lezioni, corsi = [
               <span className="pal-cerchio verde" tabIndex={0} data-tip={fl.length ? elencoNomi(fl, `${l.iscritti} ${l.iscritti === 1 ? 'Prenotato' : 'Prenotati'}:`) : `${l.iscritti} ${l.iscritti === 1 ? 'Prenotato' : 'Prenotati'}`} aria-label={`${l.iscritti} prenotati`}>{l.iscritti}</span>
               <span className="pal-cerchio blu" tabIndex={0} data-tip={posti === null ? 'Posti senza limite' : `${posti} ${posti === 1 ? 'Posto disponibile' : 'Posti disponibili'}`} aria-label={posti === null ? 'posti senza limite' : `${posti} posti disponibili`}>{posti === null ? '∞' : posti}</span>
               {l.prove > 0 && <span className="pal-cerchio rosso" tabIndex={0} data-tip={`${l.prove} in prova`} aria-label={`${l.prove} in prova`}>{l.prove}</span>}
+              {fl.some((f) => f.da_saldare) && (
+                <span className="pal-cerchio saldo" tabIndex={0}
+                      data-tip={elencoNomi(fl.filter((f) => f.da_saldare), 'Non hanno ancora pagato:')}
+                      aria-label={`${fl.filter((f) => f.da_saldare).length} da saldare`}>€</span>
+              )}
               {codaDi(l.lezione_id).length > 0 && (
                 <span className="pal-cerchio coda" tabIndex={0}
                       data-tip={[`${codaDi(l.lezione_id).length} in coda:`, ...codaDi(l.lezione_id).map((c, i) => `${i + 1}. ${`${c.allievi?.nome || ''} ${c.allievi?.cognome || ''}`.trim()}`)].join('\n')}
@@ -149,18 +155,22 @@ export default function Palinsesto({ giorniVisti = 7, inizio, lezioni, corsi = [
       </div>
     );
   };
-  // il workshop nel calendario: una scheda nera fra le lezioni, all'ora giusta; porta all'appello del workshop
+  // il workshop nel calendario: una scheda nera fra le lezioni, all'ora giusta; porta all'appello del workshop.
+  // In bozza (non ancora pubblicato, lo vede solo la segreteria): bianca tratteggiata, con scritto "Bozza".
   const cartaWorkshop = (w) => {
     const posti = w.posti != null ? Math.max(w.posti - w.iscritti, 0) : null;
+    const bozza = w.stato === 'bozza';
+    const mio = !gestione && mioId && w.insegnante_id === mioId;
+    const dove = w.sala || w.luogo;
     const corpo = (
       <>
-        <div className="pal-banda pal-ws-banda">{ora(w.inizio)} - {ora(w.fine)}<span className="pal-ws-tag">Workshop</span></div>
+        <div className="pal-banda pal-ws-banda">{ora(w.inizio)} - {ora(w.fine)}<span className="pal-ws-tag">{bozza ? 'Bozza' : 'Workshop'}</span></div>
         <div className="pal-corpo">
           <div className="pal-nome">{w.titolo}{w.momenti > 1 ? ` · ${w.momento}` : ''}</div>
           <div className="pal-riga" title={w.insegnante || undefined}><IconaPersona />{w.insegnante || 'insegnante esterno'}</div>
-          <div className="pal-riga" title={w.sala || undefined}><IconaSala />{w.sala || 'sala da assegnare'}</div>
+          <div className="pal-riga" title={dove || undefined}><IconaSala />{dove || 'sala da assegnare'}</div>
           <div className="pal-piede">
-            <span className="pal-nessuno">{w.presenti > 0 ? `${w.presenti} presenti` : gestione ? 'Apri per l\'appello' : 'Workshop'}</span>
+            <span className="pal-nessuno">{bozza ? 'Non ancora pubblicato' : w.presenti > 0 ? `${w.presenti} presenti` : gestione || mio ? 'Apri per l\'appello' : 'Workshop'}</span>
             <span className="pal-numeri">
               <span className="pal-cerchio verde" data-tip={`${w.iscritti} iscritti`} aria-label={`${w.iscritti} iscritti`}>{w.iscritti}</span>
               <span className="pal-cerchio blu" data-tip={posti === null ? 'Posti senza limite' : `${posti} posti liberi`} aria-label={posti === null ? 'posti senza limite' : `${posti} posti liberi`}>{posti === null ? '∞' : posti}</span>
@@ -169,10 +179,13 @@ export default function Palinsesto({ giorniVisti = 7, inizio, lezioni, corsi = [
         </div>
       </>
     );
-    return gestione
-      ? <Link prefetch={false} key={`w${w.momento_id}`} className="pal-carta pal-ws" href={`/gestione/workshop/${w.workshop_id}?scheda=appello&momento=${w.momento_id}`}
-              aria-label={`Workshop ${w.titolo}, ${ora(w.inizio)}`}>{corpo}</Link>
-      : <div key={`w${w.momento_id}`} className="pal-carta pal-ws">{corpo}</div>;
+    const classe = `pal-carta pal-ws${bozza ? ' pal-ws-bozza' : ''}`;
+    const href = gestione ? `/gestione/workshop/${w.workshop_id}?scheda=${bozza ? 'modifica' : 'appello'}&momento=${w.momento_id}`
+      : mio ? `/gestione/appello/workshop/${w.workshop_id}?momento=${w.momento_id}` : null;
+    return href
+      ? <Link prefetch={false} key={`w${w.momento_id}`} className={classe} href={href}
+              aria-label={`${bozza ? 'Bozza: ' : ''}Workshop ${w.titolo}, ${ora(w.inizio)}`}>{corpo}</Link>
+      : <div key={`w${w.momento_id}`} className={classe}>{corpo}</div>;
   };
   const colonne = giorni.length >= 3 && vuoti.some(Boolean) && !vuoti.every(Boolean)
     ? vuoti.map((v) => (v ? 'minmax(92px, .42fr)' : 'minmax(0, 1fr)')).join(' ') : null;

@@ -2,14 +2,14 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabaseBrowser } from '@/lib/supabase/browser';
-import { dataBreve, ora } from '@/lib/formato';
+import { dataBreve, ora, euro } from '@/lib/formato';
 
 const GRUPPI = [['tutti', 'Tutto lo staff'], ['insegnante', 'Gli insegnanti'], ['segreteria', 'La segreteria'], ['admin', "L'amministrazione"]];
 
 // Le cose da fare oggi (e quelle rimaste indietro).
 // Di base sono per segreteria e amministrazione; si possono assegnare a una persona o a un gruppo:
 // chi le riceve le vede nella sua home e riceve la notifica. Nei compiti di gruppo ognuno spunta il suo.
-export default function Promemoria({ palestraId, voci, oggi, gestione = true, staff = [] }) {
+export default function Promemoria({ palestraId, voci, oggi, gestione = true, staff = [], saldiOggi = [] }) {
   const router = useRouter();
   const [testo, setTesto] = useState('');
   const [data, setData] = useState(oggi);
@@ -76,7 +76,21 @@ export default function Promemoria({ palestraId, voci, oggi, gestione = true, st
       )}
       {per && <p className="piccolo muto" style={{ margin: '-4px 0 8px' }}>Lo vedrà nella sua home e riceverà una notifica.</p>}
       {errore && <div className="errore" role="alert">{errore}</div>}
-      {elenco.length === 0 && <div className="vuoto">Niente in lista. Scrivi qui sopra le cose da ricordare oggi o nei prossimi giorni.</div>}
+      {/* query 152: chi viene a lezione oggi e non ha ancora pagato (la segreteria lo aspetta al banco) */}
+      {saldiOggi.length > 0 && (
+        <ul className="pm-elenco pm-saldi">
+          {saldiOggi.flatMap((r) => r.oggi.map((l) => (
+            <li key={`${r.allievo_id}-${l.lezione_id}`}>
+              <span className="pm-saldo-testo">
+                <b>{ora(l.inizio)}</b> · {l.corso}:{' '}
+                <b>{r.nome} {r.cognome}</b> deve ancora saldare {euro(r.totale_cent)}
+              </span>
+              <a className="link-btn piccolo" href={`/gestione/sportello?persona=${r.allievo_id}`}>incassa</a>
+            </li>
+          )))}
+        </ul>
+      )}
+      {elenco.length === 0 && saldiOggi.length === 0 && <div className="vuoto">Niente in lista. Scrivi qui sopra le cose da ricordare oggi o nei prossimi giorni.</div>}
       <ul className="pm-elenco">
         {elenco.map((v) => {
           // nel gruppo: spunto il mio. Fuori dal gruppo (segreteria che guarda): spuntare = chiudere per tutti

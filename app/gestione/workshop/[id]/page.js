@@ -21,7 +21,7 @@ export default async function PaginaSchedaWorkshop({ params, searchParams }) {
         + 'pagamenti ( stato, metodo, importo_cent, pagato_at ), allievi ( nome, cognome, data_nascita, certificato_scadenza, account ( email, telefono, nome, cognome ) )')
       .eq('workshop_id', id).order('created_at'),
     supabase.from('sedi').select('id, nome').eq('palestra_id', p).order('ordine'),
-    supabase.from('sale').select('id, nome').eq('palestra_id', p).order('ordine', { nullsFirst: false }).order('nome'),
+    supabase.from('sale').select('id, nome, sede_id').eq('palestra_id', p).order('ordine', { nullsFirst: false }).order('nome'),
     supabase.from('palestre').select('quota_iscrizione_cent').eq('id', p).maybeSingle(),
     // chi può tenere il workshop tra lo staff (insegnante della scuola: il compenso va nel suo cedolino)
     supabase.from('staff').select('id, nome, cognome, ruolo').eq('palestra_id', p).eq('attivo', true).eq('archiviato', false).order('nome'),

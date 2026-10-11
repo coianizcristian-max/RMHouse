@@ -2,6 +2,7 @@ import { oggiISO } from '@/lib/formato';
 import { giornata } from './dati';
 import BarraGiorno from './BarraGiorno';
 import Giornata from './Giornata';
+import { bloccoWorkshop as blocco } from './blocchi';
 
 export const dynamic = 'force-dynamic';
 
@@ -11,12 +12,15 @@ export default async function PaginaGiornataSale({ searchParams }) {
   const d = await giornata({ giorno, sede });
   const sale = d.sale.filter((s) => !d.sedeScelta || s.sede_id === d.sedeScelta);
   const lezioni = d.lezioni.filter((l) => !d.sedeScelta || l.sede_id === d.sedeScelta || !l.sede_id);
+  // (quelli in un altro posto, "Altra sede…", non occupano le sale)
+  const workshop = d.workshop.filter((w) => !w.luogo && (!w.sala_id || sale.some((s) => s.id === w.sala_id)));
   const colonne = [
     ...sale.map((s) => ({
       id: s.id, nome: s.nome,
-      sotto: `${lezioni.filter((l) => l.sala_id === s.id && l.stato === 'programmata').length} lezioni`,
+      sotto: `${lezioni.filter((l) => l.sala_id === s.id && l.stato === 'programmata').length} lezioni`
+        + (workshop.some((w) => w.sala_id === s.id) ? ' · workshop' : ''),
     })),
-    ...(lezioni.some((l) => !l.sala_id) ? [{ id: 'nessuna', nome: 'Senza sala' }] : []),
+    ...(lezioni.some((l) => !l.sala_id) || workshop.some((w) => !w.sala_id) ? [{ id: 'nessuna', nome: 'Senza sala' }] : []),
   ];
   const blocchi = [
     ...lezioni.map((l) => ({
@@ -26,6 +30,7 @@ export default async function PaginaGiornataSale({ searchParams }) {
         .join(' · '),
       href: `/gestione/appello/${l.lezione_id}`,
     })),
+    ...workshop.map((w) => blocco(w, w.sala_id || 'nessuna', [`${w.iscritti}${w.posti ? `/${w.posti}` : ''}`, w.insegnante || 'insegnante esterno'])),
     ...d.affitti.filter((a) => sale.some((s) => s.id === a.sala_id)).map((a) => ({
       id: a.id, colonna: a.sala_id, inizio: a.inizio, fine: a.fine, tipo: 'affitto',
       titolo: a.titolo || 'Affitto sala', sotto: a.contatto_nome, href: '/gestione/spazi',

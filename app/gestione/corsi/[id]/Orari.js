@@ -1,14 +1,18 @@
 'use client';
 import Gestore from '../../Gestore';
 import { gruppiUsati, mappaGruppi, chiaveGruppo } from '@/lib/gruppi';
+import { adatto } from '@/lib/competenze';
 
 const GIORNI = [[1, 'Lunedì'], [2, 'Martedì'], [3, 'Mercoledì'], [4, 'Giovedì'], [5, 'Venerdì'], [6, 'Sabato'], [7, 'Domenica']];
 
 // onSalvato: dopo ogni modifica (la finestra del Palinsesto rilegge gli orari)
-export default function Orari({ palestraId, corsoId, orari, sale, insegnanti, abilitati = [], onSalvato }) {
-  // prima chi è abilitato sul corso, poi tutti gli altri
-  const scelta = [...insegnanti].sort((a, b) =>
-    (abilitati.includes(b.id) - abilitati.includes(a.id)) || a.nome.localeCompare(b.nome));
+export default function Orari({ palestraId, corsoId, orari, sale, insegnanti, abilitati = [], disciplinaId = null, competenze = [], discipline = [], onSalvato }) {
+  // prima chi è abilitato sul corso, poi chi insegna la disciplina del corso (Staff → Cosa insegna), poi gli altri
+  const nomeDisc = discipline.find((d) => d.id === disciplinaId)?.nome || '';
+  const posto = (i) => (abilitati.includes(i.id) ? 0 : adatto(i.id, disciplinaId, competenze, discipline) ? 1 : 2);
+  const scelta = [...insegnanti].sort((a, b) => (posto(a) - posto(b)) || a.nome.localeCompare(b.nome));
+  const etichetta = (i) => `${i.nome} ${i.cognome || ''}`.trim()
+    + (posto(i) === 1 ? ` · insegna ${nomeDisc}` : posto(i) === 2 && (abilitati.length || nomeDisc) ? ' · non sul corso' : '');
   // gruppi già usati nel corso, con il loro colore: si scelgono con un tocco
   const vivi = orari.filter((o) => o.attivo);
   const gruppi = gruppiUsati(vivi.length ? vivi : orari);
@@ -27,7 +31,7 @@ export default function Orari({ palestraId, corsoId, orari, sale, insegnanti, ab
         { k: 'ora_inizio', etichetta: 'Ora di inizio', tipo: 'ora', obbligatorio: true },
         { k: 'durata_min', etichetta: 'Durata (minuti)', tipo: 'numero', obbligatorio: true },
         { k: 'sala_id', etichetta: 'Sala', tipo: 'select', opzioni: sale.map((s) => ({ v: s.id, l: s.nome })) },
-        { k: 'insegnante_id', etichetta: 'Insegnante', tipo: 'select', opzioni: scelta.map((i) => ({ v: i.id, l: `${i.nome} ${i.cognome || ''}`.trim() + (abilitati.length && !abilitati.includes(i.id) ? ' · non sul corso' : '') })) },
+        { k: 'insegnante_id', etichetta: 'Insegnante', tipo: 'select', opzioni: scelta.map((i) => ({ v: i.id, l: etichetta(i) })) },
         { k: 'valido_dal', etichetta: 'Valido dal', tipo: 'data', aiuto: 'Vuoto = da oggi' },
         { k: 'valido_al', etichetta: 'Valido fino al', tipo: 'data', aiuto: 'Vuoto = senza scadenza' },
         { k: 'gruppo', etichetta: 'Gruppo', tipo: 'testo', suggerimenti: gruppi, nessuno: gruppi.length ? 'nessun gruppo' : null,

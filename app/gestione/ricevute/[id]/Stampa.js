@@ -38,7 +38,8 @@ export default function Stampa({ documento = null }) {
   return (
     <div className="senza-stampa" style={{ marginBottom: 18 }}>
       <div className="azioni-riga">
-        <button className="btn btn-primario" onClick={() => window.print()}>Stampa o salva in PDF</button>
+        <button className="btn btn-primario" onClick={() => window.print()}>{d ? 'Stampa' : 'Stampa o salva in PDF'}</button>
+        {d && <a className="btn" href={`/api/ricevute/${d.id}/pdf`}>Scarica il PDF</a>}
         {d && !d.annullata && (
           <>
             <a className="btn" href={waHref} target="_blank" rel="noreferrer">Invia su WhatsApp</a>

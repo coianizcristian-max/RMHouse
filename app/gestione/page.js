@@ -2,6 +2,7 @@ import Link from 'next/link';
 import LinkVeloce from './LinkVeloce';
 import CercaVeloce from './CercaVeloce';
 import Promemoria from './Promemoria';
+import DaSaldareHome from './DaSaldareHome';
 import PannelloNotizie from './PannelloNotizie';
 import { staffCorrente } from '@/lib/staff';
 import { periodoPredefinito } from '@/lib/stagione';
@@ -51,10 +52,13 @@ export default async function Home({ searchParams }) {
   const gestione = staff.ruolo !== 'insegnante';
 
   // tutto il Riepilogo con una chiamata sola (query 144); se la funzione manca, le letture una per una
-  const [{ data: insieme, error: erroreInsieme }, periodo] = await Promise.all([
+  // chi deve ancora pagare (query 152) insieme: nessuna attesa in più
+  const [{ data: insieme, error: erroreInsieme }, periodo, { data: saldiDati }] = await Promise.all([
     supabase.rpc('home_dati', { p_palestra: p }),
     gestione ? periodoPredefinito() : Promise.resolve('stagione'),
+    gestione ? supabase.rpc('da_saldare', { p_palestra: p }) : Promise.resolve({ data: null }),
   ]);
+  const daSaldare = Array.isArray(saldiDati) ? saldiDati : null;
   const d = !erroreInsieme && insieme ? {
     k: insieme.k, lezioni: insieme.lezioni, corsi: insieme.corsi, scadenze: insieme.scadenze, rateScadute: insieme.rate_scadute,
     richieste: insieme.richieste, promemoria: insieme.promemoria, staffRighe: insieme.staff, sostituzioni: insieme.sostituzioni,
@@ -176,7 +180,11 @@ export default async function Home({ searchParams }) {
       })()}
 
       {/* segreteria: tutta la lista (con per chi è); gli altri: solo le cose assegnate a loro */}
-      <Promemoria palestraId={p} voci={promemoria || []} oggi={oggiISO()} gestione={gestione} staff={elencoStaff || []} />
+      <Promemoria palestraId={p} voci={promemoria || []} oggi={oggiISO()} gestione={gestione} staff={elencoStaff || []}
+                  saldiOggi={(daSaldare || []).filter((r) => r.oggi?.length)} />
+
+      {/* chi frequenta senza aver pagato (query 152): sempre in vista, filtrabile, si incassa da qui */}
+      {gestione && daSaldare && <DaSaldareHome palestraId={p} righe={daSaldare} />}
 
       {gestione && sostituzioni?.length > 0 && (
         <section className="pannello sostituzioni">
@@ -224,7 +232,7 @@ export default async function Home({ searchParams }) {
               const segnate = l.presenti + l.assenti > 0;
               const passata = new Date(l.inizio) <= adesso;
               return (
-                <li key={l.lezione_id}>
+                <li key={l.lezione_id} className={segnate ? 'ap-fatta' : ''}>
                   <Link prefetch={false} href={`/gestione/appello/${l.lezione_id}`}>
                     <span className="pallino-colore" style={{ background: colore(l.corso_id) }} />
                     <span className="ml-ora">{ora(l.inizio)}</span>

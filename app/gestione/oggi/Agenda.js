@@ -25,14 +25,16 @@ export default async function AgendaGiorno({ searchParams }) {
       .in('stato', ['confermata', 'opzione']).gte('inizio', `${giorno}T00:00:00`).lt('inizio', `${spostaGiorni(giorno, 1)}T00:00:00`)
       .order('inizio'),
     // i momenti dei workshop del giorno (l'appello è nella scheda del workshop)
-    mie === '1' || !gestione ? Promise.resolve({ data: [] }) : supabase.rpc('workshop_del_giorno', { p_palestra: staff.palestra_id, p_giorno: giorno }),
+    // (con "le mie" o per l'insegnante: solo quelli che tiene lei, query 156)
+    supabase.rpc('workshop_del_giorno', { p_palestra: staff.palestra_id, p_giorno: giorno }),
   ]);
   // lezioni, affitti e workshop insieme, in ordine di orario (gli orari dei workshop arrivano in UTC: si confrontano come date)
   const quando = (r) => new Date(r.inizio).getTime();
   const righe = [
     ...(lezioni || []).map((l) => ({ ...l, tipo: 'lezione' })),
     ...(affitti || []).map((a) => ({ ...a, tipo: 'affitto' })),
-    ...(Array.isArray(wsGiorno) ? wsGiorno : []).map((m) => ({ ...m, id: m.momento_id, tipo: 'workshop' })),
+    ...(Array.isArray(wsGiorno) ? wsGiorno : []).filter((m) => (gestione && mie !== '1') || m.insegnante_id === staff.id)
+      .map((m) => ({ ...m, id: m.momento_id, tipo: 'workshop' })),
   ].sort((a, b) => quando(a) - quando(b));
 
   const titolo = new Date(giorno + 'T12:00:00').toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long' });
@@ -65,12 +67,12 @@ export default async function AgendaGiorno({ searchParams }) {
       <ul className="ag-elenco">
         {righe.map((l) => l.tipo === 'workshop' ? (
           <li key={`w${l.id}`}>
-            <Link prefetch={false} className="ag-riga" href={`/gestione/workshop/${l.workshop_id}?scheda=appello&momento=${l.momento_id}`}>
+            <Link prefetch={false} className="ag-riga" href={gestione ? `/gestione/workshop/${l.workshop_id}?scheda=appello&momento=${l.momento_id}` : `/gestione/appello/workshop/${l.workshop_id}?momento=${l.momento_id}`}>
               <span className="ag-banda" style={{ background: 'var(--nero)' }} />
               <span className="ag-ora"><strong>{ora(l.inizio)}</strong><span>{ora(l.fine)}</span></span>
               <span className="ag-cosa">
                 <strong>{l.titolo}{l.momenti > 1 ? ` · ${l.momento}` : ''}</strong>
-                <span>{['Workshop', l.sala, l.insegnante].filter(Boolean).join(' · ')}</span>
+                <span>{['Workshop', l.sala || l.luogo, l.insegnante].filter(Boolean).join(' · ')}</span>
               </span>
               <span className="ag-numeri">
                 <span className="ag-conto"><strong>{l.iscritti}</strong>{l.posti ? <span>/{l.posti}</span> : null}{l.presenti > 0 && <em>{l.presenti} presenti</em>}</span>

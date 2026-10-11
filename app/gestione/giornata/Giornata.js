@@ -69,6 +69,8 @@ export default function Giornata({ colonne, blocchi, oggi }) {
                 top, height: h - 3,
                 ...(b.tipo === 'affitto'
                   ? { background: 'var(--verde-affitto)', borderColor: 'var(--verde-affitto)', color: '#fff' }
+                  : b.tipo === 'workshop' ? { background: 'var(--nero)', borderColor: 'var(--nero)', color: '#fff' }
+                  : b.tipo === 'workshop-bozza' ? { background: '#fff', borderColor: 'var(--nero)', borderStyle: 'dashed', color: 'var(--nero)' }
                   : { background: colore, borderColor: colore, color: testoSu(colore) }),
                 opacity: b.annullata ? 0.45 : 1,
               };

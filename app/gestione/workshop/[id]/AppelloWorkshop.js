@@ -112,11 +112,11 @@ export default function AppelloWorkshop({ workshop: w, momenti, opzioni, iscrizi
                   </span>
                 </button>
                 <span className="wsa-tag">
-                  {daPagare(i) && (
-                    <button type="button" className="tag tag-attenzione wsa-paga" onClick={() => onIncassa?.(i)} title="Vai a incassare">
+                  {daPagare(i) && (onIncassa ? (
+                    <button type="button" className="tag tag-attenzione wsa-paga" onClick={() => onIncassa(i)} title="Vai a incassare">
                       da pagare {euro((i.prezzo_cent || 0) + (i.quota_cent || 0))}
                     </button>
-                  )}
+                  ) : <span className="tag tag-attenzione" title="Deve ancora pagare: lo segnala la segreteria">da pagare</span>)}
                   {!cert(i) && <span className="tag tag-rosso">manca il certificato</span>}
                 </span>
               </li>

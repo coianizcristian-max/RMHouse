@@ -15,7 +15,7 @@ export default async function PaginaAgenda({ searchParams }) {
              sale={d.sale} insegnanti={d.insegnanti} sedi={d.sedi}
              sala={sala} insegnante={insegnante} mie={mie} sede={sede} />
       <Settimana inizio={d.inizio} lezioni={d.lezioni} corsi={d.corsi} workshop={d.workshop}
-                 palestraId={d.staff.palestra_id} gestione={d.staff.ruolo !== 'insegnante'} />
+                 palestraId={d.staff.palestra_id} gestione={d.staff.ruolo !== 'insegnante'} mioId={d.staff.id} />
     </>
   );
 }

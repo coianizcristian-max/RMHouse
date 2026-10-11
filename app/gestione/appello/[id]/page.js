@@ -12,7 +12,7 @@ export default async function PaginaAppello({ params }) {
   const { id } = await params;
   const { supabase, staff } = await staffCorrente();
 
-  const [{ data: lezione }, { data: persone }, { data: dettagli }, { data: avvisati }, { data: nuove }, { data: regole }] = await Promise.all([
+  const [{ data: lezione }, { data: persone }, { data: dettagli }, { data: avvisati }, { data: nuove }, { data: regole }, { data: saldi }] = await Promise.all([
     supabase.from('v_lezioni').select('*').eq('id', id).maybeSingle(),
     supabase.from('v_appello')
       .select('allievo_id, tipo, nome, cognome, data_nascita, certificato_scadenza, bloccato, certificato_in_scadenza, quota_mancante, presente')
@@ -24,6 +24,8 @@ export default async function PaginaAppello({ params }) {
     // persone nuove segnalate in questa lezione, da registrare in segreteria
     supabase.from('promemoria').select('id, testo, fatto').eq('lezione_id', id).order('created_at'),
     supabase.from('palestre').select('recupero_da').eq('id', staff.palestra_id).maybeSingle(),
+    // chi non ha ancora pagato (query 152): in rosso nell'appello (gli insegnanti vedono chi, non quanto)
+    supabase.rpc('saldi_aperti', { p_palestra: staff.palestra_id }),
   ]);
 
   const { data: postazioni } = await supabase.rpc('postazioni_lezione', { p_lezione: id });
@@ -71,7 +73,8 @@ export default async function PaginaAppello({ params }) {
   // prima chi è in prova (da accogliere), poi gli altri in ordine alfabetico
   const ordine = { prova: 0, recupero: 1, ingresso: 2, iscritto: 3 };
   const elenco = (persone || [])
-    .map((p) => ({ ...p, ...(dettagli || []).find((d) => d.allievo_id === p.allievo_id) }))
+    .map((p) => ({ ...p, ...(dettagli || []).find((d) => d.allievo_id === p.allievo_id),
+                   da_saldare: (saldi || []).find((x) => x.allievo_id === p.allievo_id) || null }))
     .sort((a, b) => ordine[a.tipo] - ordine[b.tipo] || a.cognome.localeCompare(b.cognome, 'it'));
 
   return (

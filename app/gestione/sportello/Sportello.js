@@ -9,12 +9,15 @@ import { euro, dataBreve, ora } from '@/lib/formato';
 import CampoCerca from '../CampoCerca';
 import NuovoCliente from './NuovoCliente';
 import { GruppoWhatsApp, TesseraEnte } from './Ultimi';
+import DaSaldare from '../DaSaldare';
 import { Data, centDa, euroTesto, oggi, piuGiorni, giorniTra, eta } from './campi';
 import { periodo, prezzoOpzione, testoScaglioni } from '@/lib/workshop';
 
 const GIORNI = ['', 'lun', 'mar', 'mer', 'gio', 'ven', 'sab', 'dom'];
 const FILTRI = [['tutti', 'Tutti'], ['attivi', 'Con abbonamento'], ['scaduti', 'Abbonamento finito'], ['certificato', 'Certificato da sistemare']];
-const METODI = [['contanti', 'Contanti'], ['pos', 'POS / carta'], ['satispay', 'Satispay'], ['bonifico', 'Bonifico'], ['assegno', 'Assegno']];
+// sono solo il "come ha pagato" (resta scritto sull'incasso e sulla ricevuta). Satispay collegato: parte la richiesta sul telefono.
+// "Non pagato" (query 152): l'iscrizione vale subito, l'incasso resta da incassare e la ricevuta si fa quando paga.
+const METODI = [['contanti', 'Contanti'], ['pos', 'POS / carta'], ['satispay', 'Satispay'], ['bonifico', 'Bonifico'], ['assegno', 'Assegno'], ['da_incassare', 'Non pagato']];
 const ERRORI = {
   iscrizione_gia_attiva: 'Ha già un abbonamento a questo corso in quelle date: fai partire il nuovo dal giorno dopo la fine.',
   orario_non_attivo: 'Uno dei giorni scelti è sospeso: scegline un altro.',
@@ -37,6 +40,20 @@ const ESITI_LEZIONE = {
 const aMese = (t) => !!t && t.scadenza_fine_mese !== false && t.modalita !== 'ingressi' && (!t.durata_giorni || t.durata_giorni >= 28);
 const fineMese = (d) => { const [y, m] = d.split('-').map(Number); return new Date(Date.UTC(y, m, 0)).toISOString().slice(0, 10); };
 const nomeGiorno = (iso) => GIORNI[((new Date(iso + 'T12:00:00Z').getUTCDay() + 6) % 7) + 1];
+// rinnovo: i giorni dell'abbonamento di prima. Se un orario non c'è più (nuova stagione), quello attivo dello stesso
+// corso, giorno e ora; se non c'è nemmeno quello, il giorno va scelto di nuovo.
+const hhmm = (t) => String(t || '').slice(0, 5);
+function orariDi(iscr, orari) {
+  const out = [];
+  for (const io of iscr?.iscrizioni_orari || []) {
+    if (orari.some((o) => o.id === io.orario_id)) { out.push(io.orario_id); continue; }
+    const vecchio = io.orari;
+    const nuovo = vecchio && orari.find((o) => o.corso_id === (vecchio.corso_id || iscr.corso_id)
+      && Number(o.giorno_settimana) === Number(vecchio.giorno_settimana) && hhmm(o.ora_inizio) === hhmm(vecchio.ora_inizio));
+    if (nuovo && !out.includes(nuovo.id)) out.push(nuovo.id);
+  }
+  return out;
+}
 
 const VENDITA = {
   quota: false, quotaImporto: '', corso_id: '', tipo_id: '', orari: [], data_inizio: '', prezzo: '', ingressi: '', note: '',
@@ -46,7 +63,7 @@ const VENDITA = {
 };
 
 // workshop: quelli in cui si può ancora iscrivere qualcuno (query 147); workshopIniziale: arrivati da "Iscrivi dallo Sportello"
-export default function Sportello({ palestraId, corsi, tipi, orari, palestra, personaIniziale, satispay = false, workshop = [], workshopIniziale = null }) {
+export default function Sportello({ palestraId, corsi, tipi, orari, palestra, personaIniziale, satispay = false, workshop = [], workshopIniziale = null, modificaIniziale = null }) {
   const [modo, setModo] = useState(personaIniziale ? 'persona' : 'cerca');   // cerca | nuovo | persona
   const [personaId, setPersonaId] = useState(personaIniziale);
   const [s, setS] = useState(null);           // situazione della persona scelta
@@ -60,6 +77,11 @@ export default function Sportello({ palestraId, corsi, tipi, orari, palestra, pe
   const [esito, setEsito] = useState(null);
   const [vista3, setVista3] = useState('incassa');   // incassa | dopo
   const [testo, setTesto] = useState('');
+  // modifica di un abbonamento già venduto (dallo Sportello o da "Modifica" sulla ricevuta): query 155
+  const [mod, setMod] = useState(null);            // { iscrizione, pagamento, ricevuta }
+  const [prezzoSbloccato, setPrezzoSbloccato] = useState(false);
+  const [alMod, setAlMod] = useState('');
+  const modificaFatta = useRef(false);
   // computer: le tre colonne finiscono al fondo dello schermo (l'altezza dipende da cosa c'è sopra)
   const griglia = useRef(null);
   useEffect(() => {
@@ -88,7 +110,7 @@ export default function Sportello({ palestraId, corsi, tipi, orari, palestra, pe
       sb.from('v_stato_clienti').select('id, nome, cognome, data_nascita, is_titolare, titolare_nome, titolare_cognome, email, telefono, attivo, fine_prossima, ultima_fine, certificato_scadenza, quota_valida_fino, consenso_whatsapp, account_id, stato')
         .eq('id', id).maybeSingle(),
       sb.from('allievi').select('id, codice_fiscale, sesso, luogo_nascita, tessera, account ( nome, cognome, indirizzo, cap, citta, provincia, codice_fiscale )').eq('id', id).maybeSingle(),
-      sb.from('iscrizioni').select('id, corso_id, tipo_abbonamento_id, data_inizio, data_fine, stato, ingressi_residui, corsi ( nome ), tipi_abbonamento ( nome, modalita ), iscrizioni_orari ( orario_id )')
+      sb.from('iscrizioni').select('id, corso_id, tipo_abbonamento_id, data_inizio, data_fine, stato, ingressi_residui, pagamento_id, corsi ( nome ), tipi_abbonamento ( nome, modalita ), iscrizioni_orari ( orario_id, orari ( corso_id, giorno_settimana, ora_inizio ) )')
         .eq('allievo_id', id).order('data_inizio', { ascending: false }).limit(8),
       sb.from('tesseramenti').select('stagione, stato, numero').eq('allievo_id', id).order('stagione', { ascending: false }).limit(1),
       // tutta la storia: abbonamenti fatti in RMHouse e quelli importati da APP Palestre, dal più recente
@@ -97,7 +119,9 @@ export default function Sportello({ palestraId, corsi, tipi, orari, palestra, pe
       // recuperi e lezioni in più ancora da prenotare
       sb.from('v_crediti').select('iscrizione_id, aggiunta').eq('allievo_id', id).eq('stato', 'disponibile'),
     ]);
-    const nuovo = { persona, dati, iscrizioni: iscrizioni || [], tessera: (tess || [])[0] || null, storia: storia || [], crediti: crediti || [] };
+    const { data: debiti } = await sb.rpc('da_saldare', { p_palestra: palestraId, p_allievo: id });
+    const nuovo = { persona, dati, iscrizioni: iscrizioni || [], tessera: (tess || [])[0] || null, storia: storia || [], crediti: crediti || [],
+                    debiti: Array.isArray(debiti) ? debiti[0] || null : null };
     setS(nuovo);
     return nuovo;
   }
@@ -107,7 +131,7 @@ export default function Sportello({ palestraId, corsi, tipi, orari, palestra, pe
     const oggiISO = oggi();
     const ultima = sit.iscrizioni.find((i) => i.stato === 'attiva' || i.stato === 'scaduta');
     const t = ultima && tipi.find((x) => x.id === ultima.tipo_abbonamento_id);
-    const orariOk = ultima ? (ultima.iscrizioni_orari || []).map((o) => o.orario_id).filter((oid) => orari.some((o) => o.id === oid)) : [];
+    const orariOk = ultima ? orariDi(ultima, orari) : [];
     const dal = ultima ? inizioPer(ultima.corso_id, sit) : oggiISO;
     const quotaServe = !sit.persona?.quota_valida_fino || sit.persona.quota_valida_fino < oggiISO;
     setV({
@@ -122,10 +146,83 @@ export default function Sportello({ palestraId, corsi, tipi, orari, palestra, pe
   }
 
   async function scegli(id) {
-    setPersonaId(id); setModo('persona'); setS(null);
+    setPersonaId(id); setModo('persona'); setS(null); setMod(null);
     const sit = await carica(id);
     preparaVendita(sit);
     try { window.history.replaceState(null, '', `/gestione/sportello?persona=${id}`); } catch { /* niente */ }
+    if (modificaIniziale && !modificaFatta.current) { modificaFatta.current = true; apriModifica(modificaIniziale, id); }
+  }
+
+  // carica nell'abbonamento in 2 i dati di quello venduto, con il suo incasso e la sua ricevuta
+  async function apriModifica(iscrId, allievo = personaId) {
+    const sb = supabaseBrowser();
+    const { data: i } = await sb.from('iscrizioni')
+      .select('id, allievo_id, corso_id, tipo_abbonamento_id, data_inizio, data_fine, sconto_cent, note, ingressi_residui, pagamento_id, iscrizioni_orari ( orario_id, orari ( corso_id, giorno_settimana, ora_inizio ) ), tipi_abbonamento ( nome, prezzo_cent ), corsi ( nome )')
+      .eq('id', iscrId).maybeSingle();
+    if (!i || i.allievo_id !== allievo) { setErrore('Abbonamento da modificare non trovato.'); return; }
+    const [{ data: pg }, { data: ric }] = await Promise.all([
+      i.pagamento_id ? sb.from('pagamenti').select('id, importo_cent, metodo, stato').eq('id', i.pagamento_id).maybeSingle() : Promise.resolve({ data: null }),
+      i.pagamento_id ? sb.from('ricevute').select('id, numero, anno, importo_cent, iva_cent').eq('pagamento_id', i.pagamento_id).eq('annullata', false)
+        .in('tipo_documento', ['ricevuta', 'fattura']).order('created_at', { ascending: false }).limit(1) : Promise.resolve({ data: [] }),
+    ]);
+    const prezzo = pg ? pg.importo_cent : Math.max((i.tipi_abbonamento?.prezzo_cent || 0) - (i.sconto_cent || 0), 0);
+    // i giorni: quelli segnati (anche se l'orario è stato rifatto); se non ce n'erano e il corso ha un solo orario, quello
+    let giorni = orariDi(i, orari);
+    const delCorso = orari.filter((o) => o.corso_id === i.corso_id && o.attivo !== false);
+    if (!giorni.length && delCorso.length === 1) giorni = [delCorso[0].id];
+    setV({ ...VENDITA, corso_id: i.corso_id || '', tipo_id: i.tipo_abbonamento_id || '', orari: giorni,
+      data_inizio: i.data_inizio, prezzo: euroTesto(prezzo), note: i.note || '', ingressi: i.ingressi_residui != null ? String(i.ingressi_residui) : '',
+      metodo: pg?.stato === 'in_attesa' ? 'da_incassare' : (pg?.metodo || 'contanti'), ricevuta: false, inviaEmail: false });
+    setMod({ iscrizione: i, pagamento: pg || null, ricevuta: (ric || [])[0] || null, prezzo, senzaGiorni: !(i.iscrizioni_orari || []).length });
+    setAlMod(i.data_fine || ''); setPrezzoSbloccato(false); setEsito(null); setErrore(''); setVista3('incassa');
+    try { window.history.replaceState(null, '', `/gestione/sportello?persona=${allievo}&modifica=${iscrId}`); } catch { /* niente */ }
+  }
+  function chiudiModifica() {
+    setMod(null); preparaVendita(s); setErrore('');
+    try { window.history.replaceState(null, '', `/gestione/sportello?persona=${personaId}`); } catch { /* niente */ }
+  }
+
+  async function salvaModifica() {
+    setErrore('');
+    if (!tipo || !v.corso_id) { setErrore('Scegli corso e abbonamento.'); return; }
+    if (tipo.modalita === 'orari_fissi' && !v.orari.length) { setErrore('Scegli almeno un giorno.'); return; }
+    if (prezzoCent == null || prezzoCent < 0) { setErrore('Controlla il prezzo.'); return; }
+    const i = mod.iscrizione; const r = mod.ricevuta;
+    const cambiaPrezzo = prezzoCent !== mod.prezzo;
+    const metodoPrima = mod.pagamento ? (mod.pagamento.stato === 'in_attesa' ? 'da_incassare' : mod.pagamento.metodo) : null;
+    const cambiaDati = tipo.id !== i.tipo_abbonamento_id || v.corso_id !== i.corso_id;
+    const cambiaMetodo = mod.pagamento && v.metodo !== metodoPrima;
+    const righe = [];
+    if (r && cambiaPrezzo) righe.push(`L'importo passa da ${euro(mod.prezzo)} a ${euro(prezzoCent)}: la ricevuta n. ${r.numero}/${r.anno} viene ANNULLATA e se ne fa una nuova.`);
+    else if (r && (cambiaDati || cambiaMetodo)) righe.push(`Viene modificata la ricevuta n. ${r.numero}/${r.anno} (${[cambiaDati && 'descrizione', cambiaMetodo && 'metodo'].filter(Boolean).join(' e ')}).`);
+    if (r && v.metodo === 'da_incassare' && metodoPrima !== 'da_incassare') righe.push(`Segnato come NON PAGATO: la ricevuta n. ${r.numero}/${r.anno} viene annullata.`);
+    if (!confirm(`${righe.length ? `Attenzione:\n• ${righe.join('\n• ')}\n\n` : ''}Salvare le modifiche all'abbonamento?`)) return;
+    setInvio(true);
+    const { data, error } = await supabaseBrowser().rpc('modifica_vendita', { p: {
+      iscrizione_id: i.id, tipo_abbonamento_id: tipo.id, corso_id: v.corso_id, data_inizio: v.data_inizio || i.data_inizio,
+      data_fine: alMod && alMod !== i.data_fine ? alMod : null, orari: tipo.modalita === 'orari_fissi' ? v.orari : [],
+      prezzo_cent: prezzoCent, metodo: v.metodo, note: v.note,
+      ingressi: tipo.modalita === 'ingressi' && v.ingressi !== '' ? Number(v.ingressi) : null,
+    } });
+    setInvio(false);
+    if (error) {
+      const k = Object.keys(ERRORI).find((x) => error.message?.includes(x));
+      setErrore(error.message?.includes('modifica_vendita') ? 'Manca la query 155 in Supabase.' : error.message?.includes('sconto_non_valido')
+        ? 'Il prezzo non può superare il listino di questo abbonamento.' : error.message?.includes('date_non_valide') ? 'Controlla le date.' : ERRORI[k] || `Non riuscito: ${error.message}`);
+      return;
+    }
+    const ids = [data.ricevuta_nuova, data.ricevuta_modificata].filter(Boolean);
+    const { data: ric } = ids.length ? await supabaseBrowser().from('ricevute').select('id, numero, anno, importo_cent, iva_cent, descrizione').in('id', ids) : { data: [] };
+    const avvisi = [...(data.avvisi || [])];
+    if (data.ricevuta_nuova && r) avvisi.push(`ricevuta n. ${r.numero}/${r.anno} annullata e sostituita`);
+    if (data.ricevuta_modificata) avvisi.push(`ricevuta n. ${r?.numero}/${r?.anno} aggiornata: se l'aveva già ricevuta, rimandala (Ricevute → reinvia)`);
+    const fatto = { modifica: true, iscrizione_id: i.id, ricevuteDati: ric || [], totale: prezzoCent, corso, tipo, metodo: v.metodo, avvisi, lezioni: [] };
+    setMod(null);
+    const sit = await carica(personaId);
+    preparaVendita(sit);   // azzera anche l'esito: va rimesso dopo
+    setV((x) => ({ ...x, corso_id: corso?.id || x.corso_id, tipo_id: '', orari: [], prezzo: '', lezioni: [], quota: false }));
+    setEsito(fatto); setVista3('dopo');
+    try { window.history.replaceState(null, '', `/gestione/sportello?persona=${personaId}`); } catch { /* niente */ }
   }
   useEffect(() => { if (personaIniziale) scegli(personaIniziale); }, []); // eslint-disable-line
 
@@ -138,13 +235,15 @@ export default function Sportello({ palestraId, corsi, tipi, orari, palestra, pe
   // abbonamento a giorni fissi: solo le lezioni dei giorni scelti (del gruppo scelto, anche di altri corsi compresi);
   // finché i giorni non sono scelti non si propone niente. Senza abbonamento o con carnet: tutte le lezioni del corso.
   const aGiorni = !!tipo && (tipo.modalita === 'orari_fissi' || v.aLezioni);
+  // da quando proporre le lezioni: da oggi, o dal primo giorno del nuovo abbonamento se parte più avanti (rinnovo)
+  const inizioLezioni = tipo && /^\d{4}-\d{2}-\d{2}$/.test(v.data_inizio) && v.data_inizio > oggi() ? v.data_inizio : oggi();
   const chiaveOrari = [...v.orari].sort().join(',');
   useEffect(() => {
     if (!v.corso_id || (aGiorni && !v.orari.length)) { setLezioni([]); return; }
     let vivo = true;
     (async () => {
       const sb = supabaseBrowser();
-      const dal = oggi(), al = piuGiorni(oggi(), 14);
+      const dal = inizioLezioni, al = piuGiorni(inizioLezioni, 14);
       let ids = null;
       if (aGiorni) {
         const { data: lz } = await sb.from('lezioni').select('id').in('orario_id', v.orari).gte('data', dal).lte('data', al);
@@ -160,7 +259,7 @@ export default function Sportello({ palestraId, corsi, tipi, orari, palestra, pe
       if (vivo) setLezioni((data || []).map((l) => ({ ...l, orario_id: lo?.find((x) => x.id === l.lezione_id)?.orario_id })));
     })();
     return () => { vivo = false; };
-  }, [v.corso_id, aGiorni, chiaveOrari]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [v.corso_id, aGiorni, chiaveOrari, inizioLezioni]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // cambiando giorni o gruppo, le lezioni spuntate che non c'entrano più si tolgono
   useEffect(() => {
@@ -258,7 +357,7 @@ export default function Sportello({ palestraId, corsi, tipi, orari, palestra, pe
     if (wsOpz && (wsPrezzoCent == null || wsPrezzoCent < 0)) { setErrore('Controlla il prezzo del workshop.'); return null; }
     if (wsOpz && wsOpz.liberi === 0 && !confirm(`«${wsOpz.nome}» è al completo. Iscrivere lo stesso, oltre i posti?`)) return null;
     if (!v.quota && !tipo && !v.certificato && !v.lezioni.length && !wsOpz) { setErrore('Non c\'è niente da confermare: scegli quota, abbonamento, workshop, certificato o una lezione.'); return null; }
-    if (v.ricevuta && v.inviaEmail && totale > 0 && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v.email.trim())) { setErrore('Scrivi un\'email valida per la ricevuta (o togli "inviala per email").'); return null; }
+    if (v.metodo !== 'da_incassare' && v.ricevuta && v.inviaEmail && totale > 0 && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v.email.trim())) { setErrore('Scrivi un\'email valida per la ricevuta (o togli "inviala per email").'); return null; }
     return {
       palestra_id: palestraId, allievo_id: personaId,
       quota: v.quota, quota_cent: quotaImportoCent,
@@ -268,7 +367,8 @@ export default function Sportello({ palestraId, corsi, tipi, orari, palestra, pe
         : tipo?.modalita === 'ingressi' && v.ingressi !== '' && Number(v.ingressi) !== tipo.num_ingressi ? Number(v.ingressi) : null,
       data_fine: tipo && v.aLezioni && v.al ? v.al : null,
       note: v.note, certificato_scadenza: v.certificato || null, lezioni: v.lezioni,
-      metodo: v.metodo, ricevuta: v.ricevuta, invia_email: v.ricevuta && v.inviaEmail, email: v.email.trim(),
+      metodo: totale > 0 ? v.metodo : 'contanti', ricevuta: v.ricevuta && v.metodo !== 'da_incassare',
+      invia_email: v.ricevuta && v.inviaEmail && v.metodo !== 'da_incassare', email: v.email.trim(),
       workshop_opzione_id: wsOpz ? wsOpz.id : null, workshop_prezzo_cent: wsOpz ? wsPrezzoCent : null,
       ...(wsOpz && wsOpz.liberi === 0 ? { forza: true } : {}),
     };
@@ -303,7 +403,7 @@ export default function Sportello({ palestraId, corsi, tipi, orari, palestra, pe
   // ------------------------------------------------------------ Satispay collegato: richiesta sul telefono del cliente
   const [sp, setSp] = useState(null);   // { id, stato, importo, dati, telefono }
   const [spTel, setSpTel] = useState('');
-  const conSatispay = satispay && v.metodo === 'satispay' && totale > 0;
+  const conSatispay = satispay && v.metodo === 'satispay' && totale > 0 && !mod;
   useEffect(() => { setSpTel(s?.persona?.telefono || ''); }, [s?.persona?.id]); // eslint-disable-line
 
   async function chiediSatispay(dati) {
@@ -354,6 +454,7 @@ export default function Sportello({ palestraId, corsi, tipi, orari, palestra, pe
   }
 
   async function conferma() {
+    if (mod) { await salvaModifica(); return; }
     const dati = datiConferma();
     if (!dati) return;
     if (sp?.stato === 'ACCEPTED') { await registra({ ...dati, metodo: 'satispay', satispay_id: sp.id }); return; }   // già pagato
@@ -374,10 +475,10 @@ export default function Sportello({ palestraId, corsi, tipi, orari, palestra, pe
           <div className="sp-col-titolo"><span className="sp-num">1</span>Cliente</div>
           {modo === 'cerca' && <Cerca palestraId={palestraId} testo={testo} setTesto={setTesto} onScegli={scegli} onNuovo={() => setModo('nuovo')} />}
           {modo === 'nuovo' && <NuovoCliente palestraId={palestraId} testoIniziale={testo} onCreato={scegli} onUsa={scegli} onAnnulla={() => setModo('cerca')} />}
-          {modo === 'persona' && (s ? <Situazione s={s} v={v} setV={setV} onCambia={nuovaRicerca} onRicarica={() => carica(personaId)} onRinnova={(i) => {
+          {modo === 'persona' && (s ? <Situazione s={s} v={v} setV={setV} palestraId={palestraId} onCambia={nuovaRicerca} onModifica={(id) => apriModifica(id)} inModifica={mod?.iscrizione?.id} onRicarica={() => carica(personaId)} onRinnova={(i) => {
             const t = tipi.find((x) => x.id === i.tipo_abbonamento_id);
             setV((x) => ({ ...x, corso_id: i.corso_id, tipo_id: t?.id || '', prezzo: t ? euroTesto(t.prezzo_cent) : '',
-              orari: (i.iscrizioni_orari || []).map((o) => o.orario_id).filter((oid) => orari.some((o) => o.id === oid)),
+              orari: orariDi(i, orari),
               data_inizio: i.data_fine >= oggi() ? piuGiorni(i.data_fine, 1) : oggi(), lezioni: [] }));
             setEsito(null); setVista3('incassa');
           }} /> : <p className="muto">Carico…</p>)}
@@ -388,6 +489,17 @@ export default function Sportello({ palestraId, corsi, tipi, orari, palestra, pe
           <div className="sp-col-titolo"><span className="sp-num">2</span>Cosa prende</div>
           {modo !== 'persona' ? <p className="muto">Prima scegli il cliente.</p> : (
             <div className="sp-vendita">
+              {mod && (
+                <div className="sp-modifica" role="status">
+                  <div><b>Stai modificando</b> {mod.iscrizione.tipi_abbonamento?.nome} · {mod.iscrizione.corsi?.nome}
+                    <span className="piccolo"> ({dataBreve(mod.iscrizione.data_inizio)} – {dataBreve(mod.iscrizione.data_fine)})</span></div>
+                  <div className="piccolo">{mod.ricevuta ? `Ricevuta n. ${mod.ricevuta.numero}/${mod.ricevuta.anno} di ${euro(mod.ricevuta.importo_cent + mod.ricevuta.iva_cent)}: si aggiorna salvando.`
+                    : mod.pagamento?.stato === 'in_attesa' ? 'Non ancora pagato: nessuna ricevuta.' : 'Senza ricevuta.'}</div>
+                  {mod.senzaGiorni && <div className="piccolo"><b>Non aveva giorni segnati</b> (abbonamento importato): controlla i giorni qui sotto.</div>}
+                  <button type="button" className="link-btn piccolo" onClick={chiudiModifica}>annulla la modifica</button>
+                </div>
+              )}
+              {!mod && (
               <div className={`sp-blocco${v.quota ? ' scelto' : ''}`}>
                 <label className="spunta"><input type="checkbox" checked={v.quota} onChange={set('quota')} />
                   <span><b>Quota associativa annuale</b>
@@ -397,6 +509,7 @@ export default function Sportello({ palestraId, corsi, tipi, orari, palestra, pe
                 </label>
                 {v.quota && <div className="sp-importo"><input inputMode="decimal" value={v.quotaImporto} onChange={set('quotaImporto')} aria-label="Importo quota" /> €</div>}
               </div>
+              )}
 
               <div className={`sp-blocco${tipo ? ' scelto' : ''}`}>
                 <div className="sp-blocco-testa"><b>Abbonamento</b>
@@ -405,7 +518,7 @@ export default function Sportello({ palestraId, corsi, tipi, orari, palestra, pe
                 <div className="sp-corso-tipo">
                   <div className="campo"><label htmlFor="sp-corso">Corso</label>
                     <CampoCerca id="sp-corso" valore={v.corso_id} placeholder="Scrivi il corso… (es. pole 1)"
-                                onChange={(id) => { setTuttiTipi(false); setV((x) => ({ ...x, corso_id: id, orari: [], lezioni: [], data_inizio: inizioPer(id),
+                                onChange={(id) => { setTuttiTipi(false); setV((x) => ({ ...x, corso_id: id, orari: [], lezioni: [], data_inizio: mod ? x.data_inizio : inizioPer(id),
                                   tipo_id: x.tipo_id && tipi.find((t) => t.id === x.tipo_id)?.tipi_abbonamento_corsi?.some((c) => c.corso_id === id) ? x.tipo_id : '' })); }}
                                 opzioni={corsi.map((c) => ({ value: c.id, label: c.nome }))} />
                   </div>
@@ -486,8 +599,13 @@ export default function Sportello({ palestraId, corsi, tipi, orari, palestra, pe
                     {tipo.modalita === 'ingressi' && (
                       <div className="campo"><label htmlFor="sp-ingr">Lezioni</label><input id="sp-ingr" inputMode="numeric" value={v.ingressi} onChange={set('ingressi')} title="Si possono contare a mano" /></div>
                     )}
+                    {mod && <Data id="sp-al-mod" etichetta="Fino al" futura valore={alMod} onChange={setAlMod} />}
                     <div className="campo"><label htmlFor="sp-prezzo">Prezzo (€) <span className="eti-info">listino {euro(tipo.prezzo_cent)}</span></label>
-                      <input id="sp-prezzo" inputMode="decimal" value={v.prezzo} onChange={set('prezzo')} />
+                      {mod?.ricevuta && !prezzoSbloccato ? (
+                        <button type="button" id="sp-prezzo" className="sp-prezzo-bloccato" onClick={() => {
+                          if (confirm(`Attenzione: per questo abbonamento c'è già la ricevuta n. ${mod.ricevuta.numero}/${mod.ricevuta.anno} di ${euro(mod.ricevuta.importo_cent + mod.ricevuta.iva_cent)}.\nSe cambi l'importo, salvando verrà annullata e ne verrà fatta una nuova.\n\nCambiare l'importo?`)) setPrezzoSbloccato(true);
+                        }}>{euro(centDa(v.prezzo) || 0)} <span>🔒 cambia</span></button>
+                      ) : <input id="sp-prezzo" inputMode="decimal" value={v.prezzo} onChange={set('prezzo')} />}
                     </div>
                   </div>
                 )}
@@ -544,7 +662,7 @@ export default function Sportello({ palestraId, corsi, tipi, orari, palestra, pe
                 {tipo && <div className="campo sp-nota"><input value={v.note} onChange={set('note')} placeholder="Nota (facoltativa)" aria-label="Nota" /></div>}
               </div>
 
-              {workshop.length > 0 && (
+              {workshop.length > 0 && !mod && (
                 <div className={`sp-blocco${wsOpz ? ' scelto' : ''}`}>
                   <div className="sp-blocco-testa"><b>Workshop</b>
                     {v.ws_id && <button type="button" className="link-btn piccolo" onClick={() => setV((x) => ({ ...x, ws_id: '', ws_opzione: '', ws_prezzo: '' }))}>togli</button>}
@@ -609,15 +727,20 @@ export default function Sportello({ palestraId, corsi, tipi, orari, palestra, pe
           </div>
           {modo !== 'persona' ? <p className="muto">Prima scegli il cliente.</p> : vista3 === 'incassa' ? (
             <div className="sp-incassa">
+              {!mod && (
               <div className="sp-blocco">
-                <div className="sp-blocco-testa"><b>Prenota il posto</b>{corso && <span className="piccolo muto">{aGiorni && v.orari.length ? 'i giorni scelti' : corso.nome} · prossimi 14 giorni</span>}</div>
+                <div className="sp-blocco-testa"><b>Prenota il posto</b>{corso && <span className="piccolo muto">{aGiorni && v.orari.length ? 'i giorni scelti' : corso.nome} · {inizioLezioni > oggi() ? `14 giorni dal ${dataBreve(inizioLezioni)}` : 'prossimi 14 giorni'}</span>}</div>
                 {!v.corso_id && <p className="piccolo muto">Scegli un corso per vedere le lezioni.</p>}
                 {v.corso_id && aGiorni && !v.orari.length && (
                   <p className="piccolo muto">{gruppiDi(orari.filter((o) => o.corso_id === v.corso_id)).length
                     ? 'Scegli prima il gruppo e i giorni (in 2): qui compaiono solo le sue lezioni.'
                     : 'Scegli prima i giorni (in 2): qui compaiono solo le sue lezioni.'}</p>
                 )}
-                {v.corso_id && !(aGiorni && !v.orari.length) && lezioni.length === 0 && <p className="piccolo muto">Nessuna lezione nei prossimi 14 giorni.</p>}
+                {v.corso_id && !(aGiorni && !v.orari.length) && lezioni.length === 0 && (
+                  <p className="piccolo muto">{tipo?.modalita === 'orari_fissi'
+                    ? `Nessuna lezione ancora in calendario in quei giorni: a giorni fissi il posto è comunque suo in tutte le lezioni dei giorni scelti${inizioLezioni > oggi() ? ` dal ${dataBreve(inizioLezioni)}` : ''}.`
+                    : 'Nessuna lezione in quei 14 giorni.'}</p>
+                )}
                 <ul className="sp-lezioni">
                   {lezioni.map((l) => {
                     const posti = l.capienza ? Math.max(l.capienza - l.iscritti - l.prove, 0) : null;
@@ -638,6 +761,7 @@ export default function Sportello({ palestraId, corsi, tipi, orari, palestra, pe
                 </ul>
               </div>
 
+              )}
               <div className="sp-blocco sp-cassa">
                 <div className="sp-totale">
                   <span>Totale</span><strong>{euro(totale)}</strong>
@@ -651,7 +775,8 @@ export default function Sportello({ palestraId, corsi, tipi, orari, palestra, pe
                   <>
                     <div className="sp-metodi" role="radiogroup" aria-label="Come paga">
                       {METODI.map(([k, t]) => (
-                        <button type="button" key={k} role="radio" aria-checked={v.metodo === k} className={v.metodo === k ? 'attivo' : ''} onClick={() => setV((x) => ({ ...x, metodo: k }))}>{t}</button>
+                        <button type="button" key={k} role="radio" aria-checked={v.metodo === k}
+                                className={`${v.metodo === k ? 'attivo' : ''}${k === 'da_incassare' ? ' sp-non-pagato' : ''}`} onClick={() => setV((x) => ({ ...x, metodo: k }))}>{t}</button>
                       ))}
                     </div>
                     {conSatispay && !sp && (
@@ -661,8 +786,19 @@ export default function Sportello({ palestraId, corsi, tipi, orari, palestra, pe
                         <span className="piccolo muto">Gli arriva la richiesta sull&apos;app: appena conferma, qui si registra tutto da solo.</span>
                       </div>
                     )}
+                    {mod ? (
+                      <p className="piccolo muto" style={{ margin: '4px 0 8px' }}>{v.metodo === 'da_incassare'
+                        ? 'Resta da incassare (nessuna ricevuta finché non paga).'
+                        : mod.ricevuta ? 'La ricevuta si aggiorna da sola salvando (o si rifà, se cambia l\'importo).' : 'Salvando si fa la ricevuta, se è pagato.'}</p>
+                    ) : v.metodo === 'da_incassare' ? (
+                      <p className="sp-avviso-non-pagato" role="status">
+                        È iscritto/a subito (appello e posti), ma <b>{euro(totale)} restano da incassare</b>: li vedi nella home in
+                        &quot;Da saldare&quot;, nell&apos;appello in rosso e qui quando torna. La ricevuta si fa quando paga.
+                      </p>
+                    ) : (
                     <label className="spunta"><input type="checkbox" checked={v.ricevuta} onChange={set('ricevuta')} /><span>Emetti la ricevuta</span></label>
-                    {v.ricevuta && (
+                    )}
+                    {v.ricevuta && v.metodo !== 'da_incassare' && !mod && (
                       <div className="sp-email">
                         <label className="spunta"><input type="checkbox" checked={v.inviaEmail} onChange={set('inviaEmail')} /><span>Inviala per email a</span></label>
                         <input type="email" value={v.email} onChange={set('email')} disabled={!v.inviaEmail} aria-label="Email per la ricevuta" placeholder="email" />
@@ -680,8 +816,9 @@ export default function Sportello({ palestraId, corsi, tipi, orari, palestra, pe
                   </div>
                 ) : (
                   <button type="button" className="btn btn-primario sp-conferma" disabled={invio} onClick={conferma}>
-                    {invio ? 'Un attimo…' : sp?.stato === 'ACCEPTED' ? 'Registra: già pagato con Satispay'
-                      : conSatispay ? `Chiedi ${euro(totale)} su Satispay` : totale > 0 ? `Conferma e incassa ${euro(totale)}` : 'Conferma'}
+                    {invio ? 'Un attimo…' : mod ? 'Salva le modifiche' : sp?.stato === 'ACCEPTED' ? 'Registra: già pagato con Satispay'
+                      : conSatispay ? `Chiedi ${euro(totale)} su Satispay` : totale > 0 && v.metodo === 'da_incassare' ? `Conferma: paga dopo (${euro(totale)})`
+                      : totale > 0 ? `Conferma e incassa ${euro(totale)}` : 'Conferma'}
                   </button>
                 )}
               </div>
@@ -773,7 +910,7 @@ function Cerca({ palestraId, testo, setTesto, onScegli, onNuovo }) {
 }
 
 // ---------------------------------------------------------------- 1 · situazione del cliente scelto
-function Situazione({ s, v, setV, onCambia, onRinnova, onRicarica }) {
+function Situazione({ s, v, setV, palestraId, onCambia, onRinnova, onRicarica, onModifica, inModifica }) {
   const [piuLezioni, setPiuLezioni] = useState(null);   // iscrizione a cui si aggiungono lezioni
   const [fatto, setFatto] = useState('');
   const p = s.persona;
@@ -817,6 +954,7 @@ function Situazione({ s, v, setV, onCambia, onRinnova, onRicarica }) {
           <dd>{s.tessera?.stato === 'tesserato' ? `fatta${s.tessera.numero ? ` n. ${s.tessera.numero}` : ''} (${s.tessera.stagione}/${String(s.tessera.stagione + 1).slice(2)})` : s.tessera?.stato === 'inviato' ? 'inviata, da confermare' : 'da fare'}</dd></div>
         <div className={`sp-stato-riga ${p.consenso_whatsapp ? 'ok' : 'forse'}`}><dt>WhatsApp</dt><dd>{p.consenso_whatsapp ? 'sì ai gruppi' : p.consenso_whatsapp === false ? 'no ai gruppi' : 'non chiesto'}</dd></div>
       </dl>
+      {s.debiti && <DaSaldare d={s.debiti} palestraId={palestraId} email={p.email} onFatto={onRicarica} />}
       <div className="sp-abbonamenti">
         <div className="sp-blocco-testa"><b>Abbonamenti</b>
           {primaData && <span className="piccolo muto"> · con noi dal {primaData.slice(0, 4)} · {(s.storia || []).length} in tutto</span>}</div>
@@ -843,6 +981,8 @@ function Situazione({ s, v, setV, onCambia, onRinnova, onRicarica }) {
                         onClick={() => { setFatto(''); setPiuLezioni((x) => (x === i.id ? null : i.id)); }}>+ Lezioni</button>
               )}
               <button type="button" className="btn btn-piccolo" onClick={() => onRinnova(i)}>Rinnova</button>
+              <button type="button" className="btn btn-piccolo" aria-pressed={inModifica === i.id} onClick={() => onModifica?.(i.id)}
+                      title="Correggi tipo, date, giorni, prezzo o metodo (anche la ricevuta)">Modifica</button>
             </span>
           </div>
           {piuLezioni === i.id && (
@@ -897,7 +1037,8 @@ function Dopo({ esito, s, corso, palestra, palestraId, stagione, lezioni, onRica
     <div className="sp-dopo">
       {esito && (
         <div className="sp-fatto" role="status">
-          <div className="sp-fatto-titolo">✓ Registrato{esito.totale > 0 ? `: ${euro(esito.totale)} · ${METODI.find(([k]) => k === esito.metodo)?.[1] || esito.metodo}` : ' (niente da incassare)'}</div>
+          <div className="sp-fatto-titolo">{esito.modifica ? '✓ Modifiche salvate' : '✓ Registrato'}{esito.modifica ? '' : esito.da_incassare && esito.totale > 0 ? `: ${euro(esito.totale)} da incassare (non pagato)`
+            : esito.totale > 0 ? `: ${euro(esito.totale)} · ${METODI.find(([k]) => k === esito.metodo)?.[1] || esito.metodo}` : ' (niente da incassare)'}</div>
           <ul>
             {esito.iscrizione_id && <li>Abbonamento {esito.tipo?.nome} · {esito.corso?.nome}</li>}
             {esito.workshopNome && <li>Iscritto/a al workshop {esito.workshopNome}</li>}

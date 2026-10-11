@@ -9,13 +9,17 @@ export default async function PaginaOrariCorsi() {
   const { supabase, staff } = await staffCorrente();
   if (staff.ruolo === 'insegnante') redirect('/gestione');
   const p = staff.palestra_id;
-  const [{ data: corsi }, { data: orari }, { data: sale }, { data: persone }, { data: sedi }] = await Promise.all([
-    supabase.from('corsi').select('id, nome, colore, attivo, iscrizioni_app, sede_id, discipline ( nome )').eq('palestra_id', p).eq('attivo', true).order('nome'),
+  const [{ data: corsi }, { data: orari }, { data: sale }, { data: persone }, { data: sedi }, { data: discipline }, { data: competenze }, { data: abilitati }] = await Promise.all([
+    supabase.from('corsi').select('id, nome, colore, attivo, iscrizioni_app, sede_id, disciplina_id, discipline ( nome )').eq('palestra_id', p).eq('attivo', true).order('nome'),
     supabase.from('orari').select('id, corso_id, giorno_settimana, ora_inizio, durata_min, sala_id, insegnante_id, valido_dal, valido_al, prenotabile, attivo, gruppo')
       .eq('palestra_id', p).order('ora_inizio'),
     supabase.from('sale').select('id, nome, sede_id').eq('palestra_id', p).order('nome'),
     supabase.from('staff').select('id, nome, cognome, attivo, archiviato').eq('palestra_id', p).order('nome'),
     supabase.from('sedi').select('id, nome').eq('palestra_id', p).order('ordine'),
+    // per proporre per primi gli insegnanti giusti (query 156) e quelli già sul corso
+    supabase.from('discipline').select('id, nome, categoria_id').eq('palestra_id', p),
+    supabase.from('staff_competenze').select('staff_id, disciplina_id, categoria_id').eq('palestra_id', p),
+    supabase.from('corsi_insegnanti').select('corso_id, staff_id').eq('palestra_id', p),
   ]);
   return (
     <>
@@ -24,7 +28,8 @@ export default async function PaginaOrariCorsi() {
         <h1>Orari dei corsi</h1>
         <p>Ogni corso con i suoi giorni della settimana. Tocca un orario per cambiarlo, &quot;+&quot; per aggiungere un giorno.</p>
       </div>
-      <OrariCorsi corsi={(corsi || []).map((c) => ({ id: c.id, nome: c.nome, colore: c.colore, iscrizioni_app: c.iscrizioni_app || 'aperte', sede_id: c.sede_id || null, disciplina: c.discipline?.nome || '' }))}
+      <OrariCorsi corsi={(corsi || []).map((c) => ({ id: c.id, nome: c.nome, colore: c.colore, iscrizioni_app: c.iscrizioni_app || 'aperte', sede_id: c.sede_id || null, disciplina: c.discipline?.nome || '', disciplina_id: c.disciplina_id || null }))}
+        elencoDiscipline={discipline || []} competenze={competenze || []} abilitati={abilitati || []}
         orari={orari || []} palestraId={p} sale={sale || []} sedi={sedi || []}
         persone={(persone || []).map((s) => ({ id: s.id, nome: `${s.nome} ${s.cognome || ''}`.trim(), breve: s.nome, attivo: s.attivo !== false && !s.archiviato }))} />
     </>

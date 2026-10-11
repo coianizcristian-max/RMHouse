@@ -132,16 +132,20 @@ export default async function PerIlCommercialista({ searchParams }) {
             <p className="piccolo muto" style={{ marginTop: -4 }}>
               Ragazzi dai 5 ai 18 anni con quanto versato nell'anno, per la detrazione del 730. Comprende gli abbonamenti
               venduti con APP Palestre. Controlla con il commercialista il testo e i limiti prima di consegnarli.
+              Per detrarre serve un pagamento tracciabile: nella dichiarazione il mezzo è scritto com&apos;è (anche i contanti).
+              Testo, timbro e firma: Struttura → Sede e contatti.
             </p>
             <div className="azioni" style={{ marginBottom: 10 }}>
               <Link prefetch={false} className="btn btn-piccolo btn-primario" href={`/gestione/commercialista/attestati?anno=${annoDetrazioni}`} target="_blank">
                 Stampa tutti gli attestati ({ragazzi?.length || 0})
               </Link>
+              <a className="btn btn-piccolo" href={`/api/dichiarazioni/pdf?anno=${annoDetrazioni}`}
+                 title="Il vostro modello «Dichiarazione e ricevuta» con timbro e firma: una pagina per ragazzo">Dichiarazioni 730 (PDF)</a>
               {senzaCf > 0 && <span className="piccolo" style={{ color: 'var(--attenzione)' }}>{senzaCf} senza codice fiscale del ragazzo o di chi paga</span>}
             </div>
             <ul className="mini-lista">
               {(ragazzi || []).slice(0, 12).map((x) => (
-                <li key={x.allievo_id}>
+                <li key={x.allievo_id} className="ml-con-azione">
                   <Link prefetch={false} href={`/gestione/commercialista/attestati?anno=${annoDetrazioni}&id=${x.allievo_id}`} target="_blank">
                     <span className="ml-testo">
                       <strong>{x.cognome} {x.nome}</strong>
@@ -149,6 +153,7 @@ export default async function PerIlCommercialista({ searchParams }) {
                     </span>
                     <span className="piccolo">{euro(x.totale_cent)}</span>
                   </Link>
+                  <a className="ml-azione" href={`/api/dichiarazioni/pdf?anno=${annoDetrazioni}&allievo=${x.allievo_id}`} title="Dichiarazione per il 730 (PDF)">730</a>
                 </li>
               ))}
             </ul>

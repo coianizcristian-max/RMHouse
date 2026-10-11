@@ -9,7 +9,7 @@ export const metadata = { title: 'Sportello' };
 // Sportello: il cliente al banco in una schermata (cerca o nuovo → situazione → abbonamento, quota,
 // certificato, posto a lezione → incasso e ricevuta per email → gruppo WhatsApp e tessera dell'ente)
 export default async function PaginaSportello({ searchParams }) {
-  const { persona, workshop: workshopIniziale } = (await searchParams) || {};
+  const { persona, workshop: workshopIniziale, modifica } = (await searchParams) || {};
   const { supabase, staff } = await staffCorrente();
   if (staff.ruolo === 'insegnante') redirect('/gestione');
   const p = staff.palestra_id;
@@ -43,6 +43,7 @@ export default async function PaginaSportello({ searchParams }) {
   return (
     <Sportello palestraId={p} corsi={corsi || []} tipi={tipi || []} orari={(orari || []).map((o) => ({ ...o, insegnante: nomeIns[o.insegnante_id] || '' }))} palestra={palestra || {}}
                personaIniziale={persona || null} satispay={satispay}
-               workshop={Array.isArray(workshop) ? workshop.filter((w) => w.stato !== 'annullato' && (w.opzioni || []).length) : []} workshopIniziale={workshopIniziale || null} />
+               workshop={Array.isArray(workshop) ? workshop.filter((w) => w.stato !== 'annullato' && (w.opzioni || []).length) : []} workshopIniziale={workshopIniziale || null}
+               modificaIniziale={/^[0-9a-f-]{36}$/.test(modifica || '') ? modifica : null} />
   );
 }

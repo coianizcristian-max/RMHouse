@@ -22,7 +22,7 @@ export default async function Corso({ params, searchParams }) {
   const p = staff.palestra_id;
 
   const [{ data: corso }, { data: iscritti }, { data: orari }, { data: sale }, { data: insegnanti }, { data: attese },
-         { data: base }, { data: abilitati }, { data: iscrizioni }] = await Promise.all([
+         { data: base }, { data: abilitati }, { data: iscrizioni }, { data: discipline }, { data: competenze }] = await Promise.all([
     supabase.from('v_riepilogo_corsi').select('*').eq('corso_id', id).maybeSingle(),
     supabase.from('v_iscritti_corso').select('*').eq('corso_id', id)
       .in('stato', vista === 'tutti' ? ['attiva', 'sospesa', 'scaduta', 'annullata'] : ['attiva', 'sospesa'])
@@ -31,10 +31,13 @@ export default async function Corso({ params, searchParams }) {
     supabase.from('sale').select('id, nome').eq('palestra_id', p).order('ordine', { nullsFirst: false }).order('nome'),
     supabase.from('staff').select('id, nome, cognome, ruolo, foto_url, archiviato').eq('palestra_id', p).eq('attivo', true).order('nome'),
     supabase.from('liste_attesa').select('id, allievi ( id, nome, cognome )').eq('corso_id', id).eq('stato', 'in_attesa'),
-    supabase.from('corsi').select('slug, capienza').eq('id', id).maybeSingle(),
+    supabase.from('corsi').select('slug, capienza, disciplina_id').eq('id', id).maybeSingle(),
     supabase.from('corsi_insegnanti').select('staff_id').eq('corso_id', id),
     supabase.from('iscrizioni').select('id, tipi_abbonamento ( modalita, lezioni_settimanali ), iscrizioni_orari ( orario_id )')
       .eq('corso_id', id).in('stato', ['attiva', 'sospesa']),
+    // chi insegna la disciplina del corso (query 156): proposti per primi nella scelta dell'insegnante
+    supabase.from('discipline').select('id, nome, categoria_id').eq('palestra_id', p),
+    supabase.from('staff_competenze').select('staff_id, disciplina_id, categoria_id').eq('palestra_id', p),
   ]);
   const { data: materiali } = await supabase.from('materiali')
     .select('id, titolo, tipo, url, minuti_prima').eq('corso_id', id).eq('attivo', true).order('created_at');
@@ -172,10 +175,11 @@ export default async function Corso({ params, searchParams }) {
             <h2>Orari settimanali</h2>
             <p className="piccolo muto" style={{ marginTop: -4 }}>Le lezioni dei prossimi tre mesi si creano da sole.</p>
             <Orari palestraId={p} corsoId={id} orari={orari || []} sale={sale || []} insegnanti={insegnanti || []}
-                   abilitati={idAbilitati} />
+                   abilitati={idAbilitati} disciplinaId={base?.disciplina_id || null} discipline={discipline || []} competenze={competenze || []} />
           </section>
           <section className="pannello">
-            <InsegnantiCorso palestraId={p} corsoId={id} staff={docenti} scelti={idAbilitati} />
+            <InsegnantiCorso palestraId={p} corsoId={id} staff={docenti} scelti={idAbilitati}
+                             disciplinaId={base?.disciplina_id || null} discipline={discipline || []} competenze={competenze || []} />
           </section>
           {attese?.length > 0 && (
             <section className="pannello">

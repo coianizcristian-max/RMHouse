@@ -28,7 +28,7 @@ export default function FinestraCorso({ corsoId, nome, palestraId, schedaInizial
     const p = palestraId;
     const r = await Promise.all([
       db.from('corsi').select('*').eq('id', corsoId).maybeSingle(),
-      db.from('discipline').select('id, nome, colore').eq('palestra_id', p).order('nome'),
+      db.from('discipline').select('id, nome, colore, categoria_id').eq('palestra_id', p).order('nome'),
       db.from('fasce_eta').select('id, nome').eq('palestra_id', p).order('ordine'),
       db.from('livelli').select('id, nome').eq('palestra_id', p).order('ordine'),
       db.from('sedi').select('id, nome').eq('palestra_id', p).order('ordine'),
@@ -43,10 +43,11 @@ export default function FinestraCorso({ corsoId, nome, palestraId, schedaInizial
       db.from('gruppi_listino').select('id, nome, ordine').eq('palestra_id', p).order('ordine').order('nome'),
       db.from('aliquote_iva').select('id, nome, percentuale, natura, predefinita').eq('palestra_id', p).eq('attiva', true).order('ordine'),
       db.from('corsi').select('id, nome, discipline ( nome )').eq('palestra_id', p).eq('attivo', true).order('nome'),
+      db.from('staff_competenze').select('staff_id, disciplina_id, categoria_id').eq('palestra_id', p),
     ]);
-    const sbagliata = r.find((x) => x.error);
+    const sbagliata = r.find((x, i) => x.error && i < 15);   // la 16ª (competenze, query 156) può mancare
     if (sbagliata || !r[0].data) { setErrore('Non riesco a leggere il corso. Chiudi e riprova.'); return; }
-    const [corso, discipline, fasce, livelli, sedi, palestra, orari, sale, staff, abilitati, tipi, coperti, gruppi, aliquote, corsi] = r.map((x) => x.data);
+    const [corso, discipline, fasce, livelli, sedi, palestra, orari, sale, staff, abilitati, tipi, coperti, gruppi, aliquote, corsi, competenze] = r.map((x) => x.data);
     setD({
       corso, discipline: discipline || [], fasce: fasce || [], livelli: livelli || [], sedi: sedi || [], palestra: palestra || {},
       orari: orari || [], sale: sale || [], staff: staff || [], abilitati: (abilitati || []).map((a) => a.staff_id),
@@ -54,6 +55,7 @@ export default function FinestraCorso({ corsoId, nome, palestraId, schedaInizial
       coperti: new Set((coperti || []).map((c) => c.tipo_abbonamento_id)),
       gruppi: gruppi || [], aliquote: aliquote || [],
       corsi: (corsi || []).map((c) => ({ id: c.id, nome: c.nome, disciplina: c.discipline?.nome || 'Altri corsi' })),
+      competenze: competenze || [],
     });
   }, [corsoId, palestraId]);
   useEffect(() => { carica(); }, [carica]);
@@ -124,7 +126,8 @@ export default function FinestraCorso({ corsoId, nome, palestraId, schedaInizial
 
             <div style={{ display: scheda === 'orari' ? undefined : 'none' }} className="fc-scheda">
               <p className="piccolo muto" style={{ marginTop: 0 }}>Le lezioni dei prossimi tre mesi si creano da sole dagli orari. Un orario cambiato vale per le lezioni future.</p>
-              <Orari palestraId={palestraId} corsoId={corsoId} orari={d.orari} sale={d.sale} insegnanti={d.staff} abilitati={d.abilitati} onSalvato={carica} />
+              <Orari palestraId={palestraId} corsoId={corsoId} orari={d.orari} sale={d.sale} insegnanti={d.staff} abilitati={d.abilitati}
+                     disciplinaId={d.corso?.disciplina_id || null} discipline={d.discipline} competenze={d.competenze} onSalvato={carica} />
             </div>
 
             <div style={{ display: scheda === 'abbonamenti' ? undefined : 'none' }} className="fc-scheda">

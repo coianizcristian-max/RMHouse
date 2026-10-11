@@ -16,7 +16,7 @@ export const TIPI = {
   rimborso_giorno: ['Rimborso auto (a giornata)', 'Un importo per ogni giorno in cui ha almeno una lezione contata: con più lezioni nello stesso giorno si paga una volta. Si può limitare alle lezioni dei corsi, alle private, a un corso, a una disciplina o a una sede, e mettere un massimo al mese. Se nello stesso giorno valgono più rimborsi, si paga il più alto.'],
 };
 const AMBITI = { tutte: 'Tutte le lezioni', corsi: 'Le lezioni dei corsi (non le private)', corso: 'Un corso', disciplina: 'Una disciplina', private: 'Le lezioni private' };
-const VUOTA = { tipo: 'ora', ambito: 'tutte', corso_id: '', disciplina_id: '', sede_id: '', importo: '', minimo: '', massimo: '', conta: 'presenti', unita: 'lezione',
+const VUOTA = { tipo: 'ora', ambito: 'tutte', corso_id: '', disciplina_id: '', sede_id: '', importo: '', minimo: '', massimo: '', conta: 'iscritti', unita: 'lezione',
   fasce: [{ da: '0', a: '5', importo: '' }, { da: '6', a: '', importo: '' }], dal: '', al: '', nota: '' };
 
 const aCent = (v) => { const s = String(v ?? '').trim(); if (!s) return null; const n = Math.round(parseFloat(s.replace(/[€\s]/g, '').replace(',', '.')) * 100); return Number.isFinite(n) ? n : NaN; };
@@ -172,7 +172,11 @@ export default function RegoleCompenso({ staffId, palestraId, corsi = [] }) {
           )}
           {conPersone && (
             <label><span>Si contano</span>
-              <select value={f.conta} onChange={set('conta')}><option value="presenti">i presenti all&apos;appello</option><option value="prenotati">i prenotati</option></select></label>
+              <select value={f.conta} onChange={set('conta')}>
+                <option value="iscritti">gli iscritti alla lezione (anche chi non viene)</option>
+                <option value="prenotati">gli iscritti, meno chi ha avvisato che non viene</option>
+                <option value="presenti">solo i presenti all&apos;appello</option>
+              </select></label>
           )}
           {f.tipo === 'rimborso_giorno' && sedi.length > 1 && (
             <label><span>Solo nella sede</span>

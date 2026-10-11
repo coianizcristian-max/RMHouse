@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { staffCorrente } from '@/lib/staff';
 import { euro, oggiISO } from '@/lib/formato';
+import Righe from './Righe';
 
 export const dynamic = 'force-dynamic';
 
@@ -38,7 +39,7 @@ export default async function Rendiconto({ searchParams }) {
       <div className="intestazione">
         <div className="occhiello">Conti</div>
         <h1>Rendiconto staff</h1>
-        <p>Contano solo le lezioni confermate dall'appello («Ho tenuto io la lezione»). Accanto, le lezioni previste in calendario.</p>
+        <p>Le lezioni svolte da ogni insegnante e il compenso secondo le sue regole. Clicca su una riga per il dettaglio giorno per giorno.</p>
       </div>
       <div className="pastiglie">
         {scelte.map(([t, d1, d2]) => (
@@ -60,34 +61,16 @@ export default async function Rendiconto({ searchParams }) {
         <div className="tessera"><div className="etichetta">Da confermare</div><div className="cifra">{tot.daConf}</div>
           <div className="sotto">lezioni già finite senza conferma</div></div>
         <div className="tessera tessera-nera"><div className="etichetta">Compenso stimato</div><div className="cifra">{euro(tot.compenso)}</div>
-          <div className="sotto">{senzaTariffa ? `${senzaTariffa} senza tariffa oraria` : 'tariffe complete'}</div></div>
+          <div className="sotto">con le regole di ogni insegnante{senzaTariffa ? ` · ${senzaTariffa} senza tariffa oraria` : ''}</div></div>
       </div>
 
-      {(righe || []).length === 0 ? <div className="vuoto">Nessuna lezione nel periodo.</div> : (
-        <div className="tabella-scorre">
-          <table>
-            <thead><tr><th>Insegnante</th><th>Previste</th><th>Svolte</th><th>Ore svolte</th><th>Da confermare</th><th>Presenze</th><th>Tariffa</th><th>Compenso</th></tr></thead>
-            <tbody>
-              {righe.map((r) => (
-                <tr key={r.staff_id}>
-                  <td><strong>{r.nome} {r.cognome}</strong></td>
-                  <td className="muto">{r.previste} · {ore(Number(r.minuti_previsti))}</td>
-                  <td><strong>{r.lezioni}</strong></td>
-                  <td>{ore(Number(r.minuti))}</td>
-                  <td>{Number(r.da_confermare) ? <span className="tag tag-attenzione">{r.da_confermare}</span> : <span className="muto">—</span>}</td>
-                  <td>{r.presenze}</td>
-                  <td>{r.tariffa_cent ? `${euro(r.tariffa_cent)}/h` : <span className="muto">—</span>}</td>
-                  <td><strong>{r.tariffa_cent ? euro(r.compenso_cent) : '—'}</strong></td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+      {(righe || []).length === 0 ? <div className="vuoto">Nessuna lezione nel periodo.</div>
+        : <Righe righe={righe} palestraId={staff.palestra_id} dal={da} al={a} />}
       <p className="piccolo muto" style={{ marginTop: 12 }}>
         «Da confermare»: lezioni finite per cui nessuno ha premuto «Ho tenuto io la lezione» nell'appello
-        (la segreteria può confermarle dall'appello). Il compenso qui è una stima con la tariffa oraria; quello vero,
-        con le regole di ogni insegnante, è in <Link prefetch={false} href="/gestione/compensi">Compensi insegnanti</Link>.
+        (la segreteria può confermarle dall'appello; se in Compensi togli la spunta "solo confermate" contano anche quelle).
+        Il compenso qui segue le regole di ogni insegnante per le lezioni; forfait e fissi mensili, rimborsi auto, workshop ed
+        extra sono nel cedolino in <Link prefetch={false} href="/gestione/compensi">Compensi insegnanti</Link>.
       </p>
     </>
   );

@@ -68,6 +68,7 @@ const SEZIONI = [
       ['Scadenze', '/gestione/scadenze', 'Abbonamenti, ingressi, certificati e quote da gestire: si segnano come gestiti, si scrive o si esporta.'],
       ['Rinnovi in blocco', '/gestione/rinnovi', 'Gli abbonamenti che scadono: si spuntano e si rinnovano tutti insieme.'],
       ['Certificati medici', '/gestione/certificati', 'Documenti caricati dai clienti da approvare, con scadenza e blocco automatico.'],
+      ['Iscritti per corso', '/gestione/iscritti', 'Tutti i corsi giorno per giorno con gli iscritti: telefono, giorni, abbonamento e scadenza, certificato (si corregge lì), tessera, se ha pagato, altri corsi, note, prove e liste d\'attesa. Filtri per area e problemi, scarica in Excel. Al posto del file tenuto a mano.'],
       ['Importa da APP Palestre', '/gestione/importa', 'I sei file di APP Palestre (clienti, abbonamenti, prenotazioni, pagamenti, vendite, prodotti), con scritto dove si scaricano: persone, iscrizioni con corso e orari, incassi e ricevute con i loro numeri, venduto non pagato, quote annuali, listino a confronto. Si può rifare: niente viene doppiato.', 'import-app-palestre'],
       ['Importa da un altro file', '/gestione/importa?vista=altro', 'Porta dentro l\'elenco che hai oggi: abbini le colonne, vedi l\'anteprima, e crea persone e iscrizioni.'],
       ['Esporta i dati', '/gestione/importa?vista=esporta', 'Scarica clienti, abbonamenti, prenotazioni e pagamenti in CSV, con le stesse colonne di APP Palestre: per Excel, per un altro gestionale o per il commercialista.'],

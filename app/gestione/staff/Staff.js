@@ -4,14 +4,16 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { supabaseBrowser } from '@/lib/supabase/browser';
 import { RUOLI } from './SchedaStaff';
+import { adatto, testoCompetenze } from '@/lib/competenze';
 
-export default function Staff({ persone, orari, archiviati, salvato = null }) {
+export default function Staff({ persone, orari, archiviati, salvato = null, categorie = [], discipline = [], competenze = [] }) {
   const router = useRouter();
   const [errore, setErrore] = useState('');
   const [copiato, setCopiato] = useState(null);
   const [cerca, setCerca] = useState('');
   const [ruolo, setRuolo] = useState('');
   const [accesso, setAccesso] = useState('');
+  const [disc, setDisc] = useState('');         // chi insegna questa disciplina (query 156)
   const [vista, setVista] = useState('schede');
 
   // la vista scelta (schede o elenco) resta per la prossima volta
@@ -26,15 +28,17 @@ export default function Staff({ persone, orari, archiviati, salvato = null }) {
     setTimeout(() => setCopiato(null), 2500);
   }
 
+  const insegna = (id) => testoCompetenze(id, competenze, discipline, categorie);
   const corsiDi = (id) => [...new Set(orari.filter((o) => o.insegnante_id === id).map((o) => o.corsi?.nome).filter(Boolean))];
 
   const testo = cerca.trim().toLowerCase();
   const visibili = persone.filter((p) =>
     (!ruolo || p.ruolo === ruolo) &&
     (!accesso || (accesso === 'con' ? !!p.user_id : !p.user_id)) &&
-    (!testo || [p.nome, p.cognome, p.specialita, p.email, ...corsiDi(p.id)].filter(Boolean).join(' ').toLowerCase().includes(testo)));
+    (!disc || adatto(p.id, disc, competenze, discipline)) &&
+    (!testo || [p.nome, p.cognome, p.specialita, insegna(p.id), p.email, ...corsiDi(p.id)].filter(Boolean).join(' ').toLowerCase().includes(testo)));
   const quanti = (r) => persone.filter((p) => p.ruolo === r).length;
-  const filtrato = testo || ruolo || accesso;
+  const filtrato = testo || ruolo || accesso || disc;
 
   async function archivia(p, valore) {
     const { error } = await supabaseBrowser().from('staff').update({ archiviato: valore }).eq('id', p.id);
@@ -76,13 +80,26 @@ export default function Staff({ persone, orari, archiviati, salvato = null }) {
             <option value="con">Entrano nell'app ({persone.filter((p) => p.user_id).length})</option>
             <option value="senza">Senza accesso ({persone.filter((p) => !p.user_id).length})</option>
           </select>
+          {discipline.length > 0 && (
+            <select value={disc} onChange={(e) => setDisc(e.target.value)} aria-label="Chi insegna" className={disc ? 'scelto' : ''}>
+              <option value="">Insegna: tutto</option>
+              {[...categorie, { id: null, nome: 'Altro' }].map((c) => {
+                const ds = discipline.filter((d) => (c.id ? d.categoria_id === c.id : !categorie.some((x) => x.id === d.categoria_id)));
+                return ds.length > 0 && (
+                  <optgroup key={c.id || 'altro'} label={c.nome}>
+                    {ds.map((d) => <option key={d.id} value={d.id}>{d.nome} ({persone.filter((p) => adatto(p.id, d.id, competenze, discipline)).length})</option>)}
+                  </optgroup>
+                );
+              })}
+            </select>
+          )}
           <div className="segmenti segmenti-piccoli" role="group" aria-label="Vista">
             <button type="button" aria-pressed={vista === 'schede'} onClick={() => cambiaVista('schede')}>Schede</button>
             <button type="button" aria-pressed={vista === 'elenco'} onClick={() => cambiaVista('elenco')}>Elenco</button>
           </div>
           <span className="piccolo muto">
             {filtrato ? `${visibili.length} di ${persone.length}` : `${persone.length} persone`}
-            {filtrato && <> · <button type="button" className="link-btn piccolo" onClick={() => { setCerca(''); setRuolo(''); setAccesso(''); }}>togli i filtri</button></>}
+            {filtrato && <> · <button type="button" className="link-btn piccolo" onClick={() => { setCerca(''); setRuolo(''); setAccesso(''); setDisc(''); }}>togli i filtri</button></>}
           </span>
         </div>
       )}
@@ -98,7 +115,7 @@ export default function Staff({ persone, orari, archiviati, salvato = null }) {
             <li key={p.id} className={salvato === p.id ? 'appena-salvata' : ''}>
               <span className="pallino-staff" style={{ background: p.colore || 'var(--rosso)' }} aria-hidden="true" />
               <Link prefetch={false} href={`/gestione/staff/${p.id}`} className="es-nome">{p.nome} {p.cognome}</Link>
-              <span className="es-ruolo piccolo muto">{[RUOLI[p.ruolo], p.specialita].filter(Boolean).join(' · ')}</span>
+              <span className="es-ruolo piccolo muto">{[RUOLI[p.ruolo], insegna(p.id) || p.specialita].filter(Boolean).join(' · ')}</span>
               <span className="es-corsi piccolo muto">{corsiDi(p.id).join(', ')}</span>
               <span className="es-segni">
                 {!p.attivo && <span className="tag tag-neutro">non attivo</span>}
@@ -123,7 +140,7 @@ export default function Staff({ persone, orari, archiviati, salvato = null }) {
               <span style={{ minWidth: 0 }}>
                 <Link prefetch={false} className="titolo" href={`/gestione/staff/${p.id}`} style={{ display: 'block' }}>{p.nome} {p.cognome}</Link>
                 <span className="riga" style={{ display: 'block' }}>
-                  {[RUOLI[p.ruolo], p.specialita, p.collaboratore && 'collaboratore'].filter(Boolean).join(' · ')}
+                  {[RUOLI[p.ruolo], insegna(p.id) || p.specialita, p.collaboratore && 'collaboratore'].filter(Boolean).join(' · ')}
                 </span>
                 {corsiDi(p.id).length > 0 && (
                   <span className="riga" style={{ display: 'block' }}>{corsiDi(p.id).slice(0, 3).join(', ')}{corsiDi(p.id).length > 3 ? '…' : ''}</span>

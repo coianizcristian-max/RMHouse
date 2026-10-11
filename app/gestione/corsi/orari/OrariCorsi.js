@@ -1,4 +1,5 @@
 'use client';
+import OpzioniInsegnanti from '../../OpzioniInsegnanti';
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -36,7 +37,7 @@ const norm = (s) => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-
 
 // Struttura → Orari dei corsi: tutti i corsi × i sette giorni. Si guarda, si cambia e si aggiunge da qui.
 // Le lezioni seguono da sole (trigger sugli orari): spostate con chi è prenotato, o tolte se l'orario si sospende.
-export default function OrariCorsi({ corsi, orari, sale, persone, palestraId, sedi = [] }) {
+export default function OrariCorsi({ corsi, orari, sale, persone, palestraId, sedi = [], elencoDiscipline = [], competenze = [], abilitati = [] }) {
   const router = useRouter();
   const [cerca, setCerca] = useState('');
   const [filtro, setFiltro] = useState('tutti');   // tutti | senza | nonapp | temporanei
@@ -204,7 +205,7 @@ export default function OrariCorsi({ corsi, orari, sale, persone, palestraId, se
       </p>
 
       {modifica && (
-        <Modifica m={modifica} sale={sale} persone={persone} palestraId={palestraId}
+        <Modifica m={modifica} sale={sale} persone={persone} palestraId={palestraId} discipline={elencoDiscipline} competenze={competenze} abilitati={abilitati}
                   orariVivi={orari.filter(valido)} nomeCorso={nomeCorso} salaDi={salaDi} persDi={persDi}
                   onChiudi={() => setModifica(null)} onFatto={fatto} />
       )}
@@ -212,7 +213,7 @@ export default function OrariCorsi({ corsi, orari, sale, persone, palestraId, se
   );
 }
 
-function Modifica({ m, sale, persone, palestraId, orariVivi, nomeCorso, salaDi, persDi, onChiudi, onFatto }) {
+function Modifica({ m, sale, persone, palestraId, orariVivi, nomeCorso, salaDi, persDi, onChiudi, onFatto, discipline = [], competenze = [], abilitati = [] }) {
   const [d, setD] = useState(m.dati);
   const [errore, setErrore] = useState('');
   const [invio, setInvio] = useState(false);
@@ -295,7 +296,8 @@ function Modifica({ m, sale, persone, palestraId, orariVivi, nomeCorso, salaDi, 
           <div className="campo"><label htmlFor="oc-i">Insegnante</label>
             <select id="oc-i" value={d.insegnante_id} onChange={set('insegnante_id')}>
               <option value="">—</option>
-              {insegnanti.map((p) => <option key={p.id} value={p.id}>{p.nome}</option>)}
+              <OpzioniInsegnanti persone={insegnanti.map((p) => ({ ...p, cognome: '' }))} disciplinaId={m.corso.disciplina_id} nomeDisciplina={m.corso.disciplina}
+                                 delCorso={abilitati.filter((a) => a.corso_id === m.corso.id).map((a) => a.staff_id)} competenze={competenze} discipline={discipline} />
             </select></div>
           <div className="campo"><label htmlFor="oc-dal">Valido dal</label>
             <input id="oc-dal" type="date" value={d.valido_dal} onChange={set('valido_dal')} />

@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
+import Dichiarazione730 from './Dichiarazione730';
 import { useRouter } from 'next/navigation';
 import { supabaseBrowser } from '@/lib/supabase/browser';
 import Immagine from '../Immagine';
@@ -9,7 +10,7 @@ const VUOTO = {
   telefono: '', email: '', sito_web: '', facebook: '', instagram: '', logo_url: null, visibile: true, principale: false,
 };
 
-export default function Sede({ palestraId, sedi, palestra }) {
+export default function Sede({ palestraId, sedi, palestra, haTimbro = false }) {
   const router = useRouter();
   const [apri, setApri] = useState(null);
   // aprendo una scheda dall'elenco, il modulo (che sta in cima) viene portato in vista
@@ -140,6 +141,8 @@ export default function Sede({ palestraId, sedi, palestra }) {
         </div>
         <button className="btn btn-primario" disabled={invio}>Salva i dati della scuola</button>
       </form>
+
+      <Dichiarazione730 palestraId={palestraId} palestra={palestra} haTimbro={haTimbro} />
 
       <h2 className="sezione">Sedi</h2>
 

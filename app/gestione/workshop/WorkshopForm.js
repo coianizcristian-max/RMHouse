@@ -36,6 +36,8 @@ const ERRORI = {
   non_autorizzato: 'Non hai i permessi per salvare.',
 };
 
+const ALTRA = 'altra';   // "Altra sede…": il workshop si fa fuori (teatro, palestra di un altro): si scrive dove
+
 function momentoVuoto(i, primo) {
   const base = primo?.data || '';
   return { id: nuovoId(), titolo: i === 0 ? 'Workshop' : `Giorno ${i + 1}`, data: base, dalle: primo?.dalle || '15:00', alle: primo?.alle || '17:00', sala_id: primo?.sala_id || '', posti: primo?.posti || '' };
@@ -48,7 +50,7 @@ export default function WorkshopForm({ palestraId, workshop = null, momenti = []
     titolo: workshop?.titolo || '', sottotitolo: workshop?.sottotitolo || '', insegnante: workshop?.insegnante || '',
     insegnante_id: workshop?.insegnante_id || '',     // '' = esterno/a (nome scritto a mano)
     descrizione: workshop?.descrizione || '', info_pratiche: workshop?.info_pratiche || '', locandina_url: workshop?.locandina_url || null,
-    sede_id: workshop?.sede_id || (sedi.length === 1 ? sedi[0].id : ''), luogo: workshop?.luogo || '',
+    sede_id: workshop?.luogo?.trim() ? ALTRA : workshop?.sede_id || (sedi.length === 1 ? sedi[0].id : ''), luogo: workshop?.luogo || '',
     stato: workshop?.stato || 'bozza',
     iscrizioni_fino_data: dataLocale(workshop?.iscrizioni_fino), iscrizioni_fino_ora: oraLocale(workshop?.iscrizioni_fino),
     online: workshop ? workshop.online : true, in_segreteria: workshop ? workshop.in_segreteria : true,
@@ -122,6 +124,7 @@ export default function WorkshopForm({ palestraId, workshop = null, momenti = []
     if (!f.titolo.trim()) { setErrore(ERRORI.titolo_mancante); return; }
     if (mm.some((m) => !m.data || !m.dalle)) { setErrore(ERRORI.momento_senza_data); return; }
     if (mm.some((m) => m.alle && m.alle <= m.dalle)) { setErrore(ERRORI.momento_fine_prima); return; }
+    if (f.sede_id === ALTRA && !f.luogo.trim()) { setErrore('Scrivi dove si fa il workshop (nome del posto e indirizzo).'); return; }
     if (mm.some((m) => m.posti !== '' && !(Number.isInteger(Number(m.posti)) && Number(m.posti) > 0))) { setErrore('I posti sono un numero intero (vuoto = senza limite).'); return; }
     for (const o of oo) {
       if (!o.nome.trim()) { setErrore(ERRORI.opzione_senza_nome); return; }
@@ -138,14 +141,14 @@ export default function WorkshopForm({ palestraId, workshop = null, momenti = []
       id: workshop?.id || nuovoId(), palestra_id: palestraId,
       titolo: f.titolo, sottotitolo: f.sottotitolo, insegnante: f.insegnante_id ? nomeStaff(f.insegnante_id) : f.insegnante,
       descrizione: f.descrizione, info_pratiche: f.info_pratiche,
-      locandina_url: f.locandina_url || '', sede_id: f.sede_id || '', luogo: f.luogo, stato: f.stato,
+      locandina_url: f.locandina_url || '', sede_id: f.sede_id === ALTRA ? '' : f.sede_id || '', luogo: f.sede_id === ALTRA ? f.luogo.trim() : '', stato: f.stato,
       iscrizioni_fino: f.iscrizioni_fino_data ? isoDa(f.iscrizioni_fino_data, f.iscrizioni_fino_ora || '23:59') : '',
       online: f.online, in_segreteria: f.in_segreteria, quota_esterni: f.quota_esterni, certificato_richiesto: f.certificato_richiesto,
       compenso_tipo: f.compenso_tipo, compenso_cent: f.compenso_tipo === 'fisso' ? (centDa(f.compenso) ?? '') : '',
       compenso_percentuale: f.compenso_tipo === 'percentuale' && f.compenso !== '' ? String(f.compenso).replace(',', '.') : '',
       note_interne: f.note_interne,
       momenti: mm.map((m, i) => ({ id: m.id, titolo: m.titolo, inizio: isoDa(m.data, m.dalle), fine: m.alle ? isoDa(m.data, m.alle) : '',
-        sala_id: m.sala_id, posti: m.posti === '' ? '' : Number(m.posti), ordine: i })),
+        sala_id: f.sede_id === ALTRA ? '' : m.sala_id, posti: m.posti === '' ? '' : Number(m.posti), ordine: i })),
       opzioni: oo.map((o, i) => ({ id: o.id, nome: o.nome, descrizione: o.descrizione, momenti: o.momenti.filter((x) => mm.some((m) => m.id === x)),
         attiva: o.attiva, ordine: i,
         prezzi: o.prezzi.filter((s) => s.allievi !== '').map((s) => ({ fino_al: s.fino_al || null, allievi: centDa(s.allievi), esterni: centDa(s.esterni) })) })),
@@ -172,12 +175,12 @@ export default function WorkshopForm({ palestraId, workshop = null, momenti = []
   // come lo vede il cliente: gli stessi dati del modulo, anche non salvati
   const wAnteprima = () => ({
     titolo: f.titolo.trim() || 'Titolo del workshop', insegnante: f.insegnante_id ? nomeStaff(f.insegnante_id) : f.insegnante, sottotitolo: f.sottotitolo, stato: f.stato,
-    luogo: f.luogo || sedi.find((x) => x.id === f.sede_id)?.nome || '', locandina_url: f.locandina_url,
+    luogo: f.sede_id === ALTRA ? f.luogo : sedi.find((x) => x.id === f.sede_id)?.nome || '', locandina_url: f.locandina_url,
     descrizione: f.descrizione, info_pratiche: f.info_pratiche, certificato_richiesto: f.certificato_richiesto,
     quota_cent: f.quota_esterni ? quotaCent : 0,
     momenti: mm.filter((m) => m.data && m.dalle).map((m) => ({ id: m.id, titolo: m.titolo || 'Workshop', inizio: isoDa(m.data, m.dalle),
       fine: m.alle ? isoDa(m.data, m.alle) : null, posti: m.posti === '' ? null : Number(m.posti), occupati: 0,
-      sala: sale.find((x) => x.id === m.sala_id)?.nome || null })),
+      sala: f.sede_id === ALTRA ? null : sale.find((x) => x.id === m.sala_id)?.nome || null })),
     opzioni: (oo || []).filter((o) => o.attiva).map((o) => ({ id: o.id, nome: o.nome || 'Opzione', descrizione: o.descrizione, momenti: o.momenti,
       prezzi: o.prezzi.filter((x) => x.allievi !== '' && Number.isFinite(centDa(x.allievi)))
         .map((x) => ({ fino_al: x.fino_al || null, allievi: centDa(x.allievi), esterni: Number.isFinite(centDa(x.esterni)) ? centDa(x.esterni) : null })),
@@ -215,15 +218,21 @@ export default function WorkshopForm({ palestraId, workshop = null, momenti = []
               <div className="campo wf-6"><label htmlFor="wf-info">Cosa sapere <span className="eti-info">· va anche nell'email di conferma e nel promemoria (lì senza formattazione)</span></label>
                 <CampoTestoRicco id="wf-info" rows={3} value={f.info_pratiche} onChange={(v) => setF((x) => ({ ...x, info_pratiche: v }))}
                                  placeholder="Cosa portare, abbigliamento, quanto arrivare prima…" /></div>
-              {sedi.length > 1 && (
-                <div className="campo wf-3"><label htmlFor="wf-sede">Sede</label>
-                  <select id="wf-sede" value={f.sede_id} onChange={set('sede_id')}>
-                    <option value="">—</option>
-                    {sedi.map((s) => <option key={s.id} value={s.id}>{s.nome}</option>)}
-                  </select></div>
+              <div className="campo wf-3"><label htmlFor="wf-sede">Dove</label>
+                <select id="wf-sede" value={f.sede_id} onChange={(e) => {
+                  const v = e.target.value;
+                  setF((x) => ({ ...x, sede_id: v }));
+                  // cambiando sede, le sale scelte di un'altra sede non valgono più
+                  if (v !== ALTRA) setMm((xs) => xs.map((m) => (m.sala_id && sale.find((z) => z.id === m.sala_id)?.sede_id && sale.find((z) => z.id === m.sala_id)?.sede_id !== v ? { ...m, sala_id: '' } : m)));
+                }}>
+                  {sedi.length !== 1 && <option value="">—</option>}
+                  {sedi.map((s) => <option key={s.id} value={s.id}>{s.nome}</option>)}
+                  <option value={ALTRA}>Altra sede…</option>
+                </select></div>
+              {f.sede_id === ALTRA && (
+                <div className="campo wf-3"><label htmlFor="wf-luogo">Dove si fa <span className="eti-info">· nome del posto e indirizzo: lo leggono i clienti</span></label>
+                  <input id="wf-luogo" value={f.luogo} onChange={set('luogo')} placeholder="Es. Teatro Comunale, viale Mazzini 39, Vicenza" autoFocus={!f.luogo} /></div>
               )}
-              <div className={`campo ${sedi.length > 1 ? 'wf-3' : 'wf-6'}`}><label htmlFor="wf-luogo">Luogo <span className="eti-info">· solo se non è la sede (es. "Teatro Comunale")</span></label>
-                <input id="wf-luogo" value={f.luogo} onChange={set('luogo')} /></div>
             </div>
           </section>
 
@@ -242,10 +251,13 @@ export default function WorkshopForm({ palestraId, workshop = null, momenti = []
                   <div className="campo"><label htmlFor={`wm-b-${i}`}>Alle</label>
                     <input id={`wm-b-${i}`} type="time" value={m.alle} onChange={(e) => setM(i, 'alle', e.target.value)} /></div>
                   <div className="campo"><label htmlFor={`wm-s-${i}`}>Sala</label>
-                    <select id={`wm-s-${i}`} value={m.sala_id} onChange={(e) => setM(i, 'sala_id', e.target.value)}>
-                      <option value="">—</option>
-                      {sale.map((s) => <option key={s.id} value={s.id}>{s.nome}</option>)}
-                    </select></div>
+                    {f.sede_id === ALTRA ? <input id={`wm-s-${i}`} value="fuori sede" disabled />
+                      : (
+                        <select id={`wm-s-${i}`} value={m.sala_id} onChange={(e) => setM(i, 'sala_id', e.target.value)}>
+                          <option value="">—</option>
+                          {sale.filter((s) => !f.sede_id || !s.sede_id || s.sede_id === f.sede_id || s.id === m.sala_id).map((s) => <option key={s.id} value={s.id}>{s.nome}</option>)}
+                        </select>
+                      )}</div>
                   <div className="campo"><label htmlFor={`wm-p-${i}`}>Posti</label>
                     <input id={`wm-p-${i}`} inputMode="numeric" value={m.posti} onChange={(e) => setM(i, 'posti', e.target.value.replace(/\D/g, ''))} placeholder="∞" /></div>
                   <button type="button" className="wf-togli" onClick={() => togliMomento(i)} disabled={mm.length === 1}

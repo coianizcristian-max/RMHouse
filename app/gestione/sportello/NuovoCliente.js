@@ -31,8 +31,9 @@ export default function NuovoCliente({ palestraId, testoIniziale = '', onCreato,
   const bello = (k) => () => setF((v) => ({ ...v, [k]: v[k] ? maiuscole(v[k]) : '' }));
   const anni = eta(f.nascita);
 
-  // se dalla data è minorenne, si passa da solo a "minore con genitore"
-  useEffect(() => { if (anni != null && anni < 18 && !f.minore) setF((v) => ({ ...v, minore: true })); }, [anni]); // eslint-disable-line
+  // adulto o minore lo decide la data di nascita (e torna indietro se si corregge: scrivendo 12/05/1985,
+  // a metà "12/05/19" sembra il 2019 e passava a "minore" per sempre). Si può sempre cambiare a mano dai due pulsanti.
+  useEffect(() => { if (anni != null) setF((v) => (v.minore === anni < 18 ? v : { ...v, minore: anni < 18 })); }, [anni]); // eslint-disable-line
 
   const ultima = useRef(0);
   useEffect(() => {

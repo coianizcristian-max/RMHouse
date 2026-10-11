@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { supabaseBrowser } from '@/lib/supabase/browser';
@@ -9,7 +9,7 @@ const STATO_RIGA = { da_verificare: 'NON CONFERMATA: non contata', forfait: 'nel
 const MESI = ['gennaio', 'febbraio', 'marzo', 'aprile', 'maggio', 'giugno',
               'luglio', 'agosto', 'settembre', 'ottobre', 'novembre', 'dicembre'];
 
-export default function Compensi({ palestraId, righe, anno, mese, soloConfermate = true, senzaInsegnante = 0, ore = null, admin = false }) {
+export default function Compensi({ palestraId, righe, anno, mese, soloConfermate = true, senzaInsegnante = 0, ore = null, admin = false, conRegole = [] }) {
   const router = useRouter();
   const [errore, setErrore] = useState('');
   const [avviso, setAvviso] = useState('');
@@ -36,11 +36,29 @@ export default function Compensi({ palestraId, righe, anno, mese, soloConfermate
     router.refresh();
   }
 
-  async function cambiaSolo(v) {
-    setInvio(true); setErrore('');
-    const { error } = await supabaseBrowser().from('palestre').update({ compensi: { solo_confermate: v } }).eq('id', palestraId);
+  // la spunta: si vede subito com'è (prima poteva "tornare accesa" se il salvataggio non passava senza dirlo)
+  const [solo, setSolo] = useState(soloConfermate);
+  useEffect(() => { setSolo(soloConfermate); }, [soloConfermate]);
+  async function ricalcolaUno(r) {
+    setInvio(true); setErrore(''); setAvviso('');
+    const { error } = await supabaseBrowser().rpc('calcola_compensi', { p_palestra: palestraId, p_anno: anno, p_mese: mese, p_staff: r.staff_id });
     setInvio(false);
-    if (error) { setErrore('Impostazione non salvata.'); return; }
+    if (error) { setErrore(error.message?.includes('p_staff') || error.message?.includes('function') ? 'Manca la query 153 in Supabase.' : 'Ricalcolo non riuscito.'); return; }
+    setAvviso(`Ricalcolato il cedolino di ${r.staff?.nome || ''} ${r.staff?.cognome || ''}.`.replace(/\s+\./, '.'));
+    if (aperto === r.id) { const { data } = await supabaseBrowser().rpc('dettaglio_compenso', { p_id: r.id }); setDettaglio(data || []); }
+    router.refresh();
+  }
+
+  async function cambiaSolo(v) {
+    setInvio(true); setErrore(''); setSolo(v);
+    const { data, error } = await supabaseBrowser().rpc('imposta_solo_confermate', { p_palestra: palestraId, p_valore: v });
+    setInvio(false);
+    if (error || data !== v) {
+      setSolo(!v);
+      setErrore(error?.message?.includes('non_autorizzato') ? 'Non hai i permessi per cambiarlo.'
+        : error?.message?.includes('imposta_solo_confermate') ? 'Manca la query 153 in Supabase.' : 'Impostazione non salvata.');
+      return;
+    }
     setAvviso(v ? 'Ora contano solo le lezioni confermate: premi "Ricalcola il mese".' : 'Ora contano tutte le lezioni in calendario: premi "Ricalcola il mese".');
     router.refresh();
   }
@@ -165,7 +183,7 @@ export default function Compensi({ palestraId, righe, anno, mese, soloConfermate
         <Link prefetch={false} className="link-btn" href="/gestione/costi">Vedi i costi</Link>
         {!admin && <span className="piccolo muto">Approvazione, extra e pagamento li fa l&apos;amministrazione.</span>}
         <label className="spunta" style={{ margin: 0 }}>
-          <input type="checkbox" checked={soloConfermate} disabled={invio} onChange={(e) => cambiaSolo(e.target.checked)} />
+          <input type="checkbox" checked={solo} disabled={invio} onChange={(e) => cambiaSolo(e.target.checked)} />
           <span className="piccolo">Conta solo le lezioni confermate con l&apos;appello</span>
         </label>
       </div>
@@ -204,7 +222,7 @@ export default function Compensi({ palestraId, righe, anno, mese, soloConfermate
                 {r.da_verificare} lezioni senza conferma: non contate. Si confermano dall&apos;appello (anche dopo) e poi si ricalcola.
               </span>
             )}
-            {r.tariffa_cent === 0 && (
+            {r.tariffa_cent === 0 && !conRegole.includes(r.staff_id) && (
               <span className="riga" style={{ color: 'var(--rosso)' }}>Tariffa oraria standard mancante: impostala nella scheda in Struttura → Staff.</span>
             )}
             {r.visto_at && <span className="riga" style={{ color: 'var(--ok)' }}>✓ Confermato dall&apos;insegnante il {dataBreve(r.visto_at)}</span>}
@@ -216,6 +234,9 @@ export default function Compensi({ palestraId, righe, anno, mese, soloConfermate
               </button>
               <Link prefetch={false} className="link-btn piccolo" href={`/gestione/compensi/${r.id}`} target="_blank">PDF</Link>
               <Link prefetch={false} className="link-btn piccolo" href={`/gestione/staff/${r.staff_id}`}>regole</Link>
+              {r.stato !== 'pagato' && (
+                <button className="link-btn piccolo" disabled={invio} onClick={() => ricalcolaUno(r)} title="Ricalcola solo questo cedolino">Ricalcola</button>
+              )}
               {admin && r.stato !== 'pagato' && (
                 <>
                   <button className="link-btn piccolo" disabled={invio} onClick={() => extra(r)}>Extra</button>
@@ -232,7 +253,7 @@ export default function Compensi({ palestraId, righe, anno, mese, soloConfermate
                     <span>
                       {d.inizio ? `${dataBreve(d.data)} ${ora(d.inizio)} · ` : ''}{d.corso}
                       <span className="piccolo muto" style={{ display: 'block' }}>
-                        {[d.ore > 0 && `${Number(d.ore).toFixed(2).replace('.', ',')} h`, d.presenti != null && !['mensile', 'rimborso'].includes(d.stato) && `${d.presenti} presenti / ${d.prenotati} prenotati`,
+                        {[d.ore > 0 && `${Number(d.ore).toFixed(2).replace('.', ',')} h`, d.presenti != null && !['mensile', 'rimborso'].includes(d.stato) && `${d.presenti} presenti all'appello / ${d.prenotati} attesi`,
                           d.sostituzione, d.regola, STATO_RIGA[d.stato]].filter(Boolean).join(' · ')}
                       </span>
                     </span>

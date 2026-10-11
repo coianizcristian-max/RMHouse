@@ -21,7 +21,7 @@ export default async function PaginaCompensi({ searchParams }) {
 
   const dal = `${a}-${String(m).padStart(2, '0')}-01`;
   const al = new Date(Date.UTC(a, m, 0)).toISOString().slice(0, 10);
-  const [{ data: pal }, { count: senzaInsegnante }, { data: lezMese }] = await Promise.all([
+  const [{ data: pal }, { count: senzaInsegnante }, { data: lezMese }, { data: regole }] = await Promise.all([
     supabase.from('palestre').select('compensi').eq('id', staff.palestra_id).maybeSingle(),
     supabase.from('lezioni').select('id', { count: 'exact', head: true }).eq('palestra_id', staff.palestra_id)
       .gte('data', dal).lte('data', al).neq('stato', 'annullata').lte('fine', new Date().toISOString())
@@ -29,6 +29,8 @@ export default async function PaginaCompensi({ searchParams }) {
     // le ore del mese: in calendario (previste) e svolte (confermate con l'appello)
     supabase.from('lezioni').select('inizio, fine, svolta_da, insegnante_id').eq('palestra_id', staff.palestra_id)
       .gte('data', dal).lte('data', al).neq('stato', 'annullata').limit(5000),
+    // chi ha regole di compenso sue: per loro la tariffa oraria standard non serve
+    supabase.from('regole_compenso').select('staff_id').eq('palestra_id', staff.palestra_id).eq('attiva', true),
   ]);
   const adesso = Date.now();
   const ore = (l) => (new Date(l.fine) - new Date(l.inizio)) / 3600000;
@@ -41,5 +43,6 @@ export default async function PaginaCompensi({ searchParams }) {
     daConfermare: daConfermare.length,
   };
   return <Compensi palestraId={staff.palestra_id} righe={righe || []} anno={a} mese={m}
-                   soloConfermate={pal?.compensi?.solo_confermate !== false} senzaInsegnante={senzaInsegnante || 0} ore={ore_mese} admin={staff.ruolo === 'admin'} />;
+                   soloConfermate={pal?.compensi?.solo_confermate !== false} senzaInsegnante={senzaInsegnante || 0} ore={ore_mese} admin={staff.ruolo === 'admin'}
+                   conRegole={[...new Set((regole || []).map((x) => x.staff_id))]} />;
 }

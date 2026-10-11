@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import DisponibilitaPrivate from './DisponibilitaPrivate';
 import RegoleCompenso from './RegoleCompenso';
+import CompetenzeStaff from './CompetenzeStaff';
 import { useRouter } from 'next/navigation';
 import { supabaseBrowser } from '@/lib/supabase/browser';
 import Immagine from '../Immagine';
@@ -12,7 +13,7 @@ import SceltaColore from '../SceltaColore';
 export const RUOLI = { insegnante: 'Insegnante', segreteria: 'Segreteria', admin: 'Amministratore' };
 
 // Pagina dedicata: scheda di una persona dello staff (nuova o da modificare)
-export default function SchedaStaff({ palestraId, persona = null, corsi = [], elencoCorsi = [], usata = true, sonoIo = false }) {
+export default function SchedaStaff({ palestraId, persona = null, corsi = [], elencoCorsi = [], usata = true, sonoIo = false, categorie = [], discipline = [], competenze = [] }) {
   const router = useRouter();
   const nuova = !persona;
   const [f, setF] = useState({
@@ -121,7 +122,7 @@ export default function SchedaStaff({ palestraId, persona = null, corsi = [], el
               </select>
             </div>
             <div className="campo ss-4">
-              <label htmlFor="sp">Specialità</label>
+              <label htmlFor="sp">Specialità <span className="eti-info">· il testo che si legge nell&apos;app e sul sito</span></label>
               <input id="sp" value={f.specialita} onChange={set('specialita')} placeholder="Es. Aerea e acrobatica, Segreteria" />
             </div>
             <div className="campo ss-2">
@@ -150,6 +151,10 @@ export default function SchedaStaff({ palestraId, persona = null, corsi = [], el
           <Link prefetch={false} href={indietro} className="btn">Annulla</Link>
         </div>
       </form>
+
+      {!nuova && (
+        <CompetenzeStaff palestraId={palestraId} staffId={persona.id} nome={persona.nome} categorie={categorie} discipline={discipline} righe={competenze} />
+      )}
 
       {!nuova && (
         <RegoleCompenso staffId={persona.id} palestraId={palestraId} corsi={elencoCorsi} />
