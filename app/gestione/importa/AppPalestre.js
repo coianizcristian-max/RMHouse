@@ -119,7 +119,7 @@ export default function AppPalestre({ palestraId, meseStagione = 9 }) {
       + blocchi(pagamenti, BLOCCO_PAGAMENTI) + blocchi(vendite, BLOCCO_VENDITE) + (prodotti ? 1 : 0) + 3;
     let passo = 0;
     const somma = { nuovi: 0, aggiornati: 0, storico: 0, senza_persona: 0, prenotazioni: 0,
-                    pag_nuovi: 0, pag_gia: 0, ricevute: 0, pag_senza_persona: 0, storni: 0 };
+                    pag_nuovi: 0, pag_gia: 0, ricevute: 0, pag_senza_persona: 0, storni: 0, da_app: 0, diversi: 0, pag_diversi: 0 };
     const chiama = async (fn, args) => {
       const { data, error } = await db.rpc(fn, args);
       if (error) throw error;
@@ -134,7 +134,7 @@ export default function AppPalestre({ palestraId, meseStagione = 9 }) {
       for (let i = 0; clienti && i < clienti.length; i += BLOCCO_CLIENTI) {
         setFase({ testo: `Persone ${Math.min(i + BLOCCO_CLIENTI, clienti.length)} di ${clienti.length}`, fatto: passo, totale });
         const d = await chiama('importa_app_palestre_clienti', { p_palestra: palestraId, p_righe: clienti.slice(i, i + BLOCCO_CLIENTI) });
-        somma.nuovi += d.nuovi; somma.aggiornati += d.aggiornati;
+        somma.nuovi += d.nuovi; somma.aggiornati += d.aggiornati; somma.da_app += d.da_app || 0; somma.diversi += d.diversi || 0;
       }
       // lo storico si rifà solo per il periodo che c'è nel file: quello più vecchio resta
       const primoDal = storico?.reduce((m, r) => (r.dal && (!m || r.dal < m) ? r.dal : m), null) || null;
@@ -156,7 +156,7 @@ export default function AppPalestre({ palestraId, meseStagione = 9 }) {
         setFase({ testo: `Pagamenti e ricevute ${Math.min(i + BLOCCO_PAGAMENTI, pagamenti.length)} di ${pagamenti.length}`, fatto: passo, totale });
         const d = await chiama('importa_ap_pagamenti', { p_imp: imp, p_righe: pagamenti.slice(i, i + BLOCCO_PAGAMENTI) });
         somma.pag_nuovi += d.nuovi; somma.pag_gia += d.gia; somma.ricevute += d.ricevute;
-        somma.pag_senza_persona += d.senza_persona; somma.storni += d.storni;
+        somma.pag_senza_persona += d.senza_persona; somma.storni += d.storni; somma.pag_diversi += d.diversi || 0;
       }
       // il listino prima delle vendite: serve a dividere le righe "abbonamento + quota annuale"
       if (prodotti) {
@@ -310,6 +310,14 @@ export default function AppPalestre({ palestraId, meseStagione = 9 }) {
                 <div className="sotto">abbonamenti abbinati su {esito.listino.prodotti} prodotti
                   {esito.listino.prezzi_diversi ? ` · ${esito.listino.prezzi_diversi} prezzi diversi` : ''}
                   {esito.listino.iva_diverse ? ` · ${esito.listino.iva_diverse} IVA diverse` : ''}</div></div>
+            )}
+            {(esito.da_app + (esito.date_da_app || 0) + esito.diversi + (esito.date_diverse || 0) + esito.pag_diversi) > 0 && (
+              <Link prefetch={false} className="tessera" href="/gestione/da-sistemare">
+                <div className="etichetta">Confronto con RMHouse</div>
+                <div className="cifra">{esito.diversi + (esito.date_diverse || 0) + esito.pag_diversi}</div>
+                <div className="sotto">diversi da APP Palestre: tenuti come in RMHouse, da guardare in Da sistemare
+                  {(esito.da_app + (esito.date_da_app || 0)) > 0 && ` · ${esito.da_app + (esito.date_da_app || 0)} aggiornati da APP Palestre (in RMHouse nessuno li aveva toccati)`}</div>
+              </Link>
             )}
             <Link prefetch={false} className="tessera tessera-rossa" href="/gestione/da-sistemare">
               <div className="etichetta">Da sistemare</div><div className="cifra">{esito.aperte}</div>

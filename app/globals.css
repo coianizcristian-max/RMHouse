@@ -5095,3 +5095,12 @@ body:has(.sportello) .bottone-rapide { display: none; }
   align-items: center; justify-content: space-between; gap: 8px 14px; padding: 10px 14px; border-radius: 12px;
   background: var(--bianco); border: 1px solid var(--linea); box-shadow: 0 6px 20px rgba(0,0,0,.14); }
 @media (max-width: 899px) { .tp-barra { bottom: calc(76px + env(safe-area-inset-bottom, 0px)); } }
+
+/* 202 — differenze con APP Palestre in "Da sistemare" */
+.ds-diff { border-collapse: collapse; margin: 6px 0 4px; font-size: 13.5px; max-width: 100%; }
+.ds-diff th, .ds-diff td { text-align: left; padding: 3px 10px 3px 0; vertical-align: top; overflow-wrap: anywhere; }
+.ds-diff thead th { font-size: 12px; font-weight: 600; color: var(--testo-2); }
+.ds-diff tbody th { font-weight: 600; white-space: nowrap; }
+.ds-diff .ds-rmh { color: var(--nero); font-weight: 600; }
+.ds-diff .ds-app { color: var(--attenzione); font-weight: 600; }
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }

@@ -14,7 +14,9 @@ const CATEGORIE = {
   listino: 'Listino',
 };
 // le voci che si sistemano con un clic (query 148): il testo del bottone
-const AZIONI = { da_incassare: 'Metti da incassare', prezzo_app: 'Metti il prezzo di APP' };
+const AZIONI = { da_incassare: 'Metti da incassare', prezzo_app: 'Metti il prezzo di APP', usa_app: 'Usa APP Palestre' };
+// 164: le differenze fra RMHouse e APP Palestre, campo per campo
+const diverse = (a) => !a.risolta && a.dati?.azione === 'usa_app';
 const euroT = (c) => `${(Number(c || 0) / 100).toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €`;
 const dataT = (iso) => (iso ? iso.split('-').reverse().join('/') : '');
 const VISTE = [
@@ -265,8 +267,27 @@ export default function DaSistemare({ palestraId, anomalie, ultima, daAbbinare, 
     if (tipo === 'prezzo_app' && !confirm(`Mettere nel listino di RMHouse il prezzo di APP Palestre (${euroT(a.dati.prezzo_cent)})?\n` +
       'Vale per le vendite da adesso in poi; quelle già fatte non cambiano.')) return;
     const { data, error } = await supabaseBrowser().rpc('risolvi_anomalia_import', { p_id: a.id, p_azione: tipo });
-    if (error) { mostra(error.message?.includes('gia_fatta') ? 'Era già stata fatta.' : 'Non riuscito: riprova.'); router.refresh(); return; }
+    if (error) {
+      mostra(error.message?.includes('gia_fatta') ? 'Era già stata fatta.' : error.message?.includes('email_gia_usata')
+        ? 'Quell\'email in RMHouse è già di un\'altra famiglia: sistemala a mano.' : 'Non riuscito: riprova.');
+      router.refresh(); return;
+    }
     mostra(tipo === 'da_incassare' ? 'Messo da incassare: lo trovi nella scheda e in Incassi → da incassare' : data?.nota || 'Fatto');
+    router.refresh();
+  }
+
+  // 164: "Usa APP Palestre" su più voci insieme
+  async function usaApp(lista) {
+    if (!confirm(`Mettere in RMHouse i dati di APP Palestre per ${lista.length} ${lista.length === 1 ? 'voce' : 'voci'}?\n` +
+      'I valori di RMHouse di quei campi vengono sostituiti.')) return;
+    const db = supabaseBrowser();
+    let ok = 0; let ko = 0;
+    for (const a of lista) {
+      const { error } = await db.rpc('risolvi_anomalia_import', { p_id: a.id, p_azione: 'usa_app' });
+      if (error) ko += 1; else ok += 1;
+    }
+    setScelte(new Set());
+    mostra(`${ok} ${ok === 1 ? 'sistemata' : 'sistemate'} con i dati di APP Palestre${ko ? ` · ${ko} non riuscite (es. email già usata)` : ''}`);
     router.refresh();
   }
 
@@ -362,7 +383,21 @@ export default function DaSistemare({ palestraId, anomalie, ultima, daAbbinare, 
                         )}
                         <strong>{a.titolo}</strong>
                       </div>
-                      {a.dettaglio && <p className="piccolo">{a.dettaglio}</p>}
+                      {a.dati?.righe?.length > 0 ? (
+                        <>
+                          <table className="ds-diff">
+                            <thead><tr><th scope="col"><span className="sr-only">Campo</span></th><th scope="col">In RMHouse</th><th scope="col">In APP Palestre</th></tr></thead>
+                            <tbody>
+                              {a.dati.righe.map((x) => (
+                                <tr key={x.campo}><th scope="row">{x.etichetta}</th><td className="ds-rmh">{x.rmhouse}</td><td className="ds-app">{x.app}</td></tr>
+                              ))}
+                            </tbody>
+                          </table>
+                          <p className="piccolo muto">{a.dati.tipo === 'incasso'
+                            ? 'Ho tenuto quello di RMHouse: se è giusto APP Palestre, correggi la ricevuta (Apri).'
+                            : 'Ho tenuto quello di RMHouse: se è giusto APP Palestre premi «Usa APP Palestre», se no «Fatto».'}</p>
+                        </>
+                      ) : a.dettaglio && <p className="piccolo">{a.dettaglio}</p>}
                       {a.risolta && (
                         <p className="piccolo muto">
                           {a.chiusa_sola ? 'Non è più uscita al controllo del ' : 'Fatta il '}{quando(a.risolta_at)}
@@ -410,6 +445,11 @@ export default function DaSistemare({ palestraId, anomalie, ultima, daAbbinare, 
             {vista === 'fatte'
               ? <button className="btn btn-primario" onClick={() => segna([...scelte], false)}>Riapri</button>
               : <button className="btn btn-primario" onClick={() => segna([...scelte], true)}>Segna fatte</button>}
+            {vista !== 'fatte' && anomalie.some((a) => scelte.has(a.id) && diverse(a)) && (
+              <button className="btn" onClick={() => usaApp(anomalie.filter((a) => scelte.has(a.id) && diverse(a)))}>
+                Usa APP Palestre ({anomalie.filter((a) => scelte.has(a.id) && diverse(a)).length})
+              </button>
+            )}
             {vista !== 'fatte' && anomalie.some((a) => scelte.has(a.id) && correggibile(a)) && (
               <button className="btn" onClick={() => correggi(anomalie.filter((a) => scelte.has(a.id) && correggibile(a)).map((a) => a.id))}>
                 Correggi dal codice fiscale ({anomalie.filter((a) => scelte.has(a.id) && correggibile(a)).length})
