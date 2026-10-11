@@ -5036,3 +5036,10 @@ body:has(.sportello) .bottone-rapide { display: none; }
 .mini-lista li.ml-con-azione > a:first-child { flex: 1; min-width: 0; }
 .mini-lista a.ml-azione { flex: none; padding: 4px 10px; border: 1px solid var(--linea); border-radius: 999px; font-size: 12px; font-weight: 800; }
 .mini-lista a.ml-azione:hover { border-color: var(--nero); background: var(--bianco); }
+
+/* 197 — Compila da RMHouse sul portale ASI */
+.asi-aiuto { margin-bottom: 12px; padding: 10px 14px; }
+.asi-aiuto summary { cursor: pointer; }
+.asi-aiuto[open] summary { margin-bottom: 8px; }
+.asi-passi { margin: 0; padding-left: 20px; display: grid; gap: 8px; font-size: 14px; }
+.asi-bottone { cursor: grab; border-style: dashed; }

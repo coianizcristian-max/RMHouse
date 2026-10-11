@@ -8,6 +8,8 @@ import { dataBreve } from '@/lib/formato';
 import { TIPI_ASI, QUALIFICHE_ASI, impostazioniEnte, valoriPersona, fileEnte, scaricaFileEnte } from '@/lib/tessereEnte';
 import { parteCognome, parteNome, normalizzaCF } from '@/lib/codiceFiscale';
 import ImpostazioniEnte from './ImpostazioniEnte';
+import PreferitoAsi from './PreferitoAsi';
+import { testoPerAsi } from '@/lib/asiCompila';
 
 // il codice fiscale dice che nome e cognome sono scritti al contrario (es. cognome "Alisa", nome "Burlea", CF BRLLSA…):
 // sul portale dell'ente la persona verrebbe caricata sbagliata
@@ -119,10 +121,14 @@ export default function Tesseramento({ palestra, stagione, corrente, righe, disc
       }));
   }
 
-  async function copiaCf(r) {
-    try { await navigator.clipboard.writeText(r.codice_fiscale || `${r.cognome}, ${r.nome}`); } catch { /* niente */ }
-    setCopiato(r.allievo_id); setTimeout(() => setCopiato(null), 1800);
+  // i dati per il preferito "Compila da RMHouse" sul portale ASI
+  async function copiaPerAsi(r) {
+    const giusto = invertiti(r) ? { ...r, nome: r.cognome, cognome: r.nome } : r;
+    try { await navigator.clipboard.writeText(testoPerAsi(giusto, ente)); } catch { setErrore('Il browser non lascia copiare: riprova.'); return; }
+    setCopiato(r.allievo_id); setTimeout(() => setCopiato(null), 2500);
+    setAvviso(`Dati di ${giusto.cognome} ${giusto.nome} copiati: sul portale ASI premi «Compila da RMHouse».`);
   }
+
 
   return (
     <div className="tesseramento">
@@ -164,6 +170,11 @@ export default function Tesseramento({ palestra, stagione, corrente, righe, disc
       </div>
 
       {apriEnte && <ImpostazioniEnte palestraId={palestra.id} ente={palestra.ente || {}} discipline={discipline} stagione={stagione} onChiudi={() => setApriEnte(false)} />}
+
+      <details className="pannello asi-aiuto">
+        <summary><b>Compila il portale {nomeEnte} da RMHouse</b> <span className="piccolo muto">· persona per persona, senza riscrivere i dati</span></summary>
+        <PreferitoAsi portale={ente.portale} />
+      </details>
 
       <div className="ts-filtri">
         <input type="search" placeholder="Cerca nome, corso, numero o codice fiscale" value={cerca} onChange={(e) => setCerca(e.target.value)} aria-label="Cerca" />
@@ -221,8 +232,8 @@ export default function Tesseramento({ palestra, stagione, corrente, righe, disc
                           <b>{v.tipo || '—'}</b> · {v.qualifica || '—'} · <span className={v.disciplina ? '' : 'ts-manca'}>{v.disciplina || 'disciplina?'}</span>
                           {(r.o_tipo || r.o_qualifica || r.o_disciplina) && <span className="ts-suo" aria-label="valori scelti per questa persona">●</span>}
                         </button>
-                        <button type="button" className="link-btn piccolo" onClick={() => copiaCf(r)} title="Copia il codice fiscale per cercarla sul portale">
-                          {copiato === r.allievo_id ? 'copiato ✓' : 'CF'}
+                        <button type="button" className="link-btn piccolo" onClick={() => copiaPerAsi(r)} title={`Copia i dati per compilare il portale ${nomeEnte} con «Compila da RMHouse»`}>
+                          {copiato === r.allievo_id ? 'copiato ✓' : `Copia per ${nomeEnte}`}
                         </button>
                       </td>
                     )}

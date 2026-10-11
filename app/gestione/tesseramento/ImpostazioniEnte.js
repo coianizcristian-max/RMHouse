@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabaseBrowser } from '@/lib/supabase/browser';
+import PreferitoAsi from './PreferitoAsi';
 import { TIPI_ASI, QUALIFICHE_ASI, CAMPI, COLONNE_ASI, FORMATI_STAGIONE, stagioneCome, impostazioniEnte } from '@/lib/tessereEnte';
 
 // Le impostazioni dell'ente (ASI): dati dell'affiliazione, valori predefiniti per tutti, come si traducono le vostre
@@ -130,6 +131,9 @@ export default function ImpostazioniEnte({ palestraId, ente, discipline = [], st
         <button type="button" className="link-btn piccolo" onClick={() => setE((x) => ({ ...x, colonne: [...x.colonne, { titolo: 'NUOVA', campo: 'vuoto', valore: '' }] }))}>+ colonna</button>
         <button type="button" className="link-btn piccolo" onClick={() => setE((x) => ({ ...x, colonne: COLONNE_ASI }))}>torna al modello ASI</button>
       </div>
+
+      <h3>Compilare il portale una persona alla volta</h3>
+      <PreferitoAsi portale={e.portale} />
 
       <div className="azioni-riga" style={{ marginTop: 14 }}>
         <button className="btn btn-primario" disabled={invio}>{invio ? 'Salvo…' : 'Salva le impostazioni'}</button>

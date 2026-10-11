@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { supabaseBrowser } from '@/lib/supabase/browser';
 import { useCopia, whatsappLink, daISO } from './campi';
+import { testoPerAsi } from '@/lib/asiCompila';
 
 // Gruppo WhatsApp del corso: WhatsApp non permette di aggiungere qualcuno da fuori, quindi si manda
 // alla persona il link d'invito del gruppo (salvato nel corso) con un messaggio già scritto.
@@ -73,6 +74,14 @@ export function TesseraEnte({ palestraId, ente = {}, persona, dati, tessera, sta
     }
     setMsg('Segnata ✓'); setNumero(''); onCambio?.();
   }
+  // i dati per il preferito "Compila da RMHouse" sul portale (tipo, qualifica e disciplina come in Tesseramento)
+  async function copiaPerAsi() {
+    setMsg('');
+    const { data } = await supabaseBrowser().rpc('tesseramento_ente', { p_palestra: palestraId, p_stagione: stagione, p_allievo: persona.id });
+    const r = (Array.isArray(data) && data[0]) || { nome: persona.nome, cognome: persona.cognome, codice_fiscale: dati?.codice_fiscale, certificato: persona.certificato_scadenza };
+    await copia(testoPerAsi(r, ente), 'asi');
+    setMsg(`Copiati: sul portale ${nomeEnte} premi «Compila da RMHouse» (si installa da Persone → Tesseramento).`);
+  }
   async function salvaPortale() {
     const { error } = await supabaseBrowser().rpc('salva_portale_ente', { p_palestra: palestraId, p_url: portale });
     if (error) { setMsg('Il link deve iniziare con https://'); return; }
@@ -97,6 +106,7 @@ export function TesseraEnte({ palestraId, ente = {}, persona, dati, tessera, sta
       </div>
       {mancano.length > 0 && <p className="piccolo sp-attenzione">Mancano: {mancano.join(', ')}.</p>}
       <div className="sp-bottoni">
+        <button type="button" className="btn btn-piccolo btn-primario" onClick={copiaPerAsi} title="Per il preferito «Compila da RMHouse» sul portale">{copiato === 'asi' ? 'Copiati ✓' : `Copia per ${nomeEnte}`}</button>
         <button type="button" className="btn btn-piccolo" onClick={() => copia(tutto, 'tutto')}>{copiato === 'tutto' ? 'Copiati ✓' : 'Copia tutti i dati'}</button>
         {ente.portale && !cambiaLink && <a className="btn btn-piccolo" href={ente.portale} target="_blank" rel="noreferrer">Apri il sito {nomeEnte} ↗</a>}
         <button type="button" className="link-btn piccolo" onClick={() => setCambiaLink(!cambiaLink)}>{ente.portale ? 'cambia link' : `metti il link del sito ${nomeEnte}`}</button>
