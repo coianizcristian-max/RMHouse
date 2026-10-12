@@ -4695,9 +4695,12 @@ body:has(.sportello) .bottone-rapide { display: none; }
 
 /* Workshop nel calendario: scheda nera fra le lezioni, porta all'appello */
 .pal-carta.pal-ws { border-color: var(--nero); text-decoration: none; color: inherit; display: block; }
-.pal-ws-banda { background: var(--nero); color: #fff; display: flex; justify-content: space-between; align-items: center; gap: 6px; }
+.pal-ws-banda { background: var(--nero); color: #fff; display: flex; justify-content: space-between; align-items: center; gap: 2px 6px; flex-wrap: wrap; }
 .pal-ws-tag { font-size: 10px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; background: #fff; color: var(--nero);
-  border-radius: 999px; padding: 1px 7px; }
+  border-radius: 999px; padding: 1px 7px; line-height: 1.5; margin-left: auto; flex: none; }
+/* scheda stretta (7 giorni su uno schermo normale): l'etichetta "Workshop" rimpicciolisce e, se non ci sta accanto
+   all'orario, va a capo nella banda invece di uscire dalla scheda tagliata (aggiornamento 205) */
+.colonne-giorni.palinsesto .pal-ws-tag { font-size: clamp(7px, 4.6cqw, 10px); letter-spacing: .04em; padding: 1px clamp(4px, 3cqw, 7px); }
 
 /* Workshop: la scheda "Insegnante" (compenso nel cedolino o pagato a parte) */
 .wsi { display: grid; gap: 12px; }
