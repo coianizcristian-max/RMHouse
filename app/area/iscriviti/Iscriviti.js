@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { gruppiDi, nomeGruppo } from '@/lib/gruppi';
 import { supabaseBrowser } from '@/lib/supabase/browser';
@@ -45,6 +45,8 @@ const ERRORI = {
   eta_non_adatta: 'Questo corso è per un\'altra età: torna indietro e scegline un altro.',
   inizio_meta_mese: 'Dall\'app si parte il 1° del mese. Per iniziare adesso passa dalla segreteria.',
   annuale_in_segreteria: 'L\'annuale iniziato a stagione avviata si fa in segreteria (ti scalano i mesi passati).',
+  paga_online: 'Da questa data l\'abbonamento è intero: scegli come pagarlo qui sotto.',
+  iscrizione_gia_attiva: 'Hai già un abbonamento a questo corso in quelle date.',
 };
 const PASSI = [['chi', 'Per chi'], ['corso', 'Corso'], ['abbonamento', 'Abbonamento'], ['giorni', 'Giorni'], ['paga', 'Riepilogo']];
 
@@ -61,6 +63,8 @@ export default function Iscriviti({ persone, corsi, tipi, orari, coperti, pieni,
   const [errore, setErrore] = useState(annullato ? 'Pagamento non completato: non ti abbiamo addebitato nulla. Puoi riprovare.' : '');
   const [invio, setInvio] = useState(false);
   const [richiesta, setRichiesta] = useState(null);
+  const [parz, setParz] = useState(null);             // query 168: periodo, lezioni che restano e prezzo partendo "da oggi"
+  const [segreteria, setSegreteria] = useState(null); // iscritto da oggi, da pagare in segreteria
   const [certCaricato, setCertCaricato] = useState(false);
   const [inCoda, setInCoda] = useState([]);
   // filtri dei corsi
@@ -162,6 +166,27 @@ export default function Iscriviti({ persone, corsi, tipi, orari, coperti, pieni,
     if (!tipo || !inizioVero) { setFine(null); return; }
     supabaseBrowser().rpc('scadenza_abbonamento', { p_tipo: tipo.id, p_inizio: inizioVero }).then(({ data }) => setFine(data || null));
   }, [tipo, inizioVero]);
+  // da quando si può partire: oggi (a periodo avviato: si paga in segreteria solo quello che resta) o l'inizio dei prossimi periodi
+  const base = inCorso ? inizioVero : oggi();
+  const conPeriodo = !!tipo && tipo.modalita !== 'ingressi' && (tipo.durata_mesi || 1) < 9 && !(tipo.durata_giorni && tipo.durata_giorni < 28);
+  useEffect(() => {
+    if (passo !== 'paga' || !conPeriodo || (fissi && !scelti.length)) { setParz(null); return undefined; }
+    let via = false;
+    supabaseBrowser().rpc('prezzo_parziale', { p_tipo: tipo.id, p_orari: scelti, p_dal: base }).then(({ data, error }) => {
+      if (!via) setParz(!error && data?.periodo ? data : null);
+    });
+    return () => { via = true; };
+  }, [passo, conPeriodo, tipo?.id, scelti.join(','), base]); // eslint-disable-line react-hooks/exhaustive-deps
+  const daOggi = !!parz?.parziale;                       // partendo da oggi mancano delle lezioni
+  const partenze = parz ? [...(daOggi ? [base] : []), ...(parz.prossimi || []).filter((d) => d > base || (!daOggi && d === base))] : [];
+  // all'arrivo la prima partenza possibile (oggi, se a periodo avviato restano lezioni); poi decide il cliente
+  const partenzaProposta = useRef('');
+  useEffect(() => {
+    if (inCorso || !partenze.length) return;
+    const chiave = `${tipo?.id}|${chi}|${corsoId}`;
+    if (partenzaProposta.current !== chiave || !partenze.includes(inizio)) { partenzaProposta.current = chiave; setInizio(partenze[0]); }
+  }, [parz]); // eslint-disable-line react-hooks/exhaustive-deps
+  const inSegreteria = daOggi && inizioVero === base;    // si iscrive ora e paga in segreteria
 
   const prezzo = tipo ? prezzoDi(tipo) : 0;
   const quota = persona?.quota ? quotaCent : 0;
@@ -172,7 +197,7 @@ export default function Iscriviti({ persone, corsi, tipi, orari, coperti, pieni,
     vai('abbonamento');
   }
   function scegliTipo(t) {
-    setTipoId(t.id); setScelti([]); setGruppo(null); setInizio(aMese(t) ? primiDelMese()[0] : oggi()); setRicorrente(false); setRichiesta(null); setVediAltriCorsi(false);
+    setTipoId(t.id); setScelti([]); setGruppo(null); setInizio(aMese(t) ? primiDelMese()[0] : oggi()); setRicorrente(false); setRichiesta(null); setSegreteria(null); setVediAltriCorsi(false);
     vai(t.modalita === 'orari_fissi' ? 'giorni' : 'paga');
   }
   function alterna(o) {
@@ -185,7 +210,7 @@ export default function Iscriviti({ persone, corsi, tipi, orari, coperti, pieni,
   }
   function controlla() {
     if (fissi && (!scelti.length || mancano > 0)) { setErrore('Scegli i giorni in cui verrai.'); return false; }
-    if (metaMese) { setErrore(ERRORI.inizio_meta_mese); return false; }
+    if (metaMese || inSegreteria) { setErrore(ERRORI.inizio_meta_mese); return false; }
     setErrore(''); return true;
   }
   async function conSatispay() {
@@ -213,6 +238,14 @@ export default function Iscriviti({ persone, corsi, tipi, orari, coperti, pieni,
     setInvio(false);
     if (error) { const k = Object.keys(ERRORI).find((x) => error.message?.includes(x)); setErrore(ERRORI[k] || 'Richiesta non inviata. Riprova.'); return; }
     setRichiesta(data);
+  }
+  async function pagoInSegreteria() {
+    if (fissi && (!scelti.length || mancano > 0)) { setErrore('Scegli i giorni in cui verrai.'); return; }
+    setErrore(''); setInvio(true);
+    const { data, error } = await supabaseBrowser().rpc('iscriviti_paga_in_segreteria', { p_allievo: chi, p_tipo: tipo.id, p_corso: corsoId, p_orari: scelti, p_data_inizio: inizioVero });
+    setInvio(false);
+    if (error) { const k = Object.keys(ERRORI).find((x) => error.message?.includes(x)); setErrore(ERRORI[k] || 'Iscrizione non riuscita. Riprova o passa in segreteria.'); return; }
+    setSegreteria(data);
   }
   const copia = (t) => { try { navigator.clipboard.writeText(t); } catch { /* niente */ } };
   const giorniTesto = (lista) => lista.map((id) => orari.find((o) => o.id === id)).filter(Boolean)
@@ -459,7 +492,11 @@ export default function Iscriviti({ persone, corsi, tipi, orari, coperti, pieni,
             <div><span>Abbonamento</span><strong>{tipo.nome}</strong></div>
             {fissi && <div><span>Giorni</span><strong>{giorniTesto(scelti)}</strong></div>}
             <div><span>Da</span>
-              {inCorso ? <strong>{dataBreve(inizioVero)}</strong> : aMese(tipo) ? (
+              {inCorso ? <strong>{dataBreve(inizioVero)}</strong> : partenze.length ? (
+                <select value={inizio} onChange={(e) => setInizio(e.target.value)} aria-label="Da quando" disabled={!!segreteria}>
+                  {partenze.map((d) => <option key={d} value={d}>{d === base && daOggi ? `Oggi, ${dataBreve(d)}` : `1° ${nomeMese(d)}`}</option>)}
+                </select>
+              ) : aMese(tipo) ? (
                 <select value={inizio} onChange={(e) => setInizio(e.target.value)} aria-label="Da quando">
                   {primiDelMese().map((d) => <option key={d} value={d}>1° {nomeMese(d)}</option>)}
                 </select>
@@ -468,15 +505,27 @@ export default function Iscriviti({ persone, corsi, tipi, orari, coperti, pieni,
             {fine && <div><span>Fino al</span><strong>{dataBreve(fine)}</strong></div>}
           </div>
           {inCorso && <p className="isc-nota">Hai già questo corso fino al {dataBreve(inCorso.data_fine)}: il nuovo abbonamento parte il giorno dopo.</p>}
-          {aMese(tipo) && !inCorso && !oggi().endsWith('-01') && (
+          {!parz && aMese(tipo) && !inCorso && !oggi().endsWith('-01') && (
             <p className="isc-nota">Gli abbonamenti partono il 1° del mese. Vuoi cominciare subito? Passa in segreteria: ti fanno l&apos;importo per le lezioni che restano.</p>
           )}
+          {daOggi && !inSegreteria && !segreteria && (
+            <p className="isc-nota">Puoi anche partire da oggi: scegli &quot;Oggi&quot; in <strong>Da</strong>. Ti iscriviamo subito e in segreteria paghi solo le lezioni che restano.</p>
+          )}
 
-          <div className="isc-totale">
-            <div><span>{durata(tipo).replace(/^./, (x) => x.toUpperCase())}</span><span>{euro(prezzo)}</span></div>
-            {quota > 0 && <div><span>Quota associativa annuale (con assicurazione)</span><span>{euro(quota)}</span></div>}
-            <div className="somma"><strong>Totale</strong><strong>{euro(prezzo + quota)}</strong></div>
-          </div>
+          {inSegreteria ? (
+            <div className="isc-totale">
+              <div><span>{durata(tipo).replace(/^./, (x) => x.toUpperCase())} · {inizioVero === oggi() ? 'da oggi' : `dal ${dataBreve(inizioVero)}`} restano {parz.rimaste} {parz.a_giorni ? 'giorni' : 'lezioni'} su {parz.totale}</span>
+                <span><s className="muto">{euro(prezzo)}</s> circa {euro(parz.prezzo_cent)}</span></div>
+              {quota > 0 && <div><span>Quota associativa annuale (con assicurazione)</span><span>{euro(quota)}</span></div>}
+              <div className="somma"><strong>Da pagare in segreteria</strong><strong>circa {euro(parz.prezzo_cent + quota)}</strong></div>
+            </div>
+          ) : (
+            <div className="isc-totale">
+              <div><span>{durata(tipo).replace(/^./, (x) => x.toUpperCase())}</span><span>{euro(prezzo)}</span></div>
+              {quota > 0 && <div><span>Quota associativa annuale (con assicurazione)</span><span>{euro(quota)}</span></div>}
+              <div className="somma"><strong>Totale</strong><strong>{euro(prezzo + quota)}</strong></div>
+            </div>
+          )}
 
           {/* certificato medico: si può caricare subito (non blocca il pagamento) */}
           {persona && !persona.certificatoOk && !persona.inVerifica && !certCaricato && (
@@ -487,7 +536,20 @@ export default function Iscriviti({ persone, corsi, tipi, orari, coperti, pieni,
           )}
           {(certCaricato || persona?.inVerifica) && <p className="isc-nota">✓ Certificato caricato: la segreteria lo controlla.</p>}
 
-          {richiesta ? (
+          {segreteria ? (
+            <div className="aq-bonifico isc-segreteria" role="status">
+              <strong>Sei iscritto ✓</strong>
+              <span>{persona?.nome} · {corso?.nome}, dal {dataBreve(segreteria.data_inizio)} al {dataBreve(segreteria.data_fine)}. Le lezioni ti compaiono già in &quot;Lezioni&quot;.</span>
+              <span className="aq-riga">Da pagare in segreteria <b>circa {euro(segreteria.prezzo_cent + (segreteria.quota_cent || 0))}</b></span>
+              <span className="isc-nota">La segreteria ti conferma l&apos;importo giusto per le lezioni che restano: passa alla prima lezione.</span>
+              <Link href="/area" className="btn btn-pieno">Torna alla home</Link>
+            </div>
+          ) : inSegreteria ? (
+            <div className="isc-paga">
+              <button className="btn btn-primario btn-pieno btn-grande" disabled={invio} onClick={pagoInSegreteria}>{invio ? 'Un attimo…' : `Iscrivimi ${inizioVero === oggi() ? 'da oggi' : `dal ${dataBreve(inizioVero)}`} · pago in segreteria`}</button>
+              <p className="isc-nota">Vuoi pagare subito online? In <strong>Da</strong> scegli {parz?.prossimi?.[0] ? `il 1° ${nomeMese(parz.prossimi[0])}` : 'l\'inizio del prossimo periodo'}: l&apos;abbonamento è intero.</p>
+            </div>
+          ) : richiesta ? (
             <div className="aq-bonifico">
               <strong>Richiesta inviata ✓ Ora fai il bonifico:</strong>
               {bonifico?.iban ? (

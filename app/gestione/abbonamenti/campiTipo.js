@@ -12,9 +12,14 @@ export const famiglieDi = (t) => (Array.isArray(t.famiglie) && t.famiglie.length
 
 // Durata come la calcola il database: il mese solare vince sui "28 giorni"
 export const solare = (t) => t.scadenza_fine_mese && !(t.durata_giorni && t.durata_giorni < 28);
+const MESI = ['gennaio', 'febbraio', 'marzo', 'aprile', 'maggio', 'giugno', 'luglio', 'agosto', 'settembre', 'ottobre', 'novembre', 'dicembre'];
+// periodi fissi (query 168): i mesi in cui partono, nell'ordine della stagione (da settembre)
+export const mesiPeriodo = (t) => (Array.isArray(t.mesi_inizio) ? [...t.mesi_inizio] : []).map(Number).filter((m) => m >= 1 && m <= 12)
+  .sort((a, b) => ((a + 3) % 12) - ((b + 3) % 12));
 export const durata = (t) => {
-  if (t.durata_giorni && !solare(t)) return `${t.durata_giorni} ${t.durata_giorni === 1 ? 'giorno' : 'giorni'}`;
+  if (t.durata_giorni && !solare(t) && !mesiPeriodo(t).length) return `${t.durata_giorni} ${t.durata_giorni === 1 ? 'giorno' : 'giorni'}`;
   const m = t.durata_mesi || 1;
+  if (mesiPeriodo(t).length && t.modalita !== 'ingressi' && m < 9) return `${m} ${m === 1 ? 'mese' : 'mesi'} a periodi fissi (da ${mesiPeriodo(t).map((x) => MESI[x - 1].slice(0, 3)).join(', ')})`;
   if (solare(t)) return m === 1 ? 'mese solare' : `${m} mesi solari`;
   return `${m} ${m === 1 ? 'mese' : 'mesi'} dal giorno d'inizio`;
 };
@@ -58,6 +63,12 @@ export function campiTipoAbbonamento({ gruppi = [], aliquote = [], famiglie = []
     { k: 'scadenza_fine_mese', etichetta: 'Scade a fine mese solare', tipo: 'check', gruppo: 'Prezzo e durata', larghezza: 2,
       aiuto: 'chi paga il 10 scade a fine mese (trimestrale: fine del 3° mese). Dall\'app i clienti partono dal 1° del mese; '
            + 'se lo spegni, dall\'app possono partire da qualsiasi giorno a prezzo pieno' },
+    { k: 'mesi_inizio', etichetta: 'Periodi fissi: mesi in cui partono', tipo: 'molti', gruppo: 'Prezzo e durata', larghezza: 6,
+      se: (b) => b.modalita !== 'ingressi' && Number(b.durata_mesi || 1) < 9,
+      aiuto: 'es. trimestrale con ottobre, gennaio e aprile: ott–dic, gen–mar, apr–giu. Chi parte a novembre scade il 31 dicembre '
+           + 'e paga solo le lezioni che restano. Nessuno scelto = il periodo parte dal mese in cui si iscrive',
+      nessunoTesto: 'Nessuno: parte dal mese in cui si iscrive',
+      opzioni: MESI.map((nome, i) => ({ v: i + 1, l: `${i + 1} · ${nome}` })) },
 
     { k: 'lezioni_settimanali', etichetta: 'Lezioni a settimana', tipo: 'numero', gruppo: 'Lezioni e recuperi', se: (b) => b.modalita !== 'ingressi' && b.modalita !== 'libero' },
     { k: 'num_ingressi', etichetta: 'Ingressi del pacchetto', tipo: 'numero', gruppo: 'Lezioni e recuperi', se: (b) => b.modalita === 'ingressi' },

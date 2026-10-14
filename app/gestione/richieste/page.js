@@ -10,7 +10,7 @@ export default async function PaginaRichieste({ searchParams }) {
   const { supabase, staff } = await staffCorrente();
   if (staff.ruolo === 'insegnante') redirect('/gestione');
   let q = supabase.from('richieste_cliente')
-    .select('id, tipo, dati, importo_cent, stato, risposta, created_at, gestita_at, allievi ( id, nome, cognome, account ( telefono, email ) )')
+    .select('id, tipo, dati, importo_cent, stato, risposta, created_at, gestita_at, iscrizione_id, allievi ( id, nome, cognome, account ( telefono, email ) )')
     .eq('palestra_id', staff.palestra_id).order('created_at', { ascending: vista === 'aperte' }).limit(100);
   q = vista === 'aperte' ? q.eq('stato', 'da_confermare') : q.neq('stato', 'da_confermare');
   const [{ data }, { data: orari }] = await Promise.all([

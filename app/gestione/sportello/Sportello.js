@@ -287,23 +287,36 @@ export default function Sportello({ palestraId, corsi, tipi, orari, palestra, pe
 
   // ------------------------------------------------------------ prezzo proposto
   const dopoIlPrimo = aMese(tipo) && /^\d{4}-\d{2}-\d{2}$/.test(v.data_inizio) && !v.data_inizio.endsWith('-01');
+  // query 168: il calcolo è nel database (lo stesso dell'app), e vale anche per i periodi fissi (es. trimestrale ott–dic)
+  const conPeriodo = !!tipo && tipo.modalita !== 'ingressi' && (tipo.durata_mesi || 1) < 9 && /^\d{4}-\d{2}-\d{2}$/.test(v.data_inizio);
   useEffect(() => {
-    if (!dopoIlPrimo) { setRimaste(null); return; }
-    if (v.orari.length) {
-      supabaseBrowser().rpc('lezioni_rimaste_mese', { p_orari: v.orari, p_dal: v.data_inizio }).then(({ data }) => setRimaste(data || null));
-    } else {
-      const tot = Number(fineMese(v.data_inizio).slice(8, 10));
-      setRimaste({ mese: tot, rimaste: tot - Number(v.data_inizio.slice(8, 10)) + 1, giorni: true });
-    }
-  }, [dopoIlPrimo, v.data_inizio, v.orari.join(',')]); // eslint-disable-line
+    if (!conPeriodo) { setRimaste(null); return; }
+    let via = false;
+    supabaseBrowser().rpc('prezzo_parziale', { p_tipo: tipo.id, p_orari: v.orari, p_dal: v.data_inizio }).then(({ data, error }) => {
+      if (via) return;
+      if (!error && data) {
+        setRimaste(data.parziale ? { mese: data.totale, rimaste: data.rimaste, giorni: data.a_giorni, prezzo: data.prezzo_cent, fisso: data.fisso } : null);
+        return;
+      }
+      // senza la query 168: come prima, solo il mese solare
+      if (!dopoIlPrimo) { setRimaste(null); return; }
+      if (v.orari.length) {
+        supabaseBrowser().rpc('lezioni_rimaste_mese', { p_orari: v.orari, p_dal: v.data_inizio }).then(({ data: d }) => { if (!via) setRimaste(d || null); });
+      } else {
+        const tot = Number(fineMese(v.data_inizio).slice(8, 10));
+        setRimaste({ mese: tot, rimaste: tot - Number(v.data_inizio.slice(8, 10)) + 1, giorni: true });
+      }
+    });
+    return () => { via = true; };
+  }, [conPeriodo, tipo?.id, dopoIlPrimo, v.data_inizio, v.orari.join(',')]); // eslint-disable-line
   const proposte = useMemo(() => {
     if (!tipo) return [];
     const out = [];
     const mesi = Math.max(1, tipo.durata_mesi || 1);
     const prezzoMese = Math.round(tipo.prezzo_cent / mesi);
-    if (dopoIlPrimo && rimaste && rimaste.mese > 0 && rimaste.rimaste < rimaste.mese) {
-      const p = Math.round(((tipo.prezzo_cent - prezzoMese) + (prezzoMese * rimaste.rimaste) / rimaste.mese) / 100) * 100;
-      out.push([p, `metà mese: restano ${rimaste.rimaste} ${rimaste.giorni ? 'giorni' : 'lezioni'} su ${rimaste.mese}`]);
+    if ((dopoIlPrimo || rimaste?.prezzo != null) && rimaste && rimaste.mese > 0 && rimaste.rimaste < rimaste.mese) {
+      const p = rimaste.prezzo != null ? rimaste.prezzo : Math.round(((tipo.prezzo_cent - prezzoMese) + (prezzoMese * rimaste.rimaste) / rimaste.mese) / 100) * 100;
+      out.push([p, `${rimaste.fisso ? 'periodo avviato' : 'metà mese'}: restano ${rimaste.rimaste} ${rimaste.giorni ? 'giorni' : 'lezioni'} su ${rimaste.mese}`]);
     }
     const annuale = tipo.modalita !== 'ingressi' && (tipo.durata_mesi || 0) >= 9 && /^\d{4}-\d{2}-\d{2}$/.test(v.data_inizio);
     if (annuale) {

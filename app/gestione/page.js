@@ -77,7 +77,7 @@ export default async function Home({ searchParams }) {
   const saluto = oraRoma < 13 ? 'Buongiorno' : oraRoma < 18 ? 'Buon pomeriggio' : 'Buonasera';
 
   const problemi = k ? [
-    ['Richieste dall\'app da confermare', richieste, '/gestione/richieste', 'urgente'],
+    ['Richieste dall\'app (da confermare o da incassare)', richieste, '/gestione/richieste', 'urgente'],
     ['Certificati scaduti o mancanti', k.certificati_scaduti, '/gestione/scadenze?tipo=certificato', 'urgente'],
     ['Presenze da segnare', k.presenze_da_segnare, '/gestione/oggi', 'urgente'],
     ['Non hanno rinnovato', k.no_rinnovo, '/gestione/persone?stato=no_rinnovo', 'urgente'],

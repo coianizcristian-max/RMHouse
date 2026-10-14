@@ -111,11 +111,11 @@ export default function Io({ titolare, persone, anagrafica = [], richieste = [],
             {richieste.filter((r) => r.allievo_id === p.id).slice(0, 5).map((r) => (
               <li key={r.id} className="io-richiesta">
                 <span>
-                  <strong>{r.tipo === 'abbonamento' ? `${r.dati.abbonamento}` : `Lezione privata con ${r.dati.insegnante}`}</strong>
+                  <strong>{r.tipo === 'abbonamento' || r.tipo === 'da_incassare' ? `${r.dati.abbonamento}` : `Lezione privata con ${r.dati.insegnante}`}</strong>
                   {r.risposta && <span className="piccolo">“{r.risposta}”</span>}
                 </span>
                 <span className={`tag ${r.stato === 'confermata' ? 'tag-ok' : r.stato === 'da_confermare' ? 'tag-attenzione' : 'tag-neutro'}`}>
-                  {r.stato === 'da_confermare' ? (r.tipo === 'abbonamento' ? 'attesa bonifico' : 'in attesa') : r.stato === 'confermata' ? 'confermata' : r.stato === 'rifiutata' ? 'non accettata' : 'ritirata'}
+                  {r.stato === 'da_confermare' ? (r.tipo === 'abbonamento' ? 'attesa bonifico' : r.tipo === 'da_incassare' ? 'da pagare in segreteria' : 'in attesa') : r.stato === 'confermata' ? (r.tipo === 'da_incassare' ? 'pagato' : 'confermata') : r.stato === 'rifiutata' ? 'non accettata' : 'ritirata'}
                 </span>
               </li>
             ))}

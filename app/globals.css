@@ -4013,6 +4013,7 @@ body:has(.sportello) .bottone-rapide { display: none; }
 .isc-riepilogo select, .isc-riepilogo input { min-height: 36px; border: 1px solid var(--linea); border-radius: 8px; padding: 4px 8px; font: inherit; }
 .isc-totale { display: grid; gap: 4px; background: var(--carta); border-radius: 12px; padding: 10px 12px; margin: 10px 0; font-size: 14px; }
 .isc-totale > div { display: flex; justify-content: space-between; gap: 10px; }
+.isc-totale > div > span:last-child { white-space: nowrap; }   /* 207: "100 € circa 54 €" su una riga */
 .isc-totale .somma { border-top: 1px solid var(--linea); padding-top: 6px; font-size: 18px; }
 .isc-cert { border: 1.5px solid var(--attenzione); background: #fff7e6; border-radius: 12px; padding: 10px 12px; margin-bottom: 10px; font-size: 13.5px; }
 .isc-cert summary { cursor: pointer; }
@@ -5078,6 +5079,9 @@ body:has(.sportello) .bottone-rapide { display: none; }
   background: var(--bianco); color: var(--testo); border: 1.5px solid #7f9cd8; border-radius: 10px; box-shadow: 0 6px 18px rgba(0,0,0,.14);
   font: 500 13px/1.45 var(--font); pointer-events: none; cursor: default; }
 .pal-numeri .nuvola { left: auto; right: 0; }
+/* 205: la nuvoletta sta in fondo alla pagina con posizione fissa (sopra al menù di sinistra e fuori da ogni riquadro che taglia),
+   dove si vede decide il codice (resta dentro la pagina) */
+.nuvola.nuvola-fissa { position: fixed; right: auto; z-index: 44; }
 .nuvola .nuvola-titolo { color: var(--testo); }
 .nuvola .nuvola-rosso { color: var(--rosso); font-weight: 700; }
 

@@ -50,6 +50,13 @@ function Riga({ r, orari }) {
     router.refresh();
   }
 
+  async function chiudi() {
+    setInvio(true); setErrore('');
+    const { error } = await supabaseBrowser().rpc('chiudi_da_incassare', { p_id: r.id, p_nota: risposta || null });
+    setInvio(false);
+    if (error) { setErrore('Non riuscito. Riprova.'); return; }
+    router.refresh();
+  }
   async function rispondi(conferma) {
     if (!conferma && !risposta.trim()) { setErrore('Scrivi due parole al cliente: il motivo o un\'alternativa.'); return; }
     setInvio(true); setErrore('');
@@ -62,11 +69,24 @@ function Riga({ r, orari }) {
   return (
     <li className={`rich-riga ${r.stato}`}>
       <div className="rich-testa">
-        <span className={`tag ${r.tipo === 'abbonamento' ? 'tag-ok' : 'tag-neutro'}`}>{r.tipo === 'abbonamento' ? 'Abbonamento · bonifico' : 'Lezione privata'}</span>
+        <span className={`tag ${r.tipo === 'abbonamento' ? 'tag-ok' : r.tipo === 'da_incassare' ? 'tag-attenzione' : 'tag-neutro'}`}>
+          {r.tipo === 'abbonamento' ? 'Abbonamento · bonifico' : r.tipo === 'da_incassare' ? 'Iscritto · paga in segreteria' : 'Lezione privata'}</span>
         <Link prefetch={false} href={`/gestione/persone/${a.id}`}><strong>{a.nome} {a.cognome}</strong></Link>
         <span className="piccolo muto">{dataBreve(r.created_at)}{a.account?.telefono ? ` · ${a.account.telefono}` : ''}</span>
       </div>
-      {r.tipo === 'abbonamento' ? (
+      {r.tipo === 'da_incassare' ? (
+        <div className="rich-dati">
+          <span><strong>{d.abbonamento}</strong> · {d.corso}{giorni ? ` · ${giorni}` : ''}</span>
+          <span>già iscritto dal {dataBreve(d.data_inizio)} al {dataBreve(d.data_fine)} · restano {d.rimaste} {d.a_giorni ? 'giorni' : 'lezioni'} su {d.totale}{d.fisso ? ' del periodo' : ' del mese'}</span>
+          <span>prezzo indicativo {euro(d.prezzo_cent)} <span className="muto">(intero {euro(d.prezzo_pieno_cent)})</span>{d.quota_cent ? ` + quota ${euro(d.quota_cent)}` : ''} = <strong>{euro(r.importo_cent)}</strong></span>
+          <span className="piccolo muto">Passa in segreteria a pagare. Controlla prezzo, giorni e certificato: dallo Sportello puoi correggere l'importo e incassare. Incassato, sparisce da qui da solo.</span>
+          {r.stato === 'da_confermare' && (
+            <span className="rich-slot">
+              <Link prefetch={false} className="btn btn-piccolo btn-primario" href={r.iscrizione_id ? `/gestione/sportello?persona=${a.id}&modifica=${r.iscrizione_id}` : `/gestione/sportello?persona=${a.id}`}>Apri allo Sportello per incassare</Link>
+            </span>
+          )}
+        </div>
+      ) : r.tipo === 'abbonamento' ? (
         <div className="rich-dati">
           <span><strong>{d.abbonamento}</strong> · {d.corso}{giorni ? ` · ${giorni}` : ''}</span>
           <span>dal {dataBreve(d.data_inizio)} · {euro(d.prezzo_cent)}{d.quota_cent ? ` + quota ${euro(d.quota_cent)}` : ''} = <strong>{euro(r.importo_cent)}</strong></span>
@@ -87,7 +107,12 @@ function Riga({ r, orari }) {
           {d.nota && <span className="piccolo muto">“{d.nota}”</span>}
         </div>
       )}
-      {r.stato === 'da_confermare' ? (
+      {r.stato === 'da_confermare' && r.tipo === 'da_incassare' ? (
+        <div className="rich-azioni">
+          <input value={risposta} onChange={(e) => setRisposta(e.target.value)} placeholder="Nota (facoltativa), es. pagato con altro incasso" aria-label="Nota" />
+          <button className="btn btn-piccolo" disabled={invio} onClick={chiudi}>Già sistemato: togli</button>
+        </div>
+      ) : r.stato === 'da_confermare' ? (
         <div className="rich-azioni">
           <input value={risposta} onChange={(e) => setRisposta(e.target.value)}
                  placeholder={r.tipo === 'personal' ? 'Es. Fissata giovedì 10 alle 18:00 in Sala Pole' : 'Messaggio al cliente (facoltativo)'} aria-label="Risposta" />

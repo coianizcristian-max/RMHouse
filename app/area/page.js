@@ -14,12 +14,12 @@ export default async function Area() {
 
   // tutta la home in una lettura (query 165: collega l'account, riepilogo, materiali, certificati da verificare, consenso,
   // disdette, workshop, moduli da firmare); senza, le letture di prima in quattro giri
-  let data, materiali, inVerifica, aspetto, miei, disdette, workshop, moduliDaFirmare;
+  let data, materiali, inVerifica, aspetto, miei, disdette, workshop, moduliDaFirmare, inScadenza = [];
   const [{ data: tutto, error: e165 }, asp] = await Promise.all([supabase.rpc('area_home'), aspettoAreaCliente()]);
   aspetto = asp;
   if (!e165 && tutto && typeof tutto === 'object') {
     data = tutto.riepilogo; materiali = tutto.materiali; inVerifica = tutto.in_verifica; miei = tutto.consenso ? [tutto.consenso] : [];
-    disdette = tutto.disdette; workshop = tutto.workshop; moduliDaFirmare = tutto.moduli_da_firmare || 0;
+    disdette = tutto.disdette; workshop = tutto.workshop; moduliDaFirmare = tutto.moduli_da_firmare || 0; inScadenza = Array.isArray(tutto.in_scadenza) ? tutto.in_scadenza : [];
   } else {
   // al primo ingresso si collega l'utente all'anagrafica della segreteria
   await supabase.rpc('collega_account');
@@ -54,5 +54,5 @@ export default async function Area() {
   }
 
   return <Riepilogo dati={data} materiali={materiali || []} inVerifica={inVerifica || []} aspetto={aspetto} chiediConsenso={chiediConsenso} moduliDaFirmare={moduliDaFirmare}
-                    disdette={disdette || {}} workshop={Array.isArray(workshop) ? workshop : []} />;
+                    disdette={disdette || {}} workshop={Array.isArray(workshop) ? workshop : []} inScadenza={inScadenza} />;
 }

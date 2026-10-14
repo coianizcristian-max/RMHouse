@@ -19,7 +19,7 @@ const MOTIVI_DISDETTA = {
 };
 const motivo = (e, base) => MOTIVI_DISDETTA[Object.keys(MOTIVI_DISDETTA).find((k) => e?.message?.includes(k))] || base;
 
-export default function Riepilogo({ dati, materiali = [], inVerifica = [], aspetto = {}, chiediConsenso = false, moduliDaFirmare = 0, disdette = {}, workshop = [] }) {
+export default function Riepilogo({ dati, materiali = [], inVerifica = [], aspetto = {}, chiediConsenso = false, moduliDaFirmare = 0, disdette = {}, workshop = [], inScadenza = [] }) {
   const router = useRouter();
   const [chiedo, setChiedo] = useState(null);   // lezione su cui si sta confermando "Cancella prenotazione"
   const ore = disdette.ore_disdetta ?? 4;
@@ -130,8 +130,17 @@ export default function Riepilogo({ dati, materiali = [], inVerifica = [], aspet
       {avviso && <div className="avviso-ok" role="status">{avviso}</div>}
 
       {/* cose da fare: una riga ciascuna, si toccano */}
-      {(moduliDaFirmare > 0 || daSistemare.length > 0 || consenso || aspetto.avviso) && (
+      {(moduliDaFirmare > 0 || daSistemare.length > 0 || consenso || aspetto.avviso || inScadenza.length > 0) && (
         <div className="ac-avvisi">
+          {/* abbonamento che sta per finire (query 168): da quanti giorni prima lo decide il promemoria in Messaggi */}
+          {inScadenza.map((x) => (
+            <Link key={`${x.allievo_id}-${x.corso_id}`} prefetch={false} href={`/area/iscriviti?corso=${x.corso_id}&per=${x.allievo_id}`}
+                  className={`ac-avviso${x.giorni <= 3 ? ' rosso' : ''} ac-scadenza`}>
+              <span><strong>{piu ? `${x.nome}: ` : ''}{x.corso} scade {x.giorni === 0 ? 'oggi' : x.giorni === 1 ? 'domani' : `il ${dataBreve(x.al)}`}</strong>
+                {x.giorni > 1 ? ` (tra ${x.giorni} giorni)` : ''} · tocca per rinnovare</span>
+              <span aria-hidden="true">›</span>
+            </Link>
+          ))}
           {moduliDaFirmare > 0 && (
             <Link prefetch={false} href="/area/moduli" className="ac-avviso rosso">
               <span><strong>{moduliDaFirmare === 1 ? 'Un modulo da firmare' : `${moduliDaFirmare} moduli da firmare`}</strong> · si firmano col dito</span>
