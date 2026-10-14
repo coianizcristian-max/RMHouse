@@ -56,7 +56,8 @@ export function campiTipoAbbonamento({ gruppi = [], aliquote = [], famiglie = []
     { k: 'durata_mesi', etichetta: 'Durata (mesi)', tipo: 'numero', obbligatorio: true, predefinito: '1', gruppo: 'Prezzo e durata' },
     { k: 'durata_giorni', etichetta: 'Oppure giorni', tipo: 'numero', gruppo: 'Prezzo e durata', aiuto: '1 = singola, 28 = 4 sett.' },
     { k: 'scadenza_fine_mese', etichetta: 'Scade a fine mese solare', tipo: 'check', gruppo: 'Prezzo e durata', larghezza: 2,
-      aiuto: 'chi paga il 10 scade a fine mese (trimestrale: fine del 3° mese)' },
+      aiuto: 'chi paga il 10 scade a fine mese (trimestrale: fine del 3° mese). Dall\'app i clienti partono dal 1° del mese; '
+           + 'se lo spegni, dall\'app possono partire da qualsiasi giorno a prezzo pieno' },
 
     { k: 'lezioni_settimanali', etichetta: 'Lezioni a settimana', tipo: 'numero', gruppo: 'Lezioni e recuperi', se: (b) => b.modalita !== 'ingressi' && b.modalita !== 'libero' },
     { k: 'num_ingressi', etichetta: 'Ingressi del pacchetto', tipo: 'numero', gruppo: 'Lezioni e recuperi', se: (b) => b.modalita === 'ingressi' },
