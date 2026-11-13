@@ -2,6 +2,7 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { supabaseBrowser } from '@/lib/supabase/browser';
+import { scollegaPush } from '@/lib/push';
 import Testata from '../Testata';
 import Benvenuto from './accedi/Benvenuto';
 import MenuArea from './MenuArea';
@@ -19,6 +20,7 @@ export default function ContornoArea({ children }) {
     try { const t = localStorage.getItem('rm-tema'); if (t === 'chiaro' || t === 'scuro') document.documentElement.setAttribute('data-tema', t); } catch { /* niente */ }
   }, []);
   async function esci() {
+    await scollegaPush();   // il telefono non riceve più le notifiche di questo account
     await supabaseBrowser().auth.signOut();
     router.replace('/area/accedi');
     router.refresh();

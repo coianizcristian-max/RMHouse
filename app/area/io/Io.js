@@ -3,6 +3,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { supabaseBrowser } from '@/lib/supabase/browser';
+import { scollegaPush } from '@/lib/push';
 import { dataBreve } from '@/lib/formato';
 import CaricaCertificato from '../../CaricaCertificato';
 import InstallaApp from '../InstallaApp';
@@ -30,6 +31,7 @@ export default function Io({ titolare, persone, anagrafica = [], richieste = [],
   const p = persone.find((x) => x.id === scelta) || persone[0];
 
   async function esci() {
+    await scollegaPush();   // il telefono non riceve più le notifiche di questo account
     await supabaseBrowser().auth.signOut();
     router.replace('/area/accedi'); router.refresh();
   }

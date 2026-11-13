@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { supabaseBrowser } from '@/lib/supabase/browser';
-import { iscriviPush } from '@/lib/push';
+import { iscriviPush, SPENTE } from '@/lib/push';
 
 // Attivazione delle notifiche sul telefono.
 // Su iPhone funzionano solo se il sito è stato aggiunto alla schermata iniziale.
@@ -62,6 +62,7 @@ export default function Notifiche({ preferenze = null }) {
         await supabaseBrowser().rpc('cancella_push', { p_endpoint: sub.endpoint });
         await sub.unsubscribe();
       }
+      try { localStorage.setItem(SPENTE, '1'); } catch { /* niente */ }
       setStato('spente');
     } catch { setErrore('Non è stato possibile spegnerle.'); }
   }

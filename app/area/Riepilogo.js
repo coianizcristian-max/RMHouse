@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { periodo } from '@/lib/workshop';
 import { useRouter } from 'next/navigation';
 import { supabaseBrowser } from '@/lib/supabase/browser';
+import { scollegaPush } from '@/lib/push';
 import InstallaApp from './InstallaApp';
 import { ora, dataBreve, giornoLungo } from '@/lib/formato';
 import Notifiche from './Notifiche';
@@ -41,6 +42,7 @@ export default function Riepilogo({ dati, materiali = [], inVerifica = [], aspet
   }
 
   async function esci() {
+    await scollegaPush();   // il telefono non riceve più le notifiche di questo account
     await supabaseBrowser().auth.signOut();
     router.replace('/');
     router.refresh();

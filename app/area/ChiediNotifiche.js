@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
-import { pushSupportato, registrazione, iscriviPush } from '@/lib/push';
+import { pushSupportato, registrazione, iscriviPush, spenteAMano } from '@/lib/push';
 
 // Al primo ingresso nell'app chiediamo noi se attivare le notifiche, senza aspettare che la persona
 // le cerchi in "Io". Il telefono mostra la sua richiesta di permesso solo dopo un tocco: per questo
@@ -24,9 +24,11 @@ export default function ChiediNotifiche() {
       try {
         const reg = await registrazione();
         const sub = await reg.pushManager.getSubscription();
-        if (sub || finito) return;
-        // permesso già dato (es. app reinstallata): ricolleghiamo il telefono senza chiedere nulla
+        if (finito || spenteAMano()) return;
+        // permesso già dato: ricolleghiamo SEMPRE il telefono all'account entrato adesso (stesso telefono, account
+        // diverso = le notifiche devono seguire chi è dentro, non chi c'era prima); se non c'era, come prima
         if (Notification.permission === 'granted') { await iscriviPush().catch(() => null); return; }
+        if (sub) return;
         if (Notification.permission === 'denied') return;
         const s = leggi();
         if ((s.no || 0) >= 3 || (s.dopo && Date.now() < s.dopo)) return;
