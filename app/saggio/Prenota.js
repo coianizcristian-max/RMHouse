@@ -40,6 +40,7 @@ export default function Prenota({ b, carta }) {
   const [offerta, setOfferta] = useState(0);
   const [altra, setAltra] = useState('');
   const [dati, setDati] = useState({ nome: '', cognome: '', email: '', telefono: '' });
+  const [persone, setPersone] = useState([{ nome: '', cognome: '' }]);   // un nominativo per posto
   const [privacy, setPrivacy] = useState(false);
   const [invio, setInvio] = useState(false);
   const [errore, setErrore] = useState('');
@@ -69,7 +70,13 @@ export default function Prenota({ b, carta }) {
     const r = await fetch('/api/biglietteria/verifica', { method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ allievo_id: allievoId, nascita }) }).catch(() => null);
     const d = r ? await r.json().catch(() => ({})) : {};
-    if (!r?.ok || !d.ok) { setVerifica({ invio: false, errore: d.errore || 'Controllo non riuscito. Riprova.' }); return; }
+    if (!r?.ok || !d.ok) {
+      // due allievi con lo stesso nome e cognome ("Marta Neri (1)" e "(2)"): forse è l'altro
+      const scelto = (elenco || []).find((a) => a.id === allievoId);
+      const doppio = scelto && /\(\d+\)$/.test(scelto.cognome || '');
+      setVerifica({ invio: false, errore: (d.errore || 'Controllo non riuscito. Riprova.') + (doppio && r?.status === 409 ? ' Nel gruppo ci sono due allievi con lo stesso nome: prova a scegliere l\'altro.' : '') });
+      return;
+    }
     setVerifica({ invio: false, errore: '' }); setAllievo({ id: allievoId, ...d }); setPosti(1);
   }
 
@@ -82,6 +89,13 @@ export default function Prenota({ b, carta }) {
   }, [s, allievo]);
   useEffect(() => { if (posti > maxPosti) setPosti(Math.max(maxPosti, 1)); }, [maxPosti]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // i nominativi seguono il numero di posti; il primo, se vuoto, è chi prenota
+  useEffect(() => {
+    setPersone((v) => Array.from({ length: posti }, (_, k) => v[k] || { nome: '', cognome: '' }));
+  }, [posti]);
+  const setPersona = (k, campo) => (e) => setPersone((v) => v.map((x, i) => (i === k ? { ...x, [campo]: e.target.value } : x)));
+  const normale = (x) => `${x.nome} ${x.cognome}`.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z]+/g, ' ').trim();
+  const ripetuto = persone.find((x, k) => normale(x) && persone.findIndex((y) => normale(y) === normale(x)) !== k);
   const offertaCent = altra !== '' ? Math.max(0, Math.round(Number(altra.replace(',', '.')) * 100) || 0) : offerta;
   const totale = totaleBiglietti(s, { posti, pizze, offerta: offertaCent });
   const manca = !s ? 'Scegli lo spettacolo.'
@@ -90,6 +104,8 @@ export default function Prenota({ b, carta }) {
       : maxPosti < 1 ? 'Non ci sono più posti disponibili.'
         : !dati.nome.trim() || !dati.cognome.trim() ? 'Scrivi nome e cognome.'
           : !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(dati.email.trim()) ? 'Scrivi la tua email: lì arrivano i biglietti.'
+            : persone.some((x) => !x.nome.trim() || !x.cognome.trim()) ? 'Scrivi nome e cognome di ogni persona che viene (uno per posto).'
+              : ripetuto ? `Hai scritto due volte ${ripetuto.nome.trim()} ${ripetuto.cognome.trim()}.`
             : !privacy ? 'Serve il consenso al trattamento dei dati.' : '';
 
   async function invia(conCarta) {
@@ -98,7 +114,7 @@ export default function Prenota({ b, carta }) {
     const r = await fetch('/api/biglietteria/prenota', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ spettacolo_id: s.id, allievo_id: allievo?.id || null, nascita: allievo ? nascita : null, posti, pizze: s.pizza_aperta ? pizze : 0,
-        offerta_cent: s.offerta_libera ? offertaCent : 0, ...dati, privacy, carta: conCarta }),
+        offerta_cent: s.offerta_libera ? offertaCent : 0, ...dati, partecipanti: persone, privacy, carta: conCarta }),
     }).catch(() => null);
     const d = r ? await r.json().catch(() => ({})) : {};
     if (!r?.ok) { setInvio(false); setErrore(d.errore || 'Prenotazione non riuscita. Controlla la connessione e riprova.'); return; }
@@ -162,7 +178,8 @@ export default function Prenota({ b, carta }) {
       {s?.descrizione && <p className="piccolo" style={{ whiteSpace: 'pre-line' }}>{s.descrizione}</p>}
 
       {s && (
-        <>
+        <div className="bg-layout">
+        <div className="bg-passi">
           {s.con_allievi && (
             <>
               <h2 className="bg-passo">2 · Chi vieni a vedere?{!s.limite_allievo && <span className="muto piccolo"> (facoltativo)</span>}</h2>
@@ -170,7 +187,7 @@ export default function Prenota({ b, carta }) {
                 Per prenotarli conferma con la data di nascita dell&apos;allievo/a.</p>}
               {allievo ? (
                 <div className="bg-allievo-scelto">
-                  <span><strong>{allievo.nome}</strong>{allievo.gruppo ? ` · ${allievo.gruppo}` : ''} ✓
+                  <span>Vieni a vedere <strong>{allievo.nome}</strong>{allievo.gruppo ? ` · ${allievo.gruppo}` : ''} ✓
                     {s.limite_allievo && <span className="piccolo muto"> · {allievo.rimasti === 1 ? '1 posto disponibile' : `${allievo.rimasti} posti disponibili`}</span>}</span>
                   <button type="button" className="link-btn piccolo" onClick={() => { setAllievo(null); setAllievoId(''); setNascita(''); }}>cambia</button>
                 </div>
@@ -234,9 +251,33 @@ export default function Prenota({ b, carta }) {
             <div className="campo"><label htmlFor="bg-email">Email (qui arrivano i biglietti)</label><input id="bg-email" type="email" value={dati.email} onChange={(e) => setDati({ ...dati, email: e.target.value })} autoComplete="email" /></div>
             <div className="campo"><label htmlFor="bg-tel">Telefono <span className="muto">(facoltativo)</span></label><input id="bg-tel" type="tel" value={dati.telefono} onChange={(e) => setDati({ ...dati, telefono: e.target.value })} autoComplete="tel" /></div>
           </div>
+
+          <h2 className="bg-passo">{s.con_allievi ? '5' : '4'} · Chi viene? <span className="muto piccolo">(un nome per biglietto)</span></h2>
+          <p className="piccolo muto">Ogni biglietto è nominativo: scrivi nome e cognome di ogni persona. La stessa persona non può essere prenotata due volte.</p>
+          <div className="bg-persone">
+            {persone.map((x, k) => (
+              <div key={k} className="bg-persona">
+                <span className="bg-num">{k + 1}</span>
+                <input className="bg-input" aria-label={`Nome persona ${k + 1}`} placeholder="Nome" value={x.nome} onChange={setPersona(k, 'nome')} autoComplete="off" />
+                <input className="bg-input" aria-label={`Cognome persona ${k + 1}`} placeholder="Cognome" value={x.cognome} onChange={setPersona(k, 'cognome')} autoComplete="off" />
+                {k === 0 && !x.nome && !x.cognome && (dati.nome || dati.cognome) && (
+                  <button type="button" className="link-btn piccolo" onClick={() => setPersone((v) => v.map((y, i) => (i === 0 ? { nome: dati.nome, cognome: dati.cognome } : y)))}>sono io</button>
+                )}
+              </div>
+            ))}
+          </div>
+          {ripetuto && <div className="errore" role="alert">Hai scritto due volte {ripetuto.nome.trim()} {ripetuto.cognome.trim()}.</div>}
           <label className="spunta"><input type="checkbox" checked={privacy} onChange={(e) => setPrivacy(e.target.checked)} />
             <span>Ho letto l&apos;<Link href="/privacy" target="_blank">informativa privacy</Link> e acconsento al trattamento dei dati per la prenotazione.</span></label>
+        </div>
 
+        <aside className="bg-riepilogo" aria-label="Riepilogo">
+          <div className="bg-riep-testa">
+            <strong>{s.titolo}</strong>
+            <span className="piccolo">{quandoSpettacolo(s.inizio)}</span>
+            {allievo && <span className="piccolo">per {allievo.nome}</span>}
+            <span className="piccolo">{posti} {posti === 1 ? 'posto' : 'posti'}{pizze ? ` · ${pizze} ${pizze === 1 ? 'pizza' : 'pizze'}` : ''}</span>
+          </div>
           <div className="isc-totale bg-totale">
             {s.contributo_cent > 0 && <div><span>Contributo{s.contributo_per_posto ? ` × ${posti}` : ''}</span><span>{euro(s.contributo_cent * (s.contributo_per_posto ? posti : 1))}</span></div>}
             {s.pizza_aperta && pizze > 0 && <div><span>Pizze × {pizze}</span><span>{euro(pizze * s.pizza_cent)}</span></div>}
@@ -256,7 +297,8 @@ export default function Prenota({ b, carta }) {
             )}
           </div>
           {totale > 0 && <p className="piccolo muto">I biglietti (un QR per persona) arrivano per email quando il pagamento è confermato.</p>}
-        </>
+        </aside>
+        </div>
       )}
     </div>
   );

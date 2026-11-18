@@ -21,6 +21,7 @@ export async function POST(request) {
     allievo_id: /^[0-9a-f-]{36}$/i.test(b.allievo_id || '') ? b.allievo_id : null,
     posti: intero(b.posti, 0, 100), pizze: intero(b.pizze, 0, 50), offerta_cent: intero(b.offerta_cent, 0, 100000),
     nascita: /^\d{4}-\d{2}-\d{2}$/.test(b.nascita || '') ? b.nascita : null,
+    partecipanti: Array.isArray(b.partecipanti) ? b.partecipanti.slice(0, 100).map((x) => ({ nome: testo(x?.nome, 60), cognome: testo(x?.cognome, 60) })) : [],
     nome: testo(b.nome), cognome: testo(b.cognome), email: testo(b.email, 200), telefono: testo(b.telefono, 30), note: testo(b.note, 300),
   } });
   if (error) {

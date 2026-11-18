@@ -59,7 +59,8 @@ export default function Ingresso({ codice, titolo, spettacoli }) {
           <strong className="bg-esito-scritta">{esito.esito === 'errore' ? esito.messaggio : scritta}</strong>
           {esito.nome && (
             <>
-              <span className="bg-esito-nome">{esito.nome}{esito.allievo ? ` · per ${esito.allievo}` : ''}</span>
+              <span className="bg-esito-nome">{esito.nome}</span>
+              <span>{esito.allievo ? `per ${esito.allievo} · ` : ''}prenotato da {esito.prenotato_da}</span>
               <span>{esito.spettacolo} · {oraSpettacolo(esito.inizio)} · biglietto {esito.numero} di {esito.di}</span>
               {esito.pizze > 0 && <span><strong>{esito.pizze} {esito.pizze === 1 ? 'pizza' : 'pizze'}</strong></span>}
               {esito.esito === 'gia_entrato' && esito.entrato_prima && (

@@ -1,9 +1,9 @@
-import Link from 'next/link';
 import Testata from '../Testata';
 import { supabaseAdmin } from '@/lib/supabase/admin';
 import { SLUG } from '@/lib/palestra';
 import { stripeAttivo } from '@/lib/stripe';
 import Prenota from './Prenota';
+import Benvenuto from './Benvenuto';
 
 export const dynamic = 'force-dynamic';
 export const metadata = { title: 'Biglietti saggio · Ritmo Metropolitano', description: 'Prenota il tuo posto al saggio: scegli lo spettacolo, l\'allievo e i posti.' };
@@ -13,10 +13,10 @@ export default async function PaginaSaggio({ searchParams }) {
   const { b } = (await searchParams) || {};
   const { data } = await supabaseAdmin().rpc('biglietteria_pubblica', { p_palestra_slug: SLUG, p_slug: typeof b === 'string' ? b.slice(0, 80) : null });
   const carta = !!data?.stripe && stripeAttivo();
-  return (
+  const pagina = (
     <>
-      <Testata destra={<Link href="/area" className="testata-link" prefetch={false}>Area clienti</Link>} />
-      <main className="pagina bg-pagina">
+      <Testata />
+      <main className="bg-pagina">
         {!data ? (
           <div className="intestazione"><h1>Biglietteria</h1><p>Le prenotazioni non sono ancora aperte. Riprova nei prossimi giorni!</p></div>
         ) : (
@@ -33,4 +33,8 @@ export default async function PaginaSaggio({ searchParams }) {
       </main>
     </>
   );
+  // con la locandina: prima l'immagine a tutto schermo, toccandola si apre la prenotazione
+  return data && (data.locandina_url || data.locandina_mobile_url)
+    ? <Benvenuto desktop={data.locandina_url} mobile={data.locandina_mobile_url} titolo={data.titolo}>{pagina}</Benvenuto>
+    : pagina;
 }

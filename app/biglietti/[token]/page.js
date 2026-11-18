@@ -28,7 +28,7 @@ export default async function PaginaBiglietti({ params, searchParams }) {
   return (
     <>
       <div className="bg-non-stampa"><Testata /></div>
-      <main className="pagina bg-pagina">
+      <main className="bg-pagina bg-pagina-biglietti">
         <div className="intestazione bg-non-stampa">
           <div className="occhiello">{p.evento}</div>
           <h1>{confermata ? (p.posti === 1 ? 'Il tuo biglietto' : `I tuoi ${p.posti} biglietti`) : 'La tua prenotazione'}</h1>
@@ -66,7 +66,8 @@ export default async function PaginaBiglietti({ params, searchParams }) {
                     <span className="occhiello">{p.evento}</span>
                     <strong>{p.spettacolo}</strong>
                     <span>{quandoSpettacolo(p.inizio)}</span>
-                    <span>{p.nome} {p.cognome}{p.allievo ? ` · per ${p.allievo}` : ''}</span>
+                    <span className="bg-intestatario">{x.nome || `${p.nome} ${p.cognome}`}</span>
+                    {p.allievo && <span className="piccolo">per {p.allievo}</span>}
                     <span className="piccolo">Biglietto {x.numero} di {p.posti}{x.numero === 1 && p.pizze > 0 ? ` · ${p.pizze} ${p.pizze === 1 ? 'pizza' : 'pizze'}` : ''}</span>
                     <span className="bg-cod">{x.codice}</span>
                     {x.entrato && <span className="tag tag-neutro">già usato</span>}

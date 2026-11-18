@@ -5200,3 +5200,80 @@ body:has(.sportello) .bottone-rapide { display: none; }
 .bt-anteprima { overflow-x: auto; margin: 8px 0; }
 .bt-anteprima table { font-size: 13px; }
 .bt-anteprima td.rosso { color: var(--rosso); }
+/* registro d'ingresso della biglietteria (online e stampato) */
+.bt-reg-testa h2 { font-size: 18px; margin: 4px 0 2px; }
+.bt-reg-testa p { margin: 0 0 8px; }
+.bt-reg-tabella { width: 100%; border-collapse: collapse; font-size: 14px; }
+.bt-reg-tabella th, .bt-reg-tabella td { padding: 7px 8px; border-bottom: 1px solid var(--linea); text-align: left; vertical-align: middle; }
+.bt-reg-tabella tr.tutti-dentro td { background: var(--ok-tenue, #e8f6ee); }
+.bt-reg-tabella .bt-num { text-align: center; }
+.bt-spunte { display: flex; flex-wrap: wrap; gap: 6px; }
+.bt-spunta { position: relative; display: inline-flex; cursor: pointer; }
+.bt-spunta input { position: absolute; inset: 0; opacity: 0; cursor: pointer; margin: 0; }
+.bt-casella { width: 26px; height: 26px; border: 2px solid var(--nero); border-radius: 6px; display: inline-block; background: var(--bianco); }
+.bt-spunta input:checked + .bt-casella { background: #1f9d55; border-color: #1f9d55; }
+.bt-spunta input:checked + .bt-casella::after { content: '✓'; display: block; color: #fff; font-weight: 900; text-align: center; line-height: 22px; }
+.bt-spunta input:focus-visible + .bt-casella { outline: 3px solid var(--rosso); outline-offset: 2px; }
+@media print {
+  /* si stampa solo il registro: il resto della pagina (menù, schede, riepilogo) sparisce */
+  body:has(.bt-registro) * { visibility: hidden; }
+  body:has(.bt-registro) .bt-registro, body:has(.bt-registro) .bt-registro * { visibility: visible; }
+  body:has(.bt-registro) .bt-registro { position: absolute; left: 0; top: 0; width: 100%; }
+  .bt-non-stampa { display: none !important; }
+  .bt-registro .bt-reg-tabella { font-size: 12px; }
+  .bt-registro .bt-reg-tabella th, .bt-registro .bt-reg-tabella td { border-bottom: 1px solid #999; padding: 5px 6px; }
+  .bt-registro tr { break-inside: avoid; }
+  .bt-registro tr.tutti-dentro td { background: none; }
+  .bt-registro .bt-spunta input:checked + .bt-casella { background: #fff; border-color: #000; }
+  .bt-registro .bt-spunta input:checked + .bt-casella::after { color: #000; }
+}
+.bg-persone { display: grid; gap: 6px; }
+.bg-persona { display: grid; grid-template-columns: 26px minmax(0, 1fr) minmax(0, 1fr) auto; gap: 6px; align-items: center; }
+.bg-persona input { min-width: 0; }
+.bg-num { width: 26px; height: 26px; border-radius: 50%; background: var(--carta); display: grid; place-items: center; font-weight: 800; font-size: 13px; }
+.bg-intestatario { font-weight: 800; font-size: 17px; }
+.bt-reg-tabella tr.prima td { border-top: 2px solid var(--linea); }
+.bt-eventi { display: grid; gap: 8px; margin-bottom: 8px; }
+.bt-evento { border: 1px solid var(--linea); border-radius: 12px; padding: 10px 12px; display: grid; gap: 8px; }
+.bt-evento-testa { display: grid; grid-template-columns: 20px minmax(0, 1fr) 110px auto; gap: 8px; align-items: center; }
+.bt-evento-testa input { min-width: 0; }
+.bt-evento-bottoni { display: inline-flex; gap: 8px; }
+.bt-evento-opzioni { display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center; }
+.bt-evento-opzioni .spunta { margin: 0; }
+.bt-mini { display: inline-flex; align-items: center; gap: 6px; font-size: 14px; }
+.bt-mini input { width: 70px; padding: 6px 8px; }
+@media (max-width: 600px) { .bt-evento-testa { grid-template-columns: 20px minmax(0, 1fr); } .bt-evento-testa input[type=time], .bt-evento-bottoni { grid-column: 2; } }
+/* biglietteria: locandina come pagina di benvenuto */
+.bg-benvenuto { position: fixed; inset: 0; z-index: 60; display: grid; place-items: center; padding: 0; border: 0; background: #000; cursor: pointer; }
+.bg-benvenuto picture, .bg-benvenuto img { display: block; width: 100%; height: 100%; }
+.bg-benvenuto img { object-fit: contain; }
+.bg-benvenuto-invito { position: absolute; left: 50%; bottom: calc(22px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%);
+  padding: 12px 22px; border-radius: 999px; background: var(--rosso); color: #fff; font: 800 17px/1 var(--font); box-shadow: 0 6px 24px rgba(0,0,0,.35);
+  white-space: nowrap; animation: bg-pulsa 2.4s ease-in-out infinite; }
+@keyframes bg-pulsa { 0%, 100% { transform: translateX(-50%) scale(1); } 50% { transform: translateX(-50%) scale(1.05); } }
+@media (prefers-reduced-motion: reduce) { .bg-benvenuto-invito { animation: none; } }
+.bt-locandine { display: grid; gap: 0 12px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); }
+.bt-locandine p { grid-column: 1 / -1; }
+/* biglietteria: struttura per telefono e computer */
+.bg-pagina { max-width: 1120px; margin: 0 auto; padding: var(--spazio); }
+.bg-pagina .intestazione { max-width: 760px; }
+.bg-prenota { max-width: none; }
+.bg-spettacoli { grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); }
+.bg-layout { display: grid; gap: 10px 28px; }
+.bg-passi { display: grid; gap: 10px; min-width: 0; align-content: start; }
+.bg-riepilogo { display: grid; gap: 10px; align-content: start; }
+.bg-riep-testa { display: none; }
+.bg-input { width: 100%; min-height: 44px; padding: 9px 12px; font: inherit; border: 1.5px solid #bdbdbd; border-radius: var(--r); background: var(--bianco); color: var(--testo); }
+.bg-input:focus { border-color: var(--nero); outline: none; }
+@media (min-width: 960px) {
+  .bg-pagina { padding: 28px 32px 48px; }
+  .bg-layout { grid-template-columns: minmax(0, 1fr) 340px; margin-top: 8px; }
+  .bg-riepilogo { position: sticky; top: 16px; align-self: start; padding: 18px; border: 1px solid var(--linea); border-radius: 18px; background: var(--bianco);
+    box-shadow: 0 8px 28px rgba(0,0,0,.06); margin-top: 18px; }
+  .bg-riep-testa { display: grid; gap: 2px; }
+  .bg-riep-testa strong { font-size: 17px; line-height: 1.25; }
+  .bg-riep-testa span:first-letter { text-transform: uppercase; }
+  .bg-riepilogo .isc-totale { margin: 4px 0; }
+  .bg-fatto { margin: 12px auto; padding: 24px; }
+  .bg-pagina-biglietti .bg-biglietti { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
