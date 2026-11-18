@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 
-// La pagina di benvenuto del link pubblico: la locandina a tutto schermo (computer e telefono).
+// La pagina di benvenuto del link pubblico: la locandina intera, adattata allo schermo (mai tagliata), computer e telefono.
 // Toccandola si apre la prenotazione. Senza locandina si va diretti alla prenotazione.
 export default function Benvenuto({ desktop, mobile, titolo, children }) {
   const [dentro, setDentro] = useState(!desktop && !mobile);
@@ -19,11 +19,12 @@ export default function Benvenuto({ desktop, mobile, titolo, children }) {
   if (dentro) return children;
   return (
     <button type="button" className="bg-benvenuto" onClick={entra} aria-label={`${titolo}: tocca per prenotare`}>
+      <span className="bg-benvenuto-sfondo" aria-hidden="true" style={{ backgroundImage: `url("${desktop || mobile}")` }} />
       <picture>
         {mobile && <source media="(max-width: 700px)" srcSet={mobile} />}
         <img src={desktop || mobile} alt={titolo} />
       </picture>
-      <span className="bg-benvenuto-invito">Prenota il tuo posto →</span>
+      <span className="bg-benvenuto-piede"><span className="bg-benvenuto-invito">Prenota il tuo posto →</span></span>
     </button>
   );
 }

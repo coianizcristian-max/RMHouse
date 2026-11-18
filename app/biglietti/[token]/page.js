@@ -32,7 +32,9 @@ export default async function PaginaBiglietti({ params, searchParams }) {
         <div className="intestazione bg-non-stampa">
           <div className="occhiello">{p.evento}</div>
           <h1>{confermata ? (p.posti === 1 ? 'Il tuo biglietto' : `I tuoi ${p.posti} biglietti`) : 'La tua prenotazione'}</h1>
-          <p>{p.spettacolo} · {quandoSpettacolo(p.inizio)} · prenotazione <strong>{p.codice}</strong></p>
+          {(p.eventi || []).length > 1
+            ? <><p>Prenotazione <strong>{p.codice}</strong>:</p><ul className="bg-eventi-elenco">{p.eventi.map((e, k) => <li key={k}>{e.spettacolo} · {quandoSpettacolo(e.inizio)} · {e.posti} {e.posti === 1 ? 'posto' : 'posti'}{e.pizze ? ` · ${e.pizze} pizz${e.pizze === 1 ? 'a' : 'e'}` : ''}</li>)}</ul></>
+            : <p>{p.spettacolo} · {quandoSpettacolo(p.inizio)} · prenotazione <strong>{p.codice}</strong></p>}
         </div>
 
         {p.stato === 'da_pagare' && (
@@ -64,11 +66,11 @@ export default async function PaginaBiglietti({ params, searchParams }) {
                   <div className="bg-qr" dangerouslySetInnerHTML={{ __html: qrSvg(`${sito}/gestione/biglietteria/ingresso?b=${x.codice}`) }} />
                   <div className="bg-testo">
                     <span className="occhiello">{p.evento}</span>
-                    <strong>{p.spettacolo}</strong>
-                    <span>{quandoSpettacolo(p.inizio)}</span>
+                    <strong>{x.spettacolo || p.spettacolo}</strong>
+                    <span>{quandoSpettacolo(x.inizio || p.inizio)}</span>
                     <span className="bg-intestatario">{x.nome || `${p.nome} ${p.cognome}`}</span>
-                    {p.allievo && <span className="piccolo">per {p.allievo}</span>}
-                    <span className="piccolo">Biglietto {x.numero} di {p.posti}{x.numero === 1 && p.pizze > 0 ? ` · ${p.pizze} ${p.pizze === 1 ? 'pizza' : 'pizze'}` : ''}</span>
+                    {(x.allievo ?? p.allievo) && <span className="piccolo">per {x.allievo ?? p.allievo}</span>}
+                    <span className="piccolo">Biglietto {x.numero} di {x.di || p.posti}{x.pizze > 0 ? ` · ${x.pizze} ${x.pizze === 1 ? 'pizza' : 'pizze'}` : ''}</span>
                     <span className="bg-cod">{x.codice}</span>
                     {x.entrato && <span className="tag tag-neutro">già usato</span>}
                   </div>

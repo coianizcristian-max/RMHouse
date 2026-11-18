@@ -5244,13 +5244,16 @@ body:has(.sportello) .bottone-rapide { display: none; }
 .bt-mini input { width: 70px; padding: 6px 8px; }
 @media (max-width: 600px) { .bt-evento-testa { grid-template-columns: 20px minmax(0, 1fr); } .bt-evento-testa input[type=time], .bt-evento-bottoni { grid-column: 2; } }
 /* biglietteria: locandina come pagina di benvenuto */
-.bg-benvenuto { position: fixed; inset: 0; z-index: 60; display: grid; place-items: center; padding: 0; border: 0; background: #000; cursor: pointer; }
-.bg-benvenuto picture, .bg-benvenuto img { display: block; width: 100%; height: 100%; }
-.bg-benvenuto img { object-fit: contain; }
-.bg-benvenuto-invito { position: absolute; left: 50%; bottom: calc(22px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%);
-  padding: 12px 22px; border-radius: 999px; background: var(--rosso); color: #fff; font: 800 17px/1 var(--font); box-shadow: 0 6px 24px rgba(0,0,0,.35);
-  white-space: nowrap; animation: bg-pulsa 2.4s ease-in-out infinite; }
-@keyframes bg-pulsa { 0%, 100% { transform: translateX(-50%) scale(1); } 50% { transform: translateX(-50%) scale(1.05); } }
+/* tutta la locandina sempre visibile (mai tagliata); ai lati la stessa immagine sfocata; il bottone sta sotto, non sopra */
+.bg-benvenuto { position: fixed; inset: 0; z-index: 60; display: flex; flex-direction: column; align-items: stretch; justify-content: center; gap: 0; padding: 0; border: 0;
+  background: #000; cursor: pointer; overflow: hidden; height: 100vh; height: 100dvh; }
+.bg-benvenuto-sfondo { position: absolute; inset: -40px; background-size: cover; background-position: center; filter: blur(28px) brightness(.45); transform: scale(1.1); }
+.bg-benvenuto picture { position: relative; flex: 0 1 auto; min-height: 0; display: flex; align-items: center; justify-content: center; padding: 12px 12px 0; }
+.bg-benvenuto img { display: block; max-width: 100%; max-height: calc(100vh - 96px); max-height: calc(100dvh - 96px); width: auto; height: auto; object-fit: contain; border-radius: 6px; box-shadow: 0 10px 40px rgba(0,0,0,.5); }
+.bg-benvenuto-piede { position: relative; flex: 0 0 auto; display: flex; justify-content: center; padding: 14px 16px calc(16px + env(safe-area-inset-bottom, 0px)); }
+.bg-benvenuto-invito { display: inline-block; padding: 13px 26px; border-radius: 999px; background: var(--rosso); color: #fff; font: 800 17px/1 var(--font);
+  box-shadow: 0 6px 24px rgba(0,0,0,.45); white-space: nowrap; animation: bg-pulsa 2.4s ease-in-out infinite; }
+@keyframes bg-pulsa { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
 @media (prefers-reduced-motion: reduce) { .bg-benvenuto-invito { animation: none; } }
 .bt-locandine { display: grid; gap: 0 12px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); }
 .bt-locandine p { grid-column: 1 / -1; }
@@ -5277,3 +5280,21 @@ body:has(.sportello) .bottone-rapide { display: none; }
   .bg-fatto { margin: 12px auto; padding: 24px; }
   .bg-pagina-biglietti .bg-biglietti { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
+/* biglietteria: più eventi nella stessa prenotazione */
+.bg-spettacolo { position: relative; padding-right: 46px; }
+.bg-spunta-evento { position: absolute; top: 12px; right: 12px; width: 24px; height: 24px; border: 2px solid var(--linea); border-radius: 6px;
+  display: grid; place-items: center; font-weight: 900; color: #fff; }
+.bg-spettacolo.scelto .bg-spunta-evento { background: var(--rosso); border-color: var(--rosso); }
+.bg-evento-scelto { display: grid; gap: 4px; padding: 14px 16px; border: 1.5px solid var(--linea); border-left: 5px solid var(--rosso); border-radius: 14px; background: var(--bianco); }
+.bg-evento-scelto[hidden] { display: none; }
+.bg-evento-titolo { display: grid; gap: 1px; margin-bottom: 4px; }
+.bg-evento-titolo strong { font-size: 18px; }
+.bg-evento-titolo span:first-letter { text-transform: uppercase; }
+.bg-blocco { display: grid; gap: 8px; padding-top: 8px; border-top: 1px solid var(--linea); margin-top: 6px; }
+.bg-sotto { font-size: 15px; margin: 0; }
+.bg-riep-evento { display: flex; justify-content: space-between; gap: 10px; align-items: baseline; }
+.bg-riep-evento > span:first-child { white-space: normal !important; }
+.bg-eventi-elenco { margin: 0 0 8px; padding-left: 20px; }
+.bt-ordine { color: var(--rosso-scuro); }
+.bg-layout[hidden] { display: none; }
+.bg-chips input { width: 96px; min-height: 36px; padding: 6px 10px; font: inherit; border: 1.5px solid #bdbdbd; border-radius: 999px; background: var(--bianco); color: var(--testo); }

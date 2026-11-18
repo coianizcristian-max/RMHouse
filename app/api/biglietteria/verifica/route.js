@@ -4,13 +4,14 @@ import { erroreBiglietteria } from '@/lib/biglietteria';
 
 export const dynamic = 'force-dynamic';
 
-// Il parente conferma con la data di nascita dell'allievo (errori contati: dopo 8 in un giorno, bloccato)
+// Il parente conferma l'allievo con la data di nascita (se l'evento la chiede) (errori contati: dopo 8 in un giorno, bloccato)
 export async function POST(request) {
   const b = await request.json().catch(() => null);
-  if (!b || !/^[0-9a-f-]{36}$/i.test(b.allievo_id || '') || !/^\d{4}-\d{2}-\d{2}$/.test(b.nascita || '')) {
+  // senza data: va bene solo se l'evento non la chiede (lo controlla la funzione nel database)
+  if (!b || !/^[0-9a-f-]{36}$/i.test(b.allievo_id || '') || (b.nascita && !/^\d{4}-\d{2}-\d{2}$/.test(b.nascita))) {
     return NextResponse.json({ ok: false, errore: 'Scrivi la data di nascita dell\'allievo/a.' }, { status: 400 });
   }
-  const { data, error } = await supabaseAdmin().rpc('biglietteria_verifica', { p_allievo: b.allievo_id, p_nascita: b.nascita });
+  const { data, error } = await supabaseAdmin().rpc('biglietteria_verifica', { p_allievo: b.allievo_id, p_nascita: b.nascita || null });
   if (error) return NextResponse.json({ ok: false, errore: 'Controllo non riuscito. Riprova.' }, { status: 500 });
   if (!data?.ok) return NextResponse.json({ ok: false, errore: erroreBiglietteria(data?.errore || '') || 'Dati non corretti.' }, { status: 409 });
   return NextResponse.json(data);
