@@ -8,6 +8,7 @@ import { qrSvg } from '@/lib/qr';
 import { euro } from '@/lib/formato';
 import { quandoSpettacolo } from '@/lib/biglietteria';
 import Azioni from './Azioni';
+import Promemoria from '../Promemoria';
 
 export const dynamic = 'force-dynamic';
 export const metadata = { title: 'I tuoi biglietti · Ritmo Metropolitano', robots: { index: false, follow: false } };
@@ -23,7 +24,6 @@ export default async function PaginaBiglietti({ params, searchParams }) {
   const h = await headers();
   const sito = (process.env.NEXT_PUBLIC_SITO_URL || `https://${h.get('host')}`).replace(/\/$/, '');
   const confermata = p.stato === 'pagata' || p.stato === 'gratis';
-  const causale = `SAGGIO ${p.codice} ${String(p.cognome || '').toUpperCase()}`;
 
   return (
     <>
@@ -33,19 +33,19 @@ export default async function PaginaBiglietti({ params, searchParams }) {
           <div className="occhiello">{p.evento}</div>
           <h1>{confermata ? (p.posti === 1 ? 'Il tuo biglietto' : `I tuoi ${p.posti} biglietti`) : 'La tua prenotazione'}</h1>
           {(p.eventi || []).length > 1
-            ? <><p>Prenotazione <strong>{p.codice}</strong>:</p><ul className="bg-eventi-elenco">{p.eventi.map((e, k) => <li key={k}>{e.spettacolo} · {quandoSpettacolo(e.inizio)} · {e.posti} {e.posti === 1 ? 'posto' : 'posti'}{e.pizze ? ` · ${e.pizze} pizz${e.pizze === 1 ? 'a' : 'e'}` : ''}</li>)}</ul></>
+            ? <><p>Prenotazione <strong>{p.codice}</strong>:</p><ul className="bg-eventi-elenco">{p.eventi.map((e, k) => <li key={k}>{e.spettacolo} · {quandoSpettacolo(e.inizio)} · {e.posti} {e.posti === 1 ? 'posto' : 'posti'}{e.extra_testo ? ` · ${e.extra_testo}` : ''}</li>)}</ul></>
             : <p>{p.spettacolo} · {quandoSpettacolo(p.inizio)} · prenotazione <strong>{p.codice}</strong></p>}
         </div>
 
         {p.stato === 'da_pagare' && (
-          <section className="scheda bg-non-stampa">
+          <section className="scheda bg-scheda-promemoria">
             {pagato ? <p><strong>Pagamento ricevuto da Stripe:</strong> lo stiamo registrando, tra pochi secondi aggiorna la pagina.</p> : (
               <>
-                <p>Da pagare <strong>{euro(p.totale_cent)}</strong>. Quando la segreteria vede il pagamento ti arrivano i biglietti per email (e compaiono qui).</p>
-                {p.link_pagamento && <a href={p.link_pagamento} target="_blank" rel="noopener noreferrer" className="btn btn-primario btn-pieno">Paga {euro(p.totale_cent)}</a>}
-                <p>Nella causale scrivi: <strong>{causale}</strong></p>
-                {p.istruzioni_pagamento && <p className="piccolo" style={{ whiteSpace: 'pre-line' }}>{p.istruzioni_pagamento}</p>}
-                {p.scade_at && <p className="piccolo muto">I posti restano tenuti fino al {new Date(p.scade_at).toLocaleDateString('it-IT', { timeZone: 'Europe/Rome' })}.</p>}
+                <Promemoria p={p} />
+                <div className="bg-passi-pagamento">
+                  <Azioni stampa testo="Scarica o stampa il promemoria" />
+                  {p.link_pagamento && <a href={p.link_pagamento} target="_blank" rel="noopener noreferrer" className="btn btn-primario btn-pieno">Vai al pagamento ({euro(p.totale_cent)})</a>}
+                </div>
               </>
             )}
             <Azioni token={token} carta={!pagato && p.stripe && stripeAttivo()} />
@@ -70,7 +70,7 @@ export default async function PaginaBiglietti({ params, searchParams }) {
                     <span>{quandoSpettacolo(x.inizio || p.inizio)}</span>
                     <span className="bg-intestatario">{x.nome || `${p.nome} ${p.cognome}`}</span>
                     {(x.allievo ?? p.allievo) && <span className="piccolo">per {x.allievo ?? p.allievo}</span>}
-                    <span className="piccolo">Biglietto {x.numero} di {x.di || p.posti}{x.pizze > 0 ? ` · ${x.pizze} ${x.pizze === 1 ? 'pizza' : 'pizze'}` : ''}</span>
+                    <span className="piccolo">Biglietto {x.numero} di {x.di || p.posti}{x.extra_testo ? ` · ${x.extra_testo}` : ''}</span>
                     <span className="bg-cod">{x.codice}</span>
                     {x.entrato && <span className="tag tag-neutro">già usato</span>}
                   </div>

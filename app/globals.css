@@ -5298,3 +5298,61 @@ body:has(.sportello) .bottone-rapide { display: none; }
 .bt-ordine { color: var(--rosso-scuro); }
 .bg-layout[hidden] { display: none; }
 .bg-chips input { width: 96px; min-height: 36px; padding: 6px 10px; font: inherit; border: 1.5px solid #bdbdbd; border-radius: 999px; background: var(--bianco); color: var(--testo); }
+/* biglietteria 216: passi con "Continua", riepilogo finale, promemoria di pagamento */
+.bg-continua { display: grid; gap: 8px; justify-items: start; margin-top: 12px; }
+.bg-continua .btn { min-width: 160px; }
+.bg-evento-titolo .bg-evento-togli { margin-left: auto; }
+.bg-evento-chiuso { border-left-color: #2e7d32 !important; }
+.bg-evento-chiuso .bg-evento-titolo strong { color: #2e7d32; }
+.bg-evento-sintesi { margin: 6px 0 4px; }
+.bg-blocco-scelta { display: grid; gap: 8px; margin: 6px 0 12px; }
+.bg-domanda { display: grid; gap: 8px; margin: 14px 0; padding: 16px; border: 1.5px dashed var(--rosso); border-radius: 14px; background: var(--bianco); }
+.bg-domanda p { margin: 0; }
+.bg-riepilogo-finale { display: grid; gap: 10px; margin-top: 6px; }
+.bg-nota { margin: 0; padding: 12px 14px; border-radius: 12px; background: #fff7e0; border: 1px solid #f0d58a; font-size: 14px; }
+.bg-fatto-largo { max-width: 760px; }
+.bg-passi-pagamento { display: grid; gap: 10px; margin-top: 12px; }
+.bg-promemoria { display: grid; gap: 10px; padding: 18px; border: 2px solid #111; border-radius: 14px; background: #fff; color: #111; }
+.bg-prom-testa { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; border-bottom: 1px solid #ddd; padding-bottom: 8px; }
+.bg-prom-testa h3 { margin: 2px 0 0; font-size: 20px; }
+.bg-prom-avviso { flex: 0 0 auto; padding: 6px 10px; border: 2px solid var(--rosso); border-radius: 8px; color: var(--rosso); font-weight: 800; font-size: 12px; text-align: center; line-height: 1.25; text-transform: uppercase; }
+.bg-prom-chi { margin: 0; }
+.bg-prom-tabella { width: 100%; border-collapse: collapse; }
+.bg-prom-tabella td { padding: 8px 0; border-bottom: 1px solid #eee; vertical-align: top; }
+.bg-prom-euro { text-align: right; white-space: nowrap; padding-left: 12px !important; }
+.bg-prom-totale td { font-weight: 800; font-size: 17px; border-bottom: 0; }
+.bg-prom-pagare { display: flex; gap: 16px; align-items: flex-start; justify-content: space-between; }
+.bg-prom-pagare p { margin: 0 0 6px; }
+.bg-prom-link { word-break: break-all; }
+.bg-prom-qr { flex: 0 0 110px; width: 110px; }
+.bg-prom-qr svg { width: 100%; height: auto; display: block; }
+.bg-prom-piede { margin: 0; color: #555; }
+@media (max-width: 520px) { .bg-prom-pagare { flex-direction: column; } .bg-prom-qr { align-self: center; } }
+@media print {
+  body:has(.bg-promemoria) * { visibility: hidden; }
+  body:has(.bg-promemoria) .bg-promemoria, body:has(.bg-promemoria) .bg-promemoria * { visibility: visible; }
+  body:has(.bg-promemoria) .bg-promemoria { position: absolute; left: 0; top: 0; width: 100%; border-width: 1px; }
+}
+/* opzioni extra (pizza, bibite…): grandi e leggibili; in rosso quelle lasciate a 0 da confermare */
+.bg-extra { display: grid; gap: 10px; }
+.bg-extra-voce { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px 14px; align-items: center; padding: 14px; border: 1.5px solid var(--linea); border-radius: 14px; background: var(--bianco); }
+.bg-extra-voce.scelta { border-color: #2e7d32; background: #f3faf3; }
+.bg-extra-voce.da-confermare { border-color: var(--rosso); background: #fff1f1; box-shadow: 0 0 0 3px rgba(229, 9, 20, .12); }
+.bg-extra-testo { display: grid; gap: 2px; }
+.bg-extra-nome { font-size: 17px; }
+.bg-extra-prezzo { font-weight: 700; color: var(--rosso); }
+.bg-extra-descr { font-size: 14px; }
+.bg-extra-zero { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between; color: var(--rosso); font-weight: 700; }
+.bg-extra-ok { grid-column: 1 / -1; }
+.bt-extra { display: grid; gap: 8px; padding: 12px; border: 1px dashed var(--linea); border-radius: 12px; }
+.bt-extra-riga { display: grid; grid-template-columns: minmax(0, 2fr) 80px auto auto; gap: 6px 8px; align-items: center; padding-bottom: 8px; border-bottom: 1px solid var(--linea); }
+.bt-extra-riga .bt-extra-descr { grid-column: 1 / -1; }
+@media (max-width: 600px) { .bt-extra-riga { grid-template-columns: minmax(0, 1fr) 80px; } }
+/* un colore per evento */
+.bg-evento-scelto { border-left-color: var(--colore-evento, var(--rosso)); }
+.bg-evento-scelto .bg-evento-titolo > strong { color: var(--colore-evento, inherit); }
+.bg-evento-chiuso { border-left-color: var(--colore-evento, #2e7d32) !important; }
+.bg-evento-chiuso .bg-evento-titolo strong { color: var(--colore-evento, #2e7d32); }
+.bg-spettacolo-colore { border-left: 5px solid var(--colore-evento) !important; }
+.bg-riep-colore { padding-left: 8px; border-left: 4px solid var(--colore-evento); }
+.bg-ok { color: #2e7d32; }

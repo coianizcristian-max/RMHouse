@@ -2,9 +2,13 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { euro } from '@/lib/formato';
-import { quandoSpettacolo, oraSpettacolo, totaleBiglietti } from '@/lib/biglietteria';
+import { quandoSpettacolo, oraSpettacolo, totaleBiglietti, quandoScade, testoExtra } from '@/lib/biglietteria';
+import Promemoria from '../biglietti/Promemoria';
 
 const OFFERTE = [0, 500, 1000, 2000];
+// un colore per evento (barra laterale, titolo, riepilogo): si distinguono a colpo d'occhio
+const COLORI = ['#e50914', '#1565c0', '#7b1fa2', '#ef6c00', '#00897b', '#c2185b', '#5d4037', '#3949ab'];
+const coloreDi = (s) => COLORI[((s.ordine ?? s.indice ?? 1) - 1 + COLORI.length) % COLORI.length];
 const dataBreve = (d) => (d ? new Date(`${d}T12:00:00Z`).toLocaleDateString('it-IT', { day: 'numeric', month: 'numeric' }) : '');
 const normale = (x) => `${x.nome} ${x.cognome}`.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z]+/g, ' ').trim();
 
@@ -22,13 +26,18 @@ const prezzoSpettacolo = (s) => {
   const parti = [];
   if (s.contributo_cent) parti.push(`contributo ${euro(s.contributo_cent)}${s.contributo_per_posto ? ' a persona' : ''}`);
   else parti.push('ingresso libero');
-  if (s.pizza_aperta) parti.push(`pizza ${euro(s.pizza_cent)}${s.pizza_entro ? ` (entro il ${dataBreve(s.pizza_entro)})` : ''}`);
+  (s.extra || []).filter((o) => o.aperta !== false).forEach((o) => parti.push(`${o.nome.toLowerCase()} ${euro(o.prezzo_cent)}${o.entro ? ` (entro il ${dataBreve(o.entro)})` : ''}`));
   return parti.join(' · ');
 };
 
 // ------------------------------------------------------------------ un evento scelto: allievo, posti, extra, nominativi
 // Resta montato anche quando lo si toglie (solo nascosto): riscegliendolo, i dati inseriti ci sono ancora.
-function SceltaEvento({ s, visibile, dati, onChange }) {
+function SceltaEvento({ s, visibile, dati, onChange, onTogli, onModifica }) {
+  const opzioni = (s.extra || []).filter((o) => o.aperta !== false);
+  const blocchi = [...(s.con_allievi ? ['allievo'] : []), 'posti', ...(opzioni.length ? ['extra'] : []), 'nomi'];
+  const [livello, setLivello] = useState(0);         // fin dove si è arrivati (i blocchi si aprono uno sotto l'altro)
+  const [chiuso, setChiuso] = useState(false);       // finito: si vede solo il riassunto
+  const [avviso, setAvviso] = useState('');
   const [gruppi, setGruppi] = useState(null);
   const [gruppo, setGruppo] = useState('');
   const [elenco, setElenco] = useState(null);
@@ -37,7 +46,9 @@ function SceltaEvento({ s, visibile, dati, onChange }) {
   const [allievo, setAllievo] = useState(null);
   const [verifica, setVerifica] = useState({ invio: false, errore: '' });
   const [posti, setPosti] = useState(1);
-  const [pizze, setPizze] = useState(0);
+  const [extra, setExtra] = useState({});             // id opzione → quantità
+  const [zeroOk, setZeroOk] = useState({});           // opzioni lasciate a 0 di proposito (confermate)
+  const [segnaZero, setSegnaZero] = useState(false);  // dopo «Continua»: le opzioni a 0 non confermate diventano rosse
   const [offerta, setOfferta] = useState(0);
   const [altra, setAltra] = useState('');
   const [persone, setPersone] = useState([{ nome: '', cognome: '' }]);
@@ -82,27 +93,66 @@ function SceltaEvento({ s, visibile, dati, onChange }) {
   const setPersona = (k, campo) => (e) => setPersone((v) => v.map((x, i) => (i === k ? { ...x, [campo]: e.target.value } : x)));
 
   const offertaCent = altra !== '' ? Math.max(0, Math.round(Number(altra.replace(',', '.')) * 100) || 0) : offerta;
-  const totale = totaleBiglietti(s, { posti, pizze, offerta: offertaCent });
+  const totale = totaleBiglietti(s, { posti, extra, offerta: offertaCent });
+  const scelteExtra = opzioni.map((o) => ({ id: o.id, nome: o.nome, quantita: extra[o.id] || 0, prezzo_cent: o.prezzo_cent }));
+  const zeroDaConfermare = opzioni.filter((o) => !(extra[o.id] > 0) && !zeroOk[o.id]);
+  const pizze = scelteExtra.reduce((n, o) => n + o.quantita, 0);
   const ripetuto = persone.find((x, k) => normale(x) && persone.findIndex((y) => normale(y) === normale(x)) !== k);
-  const manca = s.limite_allievo && !allievo ? (chiedi ? 'scegli gruppo e allievo/a e conferma con la data di nascita' : 'scegli gruppo e allievo/a')
-    : allievoId && !allievo ? (chiedi ? 'conferma l\'allievo/a con la data di nascita (o togli la scelta)' : 'attendi il controllo dell\'allievo/a (o togli la scelta)')
-      : maxPosti < 1 ? 'non ci sono più posti disponibili'
-        : persone.some((x) => !x.nome.trim() || !x.cognome.trim()) ? 'scrivi nome e cognome di ogni persona'
-          : ripetuto ? `hai scritto due volte ${ripetuto.nome.trim()} ${ripetuto.cognome.trim()}` : '';
+  const mancaBlocco = {
+    allievo: s.limite_allievo && !allievo ? (chiedi ? 'Scegli gruppo e allievo/a e conferma con la data di nascita.' : 'Scegli gruppo e allievo/a.')
+      : allievoId && !allievo ? (chiedi ? 'Conferma l\'allievo/a con la data di nascita (o togli la scelta).' : 'Attendi il controllo dell\'allievo/a.') : '',
+    posti: maxPosti < 1 ? 'Non ci sono più posti disponibili.' : '',
+    extra: zeroDaConfermare.length ? `Hai lasciato a 0: ${zeroDaConfermare.map((o) => o.nome).join(', ')}. Se non le vuoi conferma qui sopra, altrimenti scegli quante.` : '',
+    nomi: persone.some((x) => !x.nome.trim() || !x.cognome.trim()) ? 'Scrivi nome e cognome di ogni persona.'
+      : ripetuto ? `Hai scritto due volte ${ripetuto.nome.trim()} ${ripetuto.cognome.trim()}.` : '',
+  };
+  const manca = blocchi.map((k) => mancaBlocco[k]).find(Boolean) || '';
+  function continua() {
+    const m = mancaBlocco[blocchi[livello]];
+    if (blocchi[livello] === 'extra' && m) setSegnaZero(true);
+    if (m) { setAvviso(m); return; }
+    setAvviso('');
+    if (livello < blocchi.length - 1) setLivello(livello + 1); else setChiuso(true);
+  }
+  useEffect(() => { if (avviso && !mancaBlocco[blocchi[livello]]) setAvviso(''); }); // eslint-disable-line react-hooks/exhaustive-deps
+  const vedi = (k) => blocchi.indexOf(k) <= livello;
 
   // al genitore: quello che serve per riepilogo e invio
   useEffect(() => {
-    onChange(s.id, { manca, totale, posti, pizze: s.pizza_aperta ? pizze : 0, offerta_cent: s.offerta_libera ? offertaCent : 0,
+    onChange(s.id, { manca, fatto: chiuso && !manca, totale, posti, pizze, extra: scelteExtra.filter((o) => o.quantita > 0), offerta_cent: s.offerta_libera ? offertaCent : 0,
       allievo_id: allievo?.id || null, nascita: allievo && chiedi ? nascita : null, allievo_nome: allievo?.nome || null,
       partecipanti: persone, contributo_cent: (s.contributo_cent || 0) * (s.contributo_per_posto ? posti : 1) });
-  }, [manca, totale, posti, pizze, offertaCent, allievo, nascita, persone]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [manca, chiuso, totale, posti, extra, offertaCent, allievo, nascita, persone]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const primo = dati?.prenotante;
+  if (chiuso) {
+    return (
+      <section className="bg-evento-scelto bg-evento-chiuso" hidden={!visibile} aria-label={s.titolo} style={{ '--colore-evento': coloreDi(s) }}>
+        <div className="bg-evento-titolo"><strong><span className="bg-ok" aria-hidden="true">✓ </span>{s.titolo}</strong><span className="piccolo">{quandoSpettacolo(s.inizio)}</span></div>
+        <p className="bg-evento-sintesi">
+          {posti} {posti === 1 ? 'posto' : 'posti'}{allievo ? ` · per ${allievo.nome}` : ''}{pizze ? ` · ${testoExtra(scelteExtra)}` : ''}
+          {s.offerta_libera && offertaCent ? ` · offerta ${euro(offertaCent)}` : ''} · <strong>{totale ? euro(totale) : 'gratis'}</strong>
+          <br /><span className="piccolo muto">{persone.map((x) => `${x.nome.trim()} ${x.cognome.trim()}`).join(', ')}</span>
+        </p>
+        <div className="azioni">
+          <button type="button" className="link-btn piccolo" onClick={() => { setChiuso(false); onModifica?.(); }}>modifica</button>
+          <button type="button" className="link-btn piccolo pericolo" onClick={() => onTogli?.(s.id)}>togli questo evento</button>
+        </div>
+      </section>
+    );
+  }
+  const bottone = (k) => blocchi[livello] === k && (
+    <div className="bg-continua">
+      {avviso && <div className="errore" role="alert">{avviso}</div>}
+      <button type="button" className="btn btn-primario" onClick={continua}>{livello < blocchi.length - 1 ? 'Continua' : 'Fatto, continua'}</button>
+    </div>
+  );
   return (
-    <section className="bg-evento-scelto" hidden={!visibile} aria-label={s.titolo}>
-      <div className="bg-evento-titolo"><strong>{s.titolo}</strong><span className="piccolo">{quandoSpettacolo(s.inizio)}</span></div>
+    <section className="bg-evento-scelto" hidden={!visibile} aria-label={s.titolo} style={{ '--colore-evento': coloreDi(s) }}>
+      <div className="bg-evento-titolo"><strong>{s.titolo}</strong><span className="piccolo">{quandoSpettacolo(s.inizio)}</span>
+        <button type="button" className="link-btn piccolo pericolo bg-evento-togli" onClick={() => onTogli?.(s.id)}>togli</button></div>
 
-      {s.con_allievi && (
+      {s.con_allievi && vedi('allievo') && (
         <div className="bg-blocco">
           <h3 className="bg-sotto">Chi vieni a vedere?{!s.limite_allievo && <span className="muto piccolo"> (facoltativo)</span>}</h3>
           {s.limite_allievo && <p className="piccolo muto">Ogni allievo/a ha {s.posti_per_allievo} posti per il suo pubblico{s.liberi_dal ? `; dal ${dataBreve(s.liberi_dal)} i posti rimasti sono liberi per tutti` : ''}.{chiedi && ' Per prenotarli conferma con la data di nascita dell\'allievo/a.'}</p>}
@@ -143,18 +193,15 @@ function SceltaEvento({ s, visibile, dati, onChange }) {
               {verifica.errore && <div className="errore" role="alert">{verifica.errore}</div>}
             </div>
           )}
+          {bottone('allievo')}
         </div>
       )}
 
-      <div className="bg-blocco">
+      {vedi('posti') && <div className="bg-blocco">
         <h3 className="bg-sotto">Quanti siete?</h3>
         <div className="bg-righe">
           <div className="bg-riga"><label htmlFor={`bg-posti-${s.id}`}>Posti</label>
             <Contatore id={`bg-posti-${s.id}`} valore={posti} min={1} max={Math.max(maxPosti, 1)} onChange={setPosti} /></div>
-          {s.pizza_aperta && (
-            <div className="bg-riga"><label htmlFor={`bg-pizze-${s.id}`}>Pizze <span className="piccolo muto">{euro(s.pizza_cent)} l&apos;una{s.pizza_entro ? `, entro il ${dataBreve(s.pizza_entro)}` : ''}</span></label>
-              <Contatore id={`bg-pizze-${s.id}`} valore={pizze} max={30} onChange={setPizze} /></div>
-          )}
           {s.offerta_libera && (
             <div className="bg-riga bg-offerta"><span>Contribuisci alla nostra raccolta fondi <span className="piccolo muto">(facoltativo)</span></span>
               <div className="bg-chips">
@@ -166,9 +213,43 @@ function SceltaEvento({ s, visibile, dati, onChange }) {
             </div>
           )}
         </div>
-      </div>
+        {bottone('posti')}
+      </div>}
 
-      <div className="bg-blocco">
+      {opzioni.length > 0 && vedi('extra') && (
+        <div className="bg-blocco">
+          <h3 className="bg-sotto">Vuoi aggiungere qualcosa?</h3>
+          <p className="piccolo muto">Scegli quante ne vuoi per ogni voce. Se non ti interessa lasciala a 0 e conferma.</p>
+          <div className="bg-extra">
+            {opzioni.map((o) => {
+              const q = extra[o.id] || 0;
+              const rosso = segnaZero && !q && !zeroOk[o.id];
+              return (
+                <div key={o.id} className={`bg-extra-voce${q ? ' scelta' : ''}${rosso ? ' da-confermare' : ''}`}>
+                  <div className="bg-extra-testo">
+                    <strong className="bg-extra-nome">{o.nome}</strong>
+                    <span className="bg-extra-prezzo">{euro(o.prezzo_cent)} l&apos;una</span>
+                    {o.descrizione && <span className="bg-extra-descr">{o.descrizione}</span>}
+                    {o.entro && <span className="piccolo muto">si ordina entro il {dataBreve(o.entro)}</span>}
+                  </div>
+                  <Contatore id={`bg-extra-${s.id}-${o.id}`} valore={q} max={30}
+                             onChange={(v) => { setExtra((x) => ({ ...x, [o.id]: v })); if (v > 0) setZeroOk((z) => ({ ...z, [o.id]: false })); }} />
+                  {rosso && (
+                    <div className="bg-extra-zero" role="alert">
+                      <span>Hai lasciato 0 {o.nome.toLowerCase()}: è giusto?</span>
+                      <button type="button" className="btn btn-piccolo" onClick={() => setZeroOk((z) => ({ ...z, [o.id]: true }))}>Sì, non la voglio</button>
+                    </div>
+                  )}
+                  {!q && zeroOk[o.id] && <span className="piccolo muto bg-extra-ok">✓ nessuna, confermato</span>}
+                </div>
+              );
+            })}
+          </div>
+          {bottone('extra')}
+        </div>
+      )}
+
+      {vedi('nomi') && <div className="bg-blocco">
         <h3 className="bg-sotto">Chi viene? <span className="muto piccolo">(un nome per biglietto)</span></h3>
         <div className="bg-persone">
           {persone.map((x, k) => (
@@ -182,162 +263,221 @@ function SceltaEvento({ s, visibile, dati, onChange }) {
             </div>
           ))}
         </div>
-        {ripetuto && <div className="errore" role="alert">Hai scritto due volte {ripetuto.nome.trim()} {ripetuto.cognome.trim()}.</div>}
-      </div>
+        {ripetuto && !avviso && <div className="errore" role="alert">Hai scritto due volte {ripetuto.nome.trim()} {ripetuto.cognome.trim()}.</div>}
+        {bottone('nomi')}
+      </div>}
     </section>
   );
 }
 
-// ------------------------------------------------------------------ la pagina: uno o più eventi, un solo pagamento
+// ------------------------------------------------------------------ la pagina: un passo alla volta, un solo pagamento
+// 1) scegli un evento → i suoi passi si aprono uno sotto l'altro con "Continua"; 2) "Vuoi prenotare anche un altro evento?"
+// (si vedono solo quelli che mancano); 3) i tuoi dati; 4) riepilogo e conferma (qui si salva); 5) promemoria e pagamento.
 export default function Prenota({ b, carta }) {
-  const [scelti, setScelti] = useState(b.spettacoli.length === 1 && !b.spettacoli[0].chiuso ? [b.spettacoli[0].id] : []);
-  const [aperti, setAperti] = useState(scelti);           // eventi già toccati (restano montati, così non si perde niente)
+  const unico = b.spettacoli.length === 1 && !b.spettacoli[0].chiuso ? [b.spettacoli[0].id] : [];
+  const [elenco, setElenco] = useState(unico);            // eventi nella prenotazione, in ordine di scelta
+  const [aperti, setAperti] = useState(unico);            // eventi toccati (restano montati: togliendoli e rimettendoli i dati restano)
+  const [scegli, setScegli] = useState(!unico.length);    // si vede la scelta dell'evento
+  const [fase, setFase] = useState('eventi');             // eventi → dati → riepilogo
   const [righe, setRighe] = useState({});
   const [dati, setDati] = useState({ nome: '', cognome: '', email: '', telefono: '' });
   const [privacy, setPrivacy] = useState(false);
   const [invio, setInvio] = useState(false);
   const [errore, setErrore] = useState('');
   const [fatto, setFatto] = useState(null);
-  const perId = Object.fromEntries(b.spettacoli.map((s) => [s.id, s]));
-  const ordinati = b.spettacoli.filter((s) => scelti.includes(s.id));
+  const perId = Object.fromEntries(b.spettacoli.map((s, k) => [s.id, Object.assign(s, { indice: k + 1 })]));
+  const scelti = elenco.map((id) => perId[id]).filter(Boolean);
+  const disponibili = b.spettacoli.filter((x) => !elenco.includes(x.id) && !x.chiuso && x.posti_liberi !== 0);
+  const tuttiFatti = scelti.length > 0 && scelti.every((x) => righe[x.id]?.fatto);
+  const conclusi = scelti.filter((x) => righe[x.id]?.fatto);
+  const totale = conclusi.reduce((n, x) => n + (righe[x.id]?.totale || 0), 0);
+  const giu = (sel) => setTimeout(() => { try { document.querySelector(sel)?.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch { /* niente */ } }, 60);
 
-  function alterna(id) {
-    setErrore('');
-    setScelti((v) => (v.includes(id) ? v.filter((x) => x !== id) : [...v, id]));
-    setAperti((v) => (v.includes(id) ? v : [...v, id]));
+  function aggiungi(id) {
+    setErrore(''); setScegli(false); setFase('eventi');
+    setElenco((v) => [...v, id]); setAperti((v) => (v.includes(id) ? v : [...v, id]));
+    giu(`[data-evento="${id}"]`);
   }
+  function togli(id) { setElenco((v) => v.filter((x) => x !== id)); setFase('eventi'); if (elenco.length <= 1) setScegli(true); }
   const aggiorna = (id, d) => setRighe((v) => ({ ...v, [id]: d }));
 
-  const totale = ordinati.reduce((n, s) => n + (righe[s.id]?.totale || 0), 0);
-  const manca = !ordinati.length ? 'Scegli almeno un evento.'
-    : ordinati.map((s) => (righe[s.id]?.manca ? `${s.titolo}: ${righe[s.id].manca}.` : '')).find(Boolean)
-      || (!dati.nome.trim() || !dati.cognome.trim() ? 'Scrivi il tuo nome e cognome.'
-        : !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(dati.email.trim()) ? 'Scrivi la tua email: lì arrivano i biglietti.'
-          : !privacy ? 'Serve il consenso al trattamento dei dati.' : '');
+  // la scadenza del pagamento: X giorni lavorativi (dal server), mai dopo l'inizio del primo evento scelto
+  const primoInizio = scelti.map((x) => new Date(x.inizio)).sort((x, y) => x - y)[0];
+  const scadenza = b.scadenza_pagamento ? new Date(Math.min(new Date(b.scadenza_pagamento), primoInizio || Infinity)) : null;
+
+  const mancaDati = !dati.nome.trim() || !dati.cognome.trim() ? 'Scrivi il tuo nome e cognome.'
+    : !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(dati.email.trim()) ? 'Scrivi la tua email: lì arrivano promemoria e biglietti.'
+      : !privacy ? 'Serve il consenso al trattamento dei dati.' : '';
 
   async function invia(conCarta) {
-    if (manca) { setErrore(manca); return; }
+    const m = scelti.map((x) => (righe[x.id]?.manca ? `${x.titolo}: ${righe[x.id].manca}` : '')).find(Boolean) || mancaDati;
+    if (m) { setErrore(m); return; }
     setInvio(true); setErrore('');
     const r = await fetch('/api/biglietteria/prenota', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...dati, privacy, carta: conCarta, righe: ordinati.map((s) => {
-        const x = righe[s.id] || {};
-        return { spettacolo_id: s.id, allievo_id: x.allievo_id, nascita: x.nascita, posti: x.posti, pizze: x.pizze, offerta_cent: x.offerta_cent, partecipanti: x.partecipanti };
+      body: JSON.stringify({ ...dati, privacy, carta: conCarta, righe: scelti.map((x) => {
+        const y = righe[x.id] || {};
+        return { spettacolo_id: x.id, allievo_id: y.allievo_id, nascita: y.nascita, posti: y.posti, extra: (y.extra || []).map((o) => ({ id: o.id, quantita: o.quantita })), offerta_cent: y.offerta_cent, partecipanti: y.partecipanti };
       }) }),
     }).catch(() => null);
     const d = r ? await r.json().catch(() => ({})) : {};
     if (!r?.ok) { setInvio(false); setErrore(d.errore || 'Prenotazione non riuscita. Controlla la connessione e riprova.'); return; }
     if (d.url) { window.location.href = d.url; return; }
-    setInvio(false); setFatto({ ...d, email: dati.email.trim() });
+    setInvio(false);
+    setFatto({ ...d, email: dati.email.trim(), eventi: scelti.map((x) => ({ spettacolo: x.titolo, inizio: x.inizio, posti: righe[x.id].posti,
+      pizze: righe[x.id].pizze, extra_testo: testoExtra(righe[x.id].extra), allievo: righe[x.id].allievo_nome, totale_cent: righe[x.id].totale })) });
     try { window.scrollTo({ top: 0, behavior: 'smooth' }); } catch { /* niente */ }
   }
 
   if (fatto) {
-    const causale = `SAGGIO ${fatto.codice} ${dati.cognome.trim().toUpperCase()}`;
+    if (fatto.stato === 'gratis') {
+      return (
+        <section className="scheda bg-fatto" role="status">
+          <h2>Prenotato ✓</h2>
+          <p>Ti abbiamo mandato i biglietti a <strong>{fatto.email}</strong>: uno per persona, con il codice QR da mostrare all&apos;ingresso.</p>
+          <Link href={`/biglietti/${fatto.token}`} className="btn btn-primario btn-pieno btn-grande">Apri i biglietti</Link>
+        </section>
+      );
+    }
     return (
-      <section className="scheda bg-fatto" role="status">
-        {fatto.stato === 'gratis' ? (
-          <>
-            <h2>Prenotato ✓</h2>
-            <p>Ti abbiamo mandato i biglietti a <strong>{fatto.email}</strong>: uno per persona, con il codice QR da mostrare all&apos;ingresso.</p>
-            <Link href={`/biglietti/${fatto.token}`} className="btn btn-primario btn-pieno btn-grande">Apri i biglietti</Link>
-          </>
-        ) : (
-          <>
-            <h2>Posti tenuti per te ✓ Ora il pagamento</h2>
-            <p>Codice prenotazione <strong className="bg-codice">{fatto.codice}</strong>{fatto.eventi > 1 ? ` (${fatto.eventi} eventi)` : ''} · da pagare <strong>{euro(fatto.totale_cent)}</strong></p>
-            {b.link_pagamento && (
-              <a href={b.link_pagamento} target="_blank" rel="noopener noreferrer" className="btn btn-primario btn-pieno btn-grande">Paga {euro(fatto.totale_cent)}</a>
-            )}
-            <p>Nella causale scrivi: <strong>{causale}</strong>
-              <button type="button" className="link-btn piccolo" onClick={() => { try { navigator.clipboard.writeText(causale); } catch { /* niente */ } }}> copia</button></p>
-            {b.istruzioni_pagamento && <p className="piccolo" style={{ whiteSpace: 'pre-line' }}>{b.istruzioni_pagamento}</p>}
-            {carta && <button type="button" className="btn btn-pieno" onClick={async () => {
-              const r = await fetch('/api/biglietteria/paga', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token: fatto.token }) });
-              const d = await r.json().catch(() => ({})); if (d.url) window.location.href = d.url; else setErrore(d.errore || 'Pagamento con carta non disponibile.');
-            }}>Oppure paga con carta</button>}
-            <p className="piccolo">Quando la segreteria vede il pagamento ti arrivano tutti i biglietti in una email a <strong>{fatto.email}</strong>.
-              I posti restano tenuti per {b.giorni_per_pagare} giorni.</p>
-            <Link href={`/biglietti/${fatto.token}`} className="piccolo">Controlla qui lo stato della prenotazione</Link>
-          </>
-        )}
-        {errore && <div className="errore" role="alert">{errore}</div>}
+      <section className="bg-fatto bg-fatto-largo" role="status">
+        <div className="bg-non-stampa">
+          <h2>Prenotazione salvata ✓ Ora il pagamento</h2>
+          <p>I posti sono tenuti per te fino a <strong>{fatto.scade_at ? quandoScade(fatto.scade_at) : '—'}</strong>. Se il pagamento non arriva entro
+            quel momento la prenotazione scade e i posti tornano liberi.</p>
+        </div>
+        <Promemoria p={{ ...fatto, nome: dati.nome.trim(), cognome: dati.cognome.trim(), evento: b.titolo, link_pagamento: b.link_pagamento,
+          istruzioni_pagamento: b.istruzioni_pagamento, paga_in_segreteria: b.paga_in_segreteria, giorni_per_pagare: b.giorni_per_pagare }} />
+        <div className="bg-non-stampa bg-passi-pagamento">
+          <button type="button" className="btn btn-pieno btn-grande" onClick={() => window.print()}>1 · Scarica o stampa il promemoria</button>
+          {b.link_pagamento && (
+            <a href={b.link_pagamento} target="_blank" rel="noopener noreferrer" className="btn btn-primario btn-pieno btn-grande">2 · Vai al pagamento ({euro(fatto.totale_cent)})</a>
+          )}
+          {carta && <button type="button" className="btn btn-pieno" onClick={async () => {
+            const r = await fetch('/api/biglietteria/paga', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token: fatto.token }) });
+            const d = await r.json().catch(() => ({})); if (d.url) window.location.href = d.url; else setErrore(d.errore || 'Pagamento con carta non disponibile.');
+          }}>Oppure paga con carta</button>}
+          <p className="piccolo">Il promemoria ti arriva anche per email a <strong>{fatto.email}</strong>. Sul telefono «Scarica» apre la stampa: scegli «Salva come PDF».</p>
+          <Link href={`/biglietti/${fatto.token}`} className="piccolo">Controlla qui lo stato della prenotazione</Link>
+          {errore && <div className="errore" role="alert">{errore}</div>}
+        </div>
       </section>
     );
   }
 
   return (
     <div className="bg-prenota">
-      <h2 className="bg-passo">1 · A quali eventi vieni? <span className="muto piccolo">(puoi sceglierne più di uno)</span></h2>
-      <div className="bg-spettacoli" role="group" aria-label="Eventi">
-        {b.spettacoli.map((x) => {
-          const pieno = x.posti_liberi === 0;
-          const su = scelti.includes(x.id);
-          return (
-            <button key={x.id} type="button" aria-pressed={su} disabled={x.chiuso || pieno}
-                    className={`bg-spettacolo${su ? ' scelto' : ''}`} onClick={() => alterna(x.id)}>
-              <span className="bg-spunta-evento" aria-hidden="true">{su ? '✓' : ''}</span>
-              <strong>{x.titolo}</strong>
-              <span>{quandoSpettacolo(x.inizio)}</span>
-              <span className="piccolo">{prezzoSpettacolo(x)}</span>
-              {x.chiuso ? <span className="tag tag-neutro">chiuso</span> : pieno ? <span className="tag tag-neutro">tutto esaurito</span>
-                : x.posti_liberi != null && x.posti_liberi <= 20 ? <span className="tag tag-attenzione">ultimi {x.posti_liberi} posti</span> : null}
-            </button>
-          );
-        })}
-      </div>
-
-      {/* resta montato anche senza eventi scelti (solo nascosto): togliendoli tutti e rimettendoli i dati restano */}
-      {aperti.length > 0 && (
-        <div className="bg-layout" hidden={!ordinati.length}>
-          <div className="bg-passi">
-            <h2 className="bg-passo">2 · I dettagli {ordinati.length > 1 ? 'di ogni evento' : ''}</h2>
-            {/* tutti gli eventi toccati restano qui (nascosti se tolti): i dati non si perdono */}
-            {aperti.map((id) => perId[id] && (
-              <SceltaEvento key={id} s={perId[id]} visibile={scelti.includes(id)} dati={{ prenotante: dati }} onChange={aggiorna} />
-            ))}
-
-            <h2 className="bg-passo">3 · I tuoi dati</h2>
-            <div className="bg-dati">
-              <div className="campo"><label htmlFor="bg-nome">Nome</label><input id="bg-nome" value={dati.nome} onChange={(e) => setDati({ ...dati, nome: e.target.value })} autoComplete="given-name" /></div>
-              <div className="campo"><label htmlFor="bg-cognome">Cognome</label><input id="bg-cognome" value={dati.cognome} onChange={(e) => setDati({ ...dati, cognome: e.target.value })} autoComplete="family-name" /></div>
-              <div className="campo"><label htmlFor="bg-email">Email (qui arrivano i biglietti)</label><input id="bg-email" type="email" value={dati.email} onChange={(e) => setDati({ ...dati, email: e.target.value })} autoComplete="email" /></div>
-              <div className="campo"><label htmlFor="bg-tel">Telefono <span className="muto">(facoltativo)</span></label><input id="bg-tel" type="tel" value={dati.telefono} onChange={(e) => setDati({ ...dati, telefono: e.target.value })} autoComplete="tel" /></div>
+      <div className="bg-layout">
+        <div className="bg-passi">
+          <h2 className="bg-passo">1 · {scelti.length ? 'I tuoi eventi' : 'A quale evento vieni?'}</h2>
+          {aperti.map((id) => perId[id] && (
+            <div key={id} data-evento={id} hidden={!elenco.includes(id)}>
+              <SceltaEvento s={perId[id]} visibile={elenco.includes(id)} dati={{ prenotante: dati }} onChange={aggiorna}
+                            onTogli={togli} onModifica={() => setFase('eventi')} />
             </div>
-            <label className="spunta"><input type="checkbox" checked={privacy} onChange={(e) => setPrivacy(e.target.checked)} />
-              <span>Ho letto l&apos;<Link href="/privacy" target="_blank">informativa privacy</Link> e acconsento al trattamento dei dati per la prenotazione.</span></label>
-          </div>
+          ))}
 
-          <aside className="bg-riepilogo" aria-label="Riepilogo">
-            <div className="isc-totale bg-totale">
-              {ordinati.map((s) => {
-                const x = righe[s.id] || {};
-                return (
-                  <div key={s.id} className="bg-riep-evento">
-                    <span><strong>{oraSpettacolo(s.inizio)} {s.titolo}</strong>
-                      <span className="piccolo muto"> · {x.posti || 1} {x.posti === 1 || !x.posti ? 'posto' : 'posti'}{x.pizze ? ` · ${x.pizze} pizz${x.pizze === 1 ? 'a' : 'e'}` : ''}{x.allievo_nome ? ` · per ${x.allievo_nome}` : ''}</span></span>
-                    <span>{x.totale ? euro(x.totale) : 'gratis'}</span>
-                  </div>
-                );
-              })}
-              <div className="somma"><strong>Totale</strong><strong>{totale ? euro(totale) : 'gratis'}</strong></div>
+          {scegli && (
+            <div className="bg-blocco-scelta">
+              {scelti.length > 0 && <p className="bg-sotto">Scegli l&apos;evento da aggiungere</p>}
+              <div className="bg-spettacoli" role="group" aria-label="Eventi">
+                {b.spettacoli.filter((x) => !elenco.includes(x.id)).map((x) => {
+                  const pieno = x.posti_liberi === 0;
+                  return (
+                    <button key={x.id} type="button" disabled={x.chiuso || pieno} className="bg-spettacolo bg-spettacolo-colore" style={{ '--colore-evento': coloreDi(x) }} onClick={() => aggiungi(x.id)}>
+                      <strong>{x.titolo}</strong>
+                      <span>{quandoSpettacolo(x.inizio)}</span>
+                      <span className="piccolo">{prezzoSpettacolo(x)}</span>
+                      {x.chiuso ? <span className="tag tag-neutro">chiuso</span> : pieno ? <span className="tag tag-neutro">tutto esaurito</span>
+                        : x.posti_liberi != null && x.posti_liberi <= 20 ? <span className="tag tag-attenzione">ultimi {x.posti_liberi} posti</span> : null}
+                    </button>
+                  );
+                })}
+              </div>
+              {scelti.length > 0 && <button type="button" className="link-btn piccolo" onClick={() => setScegli(false)}>non aggiungo altro</button>}
             </div>
-            {errore && <div className="errore" role="alert">{errore}</div>}
-            <div className="bg-bottoni">
-              {totale === 0 ? (
-                <button type="button" className="btn btn-primario btn-pieno btn-grande" disabled={invio} onClick={() => invia(false)}>{invio ? 'Un attimo…' : 'Prenota i biglietti'}</button>
-              ) : (
+          )}
+
+          {tuttiFatti && !scegli && fase === 'eventi' && (
+            <div className="bg-domanda">
+              {disponibili.length > 0 ? (
                 <>
-                  {carta && <button type="button" className="btn btn-primario btn-pieno btn-grande" disabled={invio} onClick={() => invia(true)}>{invio ? 'Un attimo…' : `Paga ${euro(totale)} con carta`}</button>}
-                  <button type="button" className={`btn btn-pieno btn-grande${carta ? '' : ' btn-primario'}`} disabled={invio} onClick={() => invia(false)}>
-                    {invio ? 'Un attimo…' : b.link_pagamento ? `Prenota e paga ${euro(totale)}${carta ? ' con Satispay / link' : ''}` : `Prenota (${euro(totale)} da pagare)`}</button>
+                  <p><strong>Vuoi prenotare anche {disponibili.length === 1 ? `«${disponibili[0].titolo}»` : 'un altro evento'}?</strong></p>
+                  <div className="azioni">
+                    <button type="button" className="btn" onClick={() => setScegli(true)}>Sì, aggiungi</button>
+                    <button type="button" className="btn btn-primario" onClick={() => { setFase('dati'); giu('#bg-tuoi-dati'); }}>No, continua</button>
+                  </div>
                 </>
-              )}
+              ) : <button type="button" className="btn btn-primario" onClick={() => { setFase('dati'); giu('#bg-tuoi-dati'); }}>Continua</button>}
             </div>
-            {totale > 0 && <p className="piccolo muto">Un solo pagamento per tutto. I biglietti (un QR per persona) arrivano in una email quando il pagamento è confermato.</p>}
-          </aside>
+          )}
+
+          {tuttiFatti && fase !== 'eventi' && (
+            <>
+              <h2 className="bg-passo" id="bg-tuoi-dati">2 · I tuoi dati</h2>
+              <div className="bg-dati">
+                <div className="campo"><label htmlFor="bg-nome">Nome</label><input id="bg-nome" value={dati.nome} onChange={(e) => setDati({ ...dati, nome: e.target.value })} autoComplete="given-name" /></div>
+                <div className="campo"><label htmlFor="bg-cognome">Cognome</label><input id="bg-cognome" value={dati.cognome} onChange={(e) => setDati({ ...dati, cognome: e.target.value })} autoComplete="family-name" /></div>
+                <div className="campo"><label htmlFor="bg-email">Email (qui arrivano promemoria e biglietti)</label><input id="bg-email" type="email" value={dati.email} onChange={(e) => setDati({ ...dati, email: e.target.value })} autoComplete="email" /></div>
+                <div className="campo"><label htmlFor="bg-tel">Telefono <span className="muto">(facoltativo)</span></label><input id="bg-tel" type="tel" value={dati.telefono} onChange={(e) => setDati({ ...dati, telefono: e.target.value })} autoComplete="tel" /></div>
+              </div>
+              <label className="spunta"><input type="checkbox" checked={privacy} onChange={(e) => setPrivacy(e.target.checked)} />
+                <span>Ho letto l&apos;<Link href="/privacy" target="_blank">informativa privacy</Link> e acconsento al trattamento dei dati per la prenotazione.</span></label>
+              {fase === 'dati' && (
+                <div className="bg-continua">
+                  {errore && <div className="errore" role="alert">{errore}</div>}
+                  <button type="button" className="btn btn-primario" onClick={() => { if (mancaDati) { setErrore(mancaDati); return; } setErrore(''); setFase('riepilogo'); giu('#bg-riepilogo-finale'); }}>Continua</button>
+                </div>
+              )}
+            </>
+          )}
+
+          {tuttiFatti && fase === 'riepilogo' && (
+            <section className="bg-riepilogo-finale" id="bg-riepilogo-finale" aria-label="Riepilogo">
+              <h2 className="bg-passo">3 · Riepilogo</h2>
+              <div className="isc-totale bg-totale">
+                {scelti.map((x) => <RigaRiepilogo key={x.id} s={x} r={righe[x.id]} />)}
+                <div className="somma"><strong>Totale</strong><strong>{totale ? euro(totale) : 'gratis'}</strong></div>
+              </div>
+              <p className="piccolo">A nome di <strong>{dati.nome.trim()} {dati.cognome.trim()}</strong> · {dati.email.trim()}</p>
+              {totale > 0 ? (
+                <p className="bg-nota">Confermando <strong>salvi la prenotazione</strong> e i posti restano tenuti per te. Va pagata entro
+                  {' '}<strong>{scadenza ? quandoScade(scadenza) : `${b.giorni_per_pagare} giorni lavorativi`}</strong>{b.link_pagamento ? ' con il link che trovi nel passo successivo' : ''}:
+                  dopo, la prenotazione scade e i posti tornano liberi.{b.paga_in_segreteria ? ' Puoi anche passare in segreteria a saldare entro la stessa data.' : ''} Ti mostriamo subito il <strong>promemoria di pagamento</strong> (importo, causale, link)
+                  da scaricare, e te lo mandiamo anche per email.</p>
+              ) : <p className="bg-nota">Confermando ti mandiamo subito i biglietti per email.</p>}
+              {errore && <div className="errore" role="alert">{errore}</div>}
+              <div className="bg-bottoni">
+                <button type="button" className="btn btn-primario btn-pieno btn-grande" disabled={invio} onClick={() => invia(false)}>
+                  {invio ? 'Un attimo…' : 'Confermi la prenotazione?  Sì, conferma'}</button>
+                {totale > 0 && carta && <button type="button" className="btn btn-pieno" disabled={invio} onClick={() => invia(true)}>Conferma e paga subito con carta</button>}
+              </div>
+            </section>
+          )}
         </div>
-      )}
+
+        <aside className="bg-riepilogo" aria-label="La tua prenotazione">
+          <div className="isc-totale bg-totale">
+            {!scelti.length && <p className="piccolo muto">Scegli un evento per iniziare.</p>}
+            {scelti.map((x) => <RigaRiepilogo key={x.id} s={x} r={righe[x.id]} />)}
+            {conclusi.length > 0 && <div className="somma"><strong>Totale</strong><strong>{totale ? euro(totale) : 'gratis'}</strong></div>}
+          </div>
+          <p className="piccolo muto">Un solo pagamento per tutto. I biglietti (un QR per persona) arrivano in una email nei prossimi giorni, quando il pagamento è stato verificato e confermato dalla segreteria.</p>
+        </aside>
+      </div>
+    </div>
+  );
+}
+
+// una riga del riepilogo: l'importo compare solo quando l'evento è completato (persone comprese)
+function RigaRiepilogo({ s, r }) {
+  const x = r || {};
+  return (
+    <div className="bg-riep-evento bg-riep-colore" style={{ '--colore-evento': coloreDi(s) }}>
+      <span><strong>{oraSpettacolo(s.inizio)} {s.titolo}</strong>
+        {x.fatto ? <span className="piccolo muto"> · {x.posti} {x.posti === 1 ? 'posto' : 'posti'}{x.pizze ? ` · ${testoExtra(x.extra)}` : ''}{x.allievo_nome ? ` · per ${x.allievo_nome}` : ''}</span>
+          : <span className="piccolo muto"> · da completare</span>}</span>
+      <span>{x.fatto ? (x.totale ? euro(x.totale) : 'gratis') : '—'}</span>
     </div>
   );
 }

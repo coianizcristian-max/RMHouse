@@ -14,7 +14,9 @@ const riga = (x = {}) => ({
   spettacolo_id: UUID.test(x.spettacolo_id || '') ? x.spettacolo_id : null,
   allievo_id: UUID.test(x.allievo_id || '') ? x.allievo_id : null,
   nascita: /^\d{4}-\d{2}-\d{2}$/.test(x.nascita || '') ? x.nascita : null,
-  posti: intero(x.posti, 0, 100), pizze: intero(x.pizze, 0, 50), offerta_cent: intero(x.offerta_cent, 0, 100000),
+  posti: intero(x.posti, 0, 100),
+  extra: Array.isArray(x.extra) ? x.extra.slice(0, 20).map((o) => ({ id: testo(o?.id, 40), quantita: intero(o?.quantita, 0, 50) })).filter((o) => o.id && o.quantita > 0) : [],
+  offerta_cent: intero(x.offerta_cent, 0, 100000),
   partecipanti: Array.isArray(x.partecipanti) ? x.partecipanti.slice(0, 100).map((y) => ({ nome: testo(y?.nome, 60), cognome: testo(y?.cognome, 60) })) : [],
 });
 
@@ -39,6 +41,14 @@ export async function POST(request) {
       const url = await checkoutBiglietti(db, r.token, request);
       if (url) return NextResponse.json({ ...r, url });
     } catch (e) { console.error('Stripe biglietteria', e); }
+  }
+  // da pagare: la scadenza (giorni lavorativi, query 175) e il promemoria di pagamento per email (passa dalla coda)
+  if (r.stato === 'da_pagare') {
+    const [{ data: q }] = await Promise.all([
+      db.from('biglietteria_prenotazioni').select('scade_at').eq('id', r.id).maybeSingle(),
+      db.rpc('biglietteria_promemoria', { p_prenotazione: r.id }).then((x) => { if (x.error) console.error('Promemoria biglietteria', x.error); }),
+    ]);
+    return NextResponse.json({ ...r, scade_at: q?.scade_at || null });
   }
   return NextResponse.json(r);
 }

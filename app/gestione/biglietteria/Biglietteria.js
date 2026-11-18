@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { supabaseBrowser } from '@/lib/supabase/browser';
 import { euro, dataBreve } from '@/lib/formato';
-import { oraSpettacolo, quandoSpettacolo } from '@/lib/biglietteria';
+import { oraSpettacolo, quandoSpettacolo, testoExtra } from '@/lib/biglietteria';
 import { leggiCsv, leggiData } from '@/lib/csv';
 import Immagine from '../Immagine';
 import { righeXlsx, dataDaExcel } from '@/lib/xlsx';
@@ -30,7 +30,7 @@ const MODELLI = {
   saggio: { titolo: 'Saggio di Natale', testo: REGOLE, eventi: [
     { ...EVENTO_VUOTO, titolo: 'Christmas Aerial e Pole Dance show', ora: '15:30', con_allievi: true, contributo: '10' },
     { ...EVENTO_VUOTO, titolo: 'Christmas Streetdance show', ora: '18:00', con_allievi: true, contributo: '10' },
-    { ...EVENTO_VUOTO, titolo: 'Party con DJ set', ora: '19:00', offerta_libera: true, pizza: '8' },
+    { ...EVENTO_VUOTO, titolo: 'Party con DJ set', ora: '19:00', offerta_libera: true, pizza: '8' }, // la pizza diventa un'opzione extra (si cambia e se ne aggiungono altre in Eventi)
   ] },
   uno: { titolo: '', testo: '', eventi: [{ ...EVENTO_VUOTO, titolo: 'Spettacolo' }] },
 };
@@ -64,7 +64,7 @@ function Nuova({ palestraId, onFatto }) {
         titolo: e.titolo.trim(), inizio: new Date(`${data}T${e.ora || '20:00'}:00`).toISOString(), con_allievi: !!e.con_allievi,
         chiedi_nascita: e.chiedi_nascita !== false, posti_per_allievo: e.posti_per_allievo, liberi_dal: e.con_allievi ? liberi || null : null, capienza: e.capienza,
         contributo_cent: centDa(e.contributo) || 0, contributo_per_posto: !!e.contributo_per_posto, offerta_libera: !!e.offerta_libera,
-        pizza_cent: centDa(e.pizza), pizza_entro: centDa(e.pizza) ? pizzaEntro || null : null,
+        extra: centDa(e.pizza) ? [{ id: 'pizza', nome: 'Pizza', descrizione: '', prezzo_cent: centDa(e.pizza), entro: pizzaEntro || null }] : [],
       })),
     } });
     setInvio(false);
@@ -128,14 +128,19 @@ function Nuova({ palestraId, onFatto }) {
   );
 }
 
+// id stabile di un'opzione extra (dal nome, con un pezzo a caso per non confonderne due uguali)
+const idOpzione = (nome) => `${nome.toLowerCase().normalize('NFD').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 24) || 'extra'}-${Math.random().toString(36).slice(2, 6)}`;
+
 // ---------------------------------------------------------------- uno spettacolo (modifica)
 function Spettacolo({ s, nPren, onSalvato }) {
   const [v, setV] = useState({
     titolo: s.titolo, descrizione: s.descrizione || '', inizio: perInput(s.inizio), con_allievi: s.con_allievi, chiedi_nascita: s.chiedi_nascita !== false, posti_per_allievo: String(s.posti_per_allievo),
     liberi_dal: s.liberi_dal || '', capienza: s.capienza == null ? '' : String(s.capienza), max_per_prenotazione: String(s.max_per_prenotazione),
     contributo: euroTesto(s.contributo_cent), contributo_per_posto: s.contributo_per_posto, offerta_libera: s.offerta_libera,
-    pizza: euroTesto(s.pizza_cent), pizza_entro: s.pizza_entro || '', chiuso: s.chiuso,
+    chiuso: s.chiuso,
   });
+  const [extra, setExtra] = useState((s.extra || []).map((o) => ({ ...o, prezzo: euroTesto(o.prezzo_cent), entro: o.entro || '', descrizione: o.descrizione || '' })));
+  const setOpz = (k, campo) => (e) => setExtra((v) => v.map((o, i) => (i === k ? { ...o, [campo]: e.target.value } : o)));
   const [esito, setEsito] = useState('');
   const set = (k) => (e) => setV((x) => ({ ...x, [k]: e.target.type === 'checkbox' ? e.target.checked : e.target.value }));
   async function salva() {
@@ -146,7 +151,9 @@ function Spettacolo({ s, nPren, onSalvato }) {
       posti_per_allievo: Math.max(1, Number(v.posti_per_allievo) || 2), liberi_dal: v.liberi_dal || null,
       capienza: v.capienza === '' ? null : Math.max(0, Number(v.capienza) || 0), max_per_prenotazione: Math.max(1, Number(v.max_per_prenotazione) || 10),
       contributo_cent: centDa(v.contributo) || 0, contributo_per_posto: v.contributo_per_posto, offerta_libera: v.offerta_libera,
-      pizza_cent: centDa(v.pizza), pizza_entro: v.pizza_entro || null, chiuso: v.chiuso,
+      extra: extra.filter((o) => o.nome.trim()).map((o) => ({ id: o.id || idOpzione(o.nome), nome: o.nome.trim(), descrizione: o.descrizione.trim(),
+        prezzo_cent: centDa(o.prezzo) || 0, entro: o.entro || null })),
+      chiuso: v.chiuso,
     }).eq('id', s.id);
     setEsito(error ? `Non salvato: ${error.message}` : 'Salvato ✓');
     if (!error) onSalvato();
@@ -176,8 +183,19 @@ function Spettacolo({ s, nPren, onSalvato }) {
         )}
         <div className="campo"><label>Max posti per prenotazione</label><input inputMode="numeric" value={v.max_per_prenotazione} onChange={set('max_per_prenotazione')} /></div>
         <label className="spunta"><input type="checkbox" checked={v.offerta_libera} onChange={set('offerta_libera')} /><span>offerta libera per la raccolta fondi</span></label>
-        <div className="campo"><label>Pizza € (vuoto = niente)</label><input inputMode="decimal" value={v.pizza} onChange={set('pizza')} /></div>
-        <div className="campo"><label>Pizza entro il</label><input type="date" value={v.pizza_entro} onChange={set('pizza_entro')} /></div>
+        <div className="bt-largo bt-extra">
+          <strong>Opzioni extra</strong> <span className="piccolo muto">(es. pizza, pizza per celiaci, bibita): il pubblico sceglie quante ne vuole e deve confermare se le lascia a 0</span>
+          {extra.map((o, k) => (
+            <div key={k} className="bt-extra-riga">
+              <input aria-label="Nome dell'opzione" value={o.nome} onChange={setOpz(k, 'nome')} placeholder="Nome (es. Pizza margherita)" />
+              <input aria-label="Prezzo in euro" inputMode="decimal" value={o.prezzo} onChange={setOpz(k, 'prezzo')} placeholder="€" />
+              <label className="bt-mini">entro il <input type="date" value={o.entro} onChange={setOpz(k, 'entro')} /></label>
+              <button type="button" className="link-btn piccolo pericolo" onClick={() => setExtra((v) => v.filter((_, i) => i !== k))}>togli</button>
+              <input className="bt-extra-descr" aria-label="Descrizione" value={o.descrizione} onChange={setOpz(k, 'descrizione')} placeholder="Descrizione chiara (es. «pizza intera, ritiro al bar dalle 19:30»)" />
+            </div>
+          ))}
+          <button type="button" className="btn btn-piccolo" onClick={() => setExtra((v) => [...v, { id: '', nome: '', descrizione: '', prezzo: '', entro: '' }])}>Aggiungi un&apos;opzione</button>
+        </div>
         <div className="campo bt-largo"><label>Descrizione (si vede nella pagina)</label><textarea rows={2} value={v.descrizione} onChange={set('descrizione')} /></div>
         <label className="spunta"><input type="checkbox" checked={v.chiuso} onChange={set('chiuso')} /><span>prenotazioni chiuse per questo spettacolo</span></label>
       </div>
@@ -339,7 +357,7 @@ function Riga({ p, s, ordine = [], perId = {}, onFatto }) {
         <span className="bt-codice">{p.codice}</span>
       </div>
       <div className="piccolo">
-        {s ? `${oraSpettacolo(s.inizio)} ${s.titolo}` : ''} · {p.posti} {p.posti === 1 ? 'posto' : 'posti'}{p.pizze ? ` · ${p.pizze} pizz${p.pizze === 1 ? 'a' : 'e'}` : ''}
+        {s ? `${oraSpettacolo(s.inizio)} ${s.titolo}` : ''} · {p.posti} {p.posti === 1 ? 'posto' : 'posti'}{p.pizze ? ` · ${testoExtra(p.extra, p.pizze)}` : ''}
         {p.allievo_nome ? ` · per ${p.allievo_nome}` : ''} · <strong>{p.totale_cent ? euro(p.totale_cent) : 'gratis'}</strong>
         {(p.partecipanti || []).length > 0 && <span className="muto"> · {(p.partecipanti || []).map((x) => `${x.nome} ${x.cognome}`).join(', ')}</span>}
         {ordine.length > 1 && (
@@ -406,6 +424,8 @@ function Registro({ b, spettacoli, prenotazioni, biglietti }) {
   const tutti = righe.flatMap((p) => perPren[p.id] || []);
   const dentro = tutti.filter((x) => entrati[x.id]).length;
   const pizze = righe.reduce((n, p) => n + (p.pizze || 0), 0);
+  const sommaExtra = Object.entries(righe.reduce((m, p) => { (p.extra || []).forEach((o) => { m[o.nome] = (m[o.nome] || 0) + o.quantita; }); return m; }, {}))
+    .map(([n, q]) => `${q} × ${n}`).join(', ');
   async function segna(x, si) {
     setErrore('');
     setEntrati((e) => ({ ...e, [x.id]: si ? new Date().toISOString() : null }));
@@ -429,11 +449,11 @@ function Registro({ b, spettacoli, prenotazioni, biglietti }) {
       {errore && <div className="errore bt-non-stampa" role="alert">{errore}</div>}
       <div className="bt-reg-testa">
         <h2>{b.titolo} · {s ? `${s.titolo} · ${quandoSpettacolo(s.inizio)}` : ''}</h2>
-        <p>{tutti.length} persone · {righe.length} prenotazioni{pizze ? ` · ${pizze} pizze` : ''} · <span className="bt-non-stampa">entrati {dentro} su {tutti.length}</span></p>
+        <p>{tutti.length} persone · {righe.length} prenotazioni{pizze ? ` · ${sommaExtra || `${pizze} pizze`}` : ''} · <span className="bt-non-stampa">entrati {dentro} su {tutti.length}</span></p>
       </div>
       {righe.length === 0 ? <div className="vuoto">Nessuna prenotazione confermata per questo spettacolo.</div> : (
         <table className="bt-reg-tabella">
-          <thead><tr><th aria-label="Entrato">✓</th><th>Persona</th><th>Prenotato da</th>{s?.con_allievi && <th>Allievo/a</th>}{pizze > 0 && <th>Pizze</th>}<th>Codice</th></tr></thead>
+          <thead><tr><th aria-label="Entrato">✓</th><th>Persona</th><th>Prenotato da</th>{s?.con_allievi && <th>Allievo/a</th>}{pizze > 0 && <th>Extra</th>}<th>Codice</th></tr></thead>
           <tbody>
             {righe.flatMap((p) => (perPren[p.id] || []).map((x, k) => (
               <tr key={x.id} className={`${entrati[x.id] ? 'tutti-dentro' : ''}${k === 0 ? ' prima' : ''}`}>
@@ -446,7 +466,7 @@ function Registro({ b, spettacoli, prenotazioni, biglietti }) {
                 <td><strong>{x.nome || `${p.nome} ${p.cognome} (${x.numero})`}</strong>{entrati[x.id] && <span className="piccolo bt-non-stampa"> · {ora(entrati[x.id])}</span>}</td>
                 <td>{k === 0 ? <>{p.cognome} {p.nome}{p.telefono ? <span className="piccolo bt-non-stampa"> · {p.telefono}</span> : null}</> : <span className="muto">〃</span>}</td>
                 {s?.con_allievi && <td>{k === 0 ? (p.allievo_nome || '—') : ''}</td>}
-                {pizze > 0 && <td className="bt-num">{k === 0 ? (p.pizze || '') : ''}</td>}
+                {pizze > 0 && <td>{k === 0 ? testoExtra(p.extra, p.pizze) : ''}</td>}
                 <td className="bt-codice">{x.codice}</td>
               </tr>
             )))}
@@ -469,7 +489,7 @@ export default function Biglietteria({ palestraId, tutte, b, spettacoli, allievi
   const [sp, setSp] = useState('');
   const [cerca, setCerca] = useState('');
   const [nuova, setNuova] = useState(!b);
-  const [imp, setImp] = useState(b ? { titolo: b.titolo, sottotitolo: b.sottotitolo || '', link_pagamento: b.link_pagamento || '', istruzioni_pagamento: b.istruzioni_pagamento || '', giorni_per_pagare: String(b.giorni_per_pagare), stripe: b.stripe, locandina_url: b.locandina_url || null, locandina_mobile_url: b.locandina_mobile_url || null } : null);
+  const [imp, setImp] = useState(b ? { titolo: b.titolo, sottotitolo: b.sottotitolo || '', link_pagamento: b.link_pagamento || '', istruzioni_pagamento: b.istruzioni_pagamento || '', giorni_per_pagare: String(b.giorni_per_pagare), paga_in_segreteria: !!b.paga_in_segreteria, stripe: b.stripe, locandina_url: b.locandina_url || null, locandina_mobile_url: b.locandina_mobile_url || null } : null);
   const [esitoImp, setEsitoImp] = useState('');
   const aggiorna = () => router.refresh();
   const perId = Object.fromEntries(spettacoli.map((s) => [s.id, s]));
@@ -499,7 +519,7 @@ export default function Biglietteria({ palestraId, tutte, b, spettacoli, allievi
     if (link && !/^https?:\/\//i.test(link)) { setEsitoImp('Il link di pagamento deve iniziare con https://'); return; }
     const { error } = await supabaseBrowser().from('biglietterie').update({
       titolo: imp.titolo.trim() || b.titolo, sottotitolo: imp.sottotitolo.trim() || null, link_pagamento: link || null,
-      istruzioni_pagamento: imp.istruzioni_pagamento.trim() || null, giorni_per_pagare: Math.max(1, Number(imp.giorni_per_pagare) || 4), stripe: !!imp.stripe,
+      istruzioni_pagamento: imp.istruzioni_pagamento.trim() || null, giorni_per_pagare: Math.max(1, Number(imp.giorni_per_pagare) || 4), paga_in_segreteria: !!imp.paga_in_segreteria, stripe: !!imp.stripe,
       locandina_url: imp.locandina_url || null, locandina_mobile_url: imp.locandina_mobile_url || null,
     }).eq('id', b.id);
     setEsitoImp(error ? `Non salvato: ${error.message}` : 'Salvato ✓');
@@ -514,10 +534,10 @@ export default function Biglietteria({ palestraId, tutte, b, spettacoli, allievi
     if (!error) aggiorna();
   }
   function esporta() {
-    const righe = [['Codice', 'Stato', 'Spettacolo', 'Nome', 'Cognome', 'Email', 'Telefono', 'Allievo', 'Posti', 'Persone', 'Pizze', 'Offerta €', 'Totale €', 'Metodo', 'Prenotata', 'Pagata']];
+    const righe = [['Codice', 'Stato', 'Spettacolo', 'Nome', 'Cognome', 'Email', 'Telefono', 'Allievo', 'Posti', 'Persone', 'Extra', 'Offerta €', 'Totale €', 'Metodo', 'Prenotata', 'Pagata']];
     for (const p of visibili) {
       righe.push([p.codice, STATI[statoDi(p)], perId[p.spettacolo_id]?.titolo, p.nome, p.cognome, p.email, p.telefono, p.allievo_nome, p.posti,
-        (p.partecipanti || []).map((x) => `${x.nome} ${x.cognome}`).join(', '), p.pizze,
+        (p.partecipanti || []).map((x) => `${x.nome} ${x.cognome}`).join(', '), testoExtra(p.extra, p.pizze),
         euroTesto(p.offerta_cent), euroTesto(p.totale_cent), p.metodo, dataBreve(p.created_at), p.pagata_at ? dataBreve(p.pagata_at) : '']);
     }
     const blob = new Blob(['﻿' + righe.map((r) => r.map(csvCella).join(';')).join('\n')], { type: 'text/csv;charset=utf-8' });
@@ -563,7 +583,7 @@ export default function Biglietteria({ palestraId, tutte, b, spettacoli, allievi
           <div key={r.spettacolo_id} className="bt-tessera">
             <strong>{r.titolo}</strong>
             <span>{r.posti_confermati}{r.capienza != null ? ` / ${r.capienza}` : ''} posti confermati{r.posti_in_attesa ? ` · ${r.posti_in_attesa} da pagare` : ''}</span>
-            <span className="piccolo">{r.allievi ? `${r.allievi} allievi in elenco · ` : ''}{r.pizze ? `${r.pizze} pizze · ` : ''}incassato {euro(r.incassato_cent)}{r.da_incassare_cent ? ` · attesi ${euro(r.da_incassare_cent)}` : ''}</span>
+            <span className="piccolo">{r.allievi ? `${r.allievi} allievi in elenco · ` : ''}{r.pizze ? `${r.pizze} extra ordinati · ` : ''}incassato {euro(r.incassato_cent)}{r.da_incassare_cent ? ` · attesi ${euro(r.da_incassare_cent)}` : ''}</span>
             {r.entrati > 0 && <span className="piccolo">entrati {r.entrati}</span>}
           </div>
         ))}
@@ -633,8 +653,10 @@ export default function Biglietteria({ palestraId, tutte, b, spettacoli, allievi
             <div className="campo bt-largo"><label htmlFor="bi-i">Istruzioni per il pagamento</label>
               <textarea id="bi-i" rows={3} value={imp.istruzioni_pagamento} onChange={(e) => setImp({ ...imp, istruzioni_pagamento: e.target.value })}
                         placeholder="es. Paga con Satispay alla scuola Ritmo Metropolitano e scrivi il codice nel messaggio." /></div>
-            <div className="campo"><label htmlFor="bi-g">Giorni per pagare (poi i posti si liberano)</label>
+            <div className="campo"><label htmlFor="bi-g">Giorni lavorativi per pagare (scade alle 23:59 dell&apos;ultimo; sabati, domeniche e festivi non contano)</label>
               <input id="bi-g" inputMode="numeric" value={imp.giorni_per_pagare} onChange={(e) => setImp({ ...imp, giorni_per_pagare: e.target.value })} /></div>
+            <label className="spunta bt-largo"><input type="checkbox" checked={!!imp.paga_in_segreteria} onChange={(e) => setImp({ ...imp, paga_in_segreteria: e.target.checked })} />
+              <span>Si può pagare anche in segreteria (nel promemoria: «oppure passa in segreteria a saldare la prenotazione entro …, oltre la prenotazione decade»)</span></label>
             <label className="spunta"><input type="checkbox" checked={!!imp.stripe} disabled={!stripe && !imp.stripe} onChange={(e) => setImp({ ...imp, stripe: e.target.checked })} />
               <span>Pagamento anche con carta (Stripe): confermato da solo, biglietti subito{!stripe ? ' — Stripe non è attivo sul sito' : ''}</span></label>
           </div>

@@ -2,10 +2,10 @@
 import { useState } from 'react';
 
 // Stampa dei biglietti e pagamento con carta (se acceso)
-export default function Azioni({ token, carta = false, stampa = false }) {
+export default function Azioni({ token, carta = false, stampa = false, testo = 'Stampa i biglietti' }) {
   const [errore, setErrore] = useState('');
   const [invio, setInvio] = useState(false);
-  if (stampa) return <button type="button" className="btn btn-pieno" onClick={() => window.print()}>Stampa i biglietti</button>;
+  if (stampa) return <button type="button" className="btn btn-pieno" onClick={() => window.print()}>{testo}</button>;
   if (!carta) return null;
   return (
     <>

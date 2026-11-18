@@ -62,7 +62,7 @@ export default function Ingresso({ codice, titolo, spettacoli }) {
               <span className="bg-esito-nome">{esito.nome}</span>
               <span>{esito.allievo ? `per ${esito.allievo} · ` : ''}prenotato da {esito.prenotato_da}</span>
               <span>{esito.spettacolo} · {oraSpettacolo(esito.inizio)} · biglietto {esito.numero} di {esito.di}</span>
-              {esito.pizze > 0 && <span><strong>{esito.pizze} {esito.pizze === 1 ? 'pizza' : 'pizze'}</strong></span>}
+              {(esito.extra_testo || esito.pizze > 0) && <span><strong>{esito.extra_testo || `${esito.pizze} ${esito.pizze === 1 ? 'pizza' : 'pizze'}`}</strong></span>}
               {esito.esito === 'gia_entrato' && esito.entrato_prima && (
                 <span>Entrato alle {new Date(esito.entrato_prima).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Rome' })}</span>
               )}
