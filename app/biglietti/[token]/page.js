@@ -6,7 +6,7 @@ import { supabaseAdmin } from '@/lib/supabase/admin';
 import { stripeAttivo } from '@/lib/stripe';
 import { qrSvg } from '@/lib/qr';
 import { euro } from '@/lib/formato';
-import { quandoSpettacolo } from '@/lib/biglietteria';
+import { quandoSpettacolo, MODIFICHE_SEGRETERIA } from '@/lib/biglietteria';
 import Azioni from './Azioni';
 import Promemoria from '../Promemoria';
 
@@ -57,7 +57,7 @@ export default async function PaginaBiglietti({ params, searchParams }) {
         {confermata && (
           <>
             <div className="bg-non-stampa bg-stampa-riga">
-              <p className="piccolo">Mostra il QR all&apos;ingresso dal telefono, oppure stampali: un biglietto per persona.</p>
+              <p className="piccolo">Mostra il QR all&apos;ingresso dal telefono, oppure stampali: un biglietto per persona. {MODIFICHE_SEGRETERIA}</p>
               <Azioni stampa />
             </div>
             <div className="bg-biglietti">

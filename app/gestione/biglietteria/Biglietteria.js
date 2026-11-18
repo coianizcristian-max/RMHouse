@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { supabaseBrowser } from '@/lib/supabase/browser';
 import { euro, dataBreve } from '@/lib/formato';
-import { oraSpettacolo, quandoSpettacolo, testoExtra } from '@/lib/biglietteria';
+import { oraSpettacolo, quandoSpettacolo, testoExtra, erroreBiglietteria } from '@/lib/biglietteria';
 import { leggiCsv, leggiData } from '@/lib/csv';
 import Immagine from '../Immagine';
 import { righeXlsx, dataDaExcel } from '@/lib/xlsx';
@@ -337,7 +337,65 @@ function Allievi({ b, spettacoli, allievi, prenotati, onFatto }) {
 }
 
 // ---------------------------------------------------------------- una prenotazione
+// modifica di una prenotazione dalla segreteria (query 176): dati e nomi sempre; persone ed extra finché non è pagata
+function ModificaPrenotazione({ p, s, onFatto, onChiudi }) {
+  const aperta = p.stato === 'da_pagare';
+  const [v, setV] = useState({ nome: p.nome, cognome: p.cognome, email: p.email, telefono: p.telefono || '' });
+  const [persone, setPersone] = useState((p.partecipanti || []).length ? p.partecipanti.map((x) => ({ ...x })) : [{ nome: p.nome, cognome: p.cognome }]);
+  const [extra, setExtra] = useState(Object.fromEntries((p.extra || []).map((o) => [o.id, o.quantita])));
+  const [invio, setInvio] = useState(false);
+  const [errore, setErrore] = useState('');
+  const opzioni = s?.extra || [];
+  const contr = s?.contributo_per_posto ? (s.contributo_cent || 0) * persone.length : p.contributo_cent || 0;
+  const totale = aperta ? contr + opzioni.reduce((n, o) => n + (extra[o.id] || 0) * (o.prezzo_cent || 0), 0) + (p.offerta_cent || 0) : p.totale_cent;
+  const setP = (k, campo) => (e) => setPersone((x) => x.map((y, i) => (i === k ? { ...y, [campo]: e.target.value } : y)));
+  async function salva() {
+    setInvio(true); setErrore('');
+    const { error } = await supabaseBrowser().rpc('biglietteria_modifica', { p_prenotazione: p.id, p: {
+      ...v, partecipanti: persone, extra: opzioni.map((o) => ({ id: o.id, quantita: extra[o.id] || 0 })) } });
+    setInvio(false);
+    if (error) { setErrore(erroreBiglietteria(error.message) || (error.message?.includes('biglietteria_modifica') ? 'Manca la query 176 in Supabase.' : `Non salvato: ${error.message}`)); return; }
+    onFatto(totale !== p.totale_cent && aperta ? 'Salvata ✓ Nuovo importo: mandato di nuovo il promemoria di pagamento' : 'Salvata ✓');
+  }
+  return (
+    <div className="bt-modifica">
+      <div className="bt-campi">
+        <div className="campo"><label>Nome</label><input value={v.nome} onChange={(e) => setV({ ...v, nome: e.target.value })} /></div>
+        <div className="campo"><label>Cognome</label><input value={v.cognome} onChange={(e) => setV({ ...v, cognome: e.target.value })} /></div>
+        <div className="campo"><label>Email</label><input type="email" value={v.email} onChange={(e) => setV({ ...v, email: e.target.value })} /></div>
+        <div className="campo"><label>Telefono</label><input value={v.telefono} onChange={(e) => setV({ ...v, telefono: e.target.value })} /></div>
+      </div>
+      <strong className="piccolo">Persone ({persone.length})</strong>
+      {persone.map((x, k) => (
+        <div key={k} className="bt-modifica-persona">
+          <span className="bg-num">{k + 1}</span>
+          <input aria-label={`Nome persona ${k + 1}`} value={x.nome} onChange={setP(k, 'nome')} placeholder="Nome" />
+          <input aria-label={`Cognome persona ${k + 1}`} value={x.cognome} onChange={setP(k, 'cognome')} placeholder="Cognome" />
+          {aperta && persone.length > 1 && <button type="button" className="link-btn piccolo pericolo" onClick={() => setPersone((y) => y.filter((_, i) => i !== k))}>togli</button>}
+        </div>
+      ))}
+      {aperta ? <button type="button" className="link-btn piccolo" onClick={() => setPersone((y) => [...y, { nome: '', cognome: '' }])}>+ aggiungi una persona</button>
+        : <p className="piccolo muto">È già pagata: si possono correggere i nomi, non quante persone (per aggiungerne fai una nuova prenotazione).</p>}
+      {aperta && opzioni.length > 0 && (
+        <div className="bt-modifica-extra">
+          {opzioni.map((o) => (
+            <label key={o.id} className="bt-mini">{o.nome} ({euro(o.prezzo_cent)})
+              <input inputMode="numeric" value={extra[o.id] ?? 0} onChange={(e) => setExtra((x) => ({ ...x, [o.id]: Math.max(0, Math.min(50, Number(e.target.value.replace(/\D/g, '')) || 0)) }))} /></label>
+          ))}
+        </div>
+      )}
+      <p className="piccolo">Totale: <strong>{totale ? euro(totale) : 'gratis'}</strong>{aperta && totale !== p.totale_cent ? ` (prima ${euro(p.totale_cent)}: al salvataggio parte di nuovo il promemoria di pagamento)` : ''}</p>
+      {errore && <div className="errore" role="alert">{errore}</div>}
+      <div className="azioni">
+        <button type="button" className="btn btn-primario btn-piccolo" disabled={invio} onClick={salva}>{invio ? 'Salvo…' : 'Salva le modifiche'}</button>
+        <button type="button" className="link-btn piccolo" onClick={onChiudi}>chiudi</button>
+      </div>
+    </div>
+  );
+}
+
 function Riga({ p, s, ordine = [], perId = {}, onFatto }) {
+  const [modifica, setModifica] = useState(false);
   const [metodo, setMetodo] = useState('satispay');
   const [invio, setInvio] = useState(false);
   const [msg, setMsg] = useState('');
@@ -386,6 +444,7 @@ function Riga({ p, s, ordine = [], perId = {}, onFatto }) {
             <button type="button" className="link-btn piccolo" disabled={invio} onClick={() => chiama('biglietteria_reinvia', { p_prenotazione: p.id }, 'Email rimessa in coda ✓')}>Rimanda email</button>
           </>
         )}
+        {st !== 'annullata' && st !== 'scaduta' && <button type="button" className="link-btn piccolo" onClick={() => setModifica((x) => !x)}>Modifica</button>}
         {st !== 'annullata' && (
           <button type="button" className="link-btn piccolo pericolo" disabled={invio} onClick={() => {
             if (confirm(`Annullare la prenotazione ${p.codice} di ${p.nome} ${p.cognome}? I biglietti non varranno più.${p.stato === 'pagata' ? ' L\'incasso resta: se va restituito, fallo a parte.' : ''}`)) {
@@ -395,6 +454,7 @@ function Riga({ p, s, ordine = [], perId = {}, onFatto }) {
         )}
         {msg && <span className="piccolo" role="status">{msg}</span>}
       </div>
+      {modifica && <ModificaPrenotazione p={p} s={s} onChiudi={() => setModifica(false)} onFatto={(t) => { setModifica(false); setMsg(t); onFatto(); }} />}
     </li>
   );
 }

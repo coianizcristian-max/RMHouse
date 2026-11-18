@@ -2,7 +2,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { euro } from '@/lib/formato';
-import { quandoSpettacolo, oraSpettacolo, totaleBiglietti, quandoScade, testoExtra } from '@/lib/biglietteria';
+import { quandoSpettacolo, oraSpettacolo, totaleBiglietti, quandoScade, testoExtra, MODIFICHE_SEGRETERIA } from '@/lib/biglietteria';
 import Promemoria from '../biglietti/Promemoria';
 
 const OFFERTE = [0, 500, 1000, 2000];
@@ -30,10 +30,25 @@ const prezzoSpettacolo = (s) => {
   return parti.join(' · ');
 };
 
+// fasi di un evento con allievi: prima posti riservati (N per allievo), dal giorno «liberi_dal» aperti a tutti
+const giornoPrima = (d) => { const x = new Date(`${d}T12:00:00Z`); x.setUTCDate(x.getUTCDate() - 1); return x.toLocaleDateString('it-IT', { day: 'numeric', month: 'numeric', timeZone: 'UTC' }); };
+function testoFase(s) {
+  if (s.fase === 'riservata') return { tipo: 'riservata', testo: `Posti riservati: ogni allievo/a ha ${s.posti_per_allievo} posti per il suo pubblico${s.liberi_dal ? ` fino al ${giornoPrima(s.liberi_dal)}. Dal ${dataBreve(s.liberi_dal)} i posti rimasti si aprono a tutti` : ''}.` };
+  if (s.fase === 'libera') return { tipo: 'libera', testo: `Posti aperti a tutti fino a esaurimento, senza posti riservati${s.liberi_dal ? ` (i posti riservati agli allievi si sono chiusi il ${giornoPrima(s.liberi_dal)})` : ''}.` };
+  return null;
+}
+function testoEsaurito(s) {
+  return s.fase === 'libera' && s.liberi_dal
+    ? `Il periodo di prenotazione dei posti riservati si è chiuso il ${giornoPrima(s.liberi_dal)} e i posti disponibili in sala sono esauriti. Prova a sentire la segreteria.`
+    : 'I posti disponibili in sala sono esauriti. Prova a sentire la segreteria.';
+}
+const testoPostiSala = (s) => (s.posti_liberi == null ? '' : s.posti_liberi === 1 ? 'Ultimo posto disponibile in sala' : `Posti ancora disponibili in sala: ${s.posti_liberi}`);
+
 // ------------------------------------------------------------------ un evento scelto: allievo, posti, extra, nominativi
 // Resta montato anche quando lo si toglie (solo nascosto): riscegliendolo, i dati inseriti ci sono ancora.
 function SceltaEvento({ s, visibile, dati, onChange, onTogli, onModifica }) {
   const opzioni = (s.extra || []).filter((o) => o.aperta !== false);
+  const fase = testoFase(s);
   const blocchi = [...(s.con_allievi ? ['allievo'] : []), 'posti', ...(opzioni.length ? ['extra'] : []), 'nomi'];
   const [livello, setLivello] = useState(0);         // fin dove si è arrivati (i blocchi si aprono uno sotto l'altro)
   const [chiuso, setChiuso] = useState(false);       // finito: si vede solo il riassunto
@@ -93,15 +108,17 @@ function SceltaEvento({ s, visibile, dati, onChange, onTogli, onModifica }) {
   const setPersona = (k, campo) => (e) => setPersone((v) => v.map((x, i) => (i === k ? { ...x, [campo]: e.target.value } : x)));
 
   const offertaCent = altra !== '' ? Math.max(0, Math.round(Number(altra.replace(',', '.')) * 100) || 0) : offerta;
-  const totale = totaleBiglietti(s, { posti, extra, offerta: offertaCent });
+  const senzaContributo = !!allievo?.contributo_gia;
+  const totale = totaleBiglietti(s, { posti, extra, offerta: offertaCent, senzaContributo });
   const scelteExtra = opzioni.map((o) => ({ id: o.id, nome: o.nome, quantita: extra[o.id] || 0, prezzo_cent: o.prezzo_cent }));
   const zeroDaConfermare = opzioni.filter((o) => !(extra[o.id] > 0) && !zeroOk[o.id]);
   const pizze = scelteExtra.reduce((n, o) => n + o.quantita, 0);
   const ripetuto = persone.find((x, k) => normale(x) && persone.findIndex((y) => normale(y) === normale(x)) !== k);
   const mancaBlocco = {
-    allievo: s.limite_allievo && !allievo ? (chiedi ? 'Scegli gruppo e allievo/a e conferma con la data di nascita.' : 'Scegli gruppo e allievo/a.')
+    allievo: s.limite_allievo && allievo && allievo.rimasti < 1 ? `Attenzione: tutti i posti disponibili per ${allievo.nome} sono già stati usati.`
+      : s.limite_allievo && !allievo ? (chiedi ? 'Scegli gruppo e allievo/a e conferma con la data di nascita.' : 'Scegli gruppo e allievo/a.')
       : allievoId && !allievo ? (chiedi ? 'Conferma l\'allievo/a con la data di nascita (o togli la scelta).' : 'Attendi il controllo dell\'allievo/a.') : '',
-    posti: maxPosti < 1 ? 'Non ci sono più posti disponibili.' : '',
+    posti: maxPosti < 1 ? (s.posti_liberi === 0 ? testoEsaurito(s) : 'Non ci sono più posti disponibili.') : '',
     extra: zeroDaConfermare.length ? `Hai lasciato a 0: ${zeroDaConfermare.map((o) => o.nome).join(', ')}. Se non le vuoi conferma qui sopra, altrimenti scegli quante.` : '',
     nomi: persone.some((x) => !x.nome.trim() || !x.cognome.trim()) ? 'Scrivi nome e cognome di ogni persona.'
       : ripetuto ? `Hai scritto due volte ${ripetuto.nome.trim()} ${ripetuto.cognome.trim()}.` : '',
@@ -110,6 +127,7 @@ function SceltaEvento({ s, visibile, dati, onChange, onTogli, onModifica }) {
   function continua() {
     const m = mancaBlocco[blocchi[livello]];
     if (blocchi[livello] === 'extra' && m) setSegnaZero(true);
+    if (blocchi[livello] === 'allievo' && s.limite_allievo && allievo && allievo.rimasti < 1) return; // c'è già l'avviso rosso
     if (m) { setAvviso(m); return; }
     setAvviso('');
     if (livello < blocchi.length - 1) setLivello(livello + 1); else setChiuso(true);
@@ -151,15 +169,18 @@ function SceltaEvento({ s, visibile, dati, onChange, onTogli, onModifica }) {
     <section className="bg-evento-scelto" hidden={!visibile} aria-label={s.titolo} style={{ '--colore-evento': coloreDi(s) }}>
       <div className="bg-evento-titolo"><strong>{s.titolo}</strong><span className="piccolo">{quandoSpettacolo(s.inizio)}</span>
         <button type="button" className="link-btn piccolo pericolo bg-evento-togli" onClick={() => onTogli?.(s.id)}>togli</button></div>
+      {fase && <p className={`bg-fase bg-fase-${fase.tipo}`}>{fase.testo}{testoPostiSala(s) ? <><br /><strong>{testoPostiSala(s)}</strong></> : null}</p>}
+      {!fase && testoPostiSala(s) && <p className="bg-fase"><strong>{testoPostiSala(s)}</strong></p>}
 
       {s.con_allievi && vedi('allievo') && (
         <div className="bg-blocco">
           <h3 className="bg-sotto">Chi vieni a vedere?{!s.limite_allievo && <span className="muto piccolo"> (facoltativo)</span>}</h3>
-          {s.limite_allievo && <p className="piccolo muto">Ogni allievo/a ha {s.posti_per_allievo} posti per il suo pubblico{s.liberi_dal ? `; dal ${dataBreve(s.liberi_dal)} i posti rimasti sono liberi per tutti` : ''}.{chiedi && ' Per prenotarli conferma con la data di nascita dell\'allievo/a.'}</p>}
+          {s.limite_allievo && chiedi && <p className="piccolo muto">Per prenotare i suoi posti conferma con la data di nascita dell&apos;allievo/a.</p>}
+          {!s.limite_allievo && <p className="piccolo muto">Se vieni per un allievo/a sceglilo: i posti si aggiungono a quelli già prenotati per lui/lei.</p>}
           {allievo ? (
             <div className="bg-allievo-scelto">
               <span>Vieni a vedere <strong>{allievo.nome}</strong>{allievo.gruppo ? ` · ${allievo.gruppo}` : ''} ✓
-                {s.limite_allievo && <span className="piccolo muto"> · {allievo.rimasti === 1 ? '1 posto disponibile' : `${allievo.rimasti} posti disponibili`}</span>}</span>
+                {s.limite_allievo && allievo.rimasti > 0 && <span className="piccolo muto"> · {allievo.rimasti === 1 ? '1 posto disponibile' : `${allievo.rimasti} posti disponibili`}</span>}</span>
               <button type="button" className="link-btn piccolo" onClick={() => { setAllievo(null); setAllievoId(''); setNascita(''); }}>cambia</button>
             </div>
           ) : (
@@ -192,6 +213,18 @@ function SceltaEvento({ s, visibile, dati, onChange, onTogli, onModifica }) {
               )}
               {verifica.errore && <div className="errore" role="alert">{verifica.errore}</div>}
             </div>
+          )}
+          {allievo && s.limite_allievo && allievo.rimasti < 1 && (
+            <div className="bg-avviso-rosso" role="alert">Attenzione: tutti i posti disponibili per <strong>{allievo.nome}</strong> sono già stati usati
+              ({allievo.gia_prenotati} su {s.posti_per_allievo}).{s.liberi_dal ? ` Dal ${dataBreve(s.liberi_dal)} potrai prenotare altri posti, se in sala ne restano.` : ''}</div>
+          )}
+          {allievo && s.limite_allievo && allievo.rimasti > 0 && allievo.gia_prenotati > 0 && (
+            <p className="bg-avviso-info">Per {allievo.nome} sono già prenotati {allievo.gia_prenotati} {allievo.gia_prenotati === 1 ? 'posto' : 'posti'}: ne {allievo.rimasti === 1 ? 'resta 1' : `restano ${allievo.rimasti}`}.
+              {allievo.contributo_gia ? ` Il contributo di ${euro(s.contributo_cent)} è già stato conteggiato nella prima prenotazione: non lo paghi di nuovo.` : ''}</p>
+          )}
+          {allievo && !s.limite_allievo && allievo.gia_prenotati > 0 && (
+            <p className="bg-avviso-info">Per {allievo.nome} ci sono già {allievo.gia_prenotati} {allievo.gia_prenotati === 1 ? 'posto prenotato' : 'posti prenotati'}: quelli che scegli ora si aggiungono.
+              {allievo.contributo_gia ? ` Il contributo di ${euro(s.contributo_cent)} è già stato conteggiato nella prima prenotazione: paghi solo quello che aggiungi ora.` : ''}</p>
           )}
           {bottone('allievo')}
         </div>
@@ -336,6 +369,7 @@ export default function Prenota({ b, carta }) {
           <h2>Prenotato ✓</h2>
           <p>Ti abbiamo mandato i biglietti a <strong>{fatto.email}</strong>: uno per persona, con il codice QR da mostrare all&apos;ingresso.</p>
           <Link href={`/biglietti/${fatto.token}`} className="btn btn-primario btn-pieno btn-grande">Apri i biglietti</Link>
+          <p className="piccolo">{MODIFICHE_SEGRETERIA}</p>
         </section>
       );
     }
@@ -358,6 +392,7 @@ export default function Prenota({ b, carta }) {
             const d = await r.json().catch(() => ({})); if (d.url) window.location.href = d.url; else setErrore(d.errore || 'Pagamento con carta non disponibile.');
           }}>Oppure paga con carta</button>}
           <p className="piccolo">Il promemoria ti arriva anche per email a <strong>{fatto.email}</strong>. Sul telefono «Scarica» apre la stampa: scegli «Salva come PDF».</p>
+          <p className="piccolo"><strong>{MODIFICHE_SEGRETERIA}</strong></p>
           <Link href={`/biglietti/${fatto.token}`} className="piccolo">Controlla qui lo stato della prenotazione</Link>
           {errore && <div className="errore" role="alert">{errore}</div>}
         </div>
@@ -388,8 +423,10 @@ export default function Prenota({ b, carta }) {
                       <strong>{x.titolo}</strong>
                       <span>{quandoSpettacolo(x.inizio)}</span>
                       <span className="piccolo">{prezzoSpettacolo(x)}</span>
-                      {x.chiuso ? <span className="tag tag-neutro">chiuso</span> : pieno ? <span className="tag tag-neutro">tutto esaurito</span>
-                        : x.posti_liberi != null && x.posti_liberi <= 20 ? <span className="tag tag-attenzione">ultimi {x.posti_liberi} posti</span> : null}
+                      {!x.chiuso && !pieno && x.fase === 'libera' && <span className="bg-fase-chip bg-fase-libera">Posti aperti a tutti fino a esaurimento</span>}
+                      {!x.chiuso && !pieno && x.fase === 'riservata' && <span className="bg-fase-chip bg-fase-riservata">Posti riservati agli allievi{x.liberi_dal ? ` fino al ${giornoPrima(x.liberi_dal)}` : ''}</span>}
+                      {!x.chiuso && !pieno && testoPostiSala(x) && <span className={`piccolo${x.posti_liberi <= 20 ? ' bg-pochi' : ''}`}>{testoPostiSala(x)}</span>}
+                      {x.chiuso ? <span className="tag tag-neutro">chiuso</span> : pieno ? <span className="bg-esaurito">{testoEsaurito(x)}</span> : null}
                     </button>
                   );
                 })}

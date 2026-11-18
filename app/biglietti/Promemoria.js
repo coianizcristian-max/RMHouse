@@ -1,6 +1,6 @@
 import { qrSvg } from '@/lib/qr';
 import { euro } from '@/lib/formato';
-import { quandoSpettacolo, quandoScade } from '@/lib/biglietteria';
+import { quandoSpettacolo, quandoScade, MODIFICHE_SEGRETERIA } from '@/lib/biglietteria';
 
 // Il promemoria di pagamento (NON è una ricevuta): si vede dopo la conferma e nella pagina della prenotazione,
 // si stampa o si salva in PDF. Contiene importo, causale, scadenza e il link per pagare (anche come QR).
@@ -43,6 +43,7 @@ export default function Promemoria({ p }) {
         {p.link_pagamento && <div className="bg-prom-qr" aria-hidden="true" dangerouslySetInnerHTML={{ __html: qrSvg(p.link_pagamento) }} />}
       </div>
       <p className="piccolo bg-prom-piede">I biglietti (un QR per persona) arrivano in una email nei prossimi giorni, quando il pagamento è stato verificato e confermato dalla segreteria.</p>
+      <p className="piccolo bg-prom-piede">{MODIFICHE_SEGRETERIA}</p>
     </article>
   );
 }
