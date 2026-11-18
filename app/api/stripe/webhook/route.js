@@ -114,6 +114,11 @@ async function gestisci(db, evento) {
       await ricevutaAutomatica(db, pag);
       return pag ? 'rata pagata' : 'rata già pagata';
     }
+    if (m.tipo === 'biglietteria') {   // biglietti del saggio (query 170): pagato → biglietti + email
+      const r = await rpc(db, 'biglietteria_conferma', { p_prenotazione: m.prenotazione_id, p_metodo: 'stripe', p_session: s.id, p_intent: intent || null });
+      if (intent) await segnaCommissione(db, intent);
+      return r?.gia ? 'biglietti già emessi' : 'biglietti emessi';
+    }
     if (m.pagamento_id) {   // prova o link di pagamento della segreteria
       await rpc(db, 'conferma_pagamento_online', { p_pagamento: m.pagamento_id, p_session: s.id, p_intent: intent });
       if (intent) await segnaCommissione(db, intent);

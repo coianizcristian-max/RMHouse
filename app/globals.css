@@ -5114,3 +5114,89 @@ body:has(.sportello) .bottone-rapide { display: none; }
 
 /* 203 — orario dell'area clienti da telefono: la fila dei giorni scorre dentro la sua riga, la pagina non si allarga */
 .area-casa, .area-recuperi { grid-template-columns: minmax(0, 1fr); }
+
+/* 210 — Biglietteria del saggio: pagina pubblica, biglietti con QR, gestione, ingresso */
+.bg-prenota { display: grid; gap: 10px; max-width: 640px; }
+.bg-passo { font-size: 18px; margin: 18px 0 4px; }
+.bg-spettacoli { display: grid; gap: 8px; }
+.bg-spettacolo { display: grid; gap: 2px; text-align: left; padding: 12px 14px; border: 1.5px solid var(--linea); border-radius: 14px; background: var(--bianco);
+  font: inherit; color: inherit; cursor: pointer; }
+.bg-spettacolo span:first-letter { text-transform: uppercase; }
+.bg-spettacolo.scelto { border-color: var(--rosso); box-shadow: 0 0 0 2px var(--rosso-tenue, #fde2e2); }
+.bg-spettacolo:disabled { opacity: .55; cursor: default; }
+.bg-spettacolo .tag { justify-self: start; margin-top: 4px; }
+.bg-trovati { list-style: none; margin: 6px 0 0; padding: 0; display: grid; gap: 4px; }
+.bg-trovati button { width: 100%; display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 10px; padding: 10px 12px; text-align: left;
+  border: 1px solid var(--linea); border-radius: 10px; background: var(--bianco); font: inherit; color: inherit; cursor: pointer; }
+.bg-trovati button:disabled { opacity: .5; cursor: default; }
+.bg-allievo-scelto { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 10px; background: var(--carta); }
+.bg-righe { display: grid; gap: 10px; }
+.bg-riga { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
+.bg-contatore { display: inline-flex; align-items: center; border: 1px solid var(--linea); border-radius: 999px; overflow: hidden; }
+.bg-contatore button { width: 44px; height: 40px; border: 0; background: var(--carta); font-size: 20px; cursor: pointer; color: var(--nero); }
+.bg-contatore button:disabled { opacity: .35; cursor: default; }
+.bg-contatore output { min-width: 44px; text-align: center; font-weight: 800; font-size: 18px; }
+.bg-chips { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.bg-chips button { padding: 7px 12px; border: 1px solid var(--linea); border-radius: 999px; background: var(--bianco); font: inherit; cursor: pointer; }
+.bg-chips button[aria-pressed='true'] { background: var(--nero); color: var(--bianco); border-color: var(--nero); }
+.bg-chips input { width: 90px; }
+.bg-dati { display: grid; gap: 0 12px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); }
+.bg-bottoni { display: grid; gap: 8px; }
+.bg-fatto { display: grid; gap: 10px; max-width: 640px; }
+.bg-codice, .bt-codice, .bg-cod { font-family: ui-monospace, Menlo, monospace; letter-spacing: .08em; }
+.bg-stampa-riga { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 12px; }
+.bg-biglietti { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 420px), 1fr)); }
+.bg-biglietto { display: grid; grid-template-columns: 150px minmax(0, 1fr); gap: 14px; align-items: center; padding: 14px; border: 2px dashed var(--nero);
+  border-radius: 14px; background: #fff; color: #111; break-inside: avoid; page-break-inside: avoid; }
+.bg-biglietto.usato { opacity: .55; }
+.bg-qr svg { width: 150px; height: 150px; display: block; }
+.bg-testo { display: grid; gap: 2px; min-width: 0; }
+.bg-testo strong { font-size: 18px; line-height: 1.2; }
+.bg-testo span:first-letter { text-transform: uppercase; }
+.bg-cod { font-size: 13px; color: #555; }
+@media (max-width: 420px) { .bg-biglietto { grid-template-columns: 1fr; justify-items: center; text-align: center; } }
+@media print {
+  .bg-non-stampa, .bg-non-stampa * { display: none !important; }
+  .bg-pagina { padding: 0 !important; }
+  .bg-biglietti { grid-template-columns: 1fr 1fr; gap: 8mm; }
+  .bg-biglietto { border-color: #000; }
+}
+/* gestione */
+.bt-testa { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 10px; align-items: flex-start; }
+.bt-riepilogo { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)); margin: 6px 0 14px; }
+.bt-tessera { display: grid; gap: 3px; padding: 12px 14px; border: 1px solid var(--linea); border-radius: 14px; background: var(--bianco); }
+.bt-schede { display: flex; gap: 4px; flex-wrap: wrap; border-bottom: 1px solid var(--linea); margin-bottom: 12px; }
+.bt-schede button { padding: 9px 14px; border: 0; border-bottom: 2px solid transparent; background: none; font: inherit; font-weight: 600; color: var(--testo-2); cursor: pointer; }
+.bt-schede button[aria-current='page'] { color: var(--rosso); border-bottom-color: var(--rosso); }
+.bt-filtri { flex-wrap: wrap; align-items: center; gap: 6px; margin-bottom: 8px; }
+.bt-filtro { padding: 6px 12px; border: 1px solid var(--linea); border-radius: 999px; background: var(--bianco); font: inherit; font-size: 14px; cursor: pointer; }
+.bt-filtro[aria-pressed='true'] { background: var(--nero); color: var(--bianco); border-color: var(--nero); }
+.bt-prenotazioni { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.bt-pren { display: grid; gap: 3px; padding: 10px 12px; border: 1px solid var(--linea); border-radius: 12px; background: var(--bianco); }
+.bt-pren.annullata, .bt-pren.scaduta { opacity: .65; }
+.bt-pren-testa { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; }
+.bt-pren .azioni { margin-top: 4px; flex-wrap: wrap; align-items: center; gap: 6px 10px; }
+.bt-campi { display: grid; gap: 0 12px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr)); align-items: end; }
+.bt-campi .bt-largo { grid-column: 1 / -1; }
+.bt-campi .spunta { margin: 6px 0 12px; }
+.bt-spettacolo { margin-bottom: 12px; }
+.bt-allievi { list-style: none; margin: 8px 0 0; padding: 0; max-height: 360px; overflow: auto; }
+.bt-allievi li { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 10px; padding: 5px 2px; border-top: 1px solid var(--linea); align-items: center; }
+.bt-cerca { margin-top: 8px; }
+/* ingresso */
+.bg-ingresso { max-width: 560px; }
+.bg-esito { display: grid; gap: 4px; padding: 18px; border-radius: 16px; margin: 10px 0 16px; color: #fff; text-align: center; }
+.bg-esito.ok { background: #1f9d55; }
+.bg-esito.no { background: #d32f2f; }
+.bg-esito.attenzione { background: #f59e0b; color: #111; }
+.bg-esito-scritta { font-size: 34px; font-weight: 900; letter-spacing: .02em; }
+.bg-esito-nome { font-size: 20px; font-weight: 700; }
+.bg-codice-form { display: flex; gap: 8px; align-items: flex-end; flex-wrap: wrap; }
+.bg-codice-form .campo { flex: 1 1 220px; margin: 0; }
+.bg-scelta-allievo { display: grid; gap: 0 12px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)); align-items: end; }
+.bg-scelta-allievo .bt-largo, .bg-scelta-allievo .errore { grid-column: 1 / -1; }
+.bg-conferma { display: flex; gap: 8px; }
+.bg-conferma input { flex: 1; min-width: 0; }
+.bt-anteprima { overflow-x: auto; margin: 8px 0; }
+.bt-anteprima table { font-size: 13px; }
+.bt-anteprima td.rosso { color: var(--rosso); }
