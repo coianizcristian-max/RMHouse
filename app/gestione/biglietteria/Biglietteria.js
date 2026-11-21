@@ -24,7 +24,7 @@ Spettacoli: associa il tuo nome all'allievo/a e scegli quanti posti (2 per allie
 Party: ingresso libero, puoi contribuire alla raccolta fondi e prenotare la pizza.`;
 
 // ---------------------------------------------------------------- creazione: quanti eventi si vuole, ognuno com'è
-const EVENTO_VUOTO = { titolo: '', ora: '20:00', con_allievi: false, chiedi_nascita: true, posti_per_allievo: '2', contributo: '', contributo_per_posto: false,
+const EVENTO_VUOTO = { titolo: '', ora: '20:00', con_allievi: false, chiedi_nascita: true, scelta_allievo: 'gruppo', posti_per_allievo: '2', contributo: '', contributo_per_posto: false,
   offerta_libera: false, pizza: '', capienza: '' };
 const MODELLI = {
   saggio: { titolo: 'Saggio di Natale', testo: REGOLE, eventi: [
@@ -62,7 +62,7 @@ function Nuova({ palestraId, onFatto }) {
       palestra_id: palestraId, titolo: titolo.trim(), anno: data.slice(0, 4), sottotitolo: testo,
       spettacoli: validi.map((e) => ({
         titolo: e.titolo.trim(), inizio: new Date(`${data}T${e.ora || '20:00'}:00`).toISOString(), con_allievi: !!e.con_allievi,
-        chiedi_nascita: e.chiedi_nascita !== false, posti_per_allievo: e.posti_per_allievo, liberi_dal: e.con_allievi ? liberi || null : null, capienza: e.capienza,
+        chiedi_nascita: e.chiedi_nascita !== false, scelta_allievo: e.scelta_allievo || 'gruppo', posti_per_allievo: e.posti_per_allievo, liberi_dal: e.con_allievi ? liberi || null : null, capienza: e.capienza,
         contributo_cent: centDa(e.contributo) || 0, contributo_per_posto: !!e.contributo_per_posto, offerta_libera: !!e.offerta_libera,
         extra: centDa(e.pizza) ? [{ id: 'pizza', nome: 'Pizza', descrizione: '', prezzo_cent: centDa(e.pizza), entro: pizzaEntro || null }] : [],
       })),
@@ -109,6 +109,7 @@ function Nuova({ palestraId, onFatto }) {
             <div className="bt-evento-opzioni">
               <label className="spunta"><input type="checkbox" checked={e.con_allievi} onChange={set(i, 'con_allievi')} /><span>si prenota scegliendo un allievo</span></label>
               {e.con_allievi && <label className="spunta"><input type="checkbox" checked={e.chiedi_nascita} onChange={set(i, 'chiedi_nascita')} /><span>conferma con la data di nascita</span></label>}
+              {e.con_allievi && <label className="bt-mini">allievo <select value={e.scelta_allievo} onChange={set(i, 'scelta_allievo')}><option value="gruppo">gruppo → allievo</option><option value="nome">scrivendo il nome</option></select></label>}
               {e.con_allievi && <label className="bt-mini">posti per allievo <input inputMode="numeric" value={e.posti_per_allievo} onChange={set(i, 'posti_per_allievo')} /></label>}
               <label className="bt-mini">contributo € <input inputMode="decimal" value={e.contributo} onChange={set(i, 'contributo')} placeholder="0" /></label>
               <label className="spunta"><input type="checkbox" checked={e.contributo_per_posto} onChange={set(i, 'contributo_per_posto')} /><span>a persona</span></label>
@@ -134,7 +135,7 @@ const idOpzione = (nome) => `${nome.toLowerCase().normalize('NFD').replace(/[^a-
 // ---------------------------------------------------------------- uno spettacolo (modifica)
 function Spettacolo({ s, nPren, onSalvato }) {
   const [v, setV] = useState({
-    titolo: s.titolo, descrizione: s.descrizione || '', inizio: perInput(s.inizio), con_allievi: s.con_allievi, chiedi_nascita: s.chiedi_nascita !== false, posti_per_allievo: String(s.posti_per_allievo),
+    titolo: s.titolo, descrizione: s.descrizione || '', inizio: perInput(s.inizio), con_allievi: s.con_allievi, chiedi_nascita: s.chiedi_nascita !== false, scelta_allievo: s.scelta_allievo || 'gruppo', frase_offerta: s.frase_offerta || '', posti_per_allievo: String(s.posti_per_allievo),
     liberi_dal: s.liberi_dal || '', capienza: s.capienza == null ? '' : String(s.capienza), max_per_prenotazione: String(s.max_per_prenotazione),
     contributo: euroTesto(s.contributo_cent), contributo_per_posto: s.contributo_per_posto, offerta_libera: s.offerta_libera,
     chiuso: s.chiuso,
@@ -147,7 +148,7 @@ function Spettacolo({ s, nPren, onSalvato }) {
     setEsito('');
     if (!v.titolo.trim() || !v.inizio) { setEsito('Titolo e data/ora servono.'); return; }
     const { error } = await supabaseBrowser().from('biglietteria_spettacoli').update({
-      titolo: v.titolo.trim(), descrizione: v.descrizione.trim() || null, inizio: daInput(v.inizio), con_allievi: v.con_allievi, chiedi_nascita: v.chiedi_nascita,
+      titolo: v.titolo.trim(), descrizione: v.descrizione.trim() || null, inizio: daInput(v.inizio), con_allievi: v.con_allievi, chiedi_nascita: v.chiedi_nascita, scelta_allievo: v.scelta_allievo, frase_offerta: v.frase_offerta.trim() || null,
       posti_per_allievo: Math.max(1, Number(v.posti_per_allievo) || 2), liberi_dal: v.liberi_dal || null,
       capienza: v.capienza === '' ? null : Math.max(0, Number(v.capienza) || 0), max_per_prenotazione: Math.max(1, Number(v.max_per_prenotazione) || 10),
       contributo_cent: centDa(v.contributo) || 0, contributo_per_posto: v.contributo_per_posto, offerta_libera: v.offerta_libera,
@@ -177,12 +178,23 @@ function Spettacolo({ s, nPren, onSalvato }) {
           <>
             <div className="campo"><label>Posti per allievo</label><input inputMode="numeric" value={v.posti_per_allievo} onChange={set('posti_per_allievo')} /></div>
             <div className="campo"><label>Dal giorno: posti liberi a tutti</label><input type="date" value={v.liberi_dal} onChange={set('liberi_dal')} /></div>
+            <div className="campo bt-largo"><label>Come si sceglie l&apos;allievo</label>
+              <select value={v.scelta_allievo} onChange={set('scelta_allievo')}>
+                <option value="gruppo">Prima il gruppo, poi l&apos;allievo</option>
+                <option value="nome">Scrivendo il nome (l&apos;elenco si filtra mentre si scrive)</option>
+              </select></div>
             <label className="spunta bt-largo"><input type="checkbox" checked={v.chiedi_nascita} onChange={set('chiedi_nascita')} />
               <span>chiedi la data di nascita dell&apos;allievo per confermare (se la togli: scelto l&apos;allievo si passa subito a posti e pagamento)</span></label>
           </>
         )}
         <div className="campo"><label>Max posti per prenotazione</label><input inputMode="numeric" value={v.max_per_prenotazione} onChange={set('max_per_prenotazione')} /></div>
-        <label className="spunta"><input type="checkbox" checked={v.offerta_libera} onChange={set('offerta_libera')} /><span>offerta libera per la raccolta fondi</span></label>
+        <div className="campo bt-largo"><label>Raccolta fondi nella pagina</label>
+          <select value={v.offerta_libera ? 'importi' : 'frase'} onChange={(e) => setV((x) => ({ ...x, offerta_libera: e.target.value === 'importi' }))}>
+            <option value="importi">Importi da scegliere (No, 5 €, 10 €, 20 €, altro)</option>
+            <option value="frase">Solo una frase (o niente, se la lasci vuota)</option>
+          </select></div>
+        {!v.offerta_libera && <div className="campo bt-largo"><label>Frase al posto degli importi</label>
+          <textarea rows={2} value={v.frase_offerta} onChange={set('frase_offerta')} placeholder="es. Durante la festa potrai contribuire alla raccolta fondi direttamente in sala. Grazie!" /></div>}
         <div className="bt-largo bt-extra">
           <strong>Opzioni extra</strong> <span className="piccolo muto">(es. pizza, pizza per celiaci, bibita): il pubblico sceglie quante ne vuole e deve confermare se le lascia a 0</span>
           {extra.map((o, k) => (
@@ -542,10 +554,131 @@ function Registro({ b, spettacoli, prenotazioni, biglietti }) {
 const csvCella = (v) => { const t = String(v ?? ''); return /[;"\n]/.test(t) ? `"${t.replace(/"/g, '""')}"` : t; };
 
 // ---------------------------------------------------------------- la pagina
+// iscritti aggiunti a mano dalla segreteria (query 177): posti scalati, biglietti con QR subito se pagata/omaggio
+function AggiungiIscritti({ spettacoli, allievi, onChiudi, onFatto }) {
+  const [sp, setSp] = useState(spettacoli[0]?.id || '');
+  const s = spettacoli.find((x) => x.id === sp);
+  const [cercaA, setCercaA] = useState('');
+  const [allievoId, setAllievoId] = useState('');
+  const [chi, setChi] = useState({ nome: '', cognome: '', email: '', telefono: '' });
+  const [persone, setPersone] = useState([{ nome: '', cognome: '' }]);
+  const [extra, setExtra] = useState({});
+  const [modo, setModo] = useState('pagata');
+  const [metodo, setMetodo] = useState('contanti');
+  const [forza, setForza] = useState(false);
+  const [invio, setInvio] = useState(false);
+  const [errore, setErrore] = useState('');
+  const [fatto, setFatto] = useState(null);
+  const daiAllievi = allievi.filter((a) => a.spettacolo_id === sp);
+  const q = cercaA.trim().toLowerCase();
+  const filtrati = q.length >= 2 ? daiAllievi.filter((a) => `${a.nome} ${a.cognome} ${a.cognome} ${a.nome}`.toLowerCase().includes(q)).slice(0, 12) : [];
+  const scelto = daiAllievi.find((a) => a.id === allievoId);
+  const opzioni = s?.extra || [];
+  const contr = s ? (s.contributo_per_posto ? (s.contributo_cent || 0) * persone.length : s.contributo_cent || 0) : 0;
+  const totale = modo === 'omaggio' ? 0 : contr + opzioni.reduce((n, o) => n + (extra[o.id] || 0) * (o.prezzo_cent || 0), 0);
+  const setP = (k, campo) => (e) => setPersone((x) => x.map((y, i) => (i === k ? { ...y, [campo]: e.target.value } : y)));
+  async function salva() {
+    setErrore('');
+    const pers = persone.filter((x) => x.nome.trim() || x.cognome.trim());
+    const nome = chi.nome.trim() || pers[0]?.nome || ''; const cognome = chi.cognome.trim() || pers[0]?.cognome || '';
+    setInvio(true);
+    const { data, error } = await supabaseBrowser().rpc('biglietteria_aggiungi', { p: {
+      spettacolo_id: sp, allievo_id: allievoId || null, nome, cognome, email: chi.email.trim(), telefono: chi.telefono.trim(),
+      partecipanti: pers, extra: opzioni.map((o) => ({ id: o.id, quantita: extra[o.id] || 0 })), modo, metodo, forza } });
+    setInvio(false);
+    if (error) {
+      setErrore(erroreBiglietteria(error.message) || (error.message?.includes('biglietteria_aggiungi') ? 'Manca la query 177 in Supabase.' : `Non riuscito: ${error.message}`));
+      return;
+    }
+    setFatto(data); onFatto();
+  }
+  if (fatto) {
+    return (
+      <section className="pannello bt-aggiungi">
+        <h3>Aggiunta ✓ codice {fatto.codice}</h3>
+        <p>{fatto.stato === 'da_pagare' ? `Da pagare ${euro(fatto.totale_cent)}: la trovi in «Da pagare».` : 'Biglietti con il QR pronti: aprili per stamparli o mostrarli.'}
+          {chi.email.trim() ? ` Email a ${chi.email.trim()}.` : ' Nessuna email (non inserita).'}</p>
+        <div className="azioni">
+          {fatto.stato !== 'da_pagare' && <a className="btn btn-primario btn-piccolo" href={`/biglietti/${fatto.token}`} target="_blank" rel="noopener noreferrer">Apri / stampa i biglietti</a>}
+          <button type="button" className="btn btn-piccolo" onClick={() => { setFatto(null); setPersone([{ nome: '', cognome: '' }]); setChi({ nome: '', cognome: '', email: '', telefono: '' }); setAllievoId(''); setCercaA(''); setExtra({}); setForza(false); }}>Aggiungine un&apos;altra</button>
+          <button type="button" className="link-btn piccolo" onClick={onChiudi}>chiudi</button>
+        </div>
+      </section>
+    );
+  }
+  return (
+    <section className="pannello bt-aggiungi">
+      <h3>Aggiungi iscritti a mano</h3>
+      <p className="piccolo muto">I posti si scalano dalla disponibilità dell&apos;evento. Già pagata o omaggio: i biglietti con il QR si creano subito. L&apos;email è facoltativa.</p>
+      <div className="bt-campi">
+        <div className="campo bt-largo"><label>Evento</label>
+          <select value={sp} onChange={(e) => { setSp(e.target.value); setAllievoId(''); setCercaA(''); setExtra({}); }}>
+            {spettacoli.map((x) => <option key={x.id} value={x.id}>{oraSpettacolo(x.inizio)} · {x.titolo}</option>)}
+          </select></div>
+        {s?.con_allievi && (
+          <div className="campo bt-largo"><label>Allievo/a (facoltativo)</label>
+            {scelto ? (
+              <div className="bg-allievo-trovato"><span><strong>{scelto.nome} {scelto.cognome}</strong> · {scelto.gruppo || 'Altri'}</span>
+                <button type="button" className="link-btn piccolo" onClick={() => setAllievoId('')}>cambia</button></div>
+            ) : (
+              <>
+                <input value={cercaA} onChange={(e) => setCercaA(e.target.value)} placeholder="Scrivi nome o cognome" />
+                {filtrati.length > 0 && <ul className="bg-trovati">{filtrati.map((a) => (
+                  <li key={a.id}><button type="button" onClick={() => setAllievoId(a.id)}><strong>{a.nome} {a.cognome}</strong><span className="piccolo muto"> · {a.gruppo || 'Altri'}</span></button></li>
+                ))}</ul>}
+              </>
+            )}
+          </div>
+        )}
+      </div>
+      <strong className="piccolo">Persone ({persone.length})</strong>
+      {persone.map((x, k) => (
+        <div key={k} className="bt-modifica-persona">
+          <span className="bg-num">{k + 1}</span>
+          <input aria-label={`Nome persona ${k + 1}`} value={x.nome} onChange={setP(k, 'nome')} placeholder="Nome" />
+          <input aria-label={`Cognome persona ${k + 1}`} value={x.cognome} onChange={setP(k, 'cognome')} placeholder="Cognome" />
+          {persone.length > 1 && <button type="button" className="link-btn piccolo pericolo" onClick={() => setPersone((y) => y.filter((_, i) => i !== k))}>togli</button>}
+        </div>
+      ))}
+      <button type="button" className="link-btn piccolo" onClick={() => setPersone((y) => [...y, { nome: '', cognome: '' }])}>+ aggiungi una persona</button>
+      <div className="bt-campi">
+        <div className="campo"><label>Prenotato da: nome <span className="muto">(vuoto = la 1ª persona)</span></label><input value={chi.nome} onChange={(e) => setChi({ ...chi, nome: e.target.value })} /></div>
+        <div className="campo"><label>Cognome</label><input value={chi.cognome} onChange={(e) => setChi({ ...chi, cognome: e.target.value })} /></div>
+        <div className="campo"><label>Email <span className="muto">(facoltativa: se c&apos;è, arrivano i biglietti)</span></label><input type="email" value={chi.email} onChange={(e) => setChi({ ...chi, email: e.target.value })} /></div>
+        <div className="campo"><label>Telefono</label><input value={chi.telefono} onChange={(e) => setChi({ ...chi, telefono: e.target.value })} /></div>
+      </div>
+      {opzioni.length > 0 && (
+        <div className="bt-modifica-extra">
+          {opzioni.map((o) => (
+            <label key={o.id} className="bt-mini">{o.nome} ({euro(o.prezzo_cent)})
+              <input inputMode="numeric" value={extra[o.id] ?? 0} onChange={(e) => setExtra((x) => ({ ...x, [o.id]: Math.max(0, Math.min(50, Number(e.target.value.replace(/\D/g, '')) || 0)) }))} /></label>
+          ))}
+        </div>
+      )}
+      <div className="azioni">
+        {[['pagata', 'Ha già pagato'], ['omaggio', 'Omaggio (gratis)'], ['da_pagare', 'Pagherà dopo']].map(([k, t]) => (
+          <label key={k} className="spunta"><input type="radio" name="bt-modo" checked={modo === k} onChange={() => setModo(k)} /><span>{t}</span></label>
+        ))}
+        {modo === 'pagata' && <select value={metodo} onChange={(e) => setMetodo(e.target.value)} aria-label="Come ha pagato">{METODI.map(([k, t]) => <option key={k} value={k}>{t}</option>)}</select>}
+      </div>
+      <p className="piccolo">Totale: <strong>{totale ? euro(totale) : 'gratis'}</strong>{modo === 'pagata' && totale ? ' (va negli Incassi)' : ''}
+        {scelto && !s?.contributo_per_posto && s?.contributo_cent ? ' · se per questo allievo c\'è già una prenotazione il contributo non si ripaga' : ''}</p>
+      <label className="spunta"><input type="checkbox" checked={forza} onChange={(e) => setForza(e.target.checked)} />
+        <span>Aggiungi anche oltre i limiti (posti per allievo finiti o sala piena)</span></label>
+      {errore && <div className="errore" role="alert">{errore}{/esauriti|finiti/.test(errore) ? ' Se vuoi aggiungerli lo stesso, spunta «oltre i limiti».' : ''}</div>}
+      <div className="azioni">
+        <button type="button" className="btn btn-primario" disabled={invio || !sp} onClick={salva}>{invio ? 'Un attimo…' : 'Aggiungi'}</button>
+        <button type="button" className="link-btn piccolo" onClick={onChiudi}>chiudi</button>
+      </div>
+    </section>
+  );
+}
+
 export default function Biglietteria({ palestraId, tutte, b, spettacoli, allievi, prenotazioni, riepilogo, biglietti = [], stripe }) {
   const router = useRouter();
   const [scheda, setScheda] = useState(spettacoli.length ? 'prenotazioni' : 'spettacoli');
   const [filtro, setFiltro] = useState('da_pagare');
+  const [aggiungi, setAggiungi] = useState(false);
   const [sp, setSp] = useState('');
   const [cerca, setCerca] = useState('');
   const [nuova, setNuova] = useState(!b);
@@ -667,7 +800,9 @@ export default function Biglietteria({ palestraId, tutte, b, spettacoli, allievi
             </select>
             <input value={cerca} onChange={(e) => setCerca(e.target.value)} placeholder="Cerca nome, codice, email" aria-label="Cerca" />
             <button type="button" className="btn btn-piccolo" onClick={esporta} disabled={!visibili.length}>Esporta CSV</button>
+            <button type="button" className="btn btn-primario btn-piccolo" onClick={() => setAggiungi((x) => !x)} disabled={!spettacoli.length}>Aggiungi iscritti a mano</button>
           </div>
+          {aggiungi && <AggiungiIscritti spettacoli={spettacoli} allievi={allievi} onChiudi={() => setAggiungi(false)} onFatto={aggiorna} />}
           {filtro === 'da_pagare' && <p className="piccolo muto">Controlla Satispay (o il conto): nella causale c&apos;è il codice. Chi ha prenotato più eventi insieme paga una volta sola: confermandone uno si conferma tutto l&apos;ordine. Trovato il pagamento, premi «Pagamento arrivato»: partono i biglietti per email e l&apos;incasso va negli Incassi.</p>}
           {visibili.length === 0 ? <div className="vuoto">Nessuna prenotazione qui.</div> : (
             <ul className="bt-prenotazioni">{visibili.map((p) => <Riga key={p.id} p={p} s={perId[p.spettacolo_id]} perId={perId}

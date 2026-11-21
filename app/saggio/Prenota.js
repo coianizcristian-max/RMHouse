@@ -68,9 +68,23 @@ function SceltaEvento({ s, visibile, dati, onChange, onTogli, onModifica }) {
   const [altra, setAltra] = useState('');
   const [persone, setPersone] = useState([{ nome: '', cognome: '' }]);
   const ultimo = useRef('');
+  const perNome = s.scelta_allievo === 'nome';         // l'allievo si cerca scrivendo il nome (query 177)
+  const [testo, setTesto] = useState('');
+  const [trovati, setTrovati] = useState(null);
+  useEffect(() => {
+    if (!perNome) return undefined;
+    const q = testo.trim();
+    if (q.length < 2) { setTrovati(null); return undefined; }
+    const chiave = `${s.id}|q|${q}`; ultimo.current = chiave;
+    const t = setTimeout(() => {
+      fetch(`/api/biglietteria/elenco?s=${s.id}&q=${encodeURIComponent(q)}`).then((r) => (r.ok ? r.json() : []))
+        .then((d) => { if (ultimo.current === chiave) setTrovati(d); }).catch(() => setTrovati([]));
+    }, 250);
+    return () => clearTimeout(t);
+  }, [testo, perNome, s.id]);
 
   useEffect(() => {
-    if (!s.con_allievi) return;
+    if (!s.con_allievi || s.scelta_allievo === 'nome') return;
     fetch(`/api/biglietteria/elenco?s=${s.id}`).then((r) => (r.ok ? r.json() : [])).then(setGruppi).catch(() => setGruppi([]));
   }, [s.id, s.con_allievi]);
   useEffect(() => {
@@ -89,7 +103,7 @@ function SceltaEvento({ s, visibile, dati, onChange, onTogli, onModifica }) {
       body: JSON.stringify({ allievo_id: id, nascita: chiedi ? nascita : null }) }).catch(() => null);
     const d = r ? await r.json().catch(() => ({})) : {};
     if (!r?.ok || !d.ok) {
-      const scelto = (elenco || []).find((a) => a.id === id);
+      const scelto = (elenco || trovati || []).find((a) => a.id === id);
       const doppio = scelto && /\(\d+\)$/.test(scelto.cognome || '');
       setVerifica({ invio: false, errore: (d.errore || 'Controllo non riuscito. Riprova.') + (doppio && r?.status === 409 ? ' Nel gruppo ci sono due allievi con lo stesso nome: prova a scegliere l\'altro.' : '') });
       return;
@@ -185,6 +199,33 @@ function SceltaEvento({ s, visibile, dati, onChange, onTogli, onModifica }) {
             </div>
           ) : (
             <div className="bg-scelta-allievo">
+              {perNome ? (
+                <div className="campo bg-cerca-allievo">
+                  <label htmlFor={`bg-cerca-${s.id}`}>Allievo/a: scrivi nome e cognome (o cognome e nome)</label>
+                  {allievoId ? (
+                    <div className="bg-allievo-trovato">
+                      <span><strong>{(trovati || []).find((a) => a.id === allievoId)?.nome} {(trovati || []).find((a) => a.id === allievoId)?.cognome}</strong>
+                        {' · '}{(trovati || []).find((a) => a.id === allievoId)?.gruppo}</span>
+                      <button type="button" className="link-btn piccolo" onClick={() => { setAllievoId(''); setNascita(''); setVerifica({ invio: false, errore: '' }); }}>cambia</button>
+                    </div>
+                  ) : (
+                    <>
+                      <input id={`bg-cerca-${s.id}`} className="bg-input" value={testo} onChange={(e) => setTesto(e.target.value)} placeholder="es. Sofia Rossi" autoComplete="off" />
+                      {testo.trim().length >= 2 && (
+                        <ul className="bg-trovati" role="listbox" aria-label="Allievi trovati">
+                          {trovati == null ? <li className="piccolo muto">cerco…</li>
+                            : trovati.length === 0 ? <li className="piccolo muto">Nessun allievo/a con questo nome. Controlla come l&apos;hai scritto.</li>
+                              : trovati.map((a) => (
+                                <li key={a.id}><button type="button" role="option" aria-selected="false" onClick={() => {
+                                  setAllievoId(a.id); setVerifica({ invio: false, errore: '' }); if (!chiedi) conferma(a.id);
+                                }}><strong>{a.nome} {a.cognome}</strong><span className="piccolo muto"> · {a.gruppo}</span></button></li>
+                              ))}
+                        </ul>
+                      )}
+                    </>
+                  )}
+                </div>
+              ) : <>
               <div className="campo">
                 <label htmlFor={`bg-gruppo-${s.id}`}>Gruppo</label>
                 <select id={`bg-gruppo-${s.id}`} value={gruppo} onChange={(e) => setGruppo(e.target.value)} disabled={!gruppi}>
@@ -201,6 +242,7 @@ function SceltaEvento({ s, visibile, dati, onChange, onTogli, onModifica }) {
                   </select>
                 </div>
               )}
+              </>}
               {allievoId && !chiedi && verifica.invio && <p className="piccolo muto">Un attimo…</p>}
               {allievoId && chiedi && (
                 <div className="campo">
@@ -245,6 +287,7 @@ function SceltaEvento({ s, visibile, dati, onChange, onTogli, onModifica }) {
               </div>
             </div>
           )}
+          {!s.offerta_libera && s.frase_offerta && <p className="bg-frase-offerta">{s.frase_offerta}</p>}
         </div>
         {bottone('posti')}
       </div>}
