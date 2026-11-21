@@ -23,7 +23,7 @@ export default function Promemoria({ p }) {
             <tr key={k}>
               <td><strong>{e.spettacolo}</strong><br /><span className="piccolo">{quandoSpettacolo(e.inizio)} · {e.posti} {e.posti === 1 ? 'posto' : 'posti'}
                 {e.extra_testo ? ` · ${e.extra_testo}` : e.pizze ? ` · ${e.pizze} pizz${e.pizze === 1 ? 'a' : 'e'}` : ''}{e.allievo ? ` · per ${e.allievo}` : ''}</span></td>
-              <td className="bg-prom-euro">{e.totale_cent ? euro(e.totale_cent) : 'gratis'}</td>
+              <td className="bg-prom-euro">{e.totale_cent ? euro(e.totale_cent) : 'gratis · già confermato'}</td>
             </tr>
           ))}
           <tr className="bg-prom-totale"><td>Totale da pagare</td><td className="bg-prom-euro">{euro(p.totale_cent)}</td></tr>

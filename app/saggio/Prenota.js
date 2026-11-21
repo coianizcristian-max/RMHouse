@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { euro } from '@/lib/formato';
 import { quandoSpettacolo, oraSpettacolo, totaleBiglietti, quandoScade, testoExtra, MODIFICHE_SEGRETERIA } from '@/lib/biglietteria';
 import Promemoria from '../biglietti/Promemoria';
+import { stampaSolo } from '../biglietti/[token]/Azioni';
 
 const OFFERTE = [0, 500, 1000, 2000];
 // un colore per evento (barra laterale, titolo, riepilogo): si distinguono a colpo d'occhio
@@ -367,6 +368,7 @@ export default function Prenota({ b, carta }) {
   const tuttiFatti = scelti.length > 0 && scelti.every((x) => righe[x.id]?.fatto);
   const conclusi = scelti.filter((x) => righe[x.id]?.fatto);
   const totale = conclusi.reduce((n, x) => n + (righe[x.id]?.totale || 0), 0);
+  const gratuiti = conclusi.filter((x) => !righe[x.id]?.totale);
   const giu = (sel) => setTimeout(() => { try { document.querySelector(sel)?.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch { /* niente */ } }, 60);
 
   function aggiungi(id) {
@@ -420,13 +422,15 @@ export default function Prenota({ b, carta }) {
       <section className="bg-fatto bg-fatto-largo" role="status">
         <div className="bg-non-stampa">
           <h2>Prenotazione salvata ✓ Ora il pagamento</h2>
-          <p>I posti sono tenuti per te fino a <strong>{fatto.scade_at ? quandoScade(fatto.scade_at) : '—'}</strong>. Se il pagamento non arriva entro
+          {fatto.scade_at ? <p>I posti sono tenuti per te fino a <strong>{quandoScade(fatto.scade_at)}</strong>. Se il pagamento non arriva entro
             quel momento la prenotazione scade e i posti tornano liberi.</p>
+            : <p>I posti sono tenuti per te: la prenotazione è confermata quando la segreteria vede il pagamento.</p>}
+          {fatto.gratuiti > 0 && <p><strong>{fatto.gratuiti === 1 ? 'L\'evento gratuito è già confermato' : 'Gli eventi gratuiti sono già confermati'}</strong>: i biglietti ti arrivano subito per email.</p>}
         </div>
         <Promemoria p={{ ...fatto, nome: dati.nome.trim(), cognome: dati.cognome.trim(), evento: b.titolo, link_pagamento: b.link_pagamento,
           istruzioni_pagamento: b.istruzioni_pagamento, paga_in_segreteria: b.paga_in_segreteria, giorni_per_pagare: b.giorni_per_pagare }} />
         <div className="bg-non-stampa bg-passi-pagamento">
-          <button type="button" className="btn btn-pieno btn-grande" onClick={() => window.print()}>1 · Scarica o stampa il promemoria</button>
+          <button type="button" className="btn btn-pieno btn-grande" onClick={() => stampaSolo(true)}>1 · Scarica o stampa il promemoria</button>
           {b.link_pagamento && (
             <a href={b.link_pagamento} target="_blank" rel="noopener noreferrer" className="btn btn-primario btn-pieno btn-grande">2 · Vai al pagamento ({euro(fatto.totale_cent)})</a>
           )}
@@ -521,10 +525,12 @@ export default function Prenota({ b, carta }) {
               </div>
               <p className="piccolo">A nome di <strong>{dati.nome.trim()} {dati.cognome.trim()}</strong> · {dati.email.trim()}</p>
               {totale > 0 ? (
-                <p className="bg-nota">Confermando <strong>salvi la prenotazione</strong> e i posti restano tenuti per te. Va pagata entro
-                  {' '}<strong>{scadenza ? quandoScade(scadenza) : `${b.giorni_per_pagare} giorni lavorativi`}</strong>{b.link_pagamento ? ' con il link che trovi nel passo successivo' : ''}:
-                  dopo, la prenotazione scade e i posti tornano liberi.{b.paga_in_segreteria ? ' Puoi anche passare in segreteria a saldare entro la stessa data.' : ''} Ti mostriamo subito il <strong>promemoria di pagamento</strong> (importo, causale, link)
-                  da scaricare, e te lo mandiamo anche per email.</p>
+                <p className="bg-nota">Confermando <strong>salvi la prenotazione</strong> e i posti restano tenuti per te.
+                  {b.scadenza_attiva !== false ? <> Va pagata entro <strong>{scadenza ? quandoScade(scadenza) : `${b.giorni_per_pagare} giorni lavorativi`}</strong>{b.link_pagamento ? ' con il link che trovi nel passo successivo' : ''}:
+                    dopo, la prenotazione scade e i posti tornano liberi.{b.paga_in_segreteria ? ' Puoi anche passare in segreteria a saldare entro la stessa data.' : ''}</>
+                    : <> Va pagata{b.link_pagamento ? ' con il link che trovi nel passo successivo' : ''}{b.paga_in_segreteria ? ' oppure in segreteria' : ''}.</>}
+                  {gratuiti.length > 0 && <> {gratuiti.length === 1 ? `«${gratuiti[0].titolo}» è gratuito ed è confermato subito` : 'Gli eventi gratuiti sono confermati subito'}: i loro biglietti ti arrivano subito per email.</>}
+                  {' '}Ti mostriamo subito il <strong>promemoria di pagamento</strong> (importo, causale, link) da scaricare, e te lo mandiamo anche per email.</p>
               ) : <p className="bg-nota">Confermando ti mandiamo subito i biglietti per email.</p>}
               {errore && <div className="errore" role="alert">{errore}</div>}
               <div className="bg-bottoni">
@@ -556,7 +562,10 @@ function RigaRiepilogo({ s, r }) {
     <div className="bg-riep-evento bg-riep-colore" style={{ '--colore-evento': coloreDi(s) }}>
       <span><strong>{oraSpettacolo(s.inizio)} {s.titolo}</strong>
         {x.fatto ? <span className="piccolo muto"> · {x.posti} {x.posti === 1 ? 'posto' : 'posti'}{x.pizze ? ` · ${testoExtra(x.extra)}` : ''}{x.allievo_nome ? ` · per ${x.allievo_nome}` : ''}</span>
-          : <span className="piccolo muto"> · da completare</span>}</span>
+          : <span className="piccolo muto"> · da completare</span>}
+        {x.fatto && (x.partecipanti || []).length > 0 && (
+          <span className="bg-riep-persone">{x.partecipanti.map((y) => `${y.nome.trim()} ${y.cognome.trim()}`).join(' · ')}</span>
+        )}</span>
       <span>{x.fatto ? (x.totale ? euro(x.totale) : 'gratis') : '—'}</span>
     </div>
   );

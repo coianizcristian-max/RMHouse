@@ -43,7 +43,7 @@ export default async function PaginaBiglietti({ params, searchParams }) {
               <>
                 <Promemoria p={p} />
                 <div className="bg-passi-pagamento">
-                  <Azioni stampa testo="Scarica o stampa il promemoria" />
+                  <Azioni stampa promemoria testo="Scarica o stampa il promemoria" />
                   {p.link_pagamento && <a href={p.link_pagamento} target="_blank" rel="noopener noreferrer" className="btn btn-primario btn-pieno">Vai al pagamento ({euro(p.totale_cent)})</a>}
                 </div>
               </>
@@ -54,7 +54,8 @@ export default async function PaginaBiglietti({ params, searchParams }) {
         {p.stato === 'scaduta' && <div className="scheda">La prenotazione è scaduta perché il pagamento non è arrivato in tempo, e i posti sono stati liberati. Se hai pagato scrivici: la sistemiamo.</div>}
         {p.stato === 'annullata' && <div className="scheda">Questa prenotazione è stata annullata.</div>}
 
-        {confermata && (
+        {!confermata && (p.biglietti || []).length > 0 && <h2 className="bg-non-stampa" style={{ marginTop: 20 }}>Biglietti già confermati (eventi gratuiti)</h2>}
+        {(p.biglietti || []).length > 0 && (
           <>
             <div className="bg-non-stampa bg-stampa-riga">
               <p className="piccolo">Mostra il QR all&apos;ingresso dal telefono, oppure stampali: un biglietto per persona. {MODIFICHE_SEGRETERIA}</p>

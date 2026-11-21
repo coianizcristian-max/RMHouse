@@ -383,11 +383,12 @@ function ModificaPrenotazione({ p, s, onFatto, onChiudi }) {
           <span className="bg-num">{k + 1}</span>
           <input aria-label={`Nome persona ${k + 1}`} value={x.nome} onChange={setP(k, 'nome')} placeholder="Nome" />
           <input aria-label={`Cognome persona ${k + 1}`} value={x.cognome} onChange={setP(k, 'cognome')} placeholder="Cognome" />
-          {aperta && persone.length > 1 && <button type="button" className="link-btn piccolo pericolo" onClick={() => setPersone((y) => y.filter((_, i) => i !== k))}>togli</button>}
+          {persone.length > 1 && <button type="button" className="link-btn piccolo pericolo" onClick={() => setPersone((y) => y.filter((_, i) => i !== k))}>togli</button>}
         </div>
       ))}
       {aperta ? <button type="button" className="link-btn piccolo" onClick={() => setPersone((y) => [...y, { nome: '', cognome: '' }])}>+ aggiungi una persona</button>
-        : <p className="piccolo muto">È già pagata: si possono correggere i nomi, non quante persone (per aggiungerne fai una nuova prenotazione).</p>}
+        : <p className="piccolo muto">È già confermata: si possono correggere i nomi e togliere chi disdice (il suo biglietto non vale più e il posto torna libero;
+          l&apos;incasso non cambia: se va restituito qualcosa fallo a parte). Per aggiungere persone fai una nuova prenotazione. Per toglierle tutte usa «Annulla».</p>}
       {aperta && opzioni.length > 0 && (
         <div className="bt-modifica-extra">
           {opzioni.map((o) => (
@@ -682,7 +683,7 @@ export default function Biglietteria({ palestraId, tutte, b, spettacoli, allievi
   const [sp, setSp] = useState('');
   const [cerca, setCerca] = useState('');
   const [nuova, setNuova] = useState(!b);
-  const [imp, setImp] = useState(b ? { titolo: b.titolo, sottotitolo: b.sottotitolo || '', link_pagamento: b.link_pagamento || '', istruzioni_pagamento: b.istruzioni_pagamento || '', giorni_per_pagare: String(b.giorni_per_pagare), paga_in_segreteria: !!b.paga_in_segreteria, stripe: b.stripe, locandina_url: b.locandina_url || null, locandina_mobile_url: b.locandina_mobile_url || null } : null);
+  const [imp, setImp] = useState(b ? { titolo: b.titolo, sottotitolo: b.sottotitolo || '', link_pagamento: b.link_pagamento || '', istruzioni_pagamento: b.istruzioni_pagamento || '', giorni_per_pagare: String(b.giorni_per_pagare), paga_in_segreteria: !!b.paga_in_segreteria, scadenza_attiva: b.scadenza_attiva !== false, stripe: b.stripe, locandina_url: b.locandina_url || null, locandina_mobile_url: b.locandina_mobile_url || null } : null);
   const [esitoImp, setEsitoImp] = useState('');
   const aggiorna = () => router.refresh();
   const perId = Object.fromEntries(spettacoli.map((s) => [s.id, s]));
@@ -692,13 +693,21 @@ export default function Biglietteria({ palestraId, tutte, b, spettacoli, allievi
     return m;
   }, [prenotazioni]);
   const q = cerca.trim().toLowerCase();
+  // codice dell'ordine (quello nell'email): è il codice della prenotazione "capo"
+  const codiceOrdine = Object.fromEntries(prenotazioni.map((p) => [p.id, p.codice]));
+  const codiceQ = /^[a-z0-9]{6}$/.test(q) ? q : '';
   const visibili = prenotazioni.filter((p) => {
     const st = statoDi(p);
+    const ordine = (codiceOrdine[p.gruppo_id || p.id] || p.codice).toLowerCase();
+    // scrivendo un codice si vede tutto l'ordine, qualunque sia lo stato (non serve cambiare filtro)
+    if (codiceQ && (ordine === codiceQ || p.codice.toLowerCase() === codiceQ)) return !sp || p.spettacolo_id === sp;
+    if (q && filtro !== 'tutte') { /* cercando, si guarda in tutte le prenotazioni */ } else {
     if (filtro === 'da_pagare' && st !== 'da_pagare') return false;
     if (filtro === 'confermate' && !['pagata', 'gratis'].includes(st)) return false;
     if (filtro === 'altre' && !['annullata', 'scaduta'].includes(st)) return false;
+    }
     if (sp && p.spettacolo_id !== sp) return false;
-    return !q || `${p.nome} ${p.cognome} ${p.email} ${p.codice} ${p.allievo_nome || ''} ${p.telefono || ''}`.toLowerCase().includes(q);
+    return !q || `${p.nome} ${p.cognome} ${p.email} ${p.codice} ${ordine} ${p.allievo_nome || ''} ${p.telefono || ''} ${(p.partecipanti || []).map((x) => `${x.nome} ${x.cognome}`).join(' ')}`.toLowerCase().includes(q);
   });
   const conta = (f) => prenotazioni.filter((p) => { const st = statoDi(p); return f === 'da_pagare' ? st === 'da_pagare' : f === 'confermate' ? ['pagata', 'gratis'].includes(st) : f === 'altre' ? ['annullata', 'scaduta'].includes(st) : true; }).length;
 
@@ -712,7 +721,7 @@ export default function Biglietteria({ palestraId, tutte, b, spettacoli, allievi
     if (link && !/^https?:\/\//i.test(link)) { setEsitoImp('Il link di pagamento deve iniziare con https://'); return; }
     const { error } = await supabaseBrowser().from('biglietterie').update({
       titolo: imp.titolo.trim() || b.titolo, sottotitolo: imp.sottotitolo.trim() || null, link_pagamento: link || null,
-      istruzioni_pagamento: imp.istruzioni_pagamento.trim() || null, giorni_per_pagare: Math.max(1, Number(imp.giorni_per_pagare) || 4), paga_in_segreteria: !!imp.paga_in_segreteria, stripe: !!imp.stripe,
+      istruzioni_pagamento: imp.istruzioni_pagamento.trim() || null, giorni_per_pagare: Math.max(1, Number(imp.giorni_per_pagare) || 4), paga_in_segreteria: !!imp.paga_in_segreteria, scadenza_attiva: !!imp.scadenza_attiva, stripe: !!imp.stripe,
       locandina_url: imp.locandina_url || null, locandina_mobile_url: imp.locandina_mobile_url || null,
     }).eq('id', b.id);
     setEsitoImp(error ? `Non salvato: ${error.message}` : 'Salvato ✓');
@@ -798,11 +807,12 @@ export default function Biglietteria({ palestraId, tutte, b, spettacoli, allievi
               <option value="">Tutti gli spettacoli</option>
               {spettacoli.map((s) => <option key={s.id} value={s.id}>{oraSpettacolo(s.inizio)} · {s.titolo}</option>)}
             </select>
-            <input value={cerca} onChange={(e) => setCerca(e.target.value)} placeholder="Cerca nome, codice, email" aria-label="Cerca" />
+            <input value={cerca} onChange={(e) => setCerca(e.target.value)} placeholder="Cerca codice (es. PK72EY), nome, persona, email" aria-label="Cerca" />
             <button type="button" className="btn btn-piccolo" onClick={esporta} disabled={!visibili.length}>Esporta CSV</button>
             <button type="button" className="btn btn-primario btn-piccolo" onClick={() => setAggiungi((x) => !x)} disabled={!spettacoli.length}>Aggiungi iscritti a mano</button>
           </div>
           {aggiungi && <AggiungiIscritti spettacoli={spettacoli} allievi={allievi} onChiudi={() => setAggiungi(false)} onFatto={aggiorna} />}
+          {q && <p className="piccolo muto">Cercando si guarda in tutte le prenotazioni (pagate, da pagare, annullate). Con il codice dell&apos;email compare tutto l&apos;ordine: ogni evento con le sue persone, e «Modifica» per cambiarle.</p>}
           {filtro === 'da_pagare' && <p className="piccolo muto">Controlla Satispay (o il conto): nella causale c&apos;è il codice. Chi ha prenotato più eventi insieme paga una volta sola: confermandone uno si conferma tutto l&apos;ordine. Trovato il pagamento, premi «Pagamento arrivato»: partono i biglietti per email e l&apos;incasso va negli Incassi.</p>}
           {visibili.length === 0 ? <div className="vuoto">Nessuna prenotazione qui.</div> : (
             <ul className="bt-prenotazioni">{visibili.map((p) => <Riga key={p.id} p={p} s={perId[p.spettacolo_id]} perId={perId}
@@ -848,8 +858,11 @@ export default function Biglietteria({ palestraId, tutte, b, spettacoli, allievi
             <div className="campo bt-largo"><label htmlFor="bi-i">Istruzioni per il pagamento</label>
               <textarea id="bi-i" rows={3} value={imp.istruzioni_pagamento} onChange={(e) => setImp({ ...imp, istruzioni_pagamento: e.target.value })}
                         placeholder="es. Paga con Satispay alla scuola Ritmo Metropolitano e scrivi il codice nel messaggio." /></div>
+            <label className="spunta bt-largo"><input type="checkbox" checked={!!imp.scadenza_attiva} onChange={(e) => setImp({ ...imp, scadenza_attiva: e.target.checked })} />
+              <span>Le prenotazioni non pagate scadono dopo i giorni qui sotto (i posti tornano liberi). Se la togli restano tenute finché le confermi o le annulli tu.
+                Gli eventi gratuiti sono sempre confermati subito.</span></label>
             <div className="campo"><label htmlFor="bi-g">Giorni lavorativi per pagare (scade alle 23:59 dell&apos;ultimo; sabati, domeniche e festivi non contano)</label>
-              <input id="bi-g" inputMode="numeric" value={imp.giorni_per_pagare} onChange={(e) => setImp({ ...imp, giorni_per_pagare: e.target.value })} /></div>
+              <input id="bi-g" inputMode="numeric" disabled={!imp.scadenza_attiva} value={imp.giorni_per_pagare} onChange={(e) => setImp({ ...imp, giorni_per_pagare: e.target.value })} /></div>
             <label className="spunta bt-largo"><input type="checkbox" checked={!!imp.paga_in_segreteria} onChange={(e) => setImp({ ...imp, paga_in_segreteria: e.target.checked })} />
               <span>Si può pagare anche in segreteria (nel promemoria: «oppure passa in segreteria a saldare la prenotazione entro …, oltre la prenotazione decade»)</span></label>
             <label className="spunta"><input type="checkbox" checked={!!imp.stripe} disabled={!stripe && !imp.stripe} onChange={(e) => setImp({ ...imp, stripe: e.target.checked })} />

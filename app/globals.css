@@ -5329,9 +5329,10 @@ body:has(.sportello) .bottone-rapide { display: none; }
 .bg-prom-piede { margin: 0; color: #555; }
 @media (max-width: 520px) { .bg-prom-pagare { flex-direction: column; } .bg-prom-qr { align-self: center; } }
 @media print {
-  body:has(.bg-promemoria) * { visibility: hidden; }
-  body:has(.bg-promemoria) .bg-promemoria, body:has(.bg-promemoria) .bg-promemoria * { visibility: visible; }
-  body:has(.bg-promemoria) .bg-promemoria { position: absolute; left: 0; top: 0; width: 100%; border-width: 1px; }
+  body.stampa-promemoria * { visibility: hidden; }
+  body.stampa-promemoria .bg-promemoria, body.stampa-promemoria .bg-promemoria * { visibility: visible; }
+  body.stampa-promemoria .bg-promemoria { position: absolute; left: 0; top: 0; width: 100%; border-width: 1px; }
+  body:not(.stampa-promemoria) .bg-scheda-promemoria { display: none !important; }
 }
 /* opzioni extra (pizza, bibite…): grandi e leggibili; in rosso quelle lasciate a 0 da confermare */
 .bg-extra { display: grid; gap: 10px; }
@@ -5378,3 +5379,4 @@ body:has(.sportello) .bottone-rapide { display: none; }
 .bg-allievo-trovato { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 10px 12px; border-radius: 10px; background: #f5f5f5; }
 .bt-aggiungi { display: grid; gap: 8px; margin: 10px 0; }
 .bg-frase-offerta { margin: 4px 0 0; padding: 10px 12px; border-radius: 10px; background: #fff7e0; border: 1px solid #f0d58a; font-size: 15px; white-space: pre-line; }
+.bg-riep-persone { display: block; margin-top: 2px; font-size: 13px; color: var(--testo); }

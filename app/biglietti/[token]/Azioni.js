@@ -2,10 +2,15 @@
 import { useState } from 'react';
 
 // Stampa dei biglietti e pagamento con carta (se acceso)
-export default function Azioni({ token, carta = false, stampa = false, testo = 'Stampa i biglietti' }) {
+// promemoria: si stampa solo il promemoria (classe sul body), altrimenti solo i biglietti
+export function stampaSolo(promemoria) {
+  try { document.body.classList.toggle('stampa-promemoria', !!promemoria); window.print(); } finally { setTimeout(() => document.body.classList.remove('stampa-promemoria'), 500); }
+}
+
+export default function Azioni({ token, carta = false, stampa = false, promemoria = false, testo = 'Stampa i biglietti' }) {
   const [errore, setErrore] = useState('');
   const [invio, setInvio] = useState(false);
-  if (stampa) return <button type="button" className="btn btn-pieno" onClick={() => window.print()}>{testo}</button>;
+  if (stampa) return <button type="button" className="btn btn-pieno" onClick={() => stampaSolo(promemoria)}>{testo}</button>;
   if (!carta) return null;
   return (
     <>

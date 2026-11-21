@@ -45,7 +45,8 @@ export async function POST(request) {
   // da pagare: la scadenza (giorni lavorativi, query 175) e il promemoria di pagamento per email (passa dalla coda)
   if (r.stato === 'da_pagare') {
     const [{ data: q }] = await Promise.all([
-      db.from('biglietteria_prenotazioni').select('scade_at').eq('id', r.id).maybeSingle(),
+      db.from('biglietteria_prenotazioni').select('scade_at').or(`id.eq.${r.id},gruppo_id.eq.${r.id}`).eq('stato', 'da_pagare')
+        .order('scade_at', { ascending: true, nullsFirst: false }).limit(1).maybeSingle(),
       db.rpc('biglietteria_promemoria', { p_prenotazione: r.id }).then((x) => { if (x.error) console.error('Promemoria biglietteria', x.error); }),
     ]);
     return NextResponse.json({ ...r, scade_at: q?.scade_at || null });
