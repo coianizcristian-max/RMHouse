@@ -184,6 +184,7 @@ function SceltaEvento({ s, visibile, dati, onChange, onTogli, onModifica }) {
     <section className="bg-evento-scelto" hidden={!visibile} aria-label={s.titolo} style={{ '--colore-evento': coloreDi(s) }}>
       <div className="bg-evento-titolo"><strong>{s.titolo}</strong><span className="piccolo">{quandoSpettacolo(s.inizio)}</span>
         <button type="button" className="link-btn piccolo pericolo bg-evento-togli" onClick={() => onTogli?.(s.id)}>togli</button></div>
+      {s.locandina_url && <img className="bg-evento-locandina" src={s.locandina_url} alt={`Locandina: ${s.titolo}`} />}
       {s.descrizione && <p className="bg-evento-descr">{s.descrizione}</p>}
       {fase && <p className={`bg-fase bg-fase-${fase.tipo}`}>{fase.testo}{testoPostiSala(s) ? <><br /><strong>{testoPostiSala(s)}</strong></> : null}</p>}
       {!fase && testoPostiSala(s) && <p className="bg-fase"><strong>{testoPostiSala(s)}</strong></p>}
@@ -195,7 +196,7 @@ function SceltaEvento({ s, visibile, dati, onChange, onTogli, onModifica }) {
           {!s.limite_allievo && <p className="piccolo muto">Se vieni per un allievo/a sceglilo: i posti si aggiungono a quelli già prenotati per lui/lei.</p>}
           {allievo ? (
             <div className="bg-allievo-scelto">
-              <span>Vieni a vedere <strong>{allievo.nome}</strong>{allievo.gruppo ? ` · ${allievo.gruppo}` : ''} ✓
+              <span>Vieni a vedere <strong>{allievo.nome}</strong>{allievo.gruppo ? ` · ${allievo.gruppo.replaceAll(' | ', ' · ')}` : ''} ✓
                 {s.limite_allievo && allievo.rimasti > 0 && <span className="piccolo muto"> · {allievo.rimasti === 1 ? '1 posto disponibile' : `${allievo.rimasti} posti disponibili`}</span>}</span>
               <button type="button" className="link-btn piccolo" onClick={() => { setAllievo(null); setAllievoId(''); setNascita(''); }}>cambia</button>
             </div>
@@ -471,7 +472,8 @@ export default function Prenota({ b, carta }) {
                 {b.spettacoli.filter((x) => !elenco.includes(x.id)).map((x) => {
                   const pieno = x.posti_liberi === 0;
                   return (
-                    <button key={x.id} type="button" disabled={x.chiuso || pieno} className="bg-spettacolo bg-spettacolo-colore" style={{ '--colore-evento': coloreDi(x) }} onClick={() => aggiungi(x.id)}>
+                    <button key={x.id} type="button" disabled={x.chiuso || pieno} className={`bg-spettacolo bg-spettacolo-colore${x.locandina_url ? ' con-locandina' : ''}`} style={{ '--colore-evento': coloreDi(x) }} onClick={() => aggiungi(x.id)}>
+                      {x.locandina_url && <img className="bg-spettacolo-locandina" src={x.locandina_url} alt="" />}
                       <strong>{x.titolo}</strong>
                       <span>{quandoSpettacolo(x.inizio)}</span>
                       {x.descrizione && <span className="bg-spettacolo-descr">{x.descrizione}</span>}

@@ -60,7 +60,7 @@ async function inviaEmail(db) {
 
   const { data: coda, error } = await db
     .from('messaggi_coda')
-    .select('id, destinatario, oggetto, corpo, tentativi, canale, palestre ( nome, email, email_mittente )')
+    .select('id, destinatario, oggetto, corpo, html, tentativi, canale, palestre ( nome, email, email_mittente )')
     .eq('stato', 'in_coda')
     .eq('canale', 'email')
     .lte('programmato_per', new Date().toISOString())
@@ -81,6 +81,7 @@ async function inviaEmail(db) {
         reply_to: p.email || undefined,
         subject: m.oggetto || p.nome,
         text: m.corpo,
+        ...(m.html ? { html: m.html } : {}),   // email con immagini (es. biglietti: logo e locandina)
       }),
     });
     let res = await manda();

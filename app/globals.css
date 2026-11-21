@@ -5428,3 +5428,44 @@ body:has(.sportello) .bottone-rapide { display: none; }
 .bg-evento-descr { margin: 4px 0 0; font-size: 14px; white-space: pre-line; }
 .bg-spettacolo-descr { font-size: 13px; opacity: .85; white-space: pre-line; text-align: left; }
 .bg-messaggio-conferma { margin: 4px 0 8px; padding: 12px 14px; border-radius: 12px; background: #e8f7ec; border: 1px solid #a9dcb6; font-size: 16px; white-space: pre-line; }
+.bt-carica-opzioni { margin: 8px 0; padding: 12px; border: 1px solid var(--linea); border-radius: 12px; }
+.bt-dubbi { display: grid; gap: 6px; margin: 8px 0; padding: 10px 12px; border-radius: 12px; background: #fff7e0; border: 1px solid #f0d58a; }
+.bt-dubbio { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) minmax(0, 1fr); gap: 6px; align-items: center; }
+@media (max-width: 600px) { .bt-dubbio { grid-template-columns: 1fr 1fr; } .bt-dubbio > span { grid-column: 1 / -1; } }
+.bt-email-logo { display: block; max-height: 60px; max-width: 50%; margin: 0 auto 10px; } .bt-email-img { display: block; width: 100%; height: auto; margin-bottom: 12px; border-radius: 8px; }
+/* impostazioni di un evento: compatte, a righe, chiudibili */
+.bt-spettacolo { margin-bottom: 8px; padding: 0; }
+.bt-spettacolo > summary { list-style: none; cursor: pointer; display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; padding: 12px 16px; }
+.bt-spettacolo > summary::-webkit-details-marker { display: none; }
+.bt-sp-apri { margin-left: auto; color: var(--rosso); font-weight: 700; }
+.bt-spettacolo[open] .bt-sp-apri { visibility: hidden; }
+.bt-spettacolo[open] > summary { border-bottom: 1px solid var(--linea); }
+.bt-spettacolo > .bt-sp-griglia, .bt-spettacolo > .azioni { padding: 10px 16px; }
+.bt-spettacolo > .azioni { padding-top: 0; padding-bottom: 14px; }
+.bt-sp-griglia { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 8px 10px; align-items: end; }
+.bt-sp-griglia .campo { margin: 0; }
+.bt-sp-griglia .campo label { font-size: 12px; margin-bottom: 2px; }
+.bt-sp-griglia input, .bt-sp-griglia select { min-height: 38px; padding-top: 6px; padding-bottom: 6px; }
+.bt-sp-griglia textarea { min-height: 0; }
+.bt-sp-griglia .c2 { grid-column: span 2; } .bt-sp-griglia .c3 { grid-column: span 3; } .bt-sp-griglia .c4 { grid-column: span 4; }
+.bt-sp-griglia .c6 { grid-column: span 6; } .bt-sp-griglia .c7 { grid-column: span 7; } .bt-sp-griglia .c12 { grid-column: 1 / -1; }
+.bt-sp-spunta { margin: 0 !important; min-height: 38px; align-items: center; font-size: 14px; }
+.bt-sp-sezione { margin-top: 6px; padding-top: 8px; border-top: 1px dashed var(--linea); font-weight: 800; font-size: 14px; }
+.bt-sp-sezione-spunta { display: flex; gap: 8px; align-items: center; }
+.bt-sp-griglia .bt-extra-riga { display: grid; grid-template-columns: minmax(0, 3fr) 70px 150px minmax(0, 5fr) 28px; gap: 6px; padding: 0; border: 0; }
+@media (max-width: 760px) {
+  .bt-sp-griglia .c2, .bt-sp-griglia .c3, .bt-sp-griglia .c4 { grid-column: span 6; }
+  .bt-sp-griglia .c6, .bt-sp-griglia .c7 { grid-column: 1 / -1; }
+  .bt-sp-griglia .bt-extra-riga { grid-template-columns: minmax(0, 1fr) 70px 28px; }
+  .bt-sp-griglia .bt-extra-riga input[type=date], .bt-sp-griglia .bt-extra-riga .bt-extra-descr { grid-column: 1 / -1; }
+}
+.bt-sp-griglia .c8 { grid-column: span 8; }
+.bt-sp-griglia .bt-extra-riga .bt-extra-descr { grid-column: auto; }
+.bt-sp-griglia .bt-extra-riga input { min-height: 36px; padding: 6px 10px; border: 1.5px solid var(--linea); border-radius: 10px; font: inherit; font-size: 14px; background: var(--bianco); color: var(--testo); }
+.bt-sp-griglia .bt-extra-riga button { justify-self: center; }
+.bt-sp-locandina .zona-foto { min-height: 0; }
+/* locandina del singolo evento nella pagina pubblica */
+.bg-evento-locandina { display: block; width: 100%; max-height: 360px; object-fit: contain; border-radius: 12px; margin: 6px 0 2px; background: #111; }
+.bg-spettacolo-locandina { display: block; width: 100%; height: 140px; object-fit: cover; border-radius: 10px; margin-bottom: 6px; }
+@media (max-width: 760px) { .bt-sp-griglia .c8 { grid-column: 1 / -1; } .bt-sp-griglia .c4.bt-sp-locandina { grid-column: 1 / -1; } }
+.bt-sp-griglia .c8, .bt-sp-griglia .bt-sp-locandina { align-self: start; } .bt-sp-griglia .c8 textarea { min-height: 140px; }

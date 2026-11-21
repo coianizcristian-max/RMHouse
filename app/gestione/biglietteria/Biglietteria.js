@@ -9,6 +9,7 @@ import { leggiCsv, leggiData } from '@/lib/csv';
 import Immagine from '../Immagine';
 import Biglietto, { BIGLIETTO_BASE } from '../../biglietti/Biglietto';
 import { righeXlsx, dataDaExcel } from '@/lib/xlsx';
+import { separaNome, indovinaOrdine, accorciaGruppo } from '@/lib/nomiPropri';
 
 const STATI = { da_pagare: 'Da pagare', pagata: 'Pagata', gratis: 'Gratis', annullata: 'Annullata', scaduta: 'Scaduta' };
 const METODI = [['satispay', 'Satispay'], ['bonifico', 'Bonifico'], ['contanti', 'Contanti'], ['pos', 'POS'], ['altro', 'Altro']];
@@ -134,9 +135,9 @@ function Nuova({ palestraId, onFatto }) {
 const idOpzione = (nome) => `${nome.toLowerCase().normalize('NFD').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 24) || 'extra'}-${Math.random().toString(36).slice(2, 6)}`;
 
 // ---------------------------------------------------------------- uno spettacolo (modifica)
-function Spettacolo({ s, nPren, onSalvato }) {
+function Spettacolo({ s, nPren, nAllievi = 0, aperto = false, onSalvato }) {
   const [v, setV] = useState({
-    titolo: s.titolo, descrizione: s.descrizione || '', inizio: perInput(s.inizio), con_allievi: s.con_allievi, chiedi_nascita: s.chiedi_nascita !== false, scelta_allievo: s.scelta_allievo || 'gruppo', frase_offerta: s.frase_offerta || '', posti_per_allievo: String(s.posti_per_allievo),
+    titolo: s.titolo, descrizione: s.descrizione || '', inizio: perInput(s.inizio), con_allievi: s.con_allievi, chiedi_nascita: s.chiedi_nascita !== false, scelta_allievo: s.scelta_allievo || 'gruppo', capienza_con_allievi: !!s.capienza_con_allievi, locandina_url: s.locandina_url || null, frase_offerta: s.frase_offerta || '', posti_per_allievo: String(s.posti_per_allievo),
     liberi_dal: s.liberi_dal || '', capienza: s.capienza == null ? '' : String(s.capienza), max_per_prenotazione: String(s.max_per_prenotazione),
     contributo: euroTesto(s.contributo_cent), contributo_per_posto: s.contributo_per_posto, offerta_libera: s.offerta_libera,
     chiuso: s.chiuso,
@@ -149,7 +150,7 @@ function Spettacolo({ s, nPren, onSalvato }) {
     setEsito('');
     if (!v.titolo.trim() || !v.inizio) { setEsito('Titolo e data/ora servono.'); return; }
     const { error } = await supabaseBrowser().from('biglietteria_spettacoli').update({
-      titolo: v.titolo.trim(), descrizione: v.descrizione.trim() || null, inizio: daInput(v.inizio), con_allievi: v.con_allievi, chiedi_nascita: v.chiedi_nascita, scelta_allievo: v.scelta_allievo, frase_offerta: v.frase_offerta.trim() || null,
+      titolo: v.titolo.trim(), descrizione: v.descrizione.trim() || null, inizio: daInput(v.inizio), con_allievi: v.con_allievi, chiedi_nascita: v.chiedi_nascita, scelta_allievo: v.scelta_allievo, capienza_con_allievi: v.con_allievi && v.capienza_con_allievi, locandina_url: v.locandina_url || null, frase_offerta: v.frase_offerta.trim() || null,
       posti_per_allievo: Math.max(1, Number(v.posti_per_allievo) || 2), liberi_dal: v.liberi_dal || null,
       capienza: v.capienza === '' ? null : Math.max(0, Number(v.capienza) || 0), max_per_prenotazione: Math.max(1, Number(v.max_per_prenotazione) || 10),
       contributo_cent: centDa(v.contributo) || 0, contributo_per_posto: v.contributo_per_posto, offerta_libera: v.offerta_libera,
@@ -167,78 +168,110 @@ function Spettacolo({ s, nPren, onSalvato }) {
     if (error) setEsito(`Non eliminato: ${error.message}`); else onSalvato();
   }
   return (
-    <section className="pannello bt-spettacolo">
-      <div className="bt-campi">
-        <div className="campo bt-largo"><label>Titolo</label><input value={v.titolo} onChange={set('titolo')} /></div>
-        <div className="campo"><label>Giorno e ora</label><input type="datetime-local" value={v.inizio} onChange={set('inizio')} /></div>
-        <div className="campo"><label>Capienza (posti in tutto)</label><input inputMode="numeric" value={v.capienza} onChange={set('capienza')} placeholder="senza limite" /></div>
-        <div className="campo"><label>Contributo €</label><input inputMode="decimal" value={v.contributo} onChange={set('contributo')} placeholder="0 = gratis" /></div>
-        <label className="spunta"><input type="checkbox" checked={v.contributo_per_posto} onChange={set('contributo_per_posto')} /><span>contributo a persona (non a prenotazione)</span></label>
-        <label className="spunta"><input type="checkbox" checked={v.con_allievi} onChange={set('con_allievi')} /><span>il pubblico sceglie l&apos;allievo che viene a vedere</span></label>
+    <details className="pannello bt-spettacolo" open={aperto}>
+      <summary className="bt-sp-testa">
+        <strong>{s.ordine} · {v.titolo || 'Evento'}</strong>
+        <span className="piccolo muto">{v.inizio ? quandoSpettacolo(daInput(v.inizio)) : ''}{v.capienza ? ` · ${v.capienza} posti` : ''}{centDa(v.contributo) ? ` · ${v.contributo} €` : ' · gratis'}{v.con_allievi ? ' · con allievi' : ''}{v.chiuso ? ' · chiuso' : ''}</span>
+        <span className="bt-sp-apri piccolo">modifica</span>
+      </summary>
+      <div className="bt-sp-griglia">
+        <div className="campo c6"><label>Titolo</label><input value={v.titolo} onChange={set('titolo')} /></div>
+        <div className="campo c3"><label>Giorno e ora</label><input type="datetime-local" value={v.inizio} onChange={set('inizio')} /></div>
+        <label className="spunta c3 bt-sp-spunta"><input type="checkbox" checked={v.chiuso} onChange={set('chiuso')} /><span>prenotazioni chiuse</span></label>
+
+        <div className="bt-sp-sezione c12">Posti e prezzi</div>
+        <div className="campo c2"><label>Capienza</label><input inputMode="numeric" value={v.capienza} onChange={set('capienza')} placeholder="senza limite" /></div>
+        <div className="campo c2"><label>Max per prenotazione</label><input inputMode="numeric" value={v.max_per_prenotazione} onChange={set('max_per_prenotazione')} /></div>
+        <div className="campo c2"><label>Contributo €</label><input inputMode="decimal" value={v.contributo} onChange={set('contributo')} placeholder="0 = gratis" /></div>
+        <label className="spunta c2 bt-sp-spunta"><input type="checkbox" checked={v.contributo_per_posto} onChange={set('contributo_per_posto')} /><span>a persona</span></label>
+        <div className="campo c4"><label>Raccolta fondi</label>
+          <select value={v.offerta_libera ? 'importi' : 'frase'} onChange={(e) => setV((x) => ({ ...x, offerta_libera: e.target.value === 'importi' }))}>
+            <option value="importi">Importi (No, 5, 10, 20, altro)</option>
+            <option value="frase">Solo una frase (o niente)</option>
+          </select></div>
+        {!v.offerta_libera && <div className="campo c12"><label>Frase al posto degli importi</label>
+          <input value={v.frase_offerta} onChange={set('frase_offerta')} placeholder="es. Durante la festa potrai contribuire alla raccolta fondi direttamente in sala. Grazie!" /></div>}
+
+        <label className="spunta c12 bt-sp-sezione bt-sp-sezione-spunta"><input type="checkbox" checked={v.con_allievi} onChange={set('con_allievi')} /><span>Il pubblico sceglie l&apos;allievo che viene a vedere</span></label>
         {v.con_allievi && (
           <>
-            <div className="campo"><label>Posti per allievo</label><input inputMode="numeric" value={v.posti_per_allievo} onChange={set('posti_per_allievo')} /></div>
-            <div className="campo"><label>Dal giorno: posti liberi a tutti</label><input type="date" value={v.liberi_dal} onChange={set('liberi_dal')} /></div>
-            <div className="campo bt-largo"><label>Come si sceglie l&apos;allievo</label>
+            <div className="campo c2"><label>Posti per allievo</label><input inputMode="numeric" value={v.posti_per_allievo} onChange={set('posti_per_allievo')} /></div>
+            <div className="campo c3"><label>Posti liberi a tutti dal</label><input type="date" value={v.liberi_dal} onChange={set('liberi_dal')} /></div>
+            <div className="campo c7"><label>Come si sceglie l&apos;allievo</label>
               <select value={v.scelta_allievo} onChange={set('scelta_allievo')}>
                 <option value="gruppo">Prima il gruppo, poi l&apos;allievo</option>
-                <option value="nome">Scrivendo il nome (l&apos;elenco si filtra mentre si scrive)</option>
+                <option value="nome">Scrivendo il nome (si filtra mentre scrivi)</option>
               </select></div>
-            <label className="spunta bt-largo"><input type="checkbox" checked={v.chiedi_nascita} onChange={set('chiedi_nascita')} />
-              <span>chiedi la data di nascita dell&apos;allievo per confermare (se la togli: scelto l&apos;allievo si passa subito a posti e pagamento)</span></label>
+            <label className="spunta c6 bt-sp-spunta"><input type="checkbox" checked={v.chiedi_nascita} onChange={set('chiedi_nascita')} /><span>conferma con la data di nascita</span></label>
+            <label className="spunta c6 bt-sp-spunta"><input type="checkbox" checked={v.capienza_con_allievi} onChange={set('capienza_con_allievi')} />
+              <span>gli allievi{nAllievi ? ` (${nAllievi})` : ''} occupano posti della capienza</span></label>
           </>
         )}
-        <div className="campo"><label>Max posti per prenotazione</label><input inputMode="numeric" value={v.max_per_prenotazione} onChange={set('max_per_prenotazione')} /></div>
-        <div className="campo bt-largo"><label>Raccolta fondi nella pagina</label>
-          <select value={v.offerta_libera ? 'importi' : 'frase'} onChange={(e) => setV((x) => ({ ...x, offerta_libera: e.target.value === 'importi' }))}>
-            <option value="importi">Importi da scegliere (No, 5 €, 10 €, 20 €, altro)</option>
-            <option value="frase">Solo una frase (o niente, se la lasci vuota)</option>
-          </select></div>
-        {!v.offerta_libera && <div className="campo bt-largo"><label>Frase al posto degli importi</label>
-          <textarea rows={2} value={v.frase_offerta} onChange={set('frase_offerta')} placeholder="es. Durante la festa potrai contribuire alla raccolta fondi direttamente in sala. Grazie!" /></div>}
-        <div className="bt-largo bt-extra">
-          <strong>Opzioni extra</strong> <span className="piccolo muto">(es. pizza, pizza per celiaci, bibita): il pubblico sceglie quante ne vuole e deve confermare se le lascia a 0</span>
-          {extra.map((o, k) => (
-            <div key={k} className="bt-extra-riga">
-              <input aria-label="Nome dell'opzione" value={o.nome} onChange={setOpz(k, 'nome')} placeholder="Nome (es. Pizza margherita)" />
-              <input aria-label="Prezzo in euro" inputMode="decimal" value={o.prezzo} onChange={setOpz(k, 'prezzo')} placeholder="€" />
-              <label className="bt-mini">entro il <input type="date" value={o.entro} onChange={setOpz(k, 'entro')} /></label>
-              <button type="button" className="link-btn piccolo pericolo" onClick={() => setExtra((v) => v.filter((_, i) => i !== k))}>togli</button>
-              <input className="bt-extra-descr" aria-label="Descrizione" value={o.descrizione} onChange={setOpz(k, 'descrizione')} placeholder="Descrizione chiara (es. «pizza intera, ritiro al bar dalle 19:30»)" />
-            </div>
-          ))}
-          <button type="button" className="btn btn-piccolo" onClick={() => setExtra((v) => [...v, { id: '', nome: '', descrizione: '', prezzo: '', entro: '' }])}>Aggiungi un&apos;opzione</button>
-        </div>
-        <div className="campo bt-largo"><label>Descrizione (si vede nella pagina)</label><textarea rows={2} value={v.descrizione} onChange={set('descrizione')} /></div>
-        <label className="spunta"><input type="checkbox" checked={v.chiuso} onChange={set('chiuso')} /><span>prenotazioni chiuse per questo spettacolo</span></label>
+
+        <div className="bt-sp-sezione c12">Opzioni extra <span className="piccolo muto">(pizza, bibite…: chi le lascia a 0 deve confermarlo)</span></div>
+        {extra.map((o, k) => (
+          <div key={k} className="bt-extra-riga c12">
+            <input aria-label="Nome dell'opzione" value={o.nome} onChange={setOpz(k, 'nome')} placeholder="Nome (es. Pizza margherita)" />
+            <input aria-label="Prezzo in euro" inputMode="decimal" value={o.prezzo} onChange={setOpz(k, 'prezzo')} placeholder="€" />
+            <input aria-label="Ordinabile entro il" type="date" value={o.entro} onChange={setOpz(k, 'entro')} title="ordinabile entro il" />
+            <input className="bt-extra-descr" aria-label="Descrizione" value={o.descrizione} onChange={setOpz(k, 'descrizione')} placeholder="Descrizione (es. pizza intera, ritiro al bar dalle 19:30)" />
+            <button type="button" className="link-btn piccolo pericolo" onClick={() => setExtra((x) => x.filter((_, n) => n !== k))} aria-label="Togli l'opzione">✕</button>
+          </div>
+        ))}
+        <div className="c12"><button type="button" className="link-btn piccolo" onClick={() => setExtra((x) => [...x, { id: '', nome: '', descrizione: '', prezzo: '', entro: '' }])}>+ aggiungi un&apos;opzione</button></div>
+
+        <div className="campo c8"><label>Descrizione (si vede nella pagina pubblica)</label><textarea rows={3} value={v.descrizione} onChange={set('descrizione')} /></div>
+        <div className="c4 bt-sp-locandina"><Immagine url={v.locandina_url} cartella="biglietteria" etichetta="Locandina di questo evento" onChange={(url) => setV((x) => ({ ...x, locandina_url: url }))} /></div>
       </div>
       <div className="azioni">
         <button type="button" className="btn btn-primario btn-piccolo" onClick={salva}>Salva</button>
         <button type="button" className="link-btn piccolo pericolo" onClick={elimina}>Elimina</button>
         {esito && <span className="piccolo">{esito}</span>}
       </div>
-    </section>
+    </details>
   );
 }
 
 // ---------------------------------------------------------------- elenco iscritti (un file per tutti gli spettacoli)
-// colonne riconosciute dall'intestazione: Nome, Cognome, Gruppo (o Corso), Spettacolo (1, 2, l'ora o il titolo), Data di nascita
-function righeDaTabella(righe) {
+// colonne riconosciute dall'intestazione: Nome, Cognome, Gruppo (o Corso), Spettacolo (1, 2, l'ora o il titolo), Data di nascita.
+// Oppure il file "a blocchi" della segreteria: una riga col nome del gruppo e «COGNOME E NOME», sotto i nominativi
+// (numero e nome intero), poi il gruppo dopo, ecc. Lì lo spettacolo si sceglie al caricamento.
+const NOMINATIVO = /cognome\s+e\s+nome|nome\s+e\s+cognome|nominativo|allievo|allieva/i;
+function righeDaTabella(righe, opz = {}) {
   const pulite = righe.map((r) => r.map((c) => String(c ?? '').trim())).filter((r) => r.some((c) => c));
   if (!pulite.length) return { righe: [], manca: '' };
   const testa = pulite[0].map((c) => c.toLowerCase());
+  const iNom = pulite[0].findIndex((c) => NOMINATIVO.test(c));
+  if (iNom >= 0 && !testa.some((h) => h === 'nome' || h === 'cognome')) {
+    // file a blocchi
+    const altra = iNom === 0 ? 1 : 0;
+    const voci = []; let gruppo = '';
+    for (const r of pulite) {
+      const a = r[altra] || '', n = r[iNom] || '';
+      if (NOMINATIVO.test(n) || (!n && a && !/^\d+([.,]0+)?$/.test(a))) { gruppo = a; continue; }   // riga del gruppo
+      if (n) voci.push({ intero: n, gruppoIntero: gruppo });
+    }
+    const ordine = opz.ordine || indovinaOrdine(voci.map((v) => v.intero));
+    return {
+      manca: '', blocchi: true, ordine,
+      righe: voci.map((v, k) => {
+        const sep = opz.correzioni?.[k] || separaNome(v.intero, ordine);
+        return { ...sep, intero: v.intero, gruppo: opz.accorcia === false ? v.gruppoIntero : accorciaGruppo(v.gruppoIntero), spettacolo: opz.spettacolo || '', nascita: null, nascitaTesto: '' };
+      }),
+    };
+  }
   const col = (...parole) => testa.findIndex((h) => parole.some((p) => h.includes(p)));
   const iC = col('cognome');
   const iN = testa.findIndex((h, k) => h.includes('nome') && k !== iC);
   const iG = col('gruppo', 'corso', 'classe');
   const iS = col('spettacolo', 'show', 'evento', 'turno');
   const iD = col('nascita', 'nato', 'data');
-  if (iN < 0 || iS < 0) return { righe: [], manca: 'Nella prima riga servono almeno le intestazioni «Nome» e «Spettacolo» (meglio anche Cognome, Gruppo, Data di nascita).' };
+  if (iN < 0) return { righe: [], manca: 'Nella prima riga servono le intestazioni «Nome» e «Cognome» (meglio anche Gruppo, Spettacolo, Data di nascita), oppure il file a blocchi con «COGNOME E NOME».' };
   return {
-    manca: '',
+    manca: '', senzaSpettacolo: iS < 0,
     righe: pulite.slice(1).map((r) => {
       const d = iD >= 0 ? r[iD] : '';
-      return { nome: r[iN] || '', cognome: iC >= 0 ? r[iC] || '' : '', gruppo: iG >= 0 ? r[iG] || '' : '', spettacolo: r[iS] || '',
+      return { nome: r[iN] || '', cognome: iC >= 0 ? r[iC] || '' : '', gruppo: iG >= 0 ? r[iG] || '' : '', spettacolo: (iS >= 0 ? r[iS] : '') || opz.spettacolo || '',
                nascita: d ? (/^\d+(\.\d+)?$/.test(d) ? dataDaExcel(d) : leggiData(d)) : null, nascitaTesto: d };
     }).filter((x) => x.nome),
   };
@@ -250,26 +283,40 @@ function Allievi({ b, spettacoli, allievi, prenotati, onFatto }) {
   const [sostituisci, setSostituisci] = useState(false);
   const [esito, setEsito] = useState('');
   const [cerca, setCerca] = useState('');
+  const conAllieviSp = spettacoli.filter((x) => x.con_allievi);
+  const [spScelto, setSpScelto] = useState(conAllieviSp.length === 1 ? conAllieviSp[0].id : '');
+  const [ordineNomi, setOrdineNomi] = useState('');        // '' = indovinato dal file
+  const [accorcia, setAccorcia] = useState(true);
+  const [correzioni, setCorrezioni] = useState({});
   const letto = useMemo(() => {
-    if (tabella) return righeDaTabella(tabella);
+    const opz = { spettacolo: spScelto, ordine: ordineNomi || undefined, accorcia, correzioni };
+    if (tabella) return righeDaTabella(tabella, opz);
     const t = testo.replace(/^\uFEFF/, '').trim();
     if (!t) return { righe: [], manca: '' };
-    if (t.includes('\t')) return righeDaTabella(t.split(/\r?\n/).map((r) => r.split('\t')));
+    if (t.includes('\t')) return righeDaTabella(t.split(/\r?\n/).map((r) => r.split('\t')), opz);
     const { intestazioni, righe } = leggiCsv(t);
-    return righeDaTabella([intestazioni, ...righe.map((x) => intestazioni.map((h) => x[h]))]);
-  }, [tabella, testo]);
+    return righeDaTabella([intestazioni, ...righe.map((x) => intestazioni.map((h) => x[h]))], opz);
+  }, [tabella, testo, spScelto, ordineNomi, accorcia, correzioni]);
+  const serveSpettacolo = (letto.blocchi || letto.senzaSpettacolo) && letto.righe.length > 0;
+  const dubbi = letto.righe.map((r, k) => ({ r, k })).filter(({ r }) => r.dubbio);
+  const gruppiLetti = [...new Set(letto.righe.map((r) => r.gruppo))];
+  const piuGruppi = (() => { const c = {}; letto.righe.forEach((r) => { const n = `${r.nome} ${r.cognome}`.toLowerCase(); c[n] = (c[n] || 0) + 1; }); return Object.values(c).filter((n) => n > 1).length; })();
   const senzaData = letto.righe.filter((r) => !r.nascita).length;
   async function file(e) {
     const f = e.target.files?.[0]; e.target.value = ''; if (!f) return;
     setEsito('');
     try {
+      setCorrezioni({}); setOrdineNomi('');
       if (/\.xlsx$/i.test(f.name)) { setTabella(await righeXlsx(f)); setTesto(''); }
       else if (/\.(csv|txt)$/i.test(f.name)) { setTesto(await f.text()); setTabella(null); }
+      else if (/\.numbers$/i.test(f.name)) setEsito('È un file di Numbers (Mac/iPhone): aprilo in Numbers e fai File → Esporta come → CSV (o Excel), poi carica quello.');
       else setEsito('Carica un file Excel (.xlsx) o CSV. Un .xls vecchio: aprilo in Excel e salvalo come .xlsx.');
     } catch { setEsito('Non riesco a leggere il file: salvalo come .xlsx o CSV e riprova.'); }
   }
   async function carica() {
     setEsito('');
+    if (serveSpettacolo && !spScelto) { setEsito('Scegli per quale spettacolo è questo elenco.'); return; }
+    if (letto.righe.some((r) => !r.cognome)) { setEsito('Ci sono righe senza cognome: correggile qui sopra.'); return; }
     const righe = letto.righe.map(({ nome, cognome, gruppo, spettacolo, nascita }) => ({ nome, cognome, gruppo, spettacolo, nascita }));
     const { data, error } = await supabaseBrowser().rpc('biglietteria_carica_allievi', { p_biglietteria: b.id, p_righe: righe, p_sostituisci: sostituisci });
     if (error) { setEsito(`Non caricato: ${error.message}`); return; }
@@ -294,8 +341,8 @@ function Allievi({ b, spettacoli, allievi, prenotati, onFatto }) {
           In «Spettacolo» scrivi il numero ({conAllievi.map((s) => `${s.ordine} = ${s.titolo}`).join(', ')}), oppure l&apos;ora o una parola del titolo.
           Ricaricando il file, chi c&apos;è già viene aggiornato.</p>
         <div className="azioni">
-          <input type="file" accept=".xlsx,.csv,.txt,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" onChange={file} aria-label="File Excel o CSV" />
-          <label className="spunta"><input type="checkbox" checked={sostituisci} onChange={(e) => setSostituisci(e.target.checked)} /><span>sostituisci tutto l&apos;elenco (restano quelli con prenotazioni)</span></label>
+          <input type="file" accept=".xlsx,.csv,.txt,.numbers,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" onChange={file} aria-label="File Excel o CSV" />
+          <label className="spunta"><input type="checkbox" checked={sostituisci} onChange={(e) => setSostituisci(e.target.checked)} /><span>sostituisci l&apos;elenco degli spettacoli di questo file (restano quelli con prenotazioni)</span></label>
         </div>
         <div className="campo">
           <label htmlFor="ba-incolla">…oppure incolla qui le colonne copiate da Excel (con la riga delle intestazioni)</label>
@@ -305,11 +352,47 @@ function Allievi({ b, spettacoli, allievi, prenotati, onFatto }) {
         {letto.manca && <div className="errore" role="alert">{letto.manca}</div>}
         {letto.righe.length > 0 && (
           <>
+            {(serveSpettacolo || letto.blocchi) && (
+              <div className="bt-campi bt-carica-opzioni">
+                {serveSpettacolo && (
+                  <div className="campo"><label htmlFor="ba-sp">Questo elenco è per lo spettacolo</label>
+                    <select id="ba-sp" value={spScelto} onChange={(e) => setSpScelto(e.target.value)}>
+                      <option value="">— scegli —</option>
+                      {conAllieviSp.map((x) => <option key={x.id} value={x.id}>{x.ordine} · {x.titolo}</option>)}
+                    </select></div>
+                )}
+                {letto.blocchi && (
+                  <div className="campo"><label htmlFor="ba-ord">Nel file i nominativi sono scritti</label>
+                    <select id="ba-ord" value={letto.ordine} onChange={(e) => { setOrdineNomi(e.target.value); setCorrezioni({}); }}>
+                      <option value="nome_cognome">Nome Cognome (es. Sofia Rossi)</option>
+                      <option value="cognome_nome">Cognome Nome (es. Rossi Sofia)</option>
+                    </select></div>
+                )}
+                {letto.blocchi && (
+                  <label className="spunta bt-largo"><input type="checkbox" checked={accorcia} onChange={(e) => setAccorcia(e.target.checked)} />
+                    <span>Accorcia i nomi dei gruppi (togli giorni e orari): {gruppiLetti.slice(0, 8).join(' · ')}</span></label>
+                )}
+              </div>
+            )}
+            {letto.blocchi && <p className="piccolo muto">File a blocchi: {letto.righe.length} nominativi in {gruppiLetti.length} gruppi{piuGruppi ? ` · ${piuGruppi} allievi sono in più gruppi: si salvano una volta sola e compaiono in ognuno dei loro gruppi` : ''}.
+              Nel file non c&apos;è la data di nascita: per questi allievi non verrà chiesta (in Eventi puoi togliere la domanda).</p>}
+            {dubbi.length > 0 && (
+              <div className="bt-dubbi">
+                <strong className="piccolo">Controlla nome e cognome ({dubbi.length}: tre parole o più, o una sola)</strong>
+                {dubbi.map(({ r, k }) => (
+                  <div key={k} className="bt-dubbio">
+                    <span className="piccolo muto">{r.intero}</span>
+                    <input aria-label={`Nome di ${r.intero}`} value={r.nome} onChange={(e) => setCorrezioni((c) => ({ ...c, [k]: { nome: e.target.value, cognome: r.cognome, dubbio: true } }))} placeholder="Nome" />
+                    <input aria-label={`Cognome di ${r.intero}`} value={r.cognome} onChange={(e) => setCorrezioni((c) => ({ ...c, [k]: { nome: r.nome, cognome: e.target.value, dubbio: true } }))} placeholder="Cognome" />
+                  </div>
+                ))}
+              </div>
+            )}
             <div className="bt-anteprima">
               <table>
                 <thead><tr><th>Nome</th><th>Cognome</th><th>Gruppo</th><th>Spettacolo</th><th>Nascita</th></tr></thead>
                 <tbody>{letto.righe.slice(0, 6).map((r, k) => (
-                  <tr key={k}><td>{r.nome}</td><td>{r.cognome}</td><td>{r.gruppo}</td><td>{r.spettacolo}</td>
+                  <tr key={k}><td>{r.nome}</td><td>{r.cognome}</td><td>{r.gruppo}</td><td>{conAllieviSp.find((x) => x.id === r.spettacolo)?.titolo || r.spettacolo}</td>
                     <td className={r.nascita ? '' : 'rosso'}>{r.nascita ? dataBreve(r.nascita) : (r.nascitaTesto || 'manca')}</td></tr>
                 ))}</tbody>
               </table>
@@ -325,7 +408,7 @@ function Allievi({ b, spettacoli, allievi, prenotati, onFatto }) {
       {conAllievi.map((s) => {
         const di = allievi.filter((a) => a.spettacolo_id === s.id);
         const visti = di.filter((a) => !q || `${a.nome} ${a.cognome} ${a.gruppo || ''}`.toLowerCase().includes(q));
-        const gruppi = [...new Set(di.map((a) => a.gruppo || 'Altri'))].sort();
+        const gruppi = [...new Set(di.flatMap((a) => (a.gruppo || 'Altri').split(' | ')))].sort();
         return (
           <section key={s.id} className="pannello">
             <h3>{s.ordine} · {s.titolo} <span className="muto piccolo">· {di.length} allievi in {gruppi.length} gruppi · {s.posti_per_allievo} posti ciascuno</span></h3>
@@ -335,7 +418,7 @@ function Allievi({ b, spettacoli, allievi, prenotati, onFatto }) {
                 <input className="bt-cerca" value={cerca} onChange={(e) => setCerca(e.target.value)} placeholder="Cerca" aria-label="Cerca allievo" />
                 <ul className="bt-allievi">
                   {visti.map((a) => (
-                    <li key={a.id}><span>{a.cognome} {a.nome}<span className="muto"> · {a.gruppo || 'Altri'}{a.data_nascita ? ` · ${dataBreve(a.data_nascita)}` : ' · senza data'}</span></span>
+                    <li key={a.id}><span>{a.cognome} {a.nome}<span className="muto"> · {(a.gruppo || 'Altri').replaceAll(' | ', ' · ')}{a.data_nascita ? ` · ${dataBreve(a.data_nascita)}` : ' · senza data'}</span></span>
                       <span className="piccolo">{prenotati[a.id] ? `${prenotati[a.id]} posti` : ''}</span>
                       <button type="button" className="link-btn piccolo pericolo" onClick={() => togli(a)} aria-label={`Togli ${a.nome}`}>togli</button></li>
                   ))}
@@ -490,6 +573,8 @@ function EmailEBiglietto({ b, spettacoli, onFatto }) {
   const [oggetto, setOggetto] = useState(b.email_oggetto || 'I tuoi biglietti · {evento}');
   const [testo, setTesto] = useState(b.email_testo || EMAIL_BASE);
   const [conferma, setConferma] = useState(b.testo_conferma || '');
+  const [emLogo, setEmLogo] = useState(b.email_logo_url || null);
+  const [emImg, setEmImg] = useState(b.email_immagine_url || null);
   const [g, setG] = useState({ ...BIGLIETTO_BASE, ...(b.biglietto || {}) });
   const [esito, setEsito] = useState('');
   const setC = (k) => (e) => setG((x) => ({ ...x, [k]: e.target.value }));
@@ -503,7 +588,7 @@ function EmailEBiglietto({ b, spettacoli, onFatto }) {
     const { error } = await supabaseBrowser().from('biglietterie').update({
       email_oggetto: oggetto.trim() && oggetto.trim() !== 'I tuoi biglietti · {evento}' ? oggetto.trim() : null,
       email_testo: base || !testo.trim() ? null : testo,
-      testo_conferma: conferma.trim() || null,
+      testo_conferma: conferma.trim() || null, email_logo_url: emLogo || null, email_immagine_url: emImg || null,
       biglietto: { sfondo: g.sfondo, testo: g.testo, accento: g.accento, logo_url: g.logo_url || null, immagine_url: g.immagine_url || null,
         titolo: g.titolo.trim(), testo_sopra: g.testo_sopra.trim(), testo_sotto: g.testo_sotto.trim() },
     }).eq('id', b.id);
@@ -520,13 +605,15 @@ function EmailEBiglietto({ b, spettacoli, onFatto }) {
           <p className="piccolo muto bt-largo">Segnaposti: <code>{'{nome}'}</code> <code>{'{codice}'}</code>. Sotto restano le informazioni di sempre (pagamento, promemoria, biglietti).</p>
 
           <h3 className="bt-largo">Email di conferma (con i biglietti)</h3>
+          <div className="bt-largo"><Immagine url={emLogo} cartella="biglietteria" etichetta="Logo in cima all'email" onChange={setEmLogo} /></div>
+          <div className="bt-largo"><Immagine url={emImg} cartella="biglietteria" etichetta="Immagine dell'evento, sotto il logo (es. la locandina)" onChange={setEmImg} /></div>
           <div className="campo bt-largo"><label htmlFor="em-o">Oggetto</label><input id="em-o" value={oggetto} onChange={(e) => setOggetto(e.target.value)} /></div>
           <div className="campo bt-largo"><label htmlFor="em-t">Testo</label><textarea id="em-t" rows={12} value={testo} onChange={(e) => setTesto(e.target.value)} /></div>
           <p className="piccolo muto bt-largo">Si sostituiscono da soli: <code>{'{nome}'}</code> <code>{'{cognome}'}</code> <code>{'{codice}'}</code> (prenotazione)
             {' '}<code>{'{eventi}'}</code> (elenco eventi e posti) <code>{'{link}'}</code> (pagina dei biglietti: se lo togli lo aggiungo in fondo)
             {' '}<code>{'{evento}'}</code> <code>{'{scuola}'}</code>. <button type="button" className="link-btn piccolo" onClick={() => setTesto(EMAIL_BASE)}>rimetti il testo di serie</button></p>
           <div className="bt-largo"><strong className="piccolo">Anteprima email</strong>
-            <div className="bt-email-anteprima"><strong>{esempio(oggetto)}</strong>{'\n\n'}{esempio(testo)}{testo.includes('{link}') ? '' : '\n\nI tuoi biglietti: https://…/biglietti/…'}</div></div>
+            <div className="bt-email-anteprima">{emLogo && <img src={emLogo} alt="" className="bt-email-logo" />}{emImg && <img src={emImg} alt="" className="bt-email-img" />}<strong>{esempio(oggetto)}</strong>{'\n\n'}{esempio(testo)}{testo.includes('{link}') ? '' : '\n\nI tuoi biglietti: https://…/biglietti/…'}</div></div>
 
           <h3 className="bt-largo">Il biglietto (una schermata di telefono per persona)</h3>
           <div className="bt-colori bt-largo">
@@ -581,7 +668,7 @@ function Registro({ b, spettacoli, prenotazioni, biglietti, allievi = [] }) {
   let elencoRighe = confermate.flatMap((p) => (perPren[p.id] || []).map((x, k) => ({ p, x, k })));
   if (ordine === 'persona') elencoRighe = [...elencoRighe].sort((a, c) => (a.x.nome || '').localeCompare(c.x.nome || '', 'it'));
   // a blocchi di gruppo; nel gruppo per allievo/a; per ogni allievo/a per nome della persona
-  const gruppoDi = (p) => (p.allievo_id ? (perAllievo[p.allievo_id]?.gruppo || 'Altri') : 'Senza allievo/a');
+  const gruppoDi = (p) => (p.allievo_id ? ((perAllievo[p.allievo_id]?.gruppo || 'Altri').split(' | ')[0]) : 'Senza allievo/a');   // più gruppi: il primo
   // per cognome dell'allievo/a, tutti insieme (utile se un allievo è in più gruppi); poi nome dell'allievo e della persona
   if (ordine === 'allievo') {
     const chiave = (p) => { const a = perAllievo[p.allievo_id]; return a ? `${a.cognome} ${a.nome}` : (p.allievo_nome ? p.allievo_nome.split(' ').reverse().join(' ') : '\uffff'); };
@@ -658,7 +745,7 @@ function Registro({ b, spettacoli, prenotazioni, biglietti, allievi = [] }) {
                 </td>
                 {s?.con_allievi && <td><strong>{p.allievo_nome || '—'}</strong></td>}
                 <td><strong>{x.nome || `${p.nome} ${p.cognome} (${x.numero})`}</strong>{entrati[x.id] && <span className="piccolo bt-non-stampa"> · {ora(entrati[x.id])}</span>}</td>
-                {s?.con_allievi && <td className="piccolo">{p.allievo_id ? (perAllievo[p.allievo_id]?.gruppo || 'Altri') : '—'}</td>}
+                {s?.con_allievi && <td className="piccolo">{p.allievo_id ? (perAllievo[p.allievo_id]?.gruppo || 'Altri').replaceAll(' | ', ' · ') : '—'}</td>}
                 <td>{primaDi ? <>{p.cognome} {p.nome}{p.telefono ? <span className="piccolo bt-non-stampa"> · {p.telefono}</span> : null}</> : <span className="muto">〃</span>}</td>
                 {pizze > 0 && <td>{primaDi ? testoExtra(p.extra, p.pizze) : ''}</td>}
                 <td className="bt-codice">{codiceDi(p)}</td>
@@ -741,13 +828,13 @@ function AggiungiIscritti({ spettacoli, allievi, onChiudi, onFatto }) {
         {s?.con_allievi && (
           <div className="campo bt-largo"><label>Allievo/a (facoltativo)</label>
             {scelto ? (
-              <div className="bg-allievo-trovato"><span><strong>{scelto.nome} {scelto.cognome}</strong> · {scelto.gruppo || 'Altri'}</span>
+              <div className="bg-allievo-trovato"><span><strong>{scelto.nome} {scelto.cognome}</strong> · {(scelto.gruppo || 'Altri').replaceAll(' | ', ' · ')}</span>
                 <button type="button" className="link-btn piccolo" onClick={() => setAllievoId('')}>cambia</button></div>
             ) : (
               <>
                 <input value={cercaA} onChange={(e) => setCercaA(e.target.value)} placeholder="Scrivi nome o cognome" />
                 {filtrati.length > 0 && <ul className="bg-trovati">{filtrati.map((a) => (
-                  <li key={a.id}><button type="button" onClick={() => setAllievoId(a.id)}><strong>{a.nome} {a.cognome}</strong><span className="piccolo muto"> · {a.gruppo || 'Altri'}</span></button></li>
+                  <li key={a.id}><button type="button" onClick={() => setAllievoId(a.id)}><strong>{a.nome} {a.cognome}</strong><span className="piccolo muto"> · {(a.gruppo || 'Altri').replaceAll(' | ', ' · ')}</span></button></li>
                 ))}</ul>}
               </>
             )}
@@ -947,7 +1034,7 @@ export default function Biglietteria({ palestraId, tutte, b, spettacoli, allievi
 
       {scheda === 'spettacoli' && (
         <>
-          {spettacoli.map((s) => <Spettacolo key={`${s.id}-${s.inizio}-${s.titolo}`} s={s} nPren={prenotazioni.filter((p) => p.spettacolo_id === s.id).length} onSalvato={aggiorna} />)}
+          {spettacoli.map((s) => <Spettacolo key={`${s.id}-${s.inizio}-${s.titolo}`} s={s} nPren={prenotazioni.filter((p) => p.spettacolo_id === s.id).length} nAllievi={allievi.filter((a) => a.spettacolo_id === s.id).length} aperto={spettacoli.length === 1} onSalvato={aggiorna} />)}
           {spettacoli.length === 0 && <div className="vuoto">Nessun evento ancora: aggiungine uno (o quanti ne servono).</div>}
           <button type="button" className="btn" onClick={nuovoSpettacolo}>Aggiungi un evento</button>
           <p className="piccolo muto">Gli orari sono quelli del giorno scelto: {spettacoli.map((s) => quandoSpettacolo(s.inizio)).join(' · ')}</p>
