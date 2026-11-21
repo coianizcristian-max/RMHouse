@@ -582,6 +582,11 @@ function Registro({ b, spettacoli, prenotazioni, biglietti, allievi = [] }) {
   if (ordine === 'persona') elencoRighe = [...elencoRighe].sort((a, c) => (a.x.nome || '').localeCompare(c.x.nome || '', 'it'));
   // a blocchi di gruppo; nel gruppo per allievo/a; per ogni allievo/a per nome della persona
   const gruppoDi = (p) => (p.allievo_id ? (perAllievo[p.allievo_id]?.gruppo || 'Altri') : 'Senza allievo/a');
+  // per cognome dell'allievo/a, tutti insieme (utile se un allievo è in più gruppi); poi nome dell'allievo e della persona
+  if (ordine === 'allievo') {
+    const chiave = (p) => { const a = perAllievo[p.allievo_id]; return a ? `${a.cognome} ${a.nome}` : (p.allievo_nome ? p.allievo_nome.split(' ').reverse().join(' ') : '\uffff'); };
+    elencoRighe = [...elencoRighe].sort((a, c) => chiave(a.p).localeCompare(chiave(c.p), 'it') || (a.x.nome || '').localeCompare(c.x.nome || '', 'it'));
+  }
   if (ordine === 'gruppo') {
     elencoRighe = [...elencoRighe].sort((a, c) => {
       const ga = gruppoDi(a.p), gc = gruppoDi(c.p);
@@ -618,7 +623,7 @@ function Registro({ b, spettacoli, prenotazioni, biglietti, allievi = [] }) {
           <select id="bt-reg-ord" value={ordine} onChange={(e) => setOrdine(e.target.value)}>
             <option value="gruppo">gruppo → allievo/a → nome</option>
             <option value="prenotante">cognome di chi ha prenotato</option>
-            <option value="allievo">allievo/a</option>
+            <option value="allievo">cognome dell&apos;allievo/a (senza gruppi)</option>
             <option value="persona">persona</option>
           </select></div>
         <div className="campo bt-reg-cerca"><label htmlFor="bt-reg-q">Cerca (filtra mentre scrivi)</label>
