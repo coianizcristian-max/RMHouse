@@ -5380,3 +5380,10 @@ body:has(.sportello) .bottone-rapide { display: none; }
 .bt-aggiungi { display: grid; gap: 8px; margin: 10px 0; }
 .bg-frase-offerta { margin: 4px 0 0; padding: 10px 12px; border-radius: 10px; background: #fff7e0; border: 1px solid #f0d58a; font-size: 15px; white-space: pre-line; }
 .bg-riep-persone { display: block; margin-top: 2px; font-size: 13px; color: var(--testo); }
+/* registro: filtri ordinati */
+.bt-reg-filtri { display: grid; grid-template-columns: minmax(0, 220px) minmax(0, 200px) minmax(0, 1fr) auto; gap: 10px 12px; align-items: end; margin: 6px 0 14px; padding: 12px; border: 1px solid var(--linea); border-radius: 14px; background: var(--bianco); }
+.bt-reg-filtri .campo { margin: 0; }
+.bt-reg-filtri select, .bt-reg-filtri input { width: 100%; }
+.bt-reg-cerca-riga { display: flex; gap: 6px; align-items: center; }
+.bt-reg-cerca-riga input { flex: 1; }
+@media (max-width: 800px) { .bt-reg-filtri { grid-template-columns: 1fr 1fr; } .bt-reg-cerca { grid-column: 1 / -1; } .bt-reg-stampa { grid-column: 1 / -1; } }

@@ -487,14 +487,26 @@ function Registro({ b, spettacoli, prenotazioni, biglietti }) {
     for (const k of Object.keys(m)) m[k].sort((a, c) => a.numero - c.numero);
     return m;
   }, [biglietti]);
-  const q = cerca.trim().toLowerCase();
-  const righe = prenotazioni
+  // codice della prenotazione (quello nell'email: per gli ordini di più eventi è il codice della prima)
+  const codiceOrdine = useMemo(() => Object.fromEntries(prenotazioni.map((p) => [p.id, p.codice])), [prenotazioni]);
+  const codiceDi = (p) => codiceOrdine[p.gruppo_id || p.id] || p.codice;
+  const parole = cerca.trim().toLowerCase().split(/\s+/).filter(Boolean);
+  const confermate = prenotazioni
     .filter((p) => p.spettacolo_id === sp && (p.stato === 'pagata' || p.stato === 'gratis'))
-    .filter((p) => !q || `${p.nome} ${p.cognome} ${p.allievo_nome || ''} ${p.codice} ${(p.partecipanti || []).map((x) => `${x.nome} ${x.cognome}`).join(' ')}`.toLowerCase().includes(q))
     .sort((a, c) => (ordine === 'allievo'
       ? `${a.allievo_nome || 'zzz'} ${a.cognome}`.localeCompare(`${c.allievo_nome || 'zzz'} ${c.cognome}`, 'it')
       : `${a.cognome} ${a.nome}`.localeCompare(`${c.cognome} ${c.nome}`, 'it')));
-  const tutti = righe.flatMap((p) => perPren[p.id] || []);
+  // una riga per persona; il filtro si applica mentre scrivi: ogni parola deve comparire (persona, chi ha prenotato,
+  // allievo, codice della prenotazione o del biglietto, telefono), in qualunque ordine
+  let elencoRighe = confermate.flatMap((p) => (perPren[p.id] || []).map((x, k) => ({ p, x, k })));
+  if (ordine === 'persona') elencoRighe = [...elencoRighe].sort((a, c) => (a.x.nome || '').localeCompare(c.x.nome || '', 'it'));
+  const visibili = elencoRighe.filter(({ p, x }) => {
+    if (!parole.length) return true;
+    const testo = `${x.nome || ''} ${p.nome} ${p.cognome} ${p.allievo_nome || ''} ${p.codice} ${codiceDi(p)} ${x.codice} ${p.telefono || ''}`.toLowerCase();
+    return parole.every((w) => testo.includes(w));
+  });
+  const righe = confermate.filter((p) => visibili.some((v) => v.p.id === p.id));
+  const tutti = visibili.map((v) => v.x);
   const dentro = tutti.filter((x) => entrati[x.id]).length;
   const pizze = righe.reduce((n, p) => n + (p.pizze || 0), 0);
   const sommaExtra = Object.entries(righe.reduce((m, p) => { (p.extra || []).forEach((o) => { m[o.nome] = (m[o.nome] || 0) + o.quantita; }); return m; }, {}))
@@ -508,28 +520,36 @@ function Registro({ b, spettacoli, prenotazioni, biglietti }) {
   const ora = (iso) => new Date(iso).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Rome' });
   return (
     <section className="bt-registro">
-      <div className="azioni bt-filtri bt-non-stampa">
-        <select value={sp} onChange={(e) => setSp(e.target.value)} aria-label="Spettacolo">
-          {spettacoli.map((x) => <option key={x.id} value={x.id}>{oraSpettacolo(x.inizio)} · {x.titolo}</option>)}
-        </select>
-        <select value={ordine} onChange={(e) => setOrdine(e.target.value)} aria-label="Ordine">
-          <option value="prenotante">in ordine di cognome di chi ha prenotato</option>
-          <option value="allievo">in ordine di allievo</option>
-        </select>
-        <input value={cerca} onChange={(e) => setCerca(e.target.value)} placeholder="Cerca nome, allievo, codice" aria-label="Cerca" />
-        <button type="button" className="btn btn-primario btn-piccolo" onClick={() => window.print()}>Stampa il registro</button>
+      <div className="bt-reg-filtri bt-non-stampa">
+        <div className="campo"><label htmlFor="bt-reg-ev">Evento</label>
+          <select id="bt-reg-ev" value={sp} onChange={(e) => setSp(e.target.value)}>
+            {spettacoli.map((x) => <option key={x.id} value={x.id}>{oraSpettacolo(x.inizio)} · {x.titolo}</option>)}
+          </select></div>
+        <div className="campo"><label htmlFor="bt-reg-ord">Ordina per</label>
+          <select id="bt-reg-ord" value={ordine} onChange={(e) => setOrdine(e.target.value)}>
+            <option value="prenotante">cognome di chi ha prenotato</option>
+            <option value="allievo">allievo/a</option>
+            <option value="persona">persona</option>
+          </select></div>
+        <div className="campo bt-reg-cerca"><label htmlFor="bt-reg-q">Cerca (filtra mentre scrivi)</label>
+          <div className="bt-reg-cerca-riga">
+            <input id="bt-reg-q" type="search" value={cerca} onChange={(e) => setCerca(e.target.value)} placeholder="persona, allievo/a, chi ha prenotato, n. prenotazione (es. PK72EY)" />
+          </div></div>
+        <button type="button" className="btn btn-primario btn-piccolo bt-reg-stampa" onClick={() => window.print()}>Stampa il registro</button>
       </div>
       {errore && <div className="errore bt-non-stampa" role="alert">{errore}</div>}
       <div className="bt-reg-testa">
         <h2>{b.titolo} · {s ? `${s.titolo} · ${quandoSpettacolo(s.inizio)}` : ''}</h2>
-        <p>{tutti.length} persone · {righe.length} prenotazioni{pizze ? ` · ${sommaExtra || `${pizze} pizze`}` : ''} · <span className="bt-non-stampa">entrati {dentro} su {tutti.length}</span></p>
+        <p>{parole.length ? `Trovate ${tutti.length} persone su ${elencoRighe.length} · ` : ''}{tutti.length} persone · {righe.length} prenotazioni{pizze ? ` · ${sommaExtra || `${pizze} pizze`}` : ''} · <span className="bt-non-stampa">entrati {dentro} su {tutti.length}</span></p>
       </div>
-      {righe.length === 0 ? <div className="vuoto">Nessuna prenotazione confermata per questo spettacolo.</div> : (
+      {visibili.length === 0 ? <div className="vuoto">{parole.length ? 'Nessuno trovato con questa ricerca.' : 'Nessuna prenotazione confermata per questo spettacolo.'}</div> : (
         <table className="bt-reg-tabella">
-          <thead><tr><th aria-label="Entrato">✓</th><th>Persona</th><th>Prenotato da</th>{s?.con_allievi && <th>Allievo/a</th>}{pizze > 0 && <th>Extra</th>}<th>Codice</th></tr></thead>
+          <thead><tr><th aria-label="Entrato">✓</th><th>Persona</th><th>Prenotato da</th>{s?.con_allievi && <th>Allievo/a</th>}{pizze > 0 && <th>Extra</th>}<th>Prenotazione</th><th>Biglietto</th></tr></thead>
           <tbody>
-            {righe.flatMap((p) => (perPren[p.id] || []).map((x, k) => (
-              <tr key={x.id} className={`${entrati[x.id] ? 'tutti-dentro' : ''}${k === 0 ? ' prima' : ''}`}>
+            {visibili.map(({ p, x }, n) => {
+              const primaDi = n === 0 || visibili[n - 1].p.id !== p.id;   // prima riga visibile di questa prenotazione
+              return (
+              <tr key={x.id} className={`${entrati[x.id] ? 'tutti-dentro' : ''}${primaDi ? ' prima' : ''}`}>
                 <td className="bt-spunte">
                   <label className="bt-spunta" title={entrati[x.id] ? `entrato alle ${ora(entrati[x.id])}` : `biglietto ${x.numero}: ${x.codice}`}>
                     <input type="checkbox" checked={!!entrati[x.id]} onChange={(e) => segna(x, e.target.checked)} aria-label={`${x.nome || p.nome} entrato`} />
@@ -537,12 +557,14 @@ function Registro({ b, spettacoli, prenotazioni, biglietti }) {
                   </label>
                 </td>
                 <td><strong>{x.nome || `${p.nome} ${p.cognome} (${x.numero})`}</strong>{entrati[x.id] && <span className="piccolo bt-non-stampa"> · {ora(entrati[x.id])}</span>}</td>
-                <td>{k === 0 ? <>{p.cognome} {p.nome}{p.telefono ? <span className="piccolo bt-non-stampa"> · {p.telefono}</span> : null}</> : <span className="muto">〃</span>}</td>
+                <td>{primaDi ? <>{p.cognome} {p.nome}{p.telefono ? <span className="piccolo bt-non-stampa"> · {p.telefono}</span> : null}</> : <span className="muto">〃</span>}</td>
                 {s?.con_allievi && <td>{p.allievo_nome || '—'}</td>}
-                {pizze > 0 && <td>{k === 0 ? testoExtra(p.extra, p.pizze) : ''}</td>}
-                <td className="bt-codice">{x.codice}</td>
+                {pizze > 0 && <td>{primaDi ? testoExtra(p.extra, p.pizze) : ''}</td>}
+                <td className="bt-codice">{codiceDi(p)}</td>
+                <td className="bt-codice piccolo">{x.codice}</td>
               </tr>
-            )))}
+              );
+            })}
           </tbody>
         </table>
       )}
