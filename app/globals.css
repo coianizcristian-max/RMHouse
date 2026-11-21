@@ -5519,3 +5519,4 @@ body:has(.sportello) .bottone-rapide { display: none; }
 .bt-sp-pallino { display: inline-block; width: 12px; height: 12px; border-radius: 50%; margin-right: 8px; vertical-align: 0; }
 @media (max-width: 760px) { .bt-sp-griglia .c1 { grid-column: span 3; } .bt-sp-griglia .c2.bt-sp-spunta { grid-column: span 9; } }
 .bg-pass-cod { display: block; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 24px; font-weight: 800; letter-spacing: .12em; margin-top: 2px; }
+.cl-voci-titolo { padding: 8px 16px 2px; font-size: 12px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--rosso); }
