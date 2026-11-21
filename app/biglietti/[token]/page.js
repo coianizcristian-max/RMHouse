@@ -1,14 +1,13 @@
-import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { headers } from 'next/headers';
 import Testata from '../../Testata';
 import { supabaseAdmin } from '@/lib/supabase/admin';
 import { stripeAttivo } from '@/lib/stripe';
-import { qrSvg } from '@/lib/qr';
 import { euro } from '@/lib/formato';
 import { quandoSpettacolo, MODIFICHE_SEGRETERIA } from '@/lib/biglietteria';
 import Azioni from './Azioni';
 import Promemoria from '../Promemoria';
+import Biglietto from '../Biglietto';
 
 export const dynamic = 'force-dynamic';
 export const metadata = { title: 'I tuoi biglietti · Ritmo Metropolitano', robots: { index: false, follow: false } };
@@ -27,7 +26,8 @@ export default async function PaginaBiglietti({ params, searchParams }) {
 
   return (
     <>
-      <div className="bg-non-stampa"><Testata /></div>
+      {/* il logo riporta alla pagina dell'evento, non all'app */}
+      <div className="bg-non-stampa"><Testata home={`/saggio?b=${encodeURIComponent(p.slug || '')}`} /></div>
       <main className="bg-pagina bg-pagina-biglietti">
         <div className="intestazione bg-non-stampa">
           <div className="occhiello">{p.evento}</div>
@@ -61,26 +61,16 @@ export default async function PaginaBiglietti({ params, searchParams }) {
               <p className="piccolo">Mostra il QR all&apos;ingresso dal telefono, oppure stampali: un biglietto per persona. {MODIFICHE_SEGRETERIA}</p>
               <Azioni stampa />
             </div>
-            <div className="bg-biglietti">
+            <div className="bg-passi-lista">
               {p.biglietti.map((x) => (
-                <article key={x.codice} className={`bg-biglietto${x.entrato ? ' usato' : ''}`}>
-                  <div className="bg-qr" dangerouslySetInnerHTML={{ __html: qrSvg(`${sito}/gestione/biglietteria/ingresso?b=${x.codice}`) }} />
-                  <div className="bg-testo">
-                    <span className="occhiello">{p.evento}</span>
-                    <strong>{x.spettacolo || p.spettacolo}</strong>
-                    <span>{quandoSpettacolo(x.inizio || p.inizio)}</span>
-                    <span className="bg-intestatario">{x.nome || `${p.nome} ${p.cognome}`}</span>
-                    {(x.allievo ?? p.allievo) && <span className="piccolo">per {x.allievo ?? p.allievo}</span>}
-                    <span className="piccolo">Biglietto {x.numero} di {x.di || p.posti}{x.extra_testo ? ` · ${x.extra_testo}` : ''}</span>
-                    <span className="bg-cod">{x.codice}</span>
-                    {x.entrato && <span className="tag tag-neutro">già usato</span>}
-                  </div>
-                </article>
+                <Biglietto key={x.codice} g={p.biglietto || {}} evento={p.evento} spettacolo={x.spettacolo || p.spettacolo} inizio={x.inizio || p.inizio}
+                           nome={x.nome || `${p.nome} ${p.cognome}`} allievo={x.allievo ?? p.allievo} extra={x.extra_testo} numero={x.numero} di={x.di || p.posti}
+                           codice={x.codice} url={`${sito}/gestione/biglietteria/ingresso?b=${x.codice}`} usato={x.entrato} />
               ))}
             </div>
           </>
         )}
-        <p className="piccolo muto bg-non-stampa" style={{ marginTop: 24 }}><Link href={`/saggio?b=${p.slug}`} prefetch={false}>Prenota altri posti</Link></p>
+        <p className="piccolo muto bg-non-stampa" style={{ marginTop: 24 }}><a href={`/saggio?b=${encodeURIComponent(p.slug || '')}`}>Continua a prenotare: torna alla pagina dell&apos;evento</a></p>
       </main>
     </>
   );

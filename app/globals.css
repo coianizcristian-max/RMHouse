@@ -5387,3 +5387,44 @@ body:has(.sportello) .bottone-rapide { display: none; }
 .bt-reg-cerca-riga { display: flex; gap: 6px; align-items: center; }
 .bt-reg-cerca-riga input { flex: 1; }
 @media (max-width: 800px) { .bt-reg-filtri { grid-template-columns: 1fr 1fr; } .bt-reg-cerca { grid-column: 1 / -1; } .bt-reg-stampa { grid-column: 1 / -1; } }
+/* biglietto = una schermata di telefono (grafica impostabile) */
+.bg-passi-lista { display: grid; gap: 18px; justify-items: center; }
+.bg-pass { --pass-sfondo: #111; --pass-testo: #fff; --pass-accento: #e50914;
+  width: min(100%, 420px); min-height: min(calc(100svh - 24px), 820px); display: flex; flex-direction: column; align-items: center; gap: 12px;
+  padding: 22px 20px; border-radius: 26px; background: var(--pass-sfondo); color: var(--pass-testo); text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,.25);
+  scroll-snap-align: start; overflow: hidden; }
+.bg-pass.usato { opacity: .6; }
+.bg-pass-logo { max-height: 56px; max-width: 70%; object-fit: contain; }
+.bg-pass-immagine { width: calc(100% + 40px); margin: 0 -20px; max-height: 28svh; object-fit: cover; }
+.bg-pass-testa { display: grid; gap: 4px; }
+.bg-pass-evento { font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: var(--pass-accento); font-weight: 800; }
+.bg-pass-spettacolo { font-size: 22px; line-height: 1.15; }
+.bg-pass-quando { font-size: 15px; opacity: .9; }
+.bg-pass-nota { font-size: 14px; opacity: .9; white-space: pre-line; }
+.bg-pass-qr { width: min(72vw, 270px); padding: 14px; background: #fff; border-radius: 18px; margin-top: auto; }
+.bg-pass-qr svg { width: 100%; height: auto; display: block; }
+.bg-pass-chi { display: grid; gap: 3px; }
+.bg-pass-nome { font-size: 24px; line-height: 1.15; }
+.bg-pass-extra { font-weight: 700; color: var(--pass-accento); }
+.bg-pass-num { font-size: 13px; opacity: .85; }
+.bg-pass-cod { font-family: ui-monospace, monospace; letter-spacing: .08em; }
+.bg-pass-usato { justify-self: center; padding: 3px 10px; border-radius: 999px; background: var(--pass-accento); color: #fff; font-weight: 800; font-size: 12px; }
+.bg-pass-sotto { margin: auto 0 0; font-size: 13px; opacity: .85; white-space: pre-line; }
+@media print {
+  .bg-passi-lista { display: block; }
+  .bg-pass { break-after: page; page-break-after: always; box-shadow: none; margin: 0 auto 0; min-height: 0; height: 95vh; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+}
+/* anteprima in gestione */
+.bt-graf { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 20px; align-items: start; }
+.bt-graf-anteprima { position: sticky; top: 12px; display: grid; gap: 6px; justify-items: center; }
+.bt-graf-anteprima .bg-pass { min-height: 700px; }
+.bt-email-anteprima { white-space: pre-wrap; font-size: 14px; padding: 12px; border: 1px solid var(--linea); border-radius: 12px; background: #fafafa; }
+.bt-colori { display: flex; flex-wrap: wrap; gap: 12px; }
+.bt-colori label { display: grid; gap: 4px; font-size: 13px; }
+.bt-colori input[type=color] { width: 64px; height: 36px; padding: 0; border: 1px solid var(--linea); border-radius: 8px; }
+@media (max-width: 900px) { .bt-graf { grid-template-columns: 1fr; } .bt-graf-anteprima { position: static; } }
+.bt-reg-gruppo td { padding: 10px 8px 6px !important; background: #f1f1f1; font-weight: 800; font-size: 15px; border-top: 2px solid #222; }
+@media print { .bt-reg-gruppo td { background: #eee !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; } .bt-reg-gruppo { break-after: avoid; } }
+.bg-evento-descr { margin: 4px 0 0; font-size: 14px; white-space: pre-line; }
+.bg-spettacolo-descr { font-size: 13px; opacity: .85; white-space: pre-line; text-align: left; }
+.bg-messaggio-conferma { margin: 4px 0 8px; padding: 12px 14px; border-radius: 12px; background: #e8f7ec; border: 1px solid #a9dcb6; font-size: 16px; white-space: pre-line; }

@@ -184,6 +184,7 @@ function SceltaEvento({ s, visibile, dati, onChange, onTogli, onModifica }) {
     <section className="bg-evento-scelto" hidden={!visibile} aria-label={s.titolo} style={{ '--colore-evento': coloreDi(s) }}>
       <div className="bg-evento-titolo"><strong>{s.titolo}</strong><span className="piccolo">{quandoSpettacolo(s.inizio)}</span>
         <button type="button" className="link-btn piccolo pericolo bg-evento-togli" onClick={() => onTogli?.(s.id)}>togli</button></div>
+      {s.descrizione && <p className="bg-evento-descr">{s.descrizione}</p>}
       {fase && <p className={`bg-fase bg-fase-${fase.tipo}`}>{fase.testo}{testoPostiSala(s) ? <><br /><strong>{testoPostiSala(s)}</strong></> : null}</p>}
       {!fase && testoPostiSala(s) && <p className="bg-fase"><strong>{testoPostiSala(s)}</strong></p>}
 
@@ -408,10 +409,13 @@ export default function Prenota({ b, carta }) {
   }
 
   if (fatto) {
+    // messaggio scritto dalla segreteria (Email e biglietto), con {nome} e {codice}
+    const personale = (t) => t.replaceAll('{nome}', dati.nome.trim()).replaceAll('{codice}', fatto.codice || '');
     if (fatto.stato === 'gratis') {
       return (
         <section className="scheda bg-fatto" role="status">
           <h2>Prenotato ✓</h2>
+          {b.testo_conferma && <p className="bg-messaggio-conferma">{personale(b.testo_conferma)}</p>}
           <p>Ti abbiamo mandato i biglietti a <strong>{fatto.email}</strong>: uno per persona, con il codice QR da mostrare all&apos;ingresso.</p>
           <Link href={`/biglietti/${fatto.token}`} className="btn btn-primario btn-pieno btn-grande">Apri i biglietti</Link>
           <p className="piccolo">{MODIFICHE_SEGRETERIA}</p>
@@ -422,6 +426,7 @@ export default function Prenota({ b, carta }) {
       <section className="bg-fatto bg-fatto-largo" role="status">
         <div className="bg-non-stampa">
           <h2>Prenotazione salvata ✓ Ora il pagamento</h2>
+          {b.testo_conferma && <p className="bg-messaggio-conferma">{personale(b.testo_conferma)}</p>}
           {fatto.scade_at ? <p>I posti sono tenuti per te fino a <strong>{quandoScade(fatto.scade_at)}</strong>. Se il pagamento non arriva entro
             quel momento la prenotazione scade e i posti tornano liberi.</p>
             : <p>I posti sono tenuti per te: la prenotazione è confermata quando la segreteria vede il pagamento.</p>}
@@ -469,6 +474,7 @@ export default function Prenota({ b, carta }) {
                     <button key={x.id} type="button" disabled={x.chiuso || pieno} className="bg-spettacolo bg-spettacolo-colore" style={{ '--colore-evento': coloreDi(x) }} onClick={() => aggiungi(x.id)}>
                       <strong>{x.titolo}</strong>
                       <span>{quandoSpettacolo(x.inizio)}</span>
+                      {x.descrizione && <span className="bg-spettacolo-descr">{x.descrizione}</span>}
                       <span className="piccolo">{prezzoSpettacolo(x)}</span>
                       {!x.chiuso && !pieno && x.fase === 'libera' && <span className="bg-fase-chip bg-fase-libera">Posti aperti a tutti fino a esaurimento</span>}
                       {!x.chiuso && !pieno && x.fase === 'riservata' && <span className="bg-fase-chip bg-fase-riservata">Posti riservati agli allievi{x.liberi_dal ? ` fino al ${giornoPrima(x.liberi_dal)}` : ''}</span>}

@@ -15,7 +15,8 @@ export default async function PaginaSaggio({ searchParams }) {
   const carta = !!data?.stripe && stripeAttivo();
   const pagina = (
     <>
-      <Testata />
+      {/* pagina a sé: il logo non porta nell'app ma ricarica la pagina dell'evento */}
+      <Testata home={data?.slug ? `/saggio?b=${encodeURIComponent(data.slug)}` : '/saggio'} />
       <main className="bg-pagina">
         {!data ? (
           <div className="intestazione"><h1>Biglietteria</h1><p>Le prenotazioni non sono ancora aperte. Riprova nei prossimi giorni!</p></div>

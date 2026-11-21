@@ -7,6 +7,7 @@ import { euro, dataBreve } from '@/lib/formato';
 import { oraSpettacolo, quandoSpettacolo, testoExtra, erroreBiglietteria } from '@/lib/biglietteria';
 import { leggiCsv, leggiData } from '@/lib/csv';
 import Immagine from '../Immagine';
+import Biglietto, { BIGLIETTO_BASE } from '../../biglietti/Biglietto';
 import { righeXlsx, dataDaExcel } from '@/lib/xlsx';
 
 const STATI = { da_pagare: 'Da pagare', pagata: 'Pagata', gratis: 'Gratis', annullata: 'Annullata', scaduta: 'Scaduta' };
@@ -472,11 +473,89 @@ function Riga({ p, s, ordine = [], perId = {}, onFatto }) {
   );
 }
 
+// email di conferma (con i biglietti) e grafica del biglietto (query 179)
+const EMAIL_BASE = `Ciao {nome},
+
+grazie! La prenotazione {codice} è confermata:
+{eventi}
+
+Qui trovi i biglietti, uno per persona, con il codice QR da mostrare all'ingresso (sul telefono o stampati):
+{link}
+
+Per eventuali modifiche alla prenotazione rivolgiti alla segreteria.
+
+A presto!
+{scuola}`;
+function EmailEBiglietto({ b, spettacoli, onFatto }) {
+  const [oggetto, setOggetto] = useState(b.email_oggetto || 'I tuoi biglietti · {evento}');
+  const [testo, setTesto] = useState(b.email_testo || EMAIL_BASE);
+  const [conferma, setConferma] = useState(b.testo_conferma || '');
+  const [g, setG] = useState({ ...BIGLIETTO_BASE, ...(b.biglietto || {}) });
+  const [esito, setEsito] = useState('');
+  const setC = (k) => (e) => setG((x) => ({ ...x, [k]: e.target.value }));
+  const s0 = spettacoli[0];
+  const esempio = (t) => t.replaceAll('{nome}', 'Mario').replaceAll('{cognome}', 'Rossi').replaceAll('{codice}', 'PK72EY')
+    .replaceAll('{eventi}', spettacoli.slice(0, 2).map((x) => `• ${x.titolo}, ${oraSpettacolo(x.inizio)}: 2 posti`).join('\n') || '• Spettacolo, 15:30: 2 posti')
+    .replaceAll('{link}', 'https://…/biglietti/…').replaceAll('{scuola}', 'Ritmo Metropolitano').replaceAll('{evento}', b.titolo);
+  async function salva() {
+    setEsito('');
+    const base = testo.trim() === EMAIL_BASE.trim();
+    const { error } = await supabaseBrowser().from('biglietterie').update({
+      email_oggetto: oggetto.trim() && oggetto.trim() !== 'I tuoi biglietti · {evento}' ? oggetto.trim() : null,
+      email_testo: base || !testo.trim() ? null : testo,
+      testo_conferma: conferma.trim() || null,
+      biglietto: { sfondo: g.sfondo, testo: g.testo, accento: g.accento, logo_url: g.logo_url || null, immagine_url: g.immagine_url || null,
+        titolo: g.titolo.trim(), testo_sopra: g.testo_sopra.trim(), testo_sotto: g.testo_sotto.trim() },
+    }).eq('id', b.id);
+    setEsito(error ? (error.message?.includes('email_testo') || error.message?.includes('biglietto') ? 'Manca la query 179 in Supabase.' : `Non salvato: ${error.message}`) : 'Salvato ✓');
+    if (!error) onFatto();
+  }
+  return (
+    <section className="pannello">
+      <div className="bt-graf">
+        <div className="bt-campi">
+          <h3 className="bt-largo">Messaggio appena finita la prenotazione</h3>
+          <div className="campo bt-largo"><label htmlFor="em-c">Si vede in alto nella pagina «Prenotato ✓» / «Prenotazione salvata ✓» (vuoto = niente)</label>
+            <textarea id="em-c" rows={3} value={conferma} onChange={(e) => setConferma(e.target.value)} placeholder="es. Grazie {nome}! Ci vediamo il 20 dicembre al Teatro Comunale. Il tuo codice è {codice}." /></div>
+          <p className="piccolo muto bt-largo">Segnaposti: <code>{'{nome}'}</code> <code>{'{codice}'}</code>. Sotto restano le informazioni di sempre (pagamento, promemoria, biglietti).</p>
+
+          <h3 className="bt-largo">Email di conferma (con i biglietti)</h3>
+          <div className="campo bt-largo"><label htmlFor="em-o">Oggetto</label><input id="em-o" value={oggetto} onChange={(e) => setOggetto(e.target.value)} /></div>
+          <div className="campo bt-largo"><label htmlFor="em-t">Testo</label><textarea id="em-t" rows={12} value={testo} onChange={(e) => setTesto(e.target.value)} /></div>
+          <p className="piccolo muto bt-largo">Si sostituiscono da soli: <code>{'{nome}'}</code> <code>{'{cognome}'}</code> <code>{'{codice}'}</code> (prenotazione)
+            {' '}<code>{'{eventi}'}</code> (elenco eventi e posti) <code>{'{link}'}</code> (pagina dei biglietti: se lo togli lo aggiungo in fondo)
+            {' '}<code>{'{evento}'}</code> <code>{'{scuola}'}</code>. <button type="button" className="link-btn piccolo" onClick={() => setTesto(EMAIL_BASE)}>rimetti il testo di serie</button></p>
+          <div className="bt-largo"><strong className="piccolo">Anteprima email</strong>
+            <div className="bt-email-anteprima"><strong>{esempio(oggetto)}</strong>{'\n\n'}{esempio(testo)}{testo.includes('{link}') ? '' : '\n\nI tuoi biglietti: https://…/biglietti/…'}</div></div>
+
+          <h3 className="bt-largo">Il biglietto (una schermata di telefono per persona)</h3>
+          <div className="bt-colori bt-largo">
+            <label>Sfondo<input type="color" value={g.sfondo} onChange={setC('sfondo')} /></label>
+            <label>Testo<input type="color" value={g.testo} onChange={setC('testo')} /></label>
+            <label>Colore in evidenza<input type="color" value={g.accento} onChange={setC('accento')} /></label>
+          </div>
+          <div className="bt-largo"><Immagine url={g.logo_url} cartella="biglietteria" etichetta="Logo (in alto, piccolo)" onChange={(url) => setG((x) => ({ ...x, logo_url: url }))} /></div>
+          <div className="bt-largo"><Immagine url={g.immagine_url} cartella="biglietteria" etichetta="Immagine (fascia in alto, es. la locandina)" onChange={(url) => setG((x) => ({ ...x, immagine_url: url }))} /></div>
+          <div className="campo bt-largo"><label htmlFor="bg-t">Titolo (vuoto = nome della biglietteria)</label><input id="bg-t" value={g.titolo} onChange={setC('titolo')} placeholder={b.titolo} /></div>
+          <div className="campo bt-largo"><label htmlFor="bg-s">Testo sopra il QR</label><textarea id="bg-s" rows={2} value={g.testo_sopra} onChange={setC('testo_sopra')} placeholder="es. Teatro Comunale, via Roma 1 · apertura porte 15:00" /></div>
+          <div className="campo bt-largo"><label htmlFor="bg-u">Testo in fondo</label><textarea id="bg-u" rows={2} value={g.testo_sotto} onChange={setC('testo_sotto')} /></div>
+          <div className="azioni bt-largo"><button type="button" className="btn btn-primario" onClick={salva}>Salva</button>{esito && <span className="piccolo">{esito}</span>}</div>
+        </div>
+        <div className="bt-graf-anteprima">
+          <strong className="piccolo">Anteprima del biglietto</strong>
+          <Biglietto g={g} evento={b.titolo} spettacolo={s0?.titolo || 'Spettacolo'} inizio={s0?.inizio} nome="Mario Rossi" allievo={s0?.con_allievi ? 'Sofia Rossi' : null}
+                     numero={1} di={2} codice="AB12CD34EF" url="https://esempio/ingresso?b=AB12CD34EF" />
+        </div>
+      </div>
+    </section>
+  );
+}
+
 // ---------------------------------------------------------------- registro d'ingresso (online da spuntare, o stampato)
-function Registro({ b, spettacoli, prenotazioni, biglietti }) {
+function Registro({ b, spettacoli, prenotazioni, biglietti, allievi = [] }) {
   const conAllievi = spettacoli.length ? spettacoli : [];
   const [sp, setSp] = useState(conAllievi[0]?.id || '');
-  const [ordine, setOrdine] = useState('prenotante');
+  const [ordine, setOrdine] = useState('gruppo');
   const [cerca, setCerca] = useState('');
   const [entrati, setEntrati] = useState(() => Object.fromEntries(biglietti.map((x) => [x.id, x.entrato_at])));
   const [errore, setErrore] = useState('');
@@ -490,6 +569,7 @@ function Registro({ b, spettacoli, prenotazioni, biglietti }) {
   // codice della prenotazione (quello nell'email: per gli ordini di più eventi è il codice della prima)
   const codiceOrdine = useMemo(() => Object.fromEntries(prenotazioni.map((p) => [p.id, p.codice])), [prenotazioni]);
   const codiceDi = (p) => codiceOrdine[p.gruppo_id || p.id] || p.codice;
+  const perAllievo = useMemo(() => Object.fromEntries(allievi.map((a) => [a.id, a])), [allievi]);
   const parole = cerca.trim().toLowerCase().split(/\s+/).filter(Boolean);
   const confermate = prenotazioni
     .filter((p) => p.spettacolo_id === sp && (p.stato === 'pagata' || p.stato === 'gratis'))
@@ -500,6 +580,15 @@ function Registro({ b, spettacoli, prenotazioni, biglietti }) {
   // allievo, codice della prenotazione o del biglietto, telefono), in qualunque ordine
   let elencoRighe = confermate.flatMap((p) => (perPren[p.id] || []).map((x, k) => ({ p, x, k })));
   if (ordine === 'persona') elencoRighe = [...elencoRighe].sort((a, c) => (a.x.nome || '').localeCompare(c.x.nome || '', 'it'));
+  // a blocchi di gruppo; nel gruppo per allievo/a; per ogni allievo/a per nome della persona
+  const gruppoDi = (p) => (p.allievo_id ? (perAllievo[p.allievo_id]?.gruppo || 'Altri') : 'Senza allievo/a');
+  if (ordine === 'gruppo') {
+    elencoRighe = [...elencoRighe].sort((a, c) => {
+      const ga = gruppoDi(a.p), gc = gruppoDi(c.p);
+      if (ga !== gc) return ga === 'Senza allievo/a' ? 1 : gc === 'Senza allievo/a' ? -1 : ga.localeCompare(gc, 'it');
+      return (a.p.allievo_nome || '').localeCompare(c.p.allievo_nome || '', 'it') || (a.x.nome || '').localeCompare(c.x.nome || '', 'it');
+    });
+  }
   const visibili = elencoRighe.filter(({ p, x }) => {
     if (!parole.length) return true;
     const testo = `${x.nome || ''} ${p.nome} ${p.cognome} ${p.allievo_nome || ''} ${p.codice} ${codiceDi(p)} ${x.codice} ${p.telefono || ''}`.toLowerCase();
@@ -527,6 +616,7 @@ function Registro({ b, spettacoli, prenotazioni, biglietti }) {
           </select></div>
         <div className="campo"><label htmlFor="bt-reg-ord">Ordina per</label>
           <select id="bt-reg-ord" value={ordine} onChange={(e) => setOrdine(e.target.value)}>
+            <option value="gruppo">gruppo → allievo/a → nome</option>
             <option value="prenotante">cognome di chi ha prenotato</option>
             <option value="allievo">allievo/a</option>
             <option value="persona">persona</option>
@@ -544,11 +634,16 @@ function Registro({ b, spettacoli, prenotazioni, biglietti }) {
       </div>
       {visibili.length === 0 ? <div className="vuoto">{parole.length ? 'Nessuno trovato con questa ricerca.' : 'Nessuna prenotazione confermata per questo spettacolo.'}</div> : (
         <table className="bt-reg-tabella">
-          <thead><tr><th aria-label="Entrato">✓</th><th>Persona</th><th>Prenotato da</th>{s?.con_allievi && <th>Allievo/a</th>}{pizze > 0 && <th>Extra</th>}<th>Prenotazione</th><th>Biglietto</th></tr></thead>
+          <thead><tr><th aria-label="Entrato">✓</th>{s?.con_allievi && <th>Allievo/a</th>}<th>Iscritto</th>{s?.con_allievi && <th>Gruppo</th>}<th>Prenotato da</th>{pizze > 0 && <th>Extra</th>}<th>Prenotazione</th><th>Biglietto</th></tr></thead>
           <tbody>
             {visibili.map(({ p, x }, n) => {
               const primaDi = n === 0 || visibili[n - 1].p.id !== p.id;   // prima riga visibile di questa prenotazione
-              return (
+              const nuovoGruppo = ordine === 'gruppo' && s?.con_allievi && (n === 0 || gruppoDi(visibili[n - 1].p) !== gruppoDi(p));
+              const colonne = 6 + (s?.con_allievi ? 2 : 0) + (pizze > 0 ? 1 : 0) - 1;
+              return [nuovoGruppo && (
+                <tr key={`g-${gruppoDi(p)}`} className="bt-reg-gruppo"><td colSpan={colonne}>{gruppoDi(p)}
+                  <span className="piccolo"> · {visibili.filter((v) => gruppoDi(v.p) === gruppoDi(p)).length} persone</span></td></tr>
+              ),
               <tr key={x.id} className={`${entrati[x.id] ? 'tutti-dentro' : ''}${primaDi ? ' prima' : ''}`}>
                 <td className="bt-spunte">
                   <label className="bt-spunta" title={entrati[x.id] ? `entrato alle ${ora(entrati[x.id])}` : `biglietto ${x.numero}: ${x.codice}`}>
@@ -556,14 +651,14 @@ function Registro({ b, spettacoli, prenotazioni, biglietti }) {
                     <span className="bt-casella" aria-hidden="true" />
                   </label>
                 </td>
+                {s?.con_allievi && <td><strong>{p.allievo_nome || '—'}</strong></td>}
                 <td><strong>{x.nome || `${p.nome} ${p.cognome} (${x.numero})`}</strong>{entrati[x.id] && <span className="piccolo bt-non-stampa"> · {ora(entrati[x.id])}</span>}</td>
+                {s?.con_allievi && <td className="piccolo">{p.allievo_id ? (perAllievo[p.allievo_id]?.gruppo || 'Altri') : '—'}</td>}
                 <td>{primaDi ? <>{p.cognome} {p.nome}{p.telefono ? <span className="piccolo bt-non-stampa"> · {p.telefono}</span> : null}</> : <span className="muto">〃</span>}</td>
-                {s?.con_allievi && <td>{p.allievo_nome || '—'}</td>}
                 {pizze > 0 && <td>{primaDi ? testoExtra(p.extra, p.pizze) : ''}</td>}
                 <td className="bt-codice">{codiceDi(p)}</td>
                 <td className="bt-codice piccolo">{x.codice}</td>
-              </tr>
-              );
+              </tr>];
             })}
           </tbody>
         </table>
@@ -814,7 +909,7 @@ export default function Biglietteria({ palestraId, tutte, b, spettacoli, allievi
       </div>
 
       <nav className="bt-schede" aria-label="Sezioni">
-        {[['prenotazioni', 'Prenotazioni'], ['registro', 'Registro ingresso'], ['spettacoli', 'Eventi'], ['allievi', 'Elenco allievi'], ['impostazioni', 'Pagamento e testi']].map(([k, t]) => (
+        {[['prenotazioni', 'Prenotazioni'], ['registro', 'Registro ingresso'], ['spettacoli', 'Eventi'], ['allievi', 'Elenco allievi'], ['impostazioni', 'Pagamento e testi'], ['grafica', 'Email e biglietto']].map(([k, t]) => (
           <button key={k} type="button" aria-current={scheda === k ? 'page' : undefined} onClick={() => setScheda(k)}>{t}</button>
         ))}
       </nav>
@@ -843,7 +938,7 @@ export default function Biglietteria({ palestraId, tutte, b, spettacoli, allievi
         </section>
       )}
 
-      {scheda === 'registro' && <Registro key={biglietti.length} b={b} spettacoli={spettacoli} prenotazioni={prenotazioni} biglietti={biglietti} />}
+      {scheda === 'registro' && <Registro key={biglietti.length} b={b} spettacoli={spettacoli} prenotazioni={prenotazioni} biglietti={biglietti} allievi={allievi} />}
 
       {scheda === 'spettacoli' && (
         <>
@@ -863,6 +958,8 @@ export default function Biglietteria({ palestraId, tutte, b, spettacoli, allievi
             : <div className="vuoto">Nessuno spettacolo con elenco allievi.</div>}
         </>
       )}
+
+      {scheda === 'grafica' && <EmailEBiglietto key={b.id} b={b} spettacoli={spettacoli} onFatto={aggiorna} />}
 
       {scheda === 'impostazioni' && imp && (
         <section className="pannello">
