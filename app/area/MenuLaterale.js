@@ -28,18 +28,9 @@ export default function MenuLaterale({ aperto, chiudi, esci }) {
   const path = usePathname();
   const [chi, setChi] = useState(null);
   const [tema, setTema] = useState('auto');
-  const [staff, setStaff] = useState(false);   // chi lavora alla scuola: scorciatoie al gestionale
 
   useEffect(() => { try { setTema(localStorage.getItem('rm-tema') || 'auto'); } catch { /* niente */ } }, []);
   useEffect(() => { chiudi(); }, [path]); // eslint-disable-line react-hooks/exhaustive-deps
-  useEffect(() => {
-    if (!aperto || staff) return;
-    supabaseBrowser().auth.getUser().then(({ data }) => {
-      if (!data?.user) return;
-      supabaseBrowser().from('staff').select('id').eq('user_id', data.user.id).eq('attivo', true).limit(1)
-        .then(({ data: s }) => { if (s?.length) setStaff(true); });
-    });
-  }, [aperto, staff]);
   useEffect(() => {
     if (!aperto || chi) return;
     supabaseBrowser().rpc('area_riepilogo').then(({ data }) => {
@@ -99,15 +90,6 @@ export default function MenuLaterale({ aperto, chiudi, esci }) {
           {voce('/area/moduli', 'Moduli e documenti', 'moduli')}
           {voce('/area/scuola', 'Contatti e WhatsApp', 'messaggi')}
         </ul>
-
-        {staff && (
-          <ul className="cl-voci cl-voci-staff">
-            <li className="cl-voci-titolo">Per lo staff</li>
-            {voce('/gestione', 'Gestionale', 'moduli')}
-            {voce('/gestione/biglietteria', 'Biglietteria saggio', 'eventi')}
-            {voce('/gestione/biglietteria/ingresso', 'Ingresso (scanner QR)', 'prenota')}
-          </ul>
-        )}
 
         <ul className="cl-voci" style={{ borderBottom: 0 }}>
           {voce('/area/privacy', 'Privacy e i miei dati', 'privacy')}

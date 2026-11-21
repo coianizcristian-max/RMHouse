@@ -925,7 +925,10 @@ export default function Biglietteria({ palestraId, tutte, b, spettacoli, allievi
     if (filtro === 'altre' && !['annullata', 'scaduta'].includes(st)) return false;
     }
     if (sp && p.spettacolo_id !== sp) return false;
-    return !q || `${p.nome} ${p.cognome} ${p.email} ${p.codice} ${ordine} ${p.allievo_nome || ''} ${p.telefono || ''} ${(p.partecipanti || []).map((x) => `${x.nome} ${x.cognome}`).join(' ')}`.toLowerCase().includes(q);
+    // ogni parola scritta deve comparire, in qualunque ordine (es. «rossi mario»): chi ha prenotato, allievo/a,
+    // persone iscritte, codice, email, telefono
+    const testo = `${p.nome} ${p.cognome} ${p.email} ${p.codice} ${ordine} ${p.allievo_nome || ''} ${p.telefono || ''} ${(p.partecipanti || []).map((x) => `${x.nome} ${x.cognome}`).join(' ')}`.toLowerCase();
+    return !q || q.split(/\s+/).every((w) => testo.includes(w));
   });
   const conta = (f) => prenotazioni.filter((p) => { const st = statoDi(p); return f === 'da_pagare' ? st === 'da_pagare' : f === 'confermate' ? ['pagata', 'gratis'].includes(st) : f === 'altre' ? ['annullata', 'scaduta'].includes(st) : true; }).length;
 
@@ -1025,7 +1028,7 @@ export default function Biglietteria({ palestraId, tutte, b, spettacoli, allievi
               <option value="">Tutti gli spettacoli</option>
               {spettacoli.map((s) => <option key={s.id} value={s.id}>{oraSpettacolo(s.inizio)} · {s.titolo}</option>)}
             </select>
-            <input value={cerca} onChange={(e) => setCerca(e.target.value)} placeholder="Cerca codice (es. PK72EY), nome, persona, email" aria-label="Cerca" />
+            <input className="bt-cerca-pren" type="search" value={cerca} onChange={(e) => setCerca(e.target.value)} placeholder="Cerca: allievo/a, persona iscritta, chi ha prenotato, codice (es. PK72EY), email" aria-label="Cerca nelle prenotazioni" />
             <button type="button" className="btn btn-piccolo" onClick={esporta} disabled={!visibili.length}>Esporta CSV</button>
             <button type="button" className="btn btn-primario btn-piccolo" onClick={() => setAggiungi((x) => !x)} disabled={!spettacoli.length}>Aggiungi iscritti a mano</button>
           </div>
