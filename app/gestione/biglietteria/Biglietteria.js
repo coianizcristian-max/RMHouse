@@ -538,7 +538,7 @@ function Registro({ b, spettacoli, prenotazioni, biglietti }) {
                 </td>
                 <td><strong>{x.nome || `${p.nome} ${p.cognome} (${x.numero})`}</strong>{entrati[x.id] && <span className="piccolo bt-non-stampa"> · {ora(entrati[x.id])}</span>}</td>
                 <td>{k === 0 ? <>{p.cognome} {p.nome}{p.telefono ? <span className="piccolo bt-non-stampa"> · {p.telefono}</span> : null}</> : <span className="muto">〃</span>}</td>
-                {s?.con_allievi && <td>{k === 0 ? (p.allievo_nome || '—') : ''}</td>}
+                {s?.con_allievi && <td>{p.allievo_nome || '—'}</td>}
                 {pizze > 0 && <td>{k === 0 ? testoExtra(p.extra, p.pizze) : ''}</td>}
                 <td className="bt-codice">{x.codice}</td>
               </tr>
