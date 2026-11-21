@@ -3,7 +3,7 @@ import Ingresso from './Ingresso';
 
 export const dynamic = 'force-dynamic';
 
-// Ingresso del saggio: il QR del biglietto apre questa pagina (telefono dello staff, già entrato nel gestionale)
+// Ingresso del saggio: scanner dei QR per le segretarie (e il QR aperto con la fotocamera del telefono porta qui)
 export default async function PaginaIngressoSaggio({ searchParams }) {
   const { b } = (await searchParams) || {};
   const { supabase, staff } = await staffCorrente();
@@ -11,5 +11,5 @@ export default async function PaginaIngressoSaggio({ searchParams }) {
   const { data: spettacoli } = bi?.[0]
     ? await supabase.from('biglietteria_spettacoli').select('id, titolo, inizio').eq('biglietteria_id', bi[0].id).order('ordine').order('inizio')
     : { data: [] };
-  return <Ingresso codice={typeof b === 'string' ? b.slice(0, 20) : ''} titolo={bi?.[0]?.titolo || 'Saggio'} spettacoli={spettacoli || []} />;
+  return <Ingresso codice={typeof b === 'string' ? b.slice(0, 20) : ''} biglietteriaId={bi?.[0]?.id || null} titolo={bi?.[0]?.titolo || 'Saggio'} spettacoli={spettacoli || []} />;
 }

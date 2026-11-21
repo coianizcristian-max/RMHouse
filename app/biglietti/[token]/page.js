@@ -63,8 +63,8 @@ export default async function PaginaBiglietti({ params, searchParams }) {
             </div>
             <div className="bg-passi-lista">
               {p.biglietti.map((x) => (
-                <Biglietto key={x.codice} g={p.biglietto || {}} evento={p.evento} spettacolo={x.spettacolo || p.spettacolo} inizio={x.inizio || p.inizio}
-                           nome={x.nome || `${p.nome} ${p.cognome}`} allievo={x.allievo ?? p.allievo} extra={x.extra_testo} numero={x.numero} di={x.di || p.posti}
+                <Biglietto key={x.codice} g={p.biglietto || {}} nEvento={x.n_evento} coloreEv={x.colore} evento={p.evento} spettacolo={x.spettacolo || p.spettacolo} inizio={x.inizio || p.inizio}
+                           nome={x.nome || `${p.nome} ${p.cognome}`} allievo={'allievo' in x ? x.allievo : p.allievo} extra={x.extra_testo} numero={x.numero} di={x.di || p.posti}
                            codice={x.codice} url={`${sito}/gestione/biglietteria/ingresso?b=${x.codice}`} usato={x.entrato} />
               ))}
             </div>

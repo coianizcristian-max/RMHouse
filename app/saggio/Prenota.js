@@ -2,14 +2,14 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { euro } from '@/lib/formato';
-import { quandoSpettacolo, oraSpettacolo, totaleBiglietti, quandoScade, testoExtra, MODIFICHE_SEGRETERIA } from '@/lib/biglietteria';
+import { quandoSpettacolo, oraSpettacolo, totaleBiglietti, quandoScade, testoExtra, MODIFICHE_SEGRETERIA, coloreEvento } from '@/lib/biglietteria';
 import Promemoria from '../biglietti/Promemoria';
 import { stampaSolo } from '../biglietti/[token]/Azioni';
 
 const OFFERTE = [0, 500, 1000, 2000];
+export const NOTA_RIEPILOGO = 'Un solo pagamento per tutto. I biglietti (un QR per persona) arrivano in una email nei prossimi giorni, quando il pagamento è stato verificato e confermato dalla segreteria.';
 // un colore per evento (barra laterale, titolo, riepilogo): si distinguono a colpo d'occhio
-const COLORI = ['#e50914', '#1565c0', '#7b1fa2', '#ef6c00', '#00897b', '#c2185b', '#5d4037', '#3949ab'];
-const coloreDi = (s) => COLORI[((s.ordine ?? s.indice ?? 1) - 1 + COLORI.length) % COLORI.length];
+const coloreDi = (s) => s.colore || coloreEvento(s.ordine ?? s.indice ?? 1);
 const dataBreve = (d) => (d ? new Date(`${d}T12:00:00Z`).toLocaleDateString('it-IT', { day: 'numeric', month: 'numeric' }) : '');
 const normale = (x) => `${x.nome} ${x.cognome}`.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z]+/g, ' ').trim();
 
@@ -556,7 +556,8 @@ export default function Prenota({ b, carta }) {
             {scelti.map((x) => <RigaRiepilogo key={x.id} s={x} r={righe[x.id]} />)}
             {conclusi.length > 0 && <div className="somma"><strong>Totale</strong><strong>{totale ? euro(totale) : 'gratis'}</strong></div>}
           </div>
-          <p className="piccolo muto">Un solo pagamento per tutto. I biglietti (un QR per persona) arrivano in una email nei prossimi giorni, quando il pagamento è stato verificato e confermato dalla segreteria.</p>
+          {/* testo impostabile in Biglietteria → Email e biglietto */}
+          <p className="piccolo muto" style={{ whiteSpace: 'pre-line' }}>{b.testo_riepilogo || NOTA_RIEPILOGO}</p>
         </aside>
       </div>
     </div>

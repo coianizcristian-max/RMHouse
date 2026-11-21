@@ -1,84 +1,213 @@
 'use client';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { supabaseBrowser } from '@/lib/supabase/browser';
 import { oraSpettacolo } from '@/lib/biglietteria';
 
 const CHIAVE = 'rm-ingresso-spettacolo';
+// esito → [classe, simbolo, scritta grande, sottotitolo]
 const ESITI = {
-  ok: ['bg-esito ok', 'ENTRA ✓'],
-  gia_entrato: ['bg-esito no', 'GIÀ ENTRATO'],
-  altro_spettacolo: ['bg-esito attenzione', 'ALTRO SPETTACOLO'],
-  non_valido: ['bg-esito no', 'NON VALIDO'],
-  non_trovato: ['bg-esito no', 'CODICE NON TROVATO'],
+  ok: ['ok', '✓', 'OK · PUÒ ENTRARE', 'Registrato sul registro d\'ingresso'],
+  gia_entrato: ['no', '✕', 'QR GIÀ LETTO', 'Questo biglietto è già entrato'],
+  altro_spettacolo: ['attenzione', '!', 'ALTRO SPETTACOLO', 'Il biglietto è per un altro spettacolo'],
+  non_valido: ['no', '✕', 'NON VALIDO', ''],
+  non_trovato: ['no', '✕', 'QR NON RICONOSCIUTO', 'Non è un biglietto di questo saggio'],
+  errore: ['no', '✕', 'ERRORE', ''],
 };
+const ora = (iso) => new Date(iso).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Rome' });
+// dal QR (link …/ingresso?b=CODICE) o dal codice scritto a mano
+const codiceDa = (t) => { const m = String(t || '').match(/[?&]b=([A-Za-z0-9]+)/); return (m ? m[1] : String(t || '')).trim().toUpperCase().slice(0, 20); };
 
-// Inquadrato il QR con la fotocamera del telefono si apre questa pagina: il biglietto si segna da solo.
-// Si può anche scrivere il codice a mano. Lo spettacolo scelto resta salvato sul telefono.
-export default function Ingresso({ codice, titolo, spettacoli }) {
+// suono e vibrazione: due toni per l'ok, uno grave per gli errori
+function avvisa(ok) {
+  try { navigator.vibrate?.(ok ? 120 : [200, 80, 200]); } catch { /* niente */ }
+  try {
+    const C = window.AudioContext || window.webkitAudioContext; if (!C) return;
+    const c = avvisa.c || (avvisa.c = new C());
+    const note = ok ? [880, 1320] : [220];
+    note.forEach((f, i) => {
+      const o = c.createOscillator(); const g = c.createGain();
+      o.frequency.value = f; o.type = ok ? 'sine' : 'square'; g.gain.value = 0.15;
+      o.connect(g); g.connect(c.destination);
+      const t = c.currentTime + i * 0.12; o.start(t); o.stop(t + (ok ? 0.1 : 0.35));
+    });
+  } catch { /* niente */ }
+}
+
+// Scanner dei QR per le segretarie: fotocamera sempre accesa, ogni biglietto letto viene segnato sul registro
+// (una volta sola). Esito a tutto schermo. «Presenze»: quanti entrati, quanti mancano, e chi manca.
+export default function Ingresso({ codice, biglietteriaId, titolo, spettacoli }) {
   const [spettacolo, setSpettacolo] = useState('');
-  const [testo, setTesto] = useState('');
   const [esito, setEsito] = useState(null);
   const [invio, setInvio] = useState(false);
-  const fatto = useRef(false);
+  const [camera, setCamera] = useState('spenta');          // spenta | avvio | accesa | negata
+  const [testo, setTesto] = useState('');
+  const [presenze, setPresenze] = useState(null);          // null = chiuso
+  const [vedi, setVedi] = useState('mancanti');
+  const video = useRef(null); const tela = useRef(null); const flusso = useRef(null);
+  const ultimo = useRef({ codice: '', quando: 0 }); const occupato = useRef(false); const spRef = useRef('');
+  const fatto = useRef(false); const timer = useRef(null);
 
-  async function controlla(c, sp) {
-    if (!c.trim()) return;
-    setInvio(true);
-    const { data, error } = await supabaseBrowser().rpc('biglietteria_ingresso', { p_codice: c.trim(), p_spettacolo: sp || null });
+  const controlla = useCallback(async (grezzo) => {
+    const c = codiceDa(grezzo);
+    if (!c || occupato.current) return;
+    const adesso = Date.now();
+    if (c === ultimo.current.codice && adesso - ultimo.current.quando < 4000) return;   // stesso QR ancora inquadrato
+    ultimo.current = { codice: c, quando: adesso };
+    occupato.current = true; setInvio(true);
+    const { data, error } = await supabaseBrowser().rpc('biglietteria_ingresso', { p_codice: c, p_spettacolo: spRef.current || null });
     setInvio(false);
-    setEsito(error ? { esito: 'errore', messaggio: error.message?.includes('non_autorizzato') ? 'Non hai i permessi per l\'ingresso.' : 'Controllo non riuscito: riprova.' } : data);
-    setTesto('');
-  }
+    const e = error ? { esito: 'errore', messaggio: error.message?.includes('non_autorizzato') ? 'Non hai i permessi per l\'ingresso.' : 'Controllo non riuscito: controlla la connessione.' } : data;
+    setEsito({ ...e, letto: c });
+    avvisa(e.esito === 'ok');
+    clearTimeout(timer.current);
+    timer.current = setTimeout(() => { setEsito(null); occupato.current = false; }, e.esito === 'ok' ? 2200 : 3500);
+  }, []);
+
+  const chiudiEsito = () => { clearTimeout(timer.current); setEsito(null); occupato.current = false; };
+
+  // fotocamera + lettura continua (BarcodeDetector se c'è, altrimenti jsQR)
+  const accendi = useCallback(async () => {
+    setCamera('avvio');
+    try {
+      const s = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } }, audio: false });
+      flusso.current = s;
+      const v = video.current; v.srcObject = s; v.setAttribute('playsinline', ''); v.muted = true; await v.play();
+      setCamera('accesa');
+      const rilevatore = 'BarcodeDetector' in window ? new window.BarcodeDetector({ formats: ['qr_code'] }) : null;
+      const jsQR = rilevatore ? null : (await import('jsqr')).default;
+      const ctx = tela.current.getContext('2d', { willReadFrequently: true });
+      const giro = async () => {
+        if (!flusso.current) return;
+        if (!occupato.current && v.readyState >= 2) {
+          try {
+            if (rilevatore) {
+              const r = await rilevatore.detect(v);
+              if (r[0]?.rawValue) controlla(r[0].rawValue);
+            } else {
+              const lato = 480, k = Math.min(1, lato / Math.max(v.videoWidth, v.videoHeight));
+              const w = Math.round(v.videoWidth * k), h = Math.round(v.videoHeight * k);
+              tela.current.width = w; tela.current.height = h; ctx.drawImage(v, 0, 0, w, h);
+              const q = jsQR(ctx.getImageData(0, 0, w, h).data, w, h, { inversionAttempts: 'dontInvert' });
+              if (q?.data) controlla(q.data);
+            }
+          } catch { /* fotogramma non leggibile */ }
+        }
+        setTimeout(() => requestAnimationFrame(giro), 120);
+      };
+      giro();
+    } catch {
+      setCamera('negata');
+    }
+  }, [controlla]);
+
+  const spegni = () => { flusso.current?.getTracks().forEach((t) => t.stop()); flusso.current = null; setCamera('spenta'); };
 
   useEffect(() => {
     let sp = '';
     try { sp = localStorage.getItem(CHIAVE) || ''; } catch { /* niente */ }
     if (sp && !spettacoli.some((s) => s.id === sp)) sp = '';
-    setSpettacolo(sp);
-    if (codice && !fatto.current) { fatto.current = true; controlla(codice, sp); }
+    setSpettacolo(sp); spRef.current = sp;
+    if (codice && !fatto.current) { fatto.current = true; controlla(codice); }
+    return () => { flusso.current?.getTracks().forEach((t) => t.stop()); clearTimeout(timer.current); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const scegli = (v) => { setSpettacolo(v); try { localStorage.setItem(CHIAVE, v); } catch { /* niente */ } };
-  const [classe, scritta] = ESITI[esito?.esito] || ['bg-esito no', 'ERRORE'];
+  const scegli = (v) => { setSpettacolo(v); spRef.current = v; try { localStorage.setItem(CHIAVE, v); } catch { /* niente */ } if (presenze) carica(v); };
+
+  async function carica(sp = spettacolo) {
+    if (!biglietteriaId) return;
+    const { data, error } = await supabaseBrowser().rpc('biglietteria_presenze', { p_biglietteria: biglietteriaId, p_spettacolo: sp || null });
+    setPresenze(error ? { errore: error.message?.includes('biglietteria_presenze') ? 'Manca la query 183 in Supabase.' : 'Non riesco a leggere le presenze.' } : data);
+  }
+  async function segnaAMano(x) {
+    const { error } = await supabaseBrowser().rpc('biglietteria_segna', { p_biglietto: x.id, p_entrato: true });
+    if (!error) { avvisa(true); carica(); }
+  }
+
+  const [classe, simbolo, scritta, sotto] = ESITI[esito?.esito] || ESITI.errore;
+  const sp = spettacoli.find((s) => s.id === spettacolo);
 
   return (
-    <main className="pagina bg-ingresso">
-      <div className="intestazione"><div className="occhiello">{titolo}</div><h1>Ingresso</h1></div>
-      <div className="campo">
-        <label htmlFor="bi-sp">Spettacolo che sta entrando</label>
-        <select id="bi-sp" value={spettacolo} onChange={(e) => scegli(e.target.value)}>
-          <option value="">Tutti (non controllare lo spettacolo)</option>
+    <main className="sc-pagina">
+      <header className="sc-testa">
+        <div className="sc-titolo"><span className="occhiello">{titolo}</span><strong>Ingresso</strong></div>
+        <select className="sc-spettacolo" value={spettacolo} onChange={(e) => scegli(e.target.value)} aria-label="Spettacolo che sta entrando">
+          <option value="">Tutti gli spettacoli</option>
           {spettacoli.map((s) => <option key={s.id} value={s.id}>{oraSpettacolo(s.inizio)} · {s.titolo}</option>)}
         </select>
+        <button type="button" className="sc-presenze-btn" onClick={() => { setVedi('mancanti'); carica(); }}>Presenze</button>
+      </header>
+
+      <section className="sc-camera">
+        <video ref={video} className="sc-video" playsInline muted hidden={camera !== 'accesa'} />
+        <canvas ref={tela} hidden />
+        {camera === 'accesa' && <div className="sc-mirino" aria-hidden="true" />}
+        {camera !== 'accesa' && (
+          <div className="sc-avvio">
+            {camera === 'negata'
+              ? <p>La fotocamera non si è aperta. Consenti l&apos;uso della fotocamera per questo sito (impostazioni del browser) e riprova.</p>
+              : <p>Inquadra i QR dei biglietti uno dopo l&apos;altro: ognuno viene segnato sul registro una volta sola.</p>}
+            <button type="button" className="sc-grande-btn" onClick={accendi} disabled={camera === 'avvio'}>{camera === 'avvio' ? 'Apro la fotocamera…' : '📷 Avvia la scansione'}</button>
+          </div>
+        )}
+        {invio && <div className="sc-controllo">Controllo…</div>}
+      </section>
+
+      <div className="sc-sotto">
+        {camera === 'accesa' && <p className="sc-istr">Inquadra il QR dentro il riquadro{sp ? ` · ${oraSpettacolo(sp.inizio)} ${sp.titolo}` : ''}</p>}
+        <form className="sc-manuale" onSubmit={(e) => { e.preventDefault(); ultimo.current = { codice: '', quando: 0 }; controlla(testo); setTesto(''); }}>
+          <input value={testo} onChange={(e) => setTesto(e.target.value.toUpperCase())} placeholder="Codice a mano (se il QR non si legge)" autoCapitalize="characters" autoComplete="off" aria-label="Codice del biglietto" />
+          <button type="submit" disabled={!testo.trim()}>OK</button>
+        </form>
+        {camera === 'accesa' && <button type="button" className="link-btn piccolo" onClick={spegni}>spegni la fotocamera</button>}
       </div>
 
-      {invio && <p className="muto">Controllo…</p>}
-      {esito && !invio && (
-        <section className={classe} role="status" aria-live="assertive">
-          <strong className="bg-esito-scritta">{esito.esito === 'errore' ? esito.messaggio : scritta}</strong>
-          {esito.nome && (
+      {esito && (
+        <button type="button" className={`sc-esito ${classe}`} onClick={chiudiEsito} aria-live="assertive">
+          <span className="sc-simbolo">{simbolo}</span>
+          <strong className="sc-scritta">{esito.esito === 'errore' ? esito.messaggio : scritta}</strong>
+          {sotto && esito.esito !== 'errore' && <span className="sc-sottot">{sotto}</span>}
+          {esito.nome && <span className="sc-nome">{esito.nome}</span>}
+          {esito.nome && <span>{esito.allievo ? `per ${esito.allievo} · ` : ''}{esito.spettacolo} {esito.inizio ? oraSpettacolo(esito.inizio) : ''}</span>}
+          {(esito.extra_testo) && <span className="sc-extra">{esito.extra_testo}</span>}
+          {esito.esito === 'gia_entrato' && esito.entrato_prima && <span className="sc-sottot">Entrato alle {ora(esito.entrato_prima)}</span>}
+          {esito.esito === 'non_valido' && <span className="sc-sottot">{esito.stato === 'annullata' ? 'Prenotazione annullata' : 'Pagamento non ancora confermato'}</span>}
+          {esito.attesi != null && <span className="sc-conta">Entrati {esito.entrati} su {esito.attesi}</span>}
+          <span className="sc-tocca">tocca per continuare</span>
+        </button>
+      )}
+
+      {presenze && (
+        <section className="sc-pannello" role="dialog" aria-label="Presenze">
+          <div className="sc-pannello-testa">
+            <strong>Presenze{sp ? ` · ${oraSpettacolo(sp.inizio)} ${sp.titolo}` : ' · tutti gli spettacoli'}</strong>
+            <button type="button" className="sc-chiudi" onClick={() => setPresenze(null)} aria-label="Chiudi">✕</button>
+          </div>
+          {presenze.errore ? <p className="errore">{presenze.errore}</p> : (
             <>
-              <span className="bg-esito-nome">{esito.nome}</span>
-              <span>{esito.allievo ? `per ${esito.allievo} · ` : ''}prenotato da {esito.prenotato_da}</span>
-              <span>{esito.spettacolo} · {oraSpettacolo(esito.inizio)} · biglietto {esito.numero} di {esito.di}</span>
-              {(esito.extra_testo || esito.pizze > 0) && <span><strong>{esito.extra_testo || `${esito.pizze} ${esito.pizze === 1 ? 'pizza' : 'pizze'}`}</strong></span>}
-              {esito.esito === 'gia_entrato' && esito.entrato_prima && (
-                <span>Entrato alle {new Date(esito.entrato_prima).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Rome' })}</span>
-              )}
-              {esito.esito === 'non_valido' && <span>{esito.stato === 'annullata' ? 'Prenotazione annullata.' : 'Pagamento non ancora confermato: verifica in Biglietteria.'}</span>}
-              <span className="piccolo">Entrati {esito.entrati} su {esito.attesi}</span>
+              <div className="sc-numeri">
+                <button type="button" className={`sc-numero ok${vedi === 'dentro' ? ' attivo' : ''}`} onClick={() => setVedi('dentro')}>
+                  <span>{presenze.entrati}</span>entrati</button>
+                <button type="button" className={`sc-numero manca${vedi === 'mancanti' ? ' attivo' : ''}`} onClick={() => setVedi('mancanti')}>
+                  <span>{presenze.attesi - presenze.entrati}</span>mancano</button>
+                <div className="sc-numero tot"><span>{presenze.attesi}</span>attesi</div>
+              </div>
+              <button type="button" className="link-btn piccolo" onClick={() => carica()}>aggiorna</button>
+              <ul className="sc-lista">
+                {(vedi === 'mancanti' ? presenze.mancanti : presenze.dentro).map((x) => (
+                  <li key={x.id}>
+                    <span><strong>{x.nome}</strong><span className="piccolo muto"> · {x.allievo ? `per ${x.allievo} · ` : ''}{!sp ? `${x.spettacolo} · ` : ''}prenotato da {x.prenotato_da}</span></span>
+                    {vedi === 'mancanti'
+                      ? <button type="button" className="btn btn-piccolo" onClick={() => segnaAMano(x)}>è entrato</button>
+                      : <span className="piccolo">{ora(x.entrato_at)}</span>}
+                  </li>
+                ))}
+                {(vedi === 'mancanti' ? presenze.mancanti : presenze.dentro).length === 0 && <li className="muto">{vedi === 'mancanti' ? 'Sono entrati tutti 🎉' : 'Nessuno è ancora entrato.'}</li>}
+              </ul>
             </>
           )}
         </section>
       )}
-
-      <form className="bg-codice-form" onSubmit={(e) => { e.preventDefault(); controlla(testo, spettacolo); }}>
-        <div className="campo"><label htmlFor="bi-cod">Codice del biglietto (se il QR non si legge)</label>
-          <input id="bi-cod" value={testo} onChange={(e) => setTesto(e.target.value.toUpperCase())} autoCapitalize="characters" autoComplete="off" placeholder="es. HTWTA8YDWP" /></div>
-        <button type="submit" className="btn btn-primario" disabled={invio || !testo.trim()}>Controlla</button>
-      </form>
-      <p className="piccolo muto">Per il prossimo: inquadra il QR con la fotocamera del telefono e tocca il link che compare.</p>
     </main>
   );
 }

@@ -1,5 +1,5 @@
 import { qrSvg } from '@/lib/qr';
-import { quandoSpettacolo } from '@/lib/biglietteria';
+import { quandoSpettacolo, coloreEvento } from '@/lib/biglietteria';
 
 // Grafica di serie del biglietto (si cambia in Biglietteria → Email e biglietto)
 export const BIGLIETTO_BASE = {
@@ -9,15 +9,16 @@ export const BIGLIETTO_BASE = {
 
 // Un biglietto = una schermata di telefono: logo, immagine, titolo, evento, persona, QR grande, testi.
 // Usato dalla pagina dei biglietti e dall'anteprima della segreteria.
-export default function Biglietto({ g = {}, evento, spettacolo, inizio, nome, allievo, extra, numero, di, codice, url, usato = false }) {
+export default function Biglietto({ g = {}, nEvento, coloreEv, evento, spettacolo, inizio, nome, allievo, extra, numero, di, codice, url, usato = false }) {
   const c = { ...BIGLIETTO_BASE, ...g };
   return (
-    <article className={`bg-pass${usato ? ' usato' : ''}`} style={{ '--pass-sfondo': c.sfondo, '--pass-testo': c.testo, '--pass-accento': c.accento }}>
+    <article className={`bg-pass${usato ? ' usato' : ''}${nEvento || coloreEv ? ' con-colore' : ''}`}
+             style={{ '--pass-sfondo': c.sfondo, '--pass-testo': c.testo, '--pass-accento': c.accento, '--pass-evento': coloreEv || coloreEvento(nEvento) }}>
       {c.logo_url && <img className="bg-pass-logo" src={c.logo_url} alt="" />}
       {c.immagine_url && <img className="bg-pass-immagine" src={c.immagine_url} alt="" />}
       <div className="bg-pass-testa">
         <span className="bg-pass-evento">{c.titolo || evento}</span>
-        <strong className="bg-pass-spettacolo">{spettacolo}</strong>
+        <strong className="bg-pass-spettacolo">{nEvento || coloreEv ? <span className="bg-pass-pallino" aria-hidden="true" /> : null}{spettacolo}</strong>
         <span className="bg-pass-quando">{inizio ? quandoSpettacolo(inizio) : ''}</span>
         {c.testo_sopra && <span className="bg-pass-nota">{c.testo_sopra}</span>}
       </div>
@@ -26,7 +27,8 @@ export default function Biglietto({ g = {}, evento, spettacolo, inizio, nome, al
         <strong className="bg-pass-nome">{nome}</strong>
         {allievo && <span>per {allievo}</span>}
         {extra && <span className="bg-pass-extra">{extra}</span>}
-        <span className="bg-pass-num">Biglietto {numero} di {di} · <span className="bg-pass-cod">{codice}</span></span>
+        <span className="bg-pass-num">Biglietto {numero} di {di}</span>
+        <span className="bg-pass-cod">{codice}</span>
         {usato && <span className="bg-pass-usato">GIÀ USATO</span>}
       </div>
       {c.testo_sotto && <p className="bg-pass-sotto">{c.testo_sotto}</p>}

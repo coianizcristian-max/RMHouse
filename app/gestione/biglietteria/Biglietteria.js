@@ -4,10 +4,11 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { supabaseBrowser } from '@/lib/supabase/browser';
 import { euro, dataBreve } from '@/lib/formato';
-import { oraSpettacolo, quandoSpettacolo, testoExtra, erroreBiglietteria } from '@/lib/biglietteria';
+import { oraSpettacolo, quandoSpettacolo, testoExtra, erroreBiglietteria, coloreEvento } from '@/lib/biglietteria';
 import { leggiCsv, leggiData } from '@/lib/csv';
 import Immagine from '../Immagine';
 import Biglietto, { BIGLIETTO_BASE } from '../../biglietti/Biglietto';
+import { NOTA_RIEPILOGO } from '../../saggio/Prenota';
 import { righeXlsx, dataDaExcel } from '@/lib/xlsx';
 import { separaNome, indovinaOrdine, accorciaGruppo } from '@/lib/nomiPropri';
 
@@ -137,7 +138,7 @@ const idOpzione = (nome) => `${nome.toLowerCase().normalize('NFD').replace(/[^a-
 // ---------------------------------------------------------------- uno spettacolo (modifica)
 function Spettacolo({ s, nPren, nAllievi = 0, aperto = false, onSalvato }) {
   const [v, setV] = useState({
-    titolo: s.titolo, descrizione: s.descrizione || '', inizio: perInput(s.inizio), con_allievi: s.con_allievi, chiedi_nascita: s.chiedi_nascita !== false, scelta_allievo: s.scelta_allievo || 'gruppo', capienza_con_allievi: !!s.capienza_con_allievi, locandina_url: s.locandina_url || null, frase_offerta: s.frase_offerta || '', posti_per_allievo: String(s.posti_per_allievo),
+    titolo: s.titolo, descrizione: s.descrizione || '', inizio: perInput(s.inizio), con_allievi: s.con_allievi, chiedi_nascita: s.chiedi_nascita !== false, scelta_allievo: s.scelta_allievo || 'gruppo', capienza_con_allievi: !!s.capienza_con_allievi, locandina_url: s.locandina_url || null, colore: s.colore || '', frase_offerta: s.frase_offerta || '', posti_per_allievo: String(s.posti_per_allievo),
     liberi_dal: s.liberi_dal || '', capienza: s.capienza == null ? '' : String(s.capienza), max_per_prenotazione: String(s.max_per_prenotazione),
     contributo: euroTesto(s.contributo_cent), contributo_per_posto: s.contributo_per_posto, offerta_libera: s.offerta_libera,
     chiuso: s.chiuso,
@@ -150,7 +151,7 @@ function Spettacolo({ s, nPren, nAllievi = 0, aperto = false, onSalvato }) {
     setEsito('');
     if (!v.titolo.trim() || !v.inizio) { setEsito('Titolo e data/ora servono.'); return; }
     const { error } = await supabaseBrowser().from('biglietteria_spettacoli').update({
-      titolo: v.titolo.trim(), descrizione: v.descrizione.trim() || null, inizio: daInput(v.inizio), con_allievi: v.con_allievi, chiedi_nascita: v.chiedi_nascita, scelta_allievo: v.scelta_allievo, capienza_con_allievi: v.con_allievi && v.capienza_con_allievi, locandina_url: v.locandina_url || null, frase_offerta: v.frase_offerta.trim() || null,
+      titolo: v.titolo.trim(), descrizione: v.descrizione.trim() || null, inizio: daInput(v.inizio), con_allievi: v.con_allievi, chiedi_nascita: v.chiedi_nascita, scelta_allievo: v.scelta_allievo, capienza_con_allievi: v.con_allievi && v.capienza_con_allievi, locandina_url: v.locandina_url || null, colore: v.colore || null, frase_offerta: v.frase_offerta.trim() || null,
       posti_per_allievo: Math.max(1, Number(v.posti_per_allievo) || 2), liberi_dal: v.liberi_dal || null,
       capienza: v.capienza === '' ? null : Math.max(0, Number(v.capienza) || 0), max_per_prenotazione: Math.max(1, Number(v.max_per_prenotazione) || 10),
       contributo_cent: centDa(v.contributo) || 0, contributo_per_posto: v.contributo_per_posto, offerta_libera: v.offerta_libera,
@@ -170,14 +171,16 @@ function Spettacolo({ s, nPren, nAllievi = 0, aperto = false, onSalvato }) {
   return (
     <details className="pannello bt-spettacolo" open={aperto}>
       <summary className="bt-sp-testa">
-        <strong>{s.ordine} · {v.titolo || 'Evento'}</strong>
+        <strong><span className="bt-sp-pallino" style={{ background: v.colore || coloreEvento(s.ordine) }} aria-hidden="true" />{s.ordine} · {v.titolo || 'Evento'}</strong>
         <span className="piccolo muto">{v.inizio ? quandoSpettacolo(daInput(v.inizio)) : ''}{v.capienza ? ` · ${v.capienza} posti` : ''}{centDa(v.contributo) ? ` · ${v.contributo} €` : ' · gratis'}{v.con_allievi ? ' · con allievi' : ''}{v.chiuso ? ' · chiuso' : ''}</span>
         <span className="bt-sp-apri piccolo">modifica</span>
       </summary>
       <div className="bt-sp-griglia">
         <div className="campo c6"><label>Titolo</label><input value={v.titolo} onChange={set('titolo')} /></div>
         <div className="campo c3"><label>Giorno e ora</label><input type="datetime-local" value={v.inizio} onChange={set('inizio')} /></div>
-        <label className="spunta c3 bt-sp-spunta"><input type="checkbox" checked={v.chiuso} onChange={set('chiuso')} /><span>prenotazioni chiuse</span></label>
+        <div className="campo c1 bt-sp-colore"><label>Colore</label>
+          <input type="color" value={v.colore || coloreEvento(s.ordine)} onChange={set('colore')} title="colore dell'evento (barra laterale, biglietti)" /></div>
+        <label className="spunta c2 bt-sp-spunta"><input type="checkbox" checked={v.chiuso} onChange={set('chiuso')} /><span>prenotazioni chiuse</span></label>
 
         <div className="bt-sp-sezione c12">Posti e prezzi</div>
         <div className="campo c2"><label>Capienza</label><input inputMode="numeric" value={v.capienza} onChange={set('capienza')} placeholder="senza limite" /></div>
@@ -573,6 +576,7 @@ function EmailEBiglietto({ b, spettacoli, onFatto }) {
   const [oggetto, setOggetto] = useState(b.email_oggetto || 'I tuoi biglietti · {evento}');
   const [testo, setTesto] = useState(b.email_testo || EMAIL_BASE);
   const [conferma, setConferma] = useState(b.testo_conferma || '');
+  const [notaRiep, setNotaRiep] = useState(b.testo_riepilogo || NOTA_RIEPILOGO);
   const [emLogo, setEmLogo] = useState(b.email_logo_url || null);
   const [emImg, setEmImg] = useState(b.email_immagine_url || null);
   const [g, setG] = useState({ ...BIGLIETTO_BASE, ...(b.biglietto || {}) });
@@ -588,7 +592,7 @@ function EmailEBiglietto({ b, spettacoli, onFatto }) {
     const { error } = await supabaseBrowser().from('biglietterie').update({
       email_oggetto: oggetto.trim() && oggetto.trim() !== 'I tuoi biglietti · {evento}' ? oggetto.trim() : null,
       email_testo: base || !testo.trim() ? null : testo,
-      testo_conferma: conferma.trim() || null, email_logo_url: emLogo || null, email_immagine_url: emImg || null,
+      testo_conferma: conferma.trim() || null, testo_riepilogo: notaRiep.trim() && notaRiep.trim() !== NOTA_RIEPILOGO ? notaRiep.trim() : null, email_logo_url: emLogo || null, email_immagine_url: emImg || null,
       biglietto: { sfondo: g.sfondo, testo: g.testo, accento: g.accento, logo_url: g.logo_url || null, immagine_url: g.immagine_url || null,
         titolo: g.titolo.trim(), testo_sopra: g.testo_sopra.trim(), testo_sotto: g.testo_sotto.trim() },
     }).eq('id', b.id);
@@ -599,6 +603,11 @@ function EmailEBiglietto({ b, spettacoli, onFatto }) {
     <section className="pannello">
       <div className="bt-graf">
         <div className="bt-campi">
+          <h3 className="bt-largo">Nota sotto il riepilogo (pagina di prenotazione)</h3>
+          <div className="campo bt-largo"><label htmlFor="em-r">Si vede sotto il riquadro con eventi e totale, mentre si prenota</label>
+            <textarea id="em-r" rows={3} value={notaRiep} onChange={(e) => setNotaRiep(e.target.value)} />
+            <button type="button" className="link-btn piccolo" onClick={() => setNotaRiep(NOTA_RIEPILOGO)}>rimetti il testo di serie</button></div>
+
           <h3 className="bt-largo">Messaggio appena finita la prenotazione</h3>
           <div className="campo bt-largo"><label htmlFor="em-c">Si vede in alto nella pagina «Prenotato ✓» / «Prenotazione salvata ✓» (vuoto = niente)</label>
             <textarea id="em-c" rows={3} value={conferma} onChange={(e) => setConferma(e.target.value)} placeholder="es. Grazie {nome}! Ci vediamo il 20 dicembre al Teatro Comunale. Il tuo codice è {codice}." /></div>
