@@ -13,6 +13,7 @@ const ESITI = {
   non_trovato: ['no', '✕', 'QR NON RICONOSCIUTO', 'Non è un biglietto di questo saggio'],
   errore: ['no', '✕', 'ERRORE', ''],
 };
+const giorno = (iso) => new Date(iso).toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'Europe/Rome' });
 const ora = (iso) => new Date(iso).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Rome' });
 // dal QR (link …/ingresso?b=CODICE) o dal codice scritto a mano
 const codiceDa = (t) => { const m = String(t || '').match(/[?&]b=([A-Za-z0-9]+)/); return (m ? m[1] : String(t || '')).trim().toUpperCase().slice(0, 20); };
@@ -169,6 +170,7 @@ export default function Ingresso({ codice, biglietteriaId, titolo, spettacoli })
           {sotto && esito.esito !== 'errore' && <span className="sc-sottot">{sotto}</span>}
           {esito.nome && <span className="sc-nome">{esito.nome}</span>}
           {esito.nome && <span>{esito.allievo ? `per ${esito.allievo} · ` : ''}{esito.spettacolo} {esito.inizio ? oraSpettacolo(esito.inizio) : ''}</span>}
+          {esito.prenotato_da && <span className="sc-sottot">prenotato da {esito.prenotato_da}{esito.prenotata_il ? ` il ${giorno(esito.prenotata_il)}` : ''}</span>}
           {(esito.extra_testo) && <span className="sc-extra">{esito.extra_testo}</span>}
           {esito.esito === 'gia_entrato' && esito.entrato_prima && <span className="sc-sottot">Entrato alle {ora(esito.entrato_prima)}</span>}
           {esito.esito === 'non_valido' && <span className="sc-sottot">{esito.stato === 'annullata' ? 'Prenotazione annullata' : 'Pagamento non ancora confermato'}</span>}
@@ -196,7 +198,7 @@ export default function Ingresso({ codice, biglietteriaId, titolo, spettacoli })
               <ul className="sc-lista">
                 {(vedi === 'mancanti' ? presenze.mancanti : presenze.dentro).map((x) => (
                   <li key={x.id}>
-                    <span><strong>{x.nome}</strong><span className="piccolo muto"> · {x.allievo ? `per ${x.allievo} · ` : ''}{!sp ? `${x.spettacolo} · ` : ''}prenotato da {x.prenotato_da}</span></span>
+                    <span><strong>{x.nome}</strong><span className="piccolo muto"> · {x.allievo ? `per ${x.allievo} · ` : ''}{!sp ? `${x.spettacolo} · ` : ''}prenotato da {x.prenotato_da}{x.prenotata_il ? ` il ${giorno(x.prenotata_il)}` : ''}</span></span>
                     {vedi === 'mancanti'
                       ? <button type="button" className="btn btn-piccolo" onClick={() => segnaAMano(x)}>è entrato</button>
                       : <span className="piccolo">{ora(x.entrato_at)}</span>}

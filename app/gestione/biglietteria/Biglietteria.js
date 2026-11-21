@@ -755,7 +755,7 @@ function Registro({ b, spettacoli, prenotazioni, biglietti, allievi = [] }) {
                 {s?.con_allievi && <td><strong>{p.allievo_nome || '—'}</strong></td>}
                 <td><strong>{x.nome || `${p.nome} ${p.cognome} (${x.numero})`}</strong>{entrati[x.id] && <span className="piccolo bt-non-stampa"> · {ora(entrati[x.id])}</span>}</td>
                 {s?.con_allievi && <td className="piccolo">{p.allievo_id ? (perAllievo[p.allievo_id]?.gruppo || 'Altri').replaceAll(' | ', ' · ') : '—'}</td>}
-                <td>{primaDi ? <>{p.cognome} {p.nome}{p.telefono ? <span className="piccolo bt-non-stampa"> · {p.telefono}</span> : null}</> : <span className="muto">〃</span>}</td>
+                <td>{primaDi ? <>{p.cognome} {p.nome}<span className="piccolo muto"> · il {dataBreve(p.created_at)}</span>{p.telefono ? <span className="piccolo bt-non-stampa"> · {p.telefono}</span> : null}</> : <span className="muto">〃</span>}</td>
                 {pizze > 0 && <td>{primaDi ? testoExtra(p.extra, p.pizze) : ''}</td>}
                 <td className="bt-codice">{codiceDi(p)}</td>
                 <td className="bt-codice piccolo">{x.codice}</td>
