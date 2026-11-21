@@ -1,14 +1,14 @@
 'use client';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { supabaseBrowser } from '@/lib/supabase/browser';
-import { oraSpettacolo } from '@/lib/biglietteria';
+import { oraSpettacolo, coloreEvento } from '@/lib/biglietteria';
 
 const CHIAVE = 'rm-ingresso-spettacolo';
 // esito → [classe, simbolo, scritta grande, sottotitolo]
 const ESITI = {
   ok: ['ok', '✓', 'OK · PUÒ ENTRARE', 'Registrato sul registro d\'ingresso'],
   gia_entrato: ['no', '✕', 'QR GIÀ LETTO', 'Questo biglietto è già entrato'],
-  altro_spettacolo: ['attenzione', '!', 'ALTRO SPETTACOLO', 'Il biglietto è per un altro spettacolo'],
+  altro_spettacolo: ['attenzione', '!', 'ATTENZIONE', ''],
   non_valido: ['no', '✕', 'NON VALIDO', ''],
   non_trovato: ['no', '✕', 'QR NON RICONOSCIUTO', 'Non è un biglietto di questo saggio'],
   errore: ['no', '✕', 'ERRORE', ''],
@@ -61,10 +61,20 @@ export default function Ingresso({ codice, biglietteriaId, titolo, spettacoli })
     setEsito({ ...e, letto: c });
     avvisa(e.esito === 'ok');
     clearTimeout(timer.current);
-    timer.current = setTimeout(() => { setEsito(null); occupato.current = false; }, e.esito === 'ok' ? 2200 : 3500);
+    // biglietto di un altro spettacolo: si aspetta la scelta (accetta o no), niente chiusura automatica
+    if (e.esito !== 'altro_spettacolo') timer.current = setTimeout(() => { setEsito(null); occupato.current = false; }, e.esito === 'ok' ? 2200 : 3500);
   }, []);
 
   const chiudiEsito = () => { clearTimeout(timer.current); setEsito(null); occupato.current = false; };
+  // «accettalo lo stesso»: lo segna entrato senza controllare lo spettacolo
+  async function accetta(c) {
+    const { data, error } = await supabaseBrowser().rpc('biglietteria_ingresso', { p_codice: c, p_spettacolo: null });
+    const e = error ? { esito: 'errore', messaggio: 'Controllo non riuscito: controlla la connessione.' } : data;
+    setEsito({ ...e, letto: c, accettato: true }); avvisa(e.esito === 'ok');
+    clearTimeout(timer.current);
+    timer.current = setTimeout(() => { setEsito(null); occupato.current = false; }, 2200);
+  }
+  const coloreDi = (s) => s?.colore || coloreEvento(spettacoli.findIndex((x) => x.id === s?.id) + 1);
 
   // fotocamera + lettura continua (BarcodeDetector se c'è, altrimenti jsQR)
   const accendi = useCallback(async () => {
@@ -132,14 +142,21 @@ export default function Ingresso({ codice, biglietteriaId, titolo, spettacoli })
     <main className="sc-pagina">
       <header className="sc-testa">
         <div className="sc-titolo"><span className="occhiello">{titolo}</span><strong>Ingresso</strong></div>
-        <select className="sc-spettacolo" value={spettacolo} onChange={(e) => scegli(e.target.value)} aria-label="Spettacolo che sta entrando">
-          <option value="">Tutti gli spettacoli</option>
-          {spettacoli.map((s) => <option key={s.id} value={s.id}>{oraSpettacolo(s.inizio)} · {s.titolo}</option>)}
-        </select>
+        <span />
         <button type="button" className="sc-presenze-btn" onClick={() => { setVedi('mancanti'); carica(); }}>Presenze</button>
       </header>
 
-      <section className="sc-camera">
+      {/* lo spettacolo che sta entrando: si controllano solo i suoi biglietti (gli altri chiedono conferma) */}
+      <div className="sc-eventi" role="group" aria-label="Spettacolo che sta entrando">
+        <button type="button" aria-pressed={!spettacolo} onClick={() => scegli('')}>Tutti</button>
+        {spettacoli.map((s) => (
+          <button key={s.id} type="button" aria-pressed={spettacolo === s.id} style={{ '--sc-col': coloreDi(s) }} onClick={() => scegli(s.id)}>
+            <span className="sc-pallino" aria-hidden="true" />{oraSpettacolo(s.inizio)} {s.titolo}
+          </button>
+        ))}
+      </div>
+
+      <section className="sc-camera" style={sp ? { boxShadow: `0 0 0 4px ${coloreDi(sp)}` } : undefined}>
         <video ref={video} className="sc-video" playsInline muted hidden={camera !== 'accesa'} />
         <canvas ref={tela} hidden />
         {camera === 'accesa' && <div className="sc-mirino" aria-hidden="true" />}
@@ -163,13 +180,34 @@ export default function Ingresso({ codice, biglietteriaId, titolo, spettacoli })
         {camera === 'accesa' && <button type="button" className="link-btn piccolo" onClick={spegni}>spegni la fotocamera</button>}
       </div>
 
-      {esito && (
+      {esito && esito.esito === 'altro_spettacolo' && (
+        <div className="sc-esito attenzione" role="alertdialog" aria-live="assertive">
+          <span className="sc-simbolo">!</span>
+          <strong className="sc-scritta">ATTENZIONE</strong>
+          <span className="sc-sottot">Biglietto dell&apos;evento <strong>«{esito.spettacolo}»</strong>{esito.inizio ? ` delle ${oraSpettacolo(esito.inizio)}` : ''}</span>
+          {sp && <span className="sc-sottot">Stai controllando «{sp.titolo}»</span>}
+          {esito.nome && <span className="sc-nome">{esito.nome}</span>}
+          {esito.allievo && <span>per {esito.allievo}</span>}
+          <strong className="sc-domanda">Lo accetti lo stesso?</strong>
+          <div className="sc-scelta">
+            <button type="button" className="sc-si" onClick={() => accetta(esito.letto)}>Sì, può entrare</button>
+            <button type="button" className="sc-no" onClick={chiudiEsito}>No</button>
+          </div>
+        </div>
+      )}
+      {esito && esito.esito !== 'altro_spettacolo' && (
         <button type="button" className={`sc-esito ${classe}`} onClick={chiudiEsito} aria-live="assertive">
           <span className="sc-simbolo">{simbolo}</span>
           <strong className="sc-scritta">{esito.esito === 'errore' ? esito.messaggio : scritta}</strong>
-          {sotto && esito.esito !== 'errore' && <span className="sc-sottot">{sotto}</span>}
+          {sotto && esito.esito !== 'errore' && <span className="sc-sottot">{esito.accettato && esito.esito === 'ok' ? 'Accettato anche se di un altro spettacolo · registrato' : sotto}</span>}
           {esito.nome && <span className="sc-nome">{esito.nome}</span>}
-          {esito.nome && <span>{esito.allievo ? `per ${esito.allievo} · ` : ''}{esito.spettacolo} {esito.inizio ? oraSpettacolo(esito.inizio) : ''}</span>}
+          {/* l'evento del biglietto, col suo colore: ben visibile soprattutto se è un altro evento accettato */}
+          {esito.spettacolo && (
+            <span className={`sc-evento${esito.per_altro_evento ? ' altro' : ''}`} style={{ '--sc-col': esito.colore || coloreEvento(esito.n_evento) }}>
+              {esito.per_altro_evento && esito.esito === 'ok' ? 'OK per ' : ''}«{esito.spettacolo}»{esito.inizio ? ` ${oraSpettacolo(esito.inizio)}` : ''}
+            </span>
+          )}
+          {esito.allievo && <span>per {esito.allievo}</span>}
           {esito.prenotato_da && <span className="sc-sottot">prenotato da {esito.prenotato_da}{esito.prenotata_il ? ` il ${giorno(esito.prenotata_il)}` : ''}</span>}
           {(esito.extra_testo) && <span className="sc-extra">{esito.extra_testo}</span>}
           {esito.esito === 'gia_entrato' && esito.entrato_prima && <span className="sc-sottot">Entrato alle {ora(esito.entrato_prima)}</span>}
@@ -185,6 +223,14 @@ export default function Ingresso({ codice, biglietteriaId, titolo, spettacoli })
             <strong>Presenze{sp ? ` · ${oraSpettacolo(sp.inizio)} ${sp.titolo}` : ' · tutti gli spettacoli'}</strong>
             <button type="button" className="sc-chiudi" onClick={() => setPresenze(null)} aria-label="Chiudi">✕</button>
           </div>
+          <div className="sc-eventi sc-eventi-pannello" role="group" aria-label="Spettacolo">
+            <button type="button" aria-pressed={!spettacolo} onClick={() => scegli('')}>Tutti</button>
+            {spettacoli.map((s) => (
+              <button key={s.id} type="button" aria-pressed={spettacolo === s.id} style={{ '--sc-col': coloreDi(s) }} onClick={() => scegli(s.id)}>
+                <span className="sc-pallino" aria-hidden="true" />{oraSpettacolo(s.inizio)} {s.titolo}
+              </button>
+            ))}
+          </div>
           {presenze.errore ? <p className="errore">{presenze.errore}</p> : (
             <>
               <div className="sc-numeri">
@@ -194,6 +240,23 @@ export default function Ingresso({ codice, biglietteriaId, titolo, spettacoli })
                   <span>{presenze.attesi - presenze.entrati}</span>mancano</button>
                 <div className="sc-numero tot"><span>{presenze.attesi}</span>attesi</div>
               </div>
+              {/* con «Tutti» i numeri sono la somma: qui il dettaglio evento per evento */}
+              {!spettacolo && (
+                <table className="sc-perevento">
+                  <thead><tr><th>Evento</th><th>Entrati</th><th>Mancano</th><th>Attesi</th></tr></thead>
+                  <tbody>{spettacoli.map((s) => {
+                    const den = presenze.dentro.filter((x) => x.spettacolo === s.titolo).length;
+                    const man = presenze.mancanti.filter((x) => x.spettacolo === s.titolo).length;
+                    return (
+                      <tr key={s.id} onClick={() => scegli(s.id)}>
+                        <td><span className="sc-pallino" style={{ '--sc-col': coloreDi(s) }} aria-hidden="true" /> {oraSpettacolo(s.inizio)} {s.titolo}</td>
+                        <td className="ok">{den}</td><td className="manca">{man}</td><td>{den + man}</td>
+                      </tr>
+                    );
+                  })}</tbody>
+                </table>
+              )}
+              {!spettacolo && <p className="piccolo muto">Stai vedendo tutti gli spettacoli insieme: tocca un evento qui sopra per vedere solo il suo.</p>}
               <button type="button" className="link-btn piccolo" onClick={() => carica()}>aggiorna</button>
               <ul className="sc-lista">
                 {(vedi === 'mancanti' ? presenze.mancanti : presenze.dentro).map((x) => (

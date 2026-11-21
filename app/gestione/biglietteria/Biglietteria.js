@@ -136,9 +136,9 @@ function Nuova({ palestraId, onFatto }) {
 const idOpzione = (nome) => `${nome.toLowerCase().normalize('NFD').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 24) || 'extra'}-${Math.random().toString(36).slice(2, 6)}`;
 
 // ---------------------------------------------------------------- uno spettacolo (modifica)
-function Spettacolo({ s, nPren, nAllievi = 0, aperto = false, onSalvato }) {
+function Spettacolo({ s, nPren, nAllievi = 0, aperto = false, altri = [], onSalvato }) {
   const [v, setV] = useState({
-    titolo: s.titolo, descrizione: s.descrizione || '', inizio: perInput(s.inizio), con_allievi: s.con_allievi, chiedi_nascita: s.chiedi_nascita !== false, scelta_allievo: s.scelta_allievo || 'gruppo', capienza_con_allievi: !!s.capienza_con_allievi, locandina_url: s.locandina_url || null, colore: s.colore || '', frase_offerta: s.frase_offerta || '', posti_per_allievo: String(s.posti_per_allievo),
+    titolo: s.titolo, descrizione: s.descrizione || '', inizio: perInput(s.inizio), con_allievi: s.con_allievi, chiedi_nascita: s.chiedi_nascita !== false, scelta_allievo: s.scelta_allievo || 'gruppo', capienza_con_allievi: !!s.capienza_con_allievi, locandina_url: s.locandina_url || null, colore: s.colore || '', accetta_durante: s.accetta_durante || [], frase_offerta: s.frase_offerta || '', posti_per_allievo: String(s.posti_per_allievo),
     liberi_dal: s.liberi_dal || '', capienza: s.capienza == null ? '' : String(s.capienza), max_per_prenotazione: String(s.max_per_prenotazione),
     contributo: euroTesto(s.contributo_cent), contributo_per_posto: s.contributo_per_posto, offerta_libera: s.offerta_libera,
     chiuso: s.chiuso,
@@ -151,7 +151,7 @@ function Spettacolo({ s, nPren, nAllievi = 0, aperto = false, onSalvato }) {
     setEsito('');
     if (!v.titolo.trim() || !v.inizio) { setEsito('Titolo e data/ora servono.'); return; }
     const { error } = await supabaseBrowser().from('biglietteria_spettacoli').update({
-      titolo: v.titolo.trim(), descrizione: v.descrizione.trim() || null, inizio: daInput(v.inizio), con_allievi: v.con_allievi, chiedi_nascita: v.chiedi_nascita, scelta_allievo: v.scelta_allievo, capienza_con_allievi: v.con_allievi && v.capienza_con_allievi, locandina_url: v.locandina_url || null, colore: v.colore || null, frase_offerta: v.frase_offerta.trim() || null,
+      titolo: v.titolo.trim(), descrizione: v.descrizione.trim() || null, inizio: daInput(v.inizio), con_allievi: v.con_allievi, chiedi_nascita: v.chiedi_nascita, scelta_allievo: v.scelta_allievo, capienza_con_allievi: v.con_allievi && v.capienza_con_allievi, locandina_url: v.locandina_url || null, colore: v.colore || null, accetta_durante: v.accetta_durante || [], frase_offerta: v.frase_offerta.trim() || null,
       posti_per_allievo: Math.max(1, Number(v.posti_per_allievo) || 2), liberi_dal: v.liberi_dal || null,
       capienza: v.capienza === '' ? null : Math.max(0, Number(v.capienza) || 0), max_per_prenotazione: Math.max(1, Number(v.max_per_prenotazione) || 10),
       contributo_cent: centDa(v.contributo) || 0, contributo_per_posto: v.contributo_per_posto, offerta_libera: v.offerta_libera,
@@ -222,6 +222,22 @@ function Spettacolo({ s, nPren, nAllievi = 0, aperto = false, onSalvato }) {
           </div>
         ))}
         <div className="c12"><button type="button" className="link-btn piccolo" onClick={() => setExtra((x) => [...x, { id: '', nome: '', descrizione: '', prezzo: '', entro: '' }])}>+ aggiungi un&apos;opzione</button></div>
+
+        {altri.length > 0 && (
+          <>
+            <div className="bt-sp-sezione c12">Ingresso <span className="piccolo muto">(scanner dei QR)</span></div>
+            <div className="c12 bt-sp-accetta">
+              <span className="piccolo">I biglietti di questo evento si accettano anche durante l&apos;ingresso di:</span>
+              {altri.map((a) => (
+                <label key={a.id} className="spunta bt-sp-spunta">
+                  <input type="checkbox" checked={(v.accetta_durante || []).includes(a.id)}
+                         onChange={(e) => setV((x) => ({ ...x, accetta_durante: e.target.checked ? [...(x.accetta_durante || []), a.id] : (x.accetta_durante || []).filter((y) => y !== a.id) }))} />
+                  <span><span className="bt-sp-pallino" style={{ background: a.colore || coloreEvento(a.ordine) }} aria-hidden="true" />{oraSpettacolo(a.inizio)} {a.titolo}</span>
+                </label>
+              ))}
+            </div>
+          </>
+        )}
 
         <div className="campo c8"><label>Descrizione (si vede nella pagina pubblica)</label><textarea rows={3} value={v.descrizione} onChange={set('descrizione')} /></div>
         <div className="c4 bt-sp-locandina"><Immagine url={v.locandina_url} cartella="biglietteria" etichetta="Locandina di questo evento" onChange={(url) => setV((x) => ({ ...x, locandina_url: url }))} /></div>
@@ -1046,7 +1062,7 @@ export default function Biglietteria({ palestraId, tutte, b, spettacoli, allievi
 
       {scheda === 'spettacoli' && (
         <>
-          {spettacoli.map((s) => <Spettacolo key={`${s.id}-${s.inizio}-${s.titolo}`} s={s} nPren={prenotazioni.filter((p) => p.spettacolo_id === s.id).length} nAllievi={allievi.filter((a) => a.spettacolo_id === s.id).length} aperto={spettacoli.length === 1} onSalvato={aggiorna} />)}
+          {spettacoli.map((s) => <Spettacolo key={`${s.id}-${s.inizio}-${s.titolo}`} s={s} nPren={prenotazioni.filter((p) => p.spettacolo_id === s.id).length} nAllievi={allievi.filter((a) => a.spettacolo_id === s.id).length} aperto={spettacoli.length === 1} altri={spettacoli.filter((x) => x.id !== s.id)} onSalvato={aggiorna} />)}
           {spettacoli.length === 0 && <div className="vuoto">Nessun evento ancora: aggiungine uno (o quanti ne servono).</div>}
           <button type="button" className="btn" onClick={nuovoSpettacolo}>Aggiungi un evento</button>
           <p className="piccolo muto">Gli orari sono quelli del giorno scelto: {spettacoli.map((s) => quandoSpettacolo(s.inizio)).join(' · ')}</p>

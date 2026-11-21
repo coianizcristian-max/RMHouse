@@ -5539,3 +5539,23 @@ body:has(.sportello) .bottone-rapide { display: none; }
   .bt-filtri .btn { width: auto !important; flex: 1 1 auto; min-height: 40px; font-size: 14px; }
   .bt-prenotazioni .bt-pren { padding: 10px 12px; }
 }
+/* scanner: scelta dello spettacolo sempre visibile, conferma per i biglietti di un altro spettacolo */
+.sc-testa { grid-template-columns: auto 1fr auto; }
+.sc-eventi { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 2px; scrollbar-width: none; }
+.sc-eventi::-webkit-scrollbar { display: none; }
+.sc-eventi button { flex: 0 0 auto; display: inline-flex; align-items: center; gap: 6px; min-height: 40px; padding: 0 14px; border: 2px solid var(--linea); border-radius: 999px; background: var(--bianco); font: inherit; font-size: 14px; font-weight: 700; white-space: nowrap; cursor: pointer; color: var(--testo); }
+.sc-eventi button[aria-pressed='true'] { border-color: var(--sc-col, #111); background: var(--sc-col, #111); color: #fff; }
+.sc-pallino { width: 10px; height: 10px; border-radius: 50%; background: var(--sc-col, #111); box-shadow: 0 0 0 2px #fff; }
+.sc-eventi-pannello { margin: 0 0 10px; }
+.sc-domanda { margin-top: 10px; font-size: 24px; }
+.sc-scelta { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: min(100%, 420px); margin-top: 6px; }
+.sc-scelta button { min-height: 60px; border: 3px solid #fff; border-radius: 16px; font: inherit; font-size: 20px; font-weight: 900; cursor: pointer; }
+.sc-si { background: #1e8e3e; color: #fff; } .sc-no { background: #fff; color: #c62828; }
+.sc-evento { display: inline-block; padding: 6px 16px; border-radius: 999px; background: var(--sc-col, #111); color: #fff; font-weight: 800; font-size: 18px; border: 3px solid #fff; }
+.sc-evento.altro { font-size: 24px; padding: 10px 20px; box-shadow: 0 0 0 6px rgba(0,0,0,.18); }
+.bt-sp-accetta { display: flex; flex-wrap: wrap; gap: 4px 16px; align-items: center; }
+.sc-perevento { width: 100%; margin: 10px 0 4px; border-collapse: collapse; font-size: 14px; }
+.sc-perevento th { text-align: left; font-size: 12px; color: var(--testo-2); padding: 4px 6px; }
+.sc-perevento td { padding: 8px 6px; border-top: 1px solid var(--linea); cursor: pointer; }
+.sc-perevento td.ok { color: #1e8e3e; font-weight: 800; } .sc-perevento td.manca { color: #c62828; font-weight: 800; }
+.sc-perevento .sc-pallino { display: inline-block; vertical-align: 0; }
