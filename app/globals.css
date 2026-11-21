@@ -5559,3 +5559,4 @@ body:has(.sportello) .bottone-rapide { display: none; }
 .sc-perevento td { padding: 8px 6px; border-top: 1px solid var(--linea); cursor: pointer; }
 .sc-perevento td.ok { color: #1e8e3e; font-weight: 800; } .sc-perevento td.manca { color: #c62828; font-weight: 800; }
 .sc-perevento .sc-pallino { display: inline-block; vertical-align: 0; }
+.cl-voci-titolo { padding: 8px 16px 2px; font-size: 12px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--rosso); }
